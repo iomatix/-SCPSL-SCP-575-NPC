@@ -68,7 +68,7 @@ namespace SCP_575.Playable
             if (player.CurrentItem is Flashlight)
             {
                 Flashlight temp = (Flashlight)player.CurrentItem;
-                return temp.Active;
+                return temp.CanEmitLight;
             }
             return player.HasFlashlightModuleEnabled;
         }

@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EXILED" Version="8.9.11" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" IncludeAssets="All" PrivateAssets="All" />
+    <PackageReference Include="EXILED" Version="9.0.0-alpha.19" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" IncludeAssets="All" PrivateAssets="All" />
     <PackageReference Include="YamlDotNet" Version="16.0.0" />
     <PackageReference Include="Lib.Harmony" Version="2.3.3" />
   </ItemGroup>

@@ -3,7 +3,6 @@ namespace SCP_575.Playable
     using CustomPlayerEffects;
     using Exiled.API.Enums;
     using Exiled.API.Features;
-    using Exiled.API.Features.Attributes;
     using Exiled.API.Features.Doors;
     using Exiled.API.Features.Roles;
     using Exiled.API.Features.Spawn;
@@ -28,11 +27,10 @@ namespace SCP_575.Playable
     using Player = Exiled.API.Features.Player;
     using Server = Exiled.API.Features.Server;
 
-    [CustomRole(RoleTypeId.Scp106)]
+    //[CustomRole(RoleTypeId.Scp106)]
     public class Scp575 : CustomRole
     {
         public readonly Dictionary<Player, int> ConsumptionStacks = new Dictionary<Player, int>();
-
         public override uint Id { get; set; } = 12;
         public override RoleTypeId Role { get; set; } = RoleTypeId.Scp106;
         public override int MaxHealth { get; set; } = 550;

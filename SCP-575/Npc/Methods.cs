@@ -252,7 +252,7 @@ namespace SCP_575.Npc
             {
                 foreach (Exiled.API.Features.Player player in Exiled.API.Features.Player.List)
                 {
-                    if (player.CurrentRoom.AreLightsOff && player.IsHuman && !player.HasFlashlightModuleEnabled && (!(player.CurrentItem is Flashlight flashlight) || !flashlight.Active))
+                    if (player.CurrentRoom.AreLightsOff && player.IsHuman && !player.HasFlashlightModuleEnabled && (!(player.CurrentItem is Flashlight flashlight) || !flashlight.CanEmitLight))
                     {
                         player.Hurt(_plugin.Config.NpcConfig.KeterDamage, _plugin.Config.NpcConfig.KilledBy);
                         player.Broadcast(_plugin.Config.NpcConfig.KeterBroadcast);
