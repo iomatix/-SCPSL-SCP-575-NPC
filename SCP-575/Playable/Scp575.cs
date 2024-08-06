@@ -1,8 +1,5 @@
 namespace SCP_575.Playable
 {
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel;
     using CustomPlayerEffects;
     using Exiled.API.Enums;
     using Exiled.API.Features;
@@ -20,7 +17,11 @@ namespace SCP_575.Playable
     using Mirror;
     using PlayerRoles;
     using PlayerRoles.PlayableScps;
+    using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
+    using System;
+    using System.Collections.Generic;
+    using System.ComponentModel;
     using UnityEngine;
     using Cassie = Exiled.API.Features.Cassie;
     using Map = Exiled.Events.Handlers.Map;
@@ -192,10 +193,10 @@ namespace SCP_575.Playable
             {
                 Log.Warn($"Adding {ev.Player.Nickname} to stop doll list.");
                 Plugin.Singleton.StopRagdollList.Add(ev.Player);
-                
+
                 RagdollData info = new(ev.Player.ReferenceHub, ev.DamageHandler.Base, Role, ev.Player.Position,
                     ev.Player.Rotation, ev.Player.Nickname, NetworkTime.time);
-                    
+
                 Ragdoll.CreateAndSpawn(info);
             }
         }

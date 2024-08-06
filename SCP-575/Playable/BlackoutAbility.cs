@@ -1,12 +1,12 @@
 namespace SCP_575.Playable
 {
-    using System.Collections.Generic;
-    using System.ComponentModel;
     using Exiled.API.Enums;
     using Exiled.API.Features;
     using Exiled.API.Features.Items;
     using Exiled.CustomRoles.API.Features;
     using MEC;
+    using System.Collections.Generic;
+    using System.ComponentModel;
 
     public class BlackoutAbility : ActiveAbility
     {
@@ -67,7 +67,7 @@ namespace SCP_575.Playable
         {
             if (player.CurrentItem is Flashlight)
             {
-                Flashlight temp = (Flashlight) player.CurrentItem;
+                Flashlight temp = (Flashlight)player.CurrentItem;
                 return temp.Active;
             }
             return player.HasFlashlightModuleEnabled;

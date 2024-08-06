@@ -1,10 +1,10 @@
 namespace SCP_575
 {
-    using System.Collections.Generic;
     using Exiled.Events.EventArgs.Player;
     using Exiled.Loader;
     using MEC;
     using SCP_575.ConfigObjects;
+    using System.Collections.Generic;
 
     public class EventHandlers
     {

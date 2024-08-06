@@ -1,13 +1,11 @@
 namespace SCP_575.Npc
 {
-    using System.Collections.Generic;
     using Exiled.API.Enums;
-
     using Exiled.API.Features.Items;
     using Exiled.Events.Handlers;
     using Exiled.Loader;
     using MEC;
-    using Respawning;
+    using System.Collections.Generic;
     using Map = Exiled.API.Features.Map;
 
     public class Methods
@@ -147,7 +145,7 @@ namespace SCP_575.Npc
                             {
                                 if (_plugin.Config.NpcConfig.DisableTeslas && r.Type.ToString().ToLower().Contains("tesla"))
                                 {
-                                    r.TeslaGate.CooldownTime = blackoutDur+0.5f;
+                                    r.TeslaGate.CooldownTime = blackoutDur + 0.5f;
                                     r.TeslaGate.ForceTrigger();
                                 }
                                 if (_plugin.Config.NpcConfig.DisableNuke && r.Type.ToString().ToLower().Contains("nuke"))

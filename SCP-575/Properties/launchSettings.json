@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SCP-575": {
+      "commandName": "Project",
+      "commandLineArgs": ""
+    }
+  }
+}

@@ -1,10 +1,10 @@
 namespace SCP_575.Playable
 {
-    using System;
-    using System.Linq;
     using Exiled.Events.Handlers;
     using Exiled.Loader;
     using PlayerRoles;
+    using System;
+    using System.Linq;
     using Player = Exiled.API.Features.Player;
 
     public class Methods

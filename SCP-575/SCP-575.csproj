@@ -9,6 +9,7 @@
     <TargetFramework>net48</TargetFramework>
     <AssemblyVersion>5.0.2</AssemblyVersion>
     <FileVersion>5.0.2</FileVersion>
+    <LangVersion>9.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,10 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EXILED" Version="7.2.0" />
+    <PackageReference Include="EXILED" Version="8.9.11" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" IncludeAssets="All" PrivateAssets="All" />
-    <PackageReference Include="YamlDotNet" Version="13.1.1" />
-    <PackageReference Include="Lib.Harmony" Version="2.2.2" />
+    <PackageReference Include="YamlDotNet" Version="16.0.0" />
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" />
   </ItemGroup>
 
   <ItemGroup>

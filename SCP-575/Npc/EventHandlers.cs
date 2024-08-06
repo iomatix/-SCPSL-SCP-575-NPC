@@ -1,11 +1,10 @@
 namespace SCP_575.Npc
 {
-    using System.Collections.Generic;
     using Exiled.API.Features;
     using Exiled.Events.EventArgs.Server;
-    using Exiled.Events.Handlers;
     using Exiled.Loader;
     using MEC;
+    using System.Collections.Generic;
 
     public class EventHandlers
     {
