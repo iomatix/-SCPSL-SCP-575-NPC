@@ -45,6 +45,9 @@
     <Reference Include="Exiled.CreditTags">
       <HintPath>..\..\_API\7.2.0\Exiled.CreditTags.dll</HintPath>
     </Reference>
+    <Reference Include="Exiled.CustomRoles">
+      <HintPath>..\..\_API\Exiled\EXILED\Plugins\Exiled.CustomRoles.dll</HintPath>
+    </Reference>
     <Reference Include="Exiled.Events">
       <HintPath>..\..\_API\7.2.0\Exiled.Events.dll</HintPath>
     </Reference>

@@ -35,8 +35,8 @@ namespace SCP_575
             }
             else
             {
-                // Exiled.CustomRoles.API is disabled
-                //_plugin.Playable.Methods.Init();
+                Exiled.CustomRoles.API is disabled
+                _plugin.Playable.Methods.Init();
             }
         }
     }

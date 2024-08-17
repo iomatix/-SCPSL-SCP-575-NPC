@@ -9,8 +9,8 @@ namespace SCP_575.Playable
 
         public void OnRoundStarted()
         {
-            // Exiled.CustomRoles.API is disabled
-            // Timing.CallDelayed(0.75f, _plugin.Playable.Methods.TrySpawn575);
+            
+            Timing.CallDelayed(0.75f, _plugin.Playable.Methods.TrySpawn575);
         }
     }
 }

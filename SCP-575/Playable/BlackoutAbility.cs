@@ -1,5 +1,3 @@
-// 9.0 Beta: CustomRoles.API Disabled until API is updated
-/*
 namespace SCP_575.Playable
 {
     using Exiled.API.Enums;
@@ -76,4 +74,3 @@ namespace SCP_575.Playable
         }
     }
 }
-*/

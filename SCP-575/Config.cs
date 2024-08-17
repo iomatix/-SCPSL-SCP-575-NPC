@@ -15,10 +15,8 @@ namespace SCP_575
         [Description("The configs for NPC instances of SCP-575.")]
         public NpcConfig NpcConfig { get; set; } = new NpcConfig();
 
-        // 9.0 Beta: CustomRoles.API Disabled until API is updated
-
-        //[Description("The configs for playable instances of SCP-575.")]
-        //public PlayableConfig PlayableConfig { get; set; } = new PlayableConfig();
+        [Description("The configs for playable instances of SCP-575.")]
+        public PlayableConfig PlayableConfig { get; set; } = new PlayableConfig();
 
         [Description("Whether of not debug messages are displayed in the console.")]
         public bool Debug { get; set; } = false;
