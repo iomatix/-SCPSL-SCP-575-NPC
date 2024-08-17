@@ -19,8 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EXILED" Version="9.0.0-alpha.19" />
+    <PackageReference Include="EXILED" Version="9.0.0-beta.1" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" IncludeAssets="All" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="YamlDotNet" Version="16.0.0" />
     <PackageReference Include="Lib.Harmony" Version="2.3.3" />
   </ItemGroup>
@@ -29,11 +33,8 @@
     <Reference Include="0Harmony">
       <HintPath>..\..\_API\7.2.0\0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\_API\7.2.0\Assembly-CSharp.dll</HintPath>
-    </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\..\_API\7.2.0\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>..\..\_API\Exiled\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="CommandSystem.Core">
       <HintPath>..\..\_API\7.2.0\CommandSystem.Core.dll</HintPath>
@@ -44,12 +45,6 @@
     <Reference Include="Exiled.CreditTags">
       <HintPath>..\..\_API\7.2.0\Exiled.CreditTags.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.CustomItems">
-      <HintPath>..\..\_API\7.2.0\Exiled.CustomItems.dll</HintPath>
-    </Reference>
-    <Reference Include="Exiled.CustomRoles">
-      <HintPath>..\..\_API\7.2.0\Exiled.CustomRoles.dll</HintPath>
-    </Reference>
     <Reference Include="Exiled.Events">
       <HintPath>..\..\_API\7.2.0\Exiled.Events.dll</HintPath>
     </Reference>
@@ -59,14 +54,8 @@
     <Reference Include="Exiled.Permissions">
       <HintPath>..\..\_API\7.2.0\Exiled.Permissions.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.Updater">
-      <HintPath>..\..\_API\7.2.0\Exiled.Updater.dll</HintPath>
-    </Reference>
     <Reference Include="Mirror">
-      <HintPath>..\..\_API\7.2.0\Mirror.dll</HintPath>
-    </Reference>
-    <Reference Include="Mono.Posix">
-      <HintPath>..\..\_API\7.2.0\Mono.Posix.dll</HintPath>
+      <HintPath>..\..\_API\Exiled\Mirror.dll</HintPath>
     </Reference>
     <Reference Include="NorthwoodLib">
       <HintPath>..\..\_API\7.2.0\NorthwoodLib.dll</HintPath>
@@ -74,20 +63,14 @@
     <Reference Include="PluginAPI">
       <HintPath>..\..\_API\7.2.0\PluginAPI.dll</HintPath>
     </Reference>
-    <Reference Include="SemanticVersioning">
-      <HintPath>..\..\_API\7.2.0\SemanticVersioning.dll</HintPath>
-    </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations">
       <HintPath>..\..\_API\7.2.0\System.ComponentModel.DataAnnotations.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\..\_API\7.2.0\UnityEngine.dll</HintPath>
+      <HintPath>..\..\_API\Exiled\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\_API\7.2.0\UnityEngine.CoreModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>..\..\_API\7.2.0\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>..\..\_API\Exiled\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="YamlDotNet">
       <HintPath>..\..\_API\7.2.0\YamlDotNet.dll</HintPath>
