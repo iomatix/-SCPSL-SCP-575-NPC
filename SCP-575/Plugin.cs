@@ -1,8 +1,8 @@
 namespace SCP_575
-{
+{   
     using Exiled.API.Features;
-    using Exiled.CustomRoles.API;
-    using Exiled.CustomRoles.API.Features;
+    //using Exiled.CustomRoles.API;
+    //using Exiled.CustomRoles.API.Features;
     using MEC;
     using System;
     using System.Collections.Generic;
@@ -23,16 +23,16 @@ namespace SCP_575
 
         
         public NestingObjects.Npc Npc { get; private set; }
-        public NestingObjects.Playable Playable { get; private set; }
+        //public NestingObjects.Playable Playable { get; private set; }
         public List<Player> StopRagdollList { get; } = new List<Player>();
 
         public override void OnEnabled()
         {
             Singleton = this;
-            Config.PlayableConfig.Scp575.Register();
+            //Config.PlayableConfig.Scp575.Register();
             EventHandlers = new EventHandlers(this);
             Npc = new NestingObjects.Npc(this);
-            Playable = new NestingObjects.Playable(this);
+            //Playable = new NestingObjects.Playable(this);
 
             Server.WaitingForPlayers += EventHandlers.OnWaitingForPlayers;
             Exiled.Events.Handlers.Player.SpawningRagdoll += EventHandlers.OnSpawningRagdoll;
@@ -42,7 +42,7 @@ namespace SCP_575
 
         public override void OnDisabled()
         {
-            CustomRole.UnregisterRoles();
+            //CustomRole.UnregisterRoles();
             foreach (CoroutineHandle handle in EventHandlers.Coroutines)
                 Timing.KillCoroutines(handle);
             EventHandlers.Coroutines.Clear();
@@ -51,7 +51,7 @@ namespace SCP_575
 
             EventHandlers = null;
             Npc = null;
-            Playable = null;
+            //Playable = null;
 
             base.OnDisabled();
         }

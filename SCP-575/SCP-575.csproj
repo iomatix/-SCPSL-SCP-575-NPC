@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EXILED" Version="9.0.0-beta.1" />
+    <PackageReference Include="EXILED" Version="9.0.0-beta.2" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" IncludeAssets="All" PrivateAssets="All" />
     <PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556">
       <PrivateAssets>all</PrivateAssets>
@@ -44,9 +44,6 @@
     </Reference>
     <Reference Include="Exiled.CreditTags">
       <HintPath>..\..\_API\7.2.0\Exiled.CreditTags.dll</HintPath>
-    </Reference>
-    <Reference Include="Exiled.CustomRoles">
-      <HintPath>..\..\_API\Exiled\EXILED\Plugins\Exiled.CustomRoles.dll</HintPath>
     </Reference>
     <Reference Include="Exiled.Events">
       <HintPath>..\..\_API\7.2.0\Exiled.Events.dll</HintPath>
@@ -74,6 +71,9 @@
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\..\_API\Exiled\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\..\_API\Exiled\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
     <Reference Include="YamlDotNet">
       <HintPath>..\..\_API\7.2.0\YamlDotNet.dll</HintPath>

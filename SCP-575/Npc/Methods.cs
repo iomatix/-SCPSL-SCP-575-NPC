@@ -1,12 +1,12 @@
 namespace SCP_575.Npc
 {
     using Exiled.API.Enums;
-    using Exiled.API.Features.Items;
-    using Exiled.Events.Handlers;
+    using Exiled.API.Features;
     using Exiled.Loader;
     using MEC;
     using System.Collections.Generic;
     using Map = Exiled.API.Features.Map;
+    using Server = Exiled.Events.Handlers.Server;
 
     public class Methods
     {
@@ -60,7 +60,7 @@ namespace SCP_575.Npc
                     {
                         Map.TurnOffAllLights(blackoutDur, ZoneType.LightContainment);
                         isBlackout = true;
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageLight, false, false);
+                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageLight, false, false, false);
                     }
                     if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceHeavy)
                     {
@@ -78,33 +78,33 @@ namespace SCP_575.Npc
                         }
                         Map.TurnOffAllLights(blackoutDur, ZoneType.HeavyContainment);
                         isBlackout = true;
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageHeavy, false, false);
+                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageHeavy, false, false, false);
 
                     }
                     if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceEntrance)
                     {
                         Map.TurnOffAllLights(blackoutDur, ZoneType.Entrance);
                         isBlackout = true;
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageEntrance, false, false);
+                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageEntrance, false, false, false);
                     }
                     if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceSurface)
                     {
                         Map.TurnOffAllLights(blackoutDur, ZoneType.Surface);
                         isBlackout = true;
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageSurface, false, false);
+                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageSurface, false, false, false);
                     }
                     if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceOther)
                     {
                         Map.TurnOffAllLights(blackoutDur, ZoneType.Other);
                         isBlackout = true;
-                        if (!isOtherMessage) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false);
+                        if (!isOtherMessage) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false, false);
                         isOtherMessage = true;
                     }
                     if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceUnspecified)
                     {
                         Map.TurnOffAllLights(blackoutDur, ZoneType.Unspecified);
                         isBlackout = true;
-                        if (!isOtherMessage) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false);
+                        if (!isOtherMessage) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false, false);
                         isOtherMessage = true;
                     }
                     if (!isBlackout && _plugin.Config.NpcConfig.EnableFacilityBlackout)
@@ -126,7 +126,7 @@ namespace SCP_575.Npc
                         Map.TurnOffAllLights(blackoutDur, ZoneType.Surface);
                         Map.TurnOffAllLights(blackoutDur, ZoneType.LightContainment);
                         Map.TurnOffAllLights(blackoutDur, ZoneType.HeavyContainment);
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageFacility, false, false);
+                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageFacility, false, false, false);
 
 
                     }
@@ -212,22 +212,22 @@ namespace SCP_575.Npc
                             Map.TurnOffAllLights(blackoutDur, ZoneType.Surface);
                             Map.TurnOffAllLights(blackoutDur, ZoneType.LightContainment);
                             Map.TurnOffAllLights(blackoutDur, ZoneType.HeavyContainment);
-                            Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageFacility, false, false);
+                            Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageFacility, false, false, false);
                         }
                     }
-                    else Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false);
+                    else Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false, false);
 
                 }
 
                 // End Event
                 if (isBlackout)
                 {
-                    if (_plugin.Config.NpcConfig.Voice) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieKeter, false, false);
+                    if (_plugin.Config.NpcConfig.Voice) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieKeter, false, false, false);
                     yield return Timing.WaitForSeconds(blackoutDur);
-                    Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageEnd, false, false);
+                    Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageEnd, false, false, false);
                     yield return Timing.WaitForSeconds(8.0f);
                 }
-                else Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageWrong, false, false);
+                else Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageWrong, false, false, false);
 
                 Timing.KillCoroutines("keter");
 
@@ -252,7 +252,8 @@ namespace SCP_575.Npc
             {
                 foreach (Exiled.API.Features.Player player in Exiled.API.Features.Player.List)
                 {
-                    if (player.CurrentRoom.AreLightsOff && player.IsHuman && !player.HasFlashlightModuleEnabled && (!(player.CurrentItem is Flashlight flashlight) || !flashlight.CanEmitLight))
+
+                    if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.IsEmittingLight ?? false))
                     {
                         player.Hurt(_plugin.Config.NpcConfig.KeterDamage, _plugin.Config.NpcConfig.KilledBy);
                         player.Broadcast(_plugin.Config.NpcConfig.KeterBroadcast);
