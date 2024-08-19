@@ -1,10 +1,10 @@
 namespace SCP_575.Npc
 {
+    using System.Collections.Generic;
     using Exiled.API.Enums;
     using Exiled.API.Features;
     using Exiled.Loader;
     using MEC;
-    using System.Collections.Generic;
     using Map = Exiled.API.Features.Map;
     using Server = Exiled.Events.Handlers.Server;
 

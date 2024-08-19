@@ -1,7 +1,8 @@
 namespace SCP_575.ConfigObjects
 {
-    using Exiled.API.Features;
     using System.ComponentModel;
+    using Exiled.API.Features;
+
 
     public class NpcConfig
     {
