@@ -68,7 +68,7 @@ namespace SCP_575.Npc
 
             if (Config.EnableKeter)
             {
-                _plugin.EventHandlers.Coroutines.Add(Timing.RunCoroutine(KeterDamage(blackoutDuration), tag: "SCP575keter"));
+                _plugin.EventHandlers.Coroutines.Add(Timing.RunCoroutine(KeterDamage(), tag: "SCP575keter"));
             }
 
             TriggerCassieMessage(Config.CassiePostMessage);
@@ -290,9 +290,9 @@ namespace SCP_575.Npc
             }
         }
 
-        public IEnumerator<float> KeterDamage(float duration)
+        public IEnumerator<float> KeterDamage()
         {
-            do
+            for(; ; )
             {
                 foreach (var player in Player.List)
                 {
@@ -304,7 +304,7 @@ namespace SCP_575.Npc
 
                     yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
                 }
-            } while ((duration -= Config.KeterDamageDelay) > Config.KeterDamageDelay);
+            }
         }
     }
 }
