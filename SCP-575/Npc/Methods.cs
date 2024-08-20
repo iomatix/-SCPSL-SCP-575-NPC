@@ -292,7 +292,7 @@ namespace SCP_575.Npc
 
         public IEnumerator<float> KeterDamage()
         {
-            for(; ; )
+            while (true)
             {
                 foreach (var player in Player.List)
                 {
@@ -302,8 +302,9 @@ namespace SCP_575.Npc
                         player.Broadcast(Config.KeterBroadcast);
                     }
 
-                    yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
+                   
                 }
+                yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
             }
         }
     }
