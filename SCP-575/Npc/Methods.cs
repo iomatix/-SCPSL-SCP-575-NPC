@@ -17,6 +17,8 @@ namespace SCP_575.Npc
         private NpcConfig Config => _plugin.Config.NpcConfig;
         public Methods(Plugin plugin) => _plugin = plugin;
 
+        private int blackoutStacks = 0;
+
         public void Init()
         {
             Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
@@ -32,6 +34,7 @@ namespace SCP_575.Npc
 
         public void Clean()
         {
+            blackoutStacks = 0;
             ResetTeslaGates();
         }
         public IEnumerator<float> RunBlackoutTimer()
@@ -48,14 +51,16 @@ namespace SCP_575.Npc
 
         private IEnumerator<float> ExecuteBlackoutEvent()
         {
-            TriggerCassieMessage(Config.CassieMessageStart, true);
-
-            if (Config.FlickerLights)
+            if (blackoutStacks == 0)
             {
-                FlickerAllZoneLights(Config.FlickerLightsDuration);
-            }
+                TriggerCassieMessage(Config.CassieMessageStart, true);
 
-            yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndStart);
+                if (Config.FlickerLights)
+                {
+                    FlickerAllZoneLights(Config.FlickerLightsDuration);
+                }
+                yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndStart);
+            }
 
             float blackoutDuration = Config.RandomEvents
                 ? GetRandomBlackoutDuration()
@@ -90,20 +95,20 @@ namespace SCP_575.Npc
 
         private bool HandleZoneSpecificBlackout(float blackoutDuration)
         {
-            bool blackoutTriggered = false;
+            bool isBlackoutTriggered = false;
 
-            blackoutTriggered |= AttemptZoneBlackout(ZoneType.LightContainment, Config.ChanceLight, Config.CassieMessageLight, blackoutDuration);
-            blackoutTriggered |= AttemptZoneBlackout(ZoneType.HeavyContainment, Config.ChanceHeavy, Config.CassieMessageHeavy, blackoutDuration);
-            blackoutTriggered |= AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
-            blackoutTriggered |= AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.LightContainment, Config.ChanceLight, Config.CassieMessageLight, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.HeavyContainment, Config.ChanceHeavy, Config.CassieMessageHeavy, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
 
-            if (!blackoutTriggered && Config.EnableFacilityBlackout)
+            if (blackoutStacks == 0 && Config.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
-                blackoutTriggered = true;
+                isBlackoutTriggered = true;
             }
 
-            return blackoutTriggered;
+            return isBlackoutTriggered;
         }
 
         private bool AttemptZoneBlackout(ZoneType zone, float chance, string cassieMessage, float blackoutDuration, bool disableSystems = false)
@@ -236,6 +241,7 @@ namespace SCP_575.Npc
         {
             if (blackoutOccurred)
             {
+                blackoutStacks++;
                 if (Config.Voice)
                 {
                     TriggerCassieMessage(Config.CassieKeter);
@@ -244,7 +250,7 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(blackoutDuration);
                 TriggerCassieMessage(Config.CassieMessageEnd);
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
-
+                blackoutStacks--;
                 Timing.KillCoroutines("SCP575keter");
                 ResetTeslaGates();
             }
@@ -265,7 +271,7 @@ namespace SCP_575.Npc
         private void ResetTeslaGate(TeslaGate gate)
         {
             gate.ForceTrigger();
-            gate.CooldownTime = 1f;
+            gate.CooldownTime = 5f;
         }
 
         private void TriggerCassieMessage(string message, bool isGlitchy = false)
