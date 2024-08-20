@@ -1,267 +1,300 @@
 namespace SCP_575.Npc
 {
+    using System;
     using System.Collections.Generic;
     using Exiled.API.Enums;
     using Exiled.API.Features;
     using Exiled.Loader;
     using MEC;
+    using SCP_575.ConfigObjects;
+    using UnityEngine;
     using Map = Exiled.API.Features.Map;
     using Server = Exiled.Events.Handlers.Server;
 
     public class Methods
     {
         private readonly Plugin _plugin;
+        private NpcConfig Config => _plugin.Config.NpcConfig;
         public Methods(Plugin plugin) => _plugin = plugin;
 
         public void Init()
         {
-            Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
             Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
-            _plugin.Npc.EventHandlers.OnWaitingForPlayers();
+            Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
         }
 
         public void Disable()
         {
-            Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
+            Clean();
             Server.RoundStarted -= _plugin.Npc.EventHandlers.OnRoundStart;
+            Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
         }
 
+        public void Clean()
+        {
+            ResetTeslaGates();
+        }
         public IEnumerator<float> RunBlackoutTimer()
         {
-            yield return Timing.WaitForSeconds(_plugin.Config.NpcConfig.InitialDelay);
-            if (_plugin.Config.NpcConfig.RandomEvents) yield return Timing.WaitForSeconds(Loader.Random.Next(_plugin.Config.NpcConfig.DelayMin, _plugin.Config.NpcConfig.DelayMax));
-            for (; ; )
+            yield return Timing.WaitForSeconds(Config.InitialDelay);
+
+            while (true)
             {
-                bool isBlackout = false;
-
-                Exiled.API.Features.Cassie.GlitchyMessage(_plugin.Config.NpcConfig.CassieMessageStart, _plugin.Config.NpcConfig.GlitchChance / 100, _plugin.Config.NpcConfig.JamChance / 100);
-
-                if (_plugin.Config.NpcConfig.FlickerLights)
-                {
-                    Map.TurnOffAllLights(_plugin.Config.NpcConfig.FlickerLightsDuration, ZoneType.Entrance);
-                    Map.TurnOffAllLights(_plugin.Config.NpcConfig.FlickerLightsDuration, ZoneType.Surface);
-                    Map.TurnOffAllLights(_plugin.Config.NpcConfig.FlickerLightsDuration, ZoneType.LightContainment);
-                    Map.TurnOffAllLights(_plugin.Config.NpcConfig.FlickerLightsDuration, ZoneType.HeavyContainment);
-                }
-
-                yield return Timing.WaitForSeconds(_plugin.Config.NpcConfig.TimeBetweenSentenceAndStart);
-                float blackoutDur = _plugin.Config.NpcConfig.DurationMax;
-                if (_plugin.Config.NpcConfig.RandomEvents) blackoutDur = (float)Loader.Random.NextDouble() * (_plugin.Config.NpcConfig.DurationMax - _plugin.Config.NpcConfig.DurationMin) + _plugin.Config.NpcConfig.DurationMin;
-                if (_plugin.Config.NpcConfig.EnableKeter) _plugin.EventHandlers.Coroutines.Add(Timing.RunCoroutine(Keter(blackoutDur), "keter"));
-
-                Exiled.API.Features.Cassie.GlitchyMessage(_plugin.Config.NpcConfig.CassiePostMessage, _plugin.Config.NpcConfig.GlitchChance / 100, _plugin.Config.NpcConfig.JamChance / 100);
-                //Per Zone
-                if (_plugin.Config.NpcConfig.UsePerRoomChances == false)
-                {
-                    List<ZoneType> zones = new List<ZoneType>();
-
-                    bool isOtherMessage = false;
-                    if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceLight)
-                    {
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.LightContainment);
-                        isBlackout = true;
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageLight, false, false, false);
-                    }
-                    if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceHeavy)
-                    {
-                        if (_plugin.Config.NpcConfig.DisableTeslas)
-                        {
-                            foreach (Exiled.API.Features.TeslaGate tg in Exiled.API.Features.TeslaGate.List)
-                            {
-                                tg.CooldownTime = blackoutDur + 0.5f;
-                                tg.ForceTrigger();
-                            }
-                        }
-                        if (_plugin.Config.NpcConfig.DisableNuke)
-                        {
-                            if (Exiled.API.Features.Warhead.Controller.isActiveAndEnabled) Exiled.API.Features.Warhead.Stop();
-                        }
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.HeavyContainment);
-                        isBlackout = true;
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageHeavy, false, false, false);
-
-                    }
-                    if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceEntrance)
-                    {
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.Entrance);
-                        isBlackout = true;
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageEntrance, false, false, false);
-                    }
-                    if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceSurface)
-                    {
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.Surface);
-                        isBlackout = true;
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageSurface, false, false, false);
-                    }
-                    if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceOther)
-                    {
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.Other);
-                        isBlackout = true;
-                        if (!isOtherMessage) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false, false);
-                        isOtherMessage = true;
-                    }
-                    if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceUnspecified)
-                    {
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.Unspecified);
-                        isBlackout = true;
-                        if (!isOtherMessage) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false, false);
-                        isOtherMessage = true;
-                    }
-                    if (!isBlackout && _plugin.Config.NpcConfig.EnableFacilityBlackout)
-                    {
-                        isBlackout = true;
-                        if (_plugin.Config.NpcConfig.DisableTeslas)
-                        {
-                            foreach (Exiled.API.Features.TeslaGate tg in Exiled.API.Features.TeslaGate.List)
-                            {
-                                tg.CooldownTime = blackoutDur + 0.5f;
-                                tg.ForceTrigger();
-                            }
-                        }
-                        if (_plugin.Config.NpcConfig.DisableNuke)
-                        {
-                            if (Exiled.API.Features.Warhead.Controller.isActiveAndEnabled) Exiled.API.Features.Warhead.Stop();
-                        }
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.Entrance);
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.Surface);
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.LightContainment);
-                        Map.TurnOffAllLights(blackoutDur, ZoneType.HeavyContainment);
-                        Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageFacility, false, false, false);
-
-
-                    }
-
-                }
-                // Per Room 
-                else
-                {
-
-                    foreach (Exiled.API.Features.Room r in Exiled.API.Features.Room.List)
-                    {
-                        //Heavy 
-                        if (r.Type.ToString().Contains("Hcz"))
-                        {
-                            if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceHeavy)
-                            {
-                                if (_plugin.Config.NpcConfig.DisableTeslas && r.Type.ToString().ToLower().Contains("tesla"))
-                                {
-                                    r.TeslaGate.CooldownTime = blackoutDur + 0.5f;
-                                    r.TeslaGate.ForceTrigger();
-                                }
-                                if (_plugin.Config.NpcConfig.DisableNuke && r.Type.ToString().ToLower().Contains("nuke"))
-                                {
-                                    if (Exiled.API.Features.Warhead.Controller.isActiveAndEnabled) Exiled.API.Features.Warhead.Stop();
-                                }
-                                r.TurnOffLights(blackoutDur);
-                                isBlackout = true;
-
-                            }
-                        }
-                        //Light
-                        else if (r.Type.ToString().Contains("Lcz"))
-                        {
-                            if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceLight)
-                            {
-                                r.TurnOffLights(blackoutDur); isBlackout = true;
-                            }
-                        }
-                        //Entrance 
-                        else if (r.Type.ToString().Contains("Ez"))
-                        {
-                            if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceEntrance)
-                            {
-                                r.TurnOffLights(blackoutDur); isBlackout = true;
-                            }
-                        }
-                        //Surface 
-                        else if (r.Type.ToString().Contains("Surface"))
-                        {
-                            if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceSurface)
-                            {
-                                r.TurnOffLights(blackoutDur); isBlackout = true;
-                            }
-                        }
-                        //Misc
-                        else
-                        {
-                            if (((float)Loader.Random.NextDouble() * 100) < _plugin.Config.NpcConfig.ChanceOther)
-                            {
-                                r.TurnOffLights(blackoutDur); isBlackout = true;
-                            }
-                        }
-
-                    }
-                    if (!isBlackout)
-                    {
-                        if (_plugin.Config.NpcConfig.EnableFacilityBlackout)
-                        {
-                            isBlackout = true;
-                            if (_plugin.Config.NpcConfig.DisableTeslas)
-                            {
-                                foreach (Exiled.API.Features.TeslaGate tg in Exiled.API.Features.TeslaGate.List)
-                                {
-                                    tg.CooldownTime = blackoutDur + 0.5f;
-                                    tg.ForceTrigger();
-                                }
-                            }
-                            if (_plugin.Config.NpcConfig.DisableNuke)
-                            {
-                                if (Exiled.API.Features.Warhead.Controller.isActiveAndEnabled) Exiled.API.Features.Warhead.Stop();
-                            }
-                            Map.TurnOffAllLights(blackoutDur, ZoneType.Entrance);
-                            Map.TurnOffAllLights(blackoutDur, ZoneType.Surface);
-                            Map.TurnOffAllLights(blackoutDur, ZoneType.LightContainment);
-                            Map.TurnOffAllLights(blackoutDur, ZoneType.HeavyContainment);
-                            Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageFacility, false, false, false);
-                        }
-                    }
-                    else Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageOther, false, false, false);
-
-                }
-
-                // End Event
-                if (isBlackout)
-                {
-                    if (_plugin.Config.NpcConfig.Voice) Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieKeter, false, false, false);
-                    yield return Timing.WaitForSeconds(blackoutDur);
-                    Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageEnd, false, false, false);
-                    yield return Timing.WaitForSeconds(8.0f);
-                }
-                else Exiled.API.Features.Cassie.Message(_plugin.Config.NpcConfig.CassieMessageWrong, false, false, false);
-
-                Timing.KillCoroutines("keter");
-
-                if (_plugin.Config.NpcConfig.DisableTeslas)
-                {
-                    foreach (Exiled.API.Features.TeslaGate tg in Exiled.API.Features.TeslaGate.List)
-                    {
-                        tg.ForceTrigger();
-                        tg.CooldownTime = 0.5f;
-                    }
-                }
-                if (_plugin.Config.NpcConfig.RandomEvents)
-                    yield return Timing.WaitForSeconds(Loader.Random.Next(_plugin.Config.NpcConfig.DelayMin, _plugin.Config.NpcConfig.DelayMax));
-                else
-                    yield return Timing.WaitForSeconds(_plugin.Config.NpcConfig.InitialDelay);
+                yield return Timing.WaitForSeconds(Config.RandomEvents ? Loader.Random.Next(Config.DelayMin, Config.DelayMax) : Config.InitialDelay);
+                _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent()));
+                
             }
         }
 
-        public IEnumerator<float> Keter(float dur)
+        private IEnumerator<float> ExecuteBlackoutEvent()
+        {
+            TriggerCassieMessage(Config.CassieMessageStart, true);
+
+            if (Config.FlickerLights)
+            {
+                FlickerAllZoneLights(Config.FlickerLightsDuration);
+            }
+
+            yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndStart);
+
+            float blackoutDuration = Config.RandomEvents
+                ? GetRandomBlackoutDuration()
+                : Config.DurationMax;
+
+            if (Config.EnableKeter)
+            {
+                _plugin.EventHandlers.Coroutines.Add(Timing.RunCoroutine(KeterDamage(blackoutDuration)));
+            }
+
+            TriggerCassieMessage(Config.CassiePostMessage);
+
+            bool blackoutOccurred = Config.UsePerRoomChances
+                ? HandleRoomSpecificBlackout(blackoutDuration)
+                : HandleZoneSpecificBlackout(blackoutDuration);
+
+            _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration)));
+        }
+
+        private void FlickerAllZoneLights(float duration)
+        {
+            foreach (ZoneType zone in Enum.GetValues(typeof(ZoneType)))
+            {
+                Map.TurnOffAllLights(duration, zone);
+            }
+        }
+
+        private float GetRandomBlackoutDuration()
+        {
+            return (float)Loader.Random.NextDouble() * (Config.DurationMax - Config.DurationMin) + Config.DurationMin;
+        }
+
+        private bool HandleZoneSpecificBlackout(float blackoutDuration)
+        {
+            bool blackoutTriggered = false;
+
+            blackoutTriggered |= AttemptZoneBlackout(ZoneType.LightContainment, Config.ChanceLight, Config.CassieMessageLight, blackoutDuration);
+            blackoutTriggered |= AttemptZoneBlackout(ZoneType.HeavyContainment, Config.ChanceHeavy, Config.CassieMessageHeavy, blackoutDuration, true);
+            blackoutTriggered |= AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
+            blackoutTriggered |= AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
+
+            if (!blackoutTriggered && Config.EnableFacilityBlackout)
+            {
+                TriggerFacilityWideBlackout(blackoutDuration);
+                blackoutTriggered = true;
+            }
+
+            return blackoutTriggered;
+        }
+
+        private bool AttemptZoneBlackout(ZoneType zone, float chance, string cassieMessage, float blackoutDuration, bool disableSystems = false)
+        {
+            if (Loader.Random.NextDouble() * 100 < chance)
+            {
+                Map.TurnOffAllLights(blackoutDuration, zone);
+                TriggerCassieMessage(cassieMessage);
+
+                if (disableSystems)
+                {
+                    DisableFacilitySystems(blackoutDuration);
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private void TriggerFacilityWideBlackout(float blackoutDuration)
+        {
+            foreach (ZoneType zone in Enum.GetValues(typeof(ZoneType)))
+            {
+                Map.TurnOffAllLights(blackoutDuration, zone);
+            }
+
+            DisableFacilitySystems(blackoutDuration);
+            TriggerCassieMessage(Config.CassieMessageFacility);
+        }
+
+        private bool HandleRoomSpecificBlackout(float blackoutDuration)
+        {
+            bool blackoutTriggered = false;
+
+            foreach (var room in Room.List)
+            {
+                if (AttemptRoomBlackout(room, blackoutDuration))
+                {
+                    blackoutTriggered = true;
+                }
+            }
+
+            if (!blackoutTriggered && Config.EnableFacilityBlackout)
+            {
+                TriggerFacilityWideBlackout(blackoutDuration);
+                return true;
+            }
+
+            return blackoutTriggered;
+        }
+
+        private bool AttemptRoomBlackout(Room room, float blackoutDuration)
+        {
+            switch (room.Zone)
+            {
+                case ZoneType.HeavyContainment:
+                    if (Loader.Random.NextDouble() * 100 < Config.ChanceHeavy)
+                    {
+                        HandleRoomBlackout(room, blackoutDuration);
+                        return true;
+                    }
+                    break;
+                case ZoneType.LightContainment:
+                    if (Loader.Random.NextDouble() * 100 < Config.ChanceLight)
+                    {
+                        room.TurnOffLights(blackoutDuration);
+                        return true;
+                    }
+                    break;
+                case ZoneType.Entrance:
+                    if (Loader.Random.NextDouble() * 100 < Config.ChanceEntrance)
+                    {
+                        room.TurnOffLights(blackoutDuration);
+                        return true;
+                    }
+                    break;
+                case ZoneType.Surface:
+                    if (Loader.Random.NextDouble() * 100 < Config.ChanceSurface)
+                    {
+                        room.TurnOffLights(blackoutDuration);
+                        return true;
+                    }
+                    break;
+                default:
+                    if (Loader.Random.NextDouble() * 100 < Config.ChanceOther)
+                    {
+                        room.TurnOffLights(blackoutDuration);
+                        return true;
+                    }
+                    break;
+            }
+
+            return false;
+        }
+
+        private void HandleRoomBlackout(Room room, float blackoutDuration)
+        {
+            if (Config.DisableTeslas && room.Type.Equals(RoomType.HczTesla))
+            {
+                room.TeslaGate.CooldownTime = blackoutDuration + 0.5f;
+                room.TeslaGate.ForceTrigger();
+            }
+
+            if (Config.DisableNuke && room.Type.Equals(RoomType.HczNuke) && Warhead.IsInProgress && !Warhead.IsLocked)
+            {
+                Warhead.Stop();
+            }
+
+            room.TurnOffLights(blackoutDuration);
+        }
+
+        private void DisableFacilitySystems(float blackoutDuration)
+        {
+            foreach (Room room in Room.List)
+            {
+                room.TurnOffLights(blackoutDuration);
+            }
+
+            ResetTeslaGates();
+
+
+            if (Config.DisableNuke && Warhead.IsInProgress && !Warhead.IsLocked)
+            {
+                Warhead.Stop();
+            }
+        }
+
+        private IEnumerator<float> FinalizeBlackoutEvent(bool blackoutOccurred, float blackoutDuration)
+        {
+            if (blackoutOccurred)
+            {
+                if (Config.Voice)
+                {
+                    TriggerCassieMessage(Config.CassieKeter);
+                }
+
+                yield return Timing.WaitForSeconds(blackoutDuration);
+                TriggerCassieMessage(Config.CassieMessageEnd);
+                yield return Timing.WaitForSeconds(8.0f);
+
+                Timing.KillCoroutines("keter");
+                ResetTeslaGates();
+            }
+            else
+            {
+                TriggerCassieMessage(Config.CassieMessageWrong);
+            }
+        }
+
+        private void ResetTeslaGates()
+        {
+            foreach (var teslaGate in TeslaGate.List)
+            {
+                ResetTeslaGate(teslaGate);
+            }
+        }
+
+        private void ResetTeslaGate(TeslaGate gate)
+        {
+            gate.ForceTrigger();
+            gate.CooldownTime = 1f;
+        }
+
+        private void TriggerCassieMessage(string message, bool isGlitchy = false)
+        {
+            if (isGlitchy)
+            {
+                Cassie.GlitchyMessage(message, Config.GlitchChance / 100, Config.JamChance / 100);
+            }
+            else
+            {
+                Cassie.Message(message, false, false, false);
+            }
+        }
+
+        public IEnumerator<float> KeterDamage(float duration)
         {
             do
             {
-                foreach (Exiled.API.Features.Player player in Exiled.API.Features.Player.List)
+                foreach (var player in Player.List)
                 {
-
                     if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.IsEmittingLight ?? false))
                     {
-                        player.Hurt(_plugin.Config.NpcConfig.KeterDamage, _plugin.Config.NpcConfig.KilledBy);
-                        player.Broadcast(_plugin.Config.NpcConfig.KeterBroadcast);
+                        player.Hurt(Config.KeterDamage, Config.KilledBy);
+                        player.Broadcast(Config.KeterBroadcast);
                     }
 
-                    yield return Timing.WaitForSeconds(_plugin.Config.NpcConfig.KeterDamageDelay);
+                    yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
                 }
-            } while ((dur -= _plugin.Config.NpcConfig.KeterDamageDelay) > _plugin.Config.NpcConfig.KeterDamageDelay);
+            } while ((duration -= Config.KeterDamageDelay) > Config.KeterDamageDelay);
         }
     }
 }

@@ -17,7 +17,7 @@ namespace SCP_575
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(6, 0, 0);
+        public override Version Version { get; } = new(6, 2, 0);
         public override Version RequiredExiledVersion { get; } = new(9, 0, 0);
 
         public EventHandlers EventHandlers { get; private set; }
@@ -44,8 +44,7 @@ namespace SCP_575
         public override void OnDisabled()
         {
             //CustomRole.UnregisterRoles();
-            foreach (CoroutineHandle handle in EventHandlers.Coroutines)
-                Timing.KillCoroutines(handle);
+            foreach (CoroutineHandle handle in EventHandlers.Coroutines) Timing.KillCoroutines(handle);
             EventHandlers.Coroutines.Clear();
             Server.WaitingForPlayers -= EventHandlers.OnWaitingForPlayers;
             Exiled.Events.Handlers.Player.SpawningRagdoll -= EventHandlers.OnSpawningRagdoll;

@@ -116,11 +116,8 @@ namespace SCP_575.ConfigObjects
         [Description("Percentage chance of an outage at the Surface Zone during the blackout.")]
         public int ChanceSurface { get; set; } = 25;
 
-        [Description("Percentage chance of an outage at an unknown type of zone during the blackout.")]
+        [Description("Percentage chance of an outage at an unknown and unspecified type of zone during the blackout.")]
         public int ChanceOther { get; set; } = 0;
-
-        [Description("Percentage chance of an outage at an unspecified zone during the blackout.")]
-        public int ChanceUnspecified { get; set; } = 0;
 
         [Description("Change this to true if want to use per room probability settings isntead of per zone settings. The script will check all rooms in the specified zone with its probability.")]
         public bool UsePerRoomChances { get; set; } = false;
