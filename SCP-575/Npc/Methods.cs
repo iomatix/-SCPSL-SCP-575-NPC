@@ -294,7 +294,7 @@ namespace SCP_575.Npc
                 {
                     if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.IsEmittingLight ?? false))
                     {
-                        player.Hurt(Config.KeterDamage, Config.KilledBy);
+                        player.Hurt(Config.KeterDamage * blackoutStacks, Config.KilledBy);
                         player.Broadcast(Config.KeterBroadcast);
                     }
 

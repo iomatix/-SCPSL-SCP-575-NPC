@@ -48,7 +48,7 @@ namespace SCP_575.ConfigObjects
         [Description("The number of seconds a first flickering lasts.")]
         public float FlickerLightsDuration { get; private set; } = 1.5f;
 
-        [Description("Base damage per delay inflicted if EnableKeter is set to true.")]
+        [Description("Base damage per each stack of delay. Tha damage is inflicted if EnableKeter is set to true.")]
         public float KeterDamage { get; private set; } = 10f;
 
         [Description("The delay of receiving damage.")]
