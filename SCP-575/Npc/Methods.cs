@@ -102,7 +102,7 @@ namespace SCP_575.Npc
             isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
             isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
 
-            if (blackoutStacks == 0 && Config.EnableFacilityBlackout)
+            if (blackoutStacks == 0 && !isBlackoutTriggered && Config.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
                 isBlackoutTriggered = true;
@@ -175,28 +175,28 @@ namespace SCP_575.Npc
                 case ZoneType.LightContainment:
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceLight)
                     {
-                        room.TurnOffLights(blackoutDuration);
+                        HandleRoomBlackout(room, blackoutDuration);
                         return true;
                     }
                     break;
                 case ZoneType.Entrance:
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceEntrance)
                     {
-                        room.TurnOffLights(blackoutDuration);
+                        HandleRoomBlackout(room, blackoutDuration);
                         return true;
                     }
                     break;
                 case ZoneType.Surface:
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceSurface)
                     {
-                        room.TurnOffLights(blackoutDuration);
+                        HandleRoomBlackout(room, blackoutDuration);
                         return true;
                     }
                     break;
                 default:
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceOther)
                     {
-                        room.TurnOffLights(blackoutDuration);
+                        HandleRoomBlackout(room, blackoutDuration);
                         return true;
                     }
                     break;
