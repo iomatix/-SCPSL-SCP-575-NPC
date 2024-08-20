@@ -21,6 +21,11 @@ namespace SCP_575.Npc
 
         public void Init()
         {
+            if (Config.EnableKeter)
+            {
+                _plugin.EventHandlers.Coroutines.Add(Timing.CallContinuously(KeterDamage(), tag: "SCP575keter"));
+               
+            }
             Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
             Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
         }
@@ -35,6 +40,7 @@ namespace SCP_575.Npc
         public void Clean()
         {
             blackoutStacks = 0;
+            Timing.KillCoroutines("SCP575keter");
             ResetTeslaGates();
         }
         public IEnumerator<float> RunBlackoutTimer()
@@ -66,11 +72,6 @@ namespace SCP_575.Npc
                 ? GetRandomBlackoutDuration()
                 : Config.DurationMax;
 
-            if (Config.EnableKeter)
-            {
-                _plugin.EventHandlers.Coroutines.Add(Timing.RunCoroutine(KeterDamage(), tag: "SCP575keter"));
-            }
-
             TriggerCassieMessage(Config.CassiePostMessage);
 
             bool blackoutOccurred = Config.UsePerRoomChances
@@ -97,10 +98,10 @@ namespace SCP_575.Npc
         {
             bool isBlackoutTriggered = false;
 
-            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.LightContainment, Config.ChanceLight, Config.CassieMessageLight, blackoutDuration);
-            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.HeavyContainment, Config.ChanceHeavy, Config.CassieMessageHeavy, blackoutDuration);
-            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
-            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
+            isBlackoutTriggered = AttemptZoneBlackout(ZoneType.LightContainment, Config.ChanceLight, Config.CassieMessageLight, blackoutDuration);
+            isBlackoutTriggered = AttemptZoneBlackout(ZoneType.HeavyContainment, Config.ChanceHeavy, Config.CassieMessageHeavy, blackoutDuration);
+            isBlackoutTriggered = AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
+            isBlackoutTriggered = AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
 
             if (blackoutStacks == 0 && !isBlackoutTriggered && Config.EnableFacilityBlackout)
             {
@@ -254,7 +255,6 @@ namespace SCP_575.Npc
 
                 if (blackoutStacks == 0)
                 {
-                    Timing.KillCoroutines("SCP575keter");
                     ResetTeslaGates();
                 }
             }
