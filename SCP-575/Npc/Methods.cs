@@ -63,7 +63,7 @@ namespace SCP_575.Npc
 
             if (Config.EnableKeter)
             {
-                _plugin.EventHandlers.Coroutines.Add(Timing.RunCoroutine(KeterDamage(blackoutDuration)));
+                _plugin.EventHandlers.Coroutines.Add(Timing.RunCoroutine(KeterDamage(blackoutDuration), tag: "SCP575keter"));
             }
 
             TriggerCassieMessage(Config.CassiePostMessage);
@@ -243,9 +243,9 @@ namespace SCP_575.Npc
 
                 yield return Timing.WaitForSeconds(blackoutDuration);
                 TriggerCassieMessage(Config.CassieMessageEnd);
-                yield return Timing.WaitForSeconds(8.0f);
+                yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
 
-                Timing.KillCoroutines("keter");
+                Timing.KillCoroutines("SCP575keter");
                 ResetTeslaGates();
             }
             else

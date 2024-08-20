@@ -76,6 +76,9 @@ namespace SCP_575.ConfigObjects
         [Description("Message said by Cassie just after the blackout.")]
         public string CassiePostMessage { get; set; } = "facility power system malfunction has been detected at .";
 
+        [Description("The time between the sentence and the blockout end.")]
+        public float TimeBetweenSentenceAndEnd { get; set; } = 7.0f;
+
         [Description("Message said by Cassie after CassiePostMessage if outage gonna occure at whole site.")]
         public string CassieMessageFacility { get; set; } = "The Facility .";
 

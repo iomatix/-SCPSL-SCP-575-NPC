@@ -22,6 +22,7 @@ namespace SCP_575.Npc
 
         public void OnRoundEnd(RoundEndedEventArgs ev)
         {
+            _plugin.Npc.Methods.Clean();
             foreach (CoroutineHandle handle in Coroutines) Timing.KillCoroutines(handle);
             Coroutines.Clear();
         }
