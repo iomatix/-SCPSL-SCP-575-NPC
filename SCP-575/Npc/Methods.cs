@@ -23,7 +23,7 @@ namespace SCP_575.Npc
         {
             if (Config.EnableKeter)
             {
-                _plugin.EventHandlers.Coroutines.Add(Timing.CallContinuously(KeterDamage(), tag: "SCP575keter"));
+                _plugin.EventHandlers.Coroutines.Add(Timing.RunCoroutine(KeterDamage(), tag: "SCP575keter"));
                
             }
             Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
