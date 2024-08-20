@@ -294,6 +294,7 @@ namespace SCP_575.Npc
         {
             while (true)
             {
+                yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
                 foreach (var player in Player.List)
                 {
                     if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.IsEmittingLight ?? false))
@@ -304,7 +305,7 @@ namespace SCP_575.Npc
 
                    
                 }
-                yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
+               
             }
         }
     }
