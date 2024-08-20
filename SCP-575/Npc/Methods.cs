@@ -111,7 +111,7 @@ namespace SCP_575.Npc
             if (Loader.Random.NextDouble() * 100 < chance)
             {
                 Map.TurnOffAllLights(blackoutDuration, zone);
-                TriggerCassieMessage(cassieMessage);
+                TriggerCassieMessage(cassieMessage, true);
 
                 if (disableSystems)
                 {
@@ -132,7 +132,7 @@ namespace SCP_575.Npc
             }
 
             DisableFacilitySystems(blackoutDuration);
-            TriggerCassieMessage(Config.CassieMessageFacility);
+            TriggerCassieMessage(Config.CassieMessageFacility, true);
         }
 
         private bool HandleRoomSpecificBlackout(float blackoutDuration)
