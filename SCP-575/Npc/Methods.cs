@@ -248,11 +248,15 @@ namespace SCP_575.Npc
                 }
 
                 yield return Timing.WaitForSeconds(blackoutDuration);
-                TriggerCassieMessage(Config.CassieMessageEnd);
-                yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
                 blackoutStacks--;
-                Timing.KillCoroutines("SCP575keter");
-                ResetTeslaGates();
+                if(blackoutStacks == 0) TriggerCassieMessage(Config.CassieMessageEnd);
+                yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
+
+                if (blackoutStacks == 0)
+                {
+                    Timing.KillCoroutines("SCP575keter");
+                    ResetTeslaGates();
+                }
             }
             else
             {
