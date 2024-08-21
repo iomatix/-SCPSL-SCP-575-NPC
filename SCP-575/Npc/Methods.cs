@@ -17,7 +17,8 @@ namespace SCP_575.Npc
         private NpcConfig Config => _plugin.Config.NpcConfig;
         public Methods(Plugin plugin) => _plugin = plugin;
 
-        private int blackoutStacks = 0;
+        private readonly HashSet<ZoneType> triggeredZones = new HashSet<ZoneType>();
+        private static int blackoutStacks = 0;
 
         public void Init()
         {
@@ -40,6 +41,7 @@ namespace SCP_575.Npc
         public void Clean()
         {
             blackoutStacks = 0;
+            triggeredZones.Clear();
             Timing.KillCoroutines("SCP575keter");
             ResetTeslaGates();
         }
@@ -55,9 +57,11 @@ namespace SCP_575.Npc
             }
         }
 
+        public Func<bool> IsBlackoutStacks = () => blackoutStacks > 0;
+
         private IEnumerator<float> ExecuteBlackoutEvent()
         {
-            if (blackoutStacks == 0)
+            if (!IsBlackoutStacks())
             {
                 TriggerCassieMessage(Config.CassieMessageStart, true);
 
@@ -103,7 +107,7 @@ namespace SCP_575.Npc
             isBlackoutTriggered = AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
             isBlackoutTriggered = AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
 
-            if (blackoutStacks == 0 && !isBlackoutTriggered && Config.EnableFacilityBlackout)
+            if (!IsBlackoutStacks() && !isBlackoutTriggered && Config.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
                 isBlackoutTriggered = true;
@@ -164,12 +168,18 @@ namespace SCP_575.Npc
 
         private bool AttemptRoomBlackout(Room room, float blackoutDuration)
         {
+
             switch (room.Zone)
             {
                 case ZoneType.HeavyContainment:
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceHeavy)
                     {
                         HandleRoomBlackout(room, blackoutDuration);
+                        if (!triggeredZones.Contains(ZoneType.HeavyContainment))
+                        {
+                            TriggerCassieMessage(Config.CassieMessageHeavy);
+                            triggeredZones.Add(ZoneType.HeavyContainment);
+                        }
                         return true;
                     }
                     break;
@@ -177,6 +187,11 @@ namespace SCP_575.Npc
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceLight)
                     {
                         HandleRoomBlackout(room, blackoutDuration);
+                        if (!triggeredZones.Contains(ZoneType.LightContainment))
+                        {
+                            TriggerCassieMessage(Config.CassieMessageLight);
+                            triggeredZones.Add(ZoneType.LightContainment);
+                        }
                         return true;
                     }
                     break;
@@ -184,6 +199,11 @@ namespace SCP_575.Npc
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceEntrance)
                     {
                         HandleRoomBlackout(room, blackoutDuration);
+                        if (!triggeredZones.Contains(ZoneType.Entrance))
+                        {
+                            TriggerCassieMessage(Config.CassieMessageEntrance);
+                            triggeredZones.Add(ZoneType.Entrance);
+                        }
                         return true;
                     }
                     break;
@@ -191,6 +211,11 @@ namespace SCP_575.Npc
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceSurface)
                     {
                         HandleRoomBlackout(room, blackoutDuration);
+                        if (!triggeredZones.Contains(ZoneType.Surface))
+                        {
+                            TriggerCassieMessage(Config.CassieMessageSurface);
+                            triggeredZones.Add(ZoneType.Surface);
+                        }
                         return true;
                     }
                     break;
@@ -198,6 +223,11 @@ namespace SCP_575.Npc
                     if (Loader.Random.NextDouble() * 100 < Config.ChanceOther)
                     {
                         HandleRoomBlackout(room, blackoutDuration);
+                        if (!triggeredZones.Contains(ZoneType.Other))
+                        {
+                            TriggerCassieMessage(Config.CassieMessageOther);
+                            triggeredZones.Add(ZoneType.Other);
+                        }
                         return true;
                     }
                     break;
@@ -250,17 +280,20 @@ namespace SCP_575.Npc
 
                 yield return Timing.WaitForSeconds(blackoutDuration);
                 blackoutStacks--;
-                if(blackoutStacks == 0) TriggerCassieMessage(Config.CassieMessageEnd);
+
+                if(!IsBlackoutStacks()) TriggerCassieMessage(Config.CassieMessageEnd);
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
 
-                if (blackoutStacks == 0)
+                if (!IsBlackoutStacks())
                 {
                     ResetTeslaGates();
+                    triggeredZones.Clear();
                 }
+
             }
             else
             {
-                TriggerCassieMessage(Config.CassieMessageWrong);
+                if (!IsBlackoutStacks()) TriggerCassieMessage(Config.CassieMessageWrong);
             }
         }
 
@@ -280,6 +313,7 @@ namespace SCP_575.Npc
 
         private void TriggerCassieMessage(string message, bool isGlitchy = false)
         {
+            if (!(message.Length > 0)) return;
             if (isGlitchy)
             {
                 Cassie.GlitchyMessage(message, Config.GlitchChance / 100, Config.JamChance / 100);
