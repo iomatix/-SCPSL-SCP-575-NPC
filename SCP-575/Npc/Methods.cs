@@ -63,6 +63,7 @@ namespace SCP_575.Npc
         {
             if (!IsBlackoutStacks())
             {
+                Cassie.Clear();
                 TriggerCassieMessage(Config.CassieMessageStart, true);
 
                 if (Config.FlickerLights)
