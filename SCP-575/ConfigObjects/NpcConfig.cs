@@ -94,7 +94,7 @@ namespace SCP_575.ConfigObjects
         [Description("Message said by Cassie after CassiePostMessage if outage gonna occure at the entrance zone.")]
         public string CassieMessageSurface { get; set; } = "The Surface .";
 
-        [Description("Message said by Cassie after CassiePostMessage if outage gonna occure at random rooms in facility when UseRoomChances is true or unknown type of zones or unspecified zones.")]
+        [Description("Message said by Cassie after CassiePostMessage if outage gonna occure at unknown type of zones or unspecified zones.")]
         public string CassieMessageOther { get; set; } = ". pitch_0.35 .g6 pitch_0.95 the malfunction is Unspecified .";
 
         [Description("The sound CASSIE will make during a blackout.")]
