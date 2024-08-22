@@ -334,8 +334,8 @@ namespace SCP_575.Npc
                 {
                     if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.IsEmittingLight ?? false))
                     {
-                        player.Hurt(Config.KeterDamage * blackoutStacks, Config.KilledBy);
-                        player.PlaceBlood(new Vector3(0f,0f));
+                        player.Hurt(damage: Config.KeterDamage * blackoutStacks, damageReason: Config.KilledBy);
+                        player.Hurt(amount: 0.5f, damageType: DamageType.Bleeding);
                         player.Broadcast(Config.KeterBroadcast);
                     }
 
