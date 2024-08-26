@@ -32,14 +32,14 @@ namespace SCP_575.Npc
 
         public void OnRoundEnd(RoundEndedEventArgs ev)
         {
-            _plugin.Npc.Methods.Clean();
+            _plugin.Npc.Methods.Disable();
             foreach (CoroutineHandle handle in Coroutines) Timing.KillCoroutines(handle);
             Coroutines.Clear();
         }
 
         public void OnWaitingPlayers(RoundEndedEventArgs ev)
         {
-            _plugin.Npc.Methods.Clean();
+            _plugin.Npc.Methods.Disable();
             foreach (CoroutineHandle handle in Coroutines) Timing.KillCoroutines(handle);
             Coroutines.Clear();
         }
