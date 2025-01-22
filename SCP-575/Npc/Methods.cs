@@ -4,6 +4,7 @@ namespace SCP_575.Npc
     using System.Collections.Generic;
     using Exiled.API.Enums;
     using Exiled.API.Features;
+    using Exiled.API.Features.Items;
     using Exiled.Loader;
     using InventorySystem.Items;
     using MEC;
@@ -328,7 +329,7 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
                 foreach (var player in Player.List)
                 {
-                    if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem is ILightEmittingItem lightEmittingItem && lightEmittingItem.IsEmittingLight))
+                    if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightEmittingItem && lightEmittingItem.IsEmittingLight))
                     {
                         player.Hurt(damage: Config.KeterDamage * blackoutStacks, damageReason: Config.KilledBy);
                         player.Hurt(amount: 0.5f, damageType: DamageType.Bleeding);
