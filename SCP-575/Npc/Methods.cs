@@ -5,6 +5,7 @@ namespace SCP_575.Npc
     using Exiled.API.Enums;
     using Exiled.API.Features;
     using Exiled.Loader;
+    using InventorySystem.Items;
     using MEC;
     using SCP_575.ConfigObjects;
     using UnityEngine;
@@ -48,7 +49,7 @@ namespace SCP_575.Npc
             {
                 yield return Timing.WaitForSeconds(Config.RandomEvents ? Loader.Random.Next(Config.DelayMin, Config.DelayMax) : Config.InitialDelay);
                 _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent()));
-                
+
             }
         }
 
@@ -277,7 +278,7 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(blackoutDuration);
                 blackoutStacks--;
 
-                if(!IsBlackoutStacks()) TriggerCassieMessage(Config.CassieMessageEnd);
+                if (!IsBlackoutStacks()) TriggerCassieMessage(Config.CassieMessageEnd);
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
 
                 if (!IsBlackoutStacks())
@@ -327,16 +328,13 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
                 foreach (var player in Player.List)
                 {
-                    if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.IsEmittingLight ?? false))
+                    if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem is ILightEmittingItem lightEmittingItem && lightEmittingItem.IsEmittingLight))
                     {
                         player.Hurt(damage: Config.KeterDamage * blackoutStacks, damageReason: Config.KilledBy);
                         player.Hurt(amount: 0.5f, damageType: DamageType.Bleeding);
                         player.Broadcast(Config.KeterBroadcast);
                     }
-
-                   
                 }
-               
             }
         }
     }
