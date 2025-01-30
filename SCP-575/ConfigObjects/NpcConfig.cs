@@ -67,7 +67,7 @@ namespace SCP_575.ConfigObjects
         [Description("Message said by Cassie if no blackout occurs")]
         public string CassieMessageWrong { get; set; } = ". I have prevented the system failure . .g5 Sorry for a .g3 . false alert .";
 
-        [Description("Message said by Cassie when a blackout starts - 3 . 2 . 1 announcement")]
+        [Description("Message said by Cassie when a blackout starts.")]
         public string CassieMessageStart { get; set; } = "facility power system outage in 3 . 2 . 1 .";
 
         [Description("The time between the sentence and the 3 . 2 . 1 announcement")]
