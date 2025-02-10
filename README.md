@@ -1,5 +1,6 @@
 ## SCP-575 6.3.0
-![GitHub release (latest by date)](https://img.shields.io/github/downloads/iomatix/-SCPSL-SCP-575/6.3.0/total?style=for-the-badge)
+![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/iomatix/-SCPSL-SCP-575/latest/total?sort=date&style=for-the-badge)
+
 
 
 ## Contributors
