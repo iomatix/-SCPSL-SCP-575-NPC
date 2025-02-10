@@ -49,12 +49,12 @@ namespace SCP_575.Npc
             while (true)
             {
                 yield return Timing.WaitForSeconds(Config.RandomEvents ? Loader.Random.Next(Config.DelayMin, Config.DelayMax) : Config.InitialDelay);
-                _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent()));
+                _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent(), "575BlackoutExec"));
 
             }
         }
 
-        public Func<bool> IsBlackoutStacks = () => blackoutStacks > 0;
+        private bool IsBlackoutStacks() => blackoutStacks > 0;
 
         private IEnumerator<float> ExecuteBlackoutEvent()
         {
@@ -80,7 +80,7 @@ namespace SCP_575.Npc
                 ? HandleRoomSpecificBlackout(blackoutDuration)
                 : HandleZoneSpecificBlackout(blackoutDuration);
 
-            _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration)));
+            _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration), "575BlackoutFinalize"));
         }
 
         private void FlickerAllZoneLights(float duration)
@@ -100,10 +100,11 @@ namespace SCP_575.Npc
         {
             bool isBlackoutTriggered = false;
 
-            isBlackoutTriggered = AttemptZoneBlackout(ZoneType.LightContainment, Config.ChanceLight, Config.CassieMessageLight, blackoutDuration);
-            isBlackoutTriggered = AttemptZoneBlackout(ZoneType.HeavyContainment, Config.ChanceHeavy, Config.CassieMessageHeavy, blackoutDuration);
-            isBlackoutTriggered = AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
-            isBlackoutTriggered = AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
+            // Use OR-assignment to combine results from all attempts to prevent overriding.
+            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.LightContainment, Config.ChanceLight, Config.CassieMessageLight, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.HeavyContainment, Config.ChanceHeavy, Config.CassieMessageHeavy, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
 
             if (!IsBlackoutStacks() && !isBlackoutTriggered && Config.EnableFacilityBlackout)
             {
@@ -311,7 +312,7 @@ namespace SCP_575.Npc
 
         private void TriggerCassieMessage(string message, bool isGlitchy = false)
         {
-            if (!(message.Length > 0)) return;
+            if (string.IsNullOrEmpty(message)) return;
             if (isGlitchy)
             {
                 Cassie.GlitchyMessage(message, Config.GlitchChance / 100, Config.JamChance / 100);
@@ -338,5 +339,6 @@ namespace SCP_575.Npc
                 }
             }
         }
+
     }
 }
