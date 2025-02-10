@@ -1,4 +1,10 @@
-# Configs
+## Contributors
+
+<a href="https://github.com/iomatix/-SCPSL-SCP-575/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=iomatix/-SCPSL-SCP-575" />
+</a>
+
+### Configs
 ```
 # Whether or not the plugin is enabled.
 is_enabled: true
