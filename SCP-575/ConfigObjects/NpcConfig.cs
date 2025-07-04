@@ -103,6 +103,9 @@ namespace SCP_575.ConfigObjects
         [Description("The message CASSIE will say when a blackout ends.")]
         public string CassieMessageEnd { get; set; } = "facility power system now operational";
 
+        [Description("Should cassie clear the messeage cue before important message to prevent spam?")]
+        public bool CassieMessageClearBeforeImportant { get; set; } = true;
+
         // Probability 
         [Description("A blackout in the whole facility will occur if none of the zones is selected randomly and EnableFacilityBlackout is set to true.")]
         public bool EnableFacilityBlackout { get; private set; } = true;

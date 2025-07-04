@@ -13,11 +13,11 @@ namespace SCP_575
         public static Plugin Singleton;
 
         public override string Author { get; } = "Joker119 & iomatix";
-        public override string Name { get; } = "SCP-575";
+        public override string Name { get; } = "SCP-575 NPC";
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(6, 3, 2);
+        public override Version Version { get; } = new(6, 4, 0);
         public override Version RequiredExiledVersion { get; } = new(9, 5, 0);
 
         public EventHandlers EventHandlers { get; private set; }

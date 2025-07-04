@@ -24,12 +24,14 @@ namespace SCP_575.Npc
 
         public void Init()
         {
+            Log.Debug("Enabling SCP-575 Npc methods...");
             Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
             Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
         }
 
         public void Disable()
         {
+            Log.Debug("Disabling SCP-575 Npc methods...");
             Clean();
             Server.RoundStarted -= _plugin.Npc.EventHandlers.OnRoundStart;
             Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
@@ -37,6 +39,7 @@ namespace SCP_575.Npc
 
         public void Clean()
         {
+            Log.Debug("Cleaning up SCP-575 Npc methods...");
             blackoutStacks = 0;
             triggeredZones.Clear();
             Timing.KillCoroutines("SCP575keter");
@@ -45,7 +48,7 @@ namespace SCP_575.Npc
         public IEnumerator<float> RunBlackoutTimer()
         {
             yield return Timing.WaitForSeconds(Config.InitialDelay);
-
+            Log.Debug("Starting SCP-575 blackout event timer...");
             while (true)
             {
                 yield return Timing.WaitForSeconds(Config.RandomEvents ? Loader.Random.Next(Config.DelayMin, Config.DelayMax) : Config.InitialDelay);
@@ -60,13 +63,15 @@ namespace SCP_575.Npc
         {
             if (!IsBlackoutStacks())
             {
-                Cassie.Clear();
+                if(Config.CassieMessageClearBeforeImportant) Cassie.Clear();
+                Log.Debug("Executing blackout event...");
                 TriggerCassieMessage(Config.CassieMessageStart, true);
 
                 if (Config.FlickerLights)
                 {
                     FlickerAllZoneLights(Config.FlickerLightsDuration);
                 }
+                Log.Debug($"Waiting for {Config.TimeBetweenSentenceAndStart} seconds before starting blackout.");
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndStart);
             }
 
@@ -85,6 +90,7 @@ namespace SCP_575.Npc
 
         private void FlickerAllZoneLights(float duration)
         {
+            Log.Debug($"Flickering all lights for {duration} seconds.");
             foreach (ZoneType zone in Enum.GetValues(typeof(ZoneType)))
             {
                 Map.TurnOffAllLights(duration, zone);
@@ -109,6 +115,7 @@ namespace SCP_575.Npc
             if (!IsBlackoutStacks() && !isBlackoutTriggered && Config.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
+                Log.Debug("No specific zone blackout triggered, applying facility-wide blackout.");
                 isBlackoutTriggered = true;
             }
 
@@ -120,10 +127,12 @@ namespace SCP_575.Npc
             if (Loader.Random.NextDouble() * 100 < chance)
             {
                 Map.TurnOffAllLights(blackoutDuration, zone);
+                Log.Debug($"Turning off lights in zone {zone} for {blackoutDuration} seconds.");
                 TriggerCassieMessage(cassieMessage, true);
 
                 if (disableSystems)
                 {
+                    Log.Debug($"Blackout triggered in zone {zone} with blackout duration {blackoutDuration} seconds.");
                     DisableFacilitySystems(blackoutDuration);
                 }
 
@@ -138,6 +147,7 @@ namespace SCP_575.Npc
             foreach (ZoneType zone in Enum.GetValues(typeof(ZoneType)))
             {
                 Map.TurnOffAllLights(blackoutDuration, zone);
+                Log.Debug($"Turning off lights in zone {zone} for {blackoutDuration} seconds.");
             }
 
             DisableFacilitySystems(blackoutDuration);
@@ -153,12 +163,14 @@ namespace SCP_575.Npc
                 if (AttemptRoomBlackout(room, blackoutDuration))
                 {
                     blackoutTriggered = true;
+                    Log.Debug($"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                 }
             }
 
             if (!blackoutTriggered && Config.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
+                Log.Debug("No specific room blackout triggered, applying facility-wide blackout.");
                 return true;
             }
 
@@ -178,6 +190,7 @@ namespace SCP_575.Npc
                         {
                             TriggerCassieMessage(Config.CassieMessageHeavy);
                             triggeredZones.Add(ZoneType.HeavyContainment);
+                            Log.Debug($"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
                         return true;
                     }
@@ -190,6 +203,7 @@ namespace SCP_575.Npc
                         {
                             TriggerCassieMessage(Config.CassieMessageLight);
                             triggeredZones.Add(ZoneType.LightContainment);
+                            Log.Debug($"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
                         return true;
                     }
@@ -202,6 +216,7 @@ namespace SCP_575.Npc
                         {
                             TriggerCassieMessage(Config.CassieMessageEntrance);
                             triggeredZones.Add(ZoneType.Entrance);
+                            Log.Debug($"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
                         return true;
                     }
@@ -214,6 +229,7 @@ namespace SCP_575.Npc
                         {
                             TriggerCassieMessage(Config.CassieMessageSurface);
                             triggeredZones.Add(ZoneType.Surface);
+                            Log.Debug($"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
                         return true;
                     }
@@ -226,6 +242,7 @@ namespace SCP_575.Npc
                         {
                             TriggerCassieMessage(Config.CassieMessageOther);
                             triggeredZones.Add(ZoneType.Other);
+                            Log.Debug($"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
                         return true;
                     }
@@ -246,9 +263,11 @@ namespace SCP_575.Npc
             if (Config.DisableNuke && room.Type.Equals(RoomType.HczNuke) && Warhead.IsInProgress && !Warhead.IsLocked)
             {
                 Warhead.Stop();
+                Log.Debug("Nuke detonation cancelled due to blackout event in HCZ Nuke room.");
             }
 
             room.TurnOffLights(blackoutDuration);
+            Log.Debug($"Turning off lights in room {room.Name} for {blackoutDuration} seconds. Room type: {room.Type}");
         }
 
         private void DisableFacilitySystems(float blackoutDuration)
@@ -256,6 +275,7 @@ namespace SCP_575.Npc
             foreach (Room room in Room.List)
             {
                 room.TurnOffLights(blackoutDuration);
+                Log.Debug($"Turning off lights in room {room.Name} for {blackoutDuration} seconds.");
             }
 
             ResetTeslaGates();
@@ -264,6 +284,7 @@ namespace SCP_575.Npc
             if (Config.DisableNuke && Warhead.IsInProgress && !Warhead.IsLocked)
             {
                 Warhead.Stop();
+                Log.Debug("Nuke detonation cancelled due to blackout event.");
             }
         }
 
@@ -272,6 +293,7 @@ namespace SCP_575.Npc
             if (blackoutOccurred)
             {
                 blackoutStacks++;
+                Log.Debug($"Blackout event triggered. Current stacks: {blackoutStacks}, Duration: {blackoutDuration}");
                 if (Config.Voice)
                 {
                     TriggerCassieMessage(Config.CassieKeter);
@@ -279,6 +301,7 @@ namespace SCP_575.Npc
 
                 yield return Timing.WaitForSeconds(blackoutDuration);
                 blackoutStacks--;
+                Log.Debug($"Blackout event ended. Current stacks: {blackoutStacks}");
 
                 if (!IsBlackoutStacks()) TriggerCassieMessage(Config.CassieMessageEnd);
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
@@ -286,7 +309,8 @@ namespace SCP_575.Npc
                 if (!IsBlackoutStacks())
                 {
                     ResetTeslaGates();
-                    triggeredZones.Clear();
+                    triggeredZones.Clear();     
+                    Log.Debug("Zones and Tesla Gates reset after blackout.");
                 }
 
             }
@@ -301,18 +325,22 @@ namespace SCP_575.Npc
             foreach (var teslaGate in TeslaGate.List)
             {
                 ResetTeslaGate(teslaGate);
+                Log.Debug($"Resetting TeslaGate {teslaGate.ToString()} after blackout.");
             }
         }
 
         private void ResetTeslaGate(TeslaGate gate)
         {
             gate.ForceTrigger();
+            Log.Debug($"Resetting TeslaGate {gate.ToString()} after blackout.");
             gate.CooldownTime = 5f;
+            Log.Debug($"TeslaGate {gate.ToString()} cooldown set to 5 seconds after blackout.");
         }
 
         private void TriggerCassieMessage(string message, bool isGlitchy = false)
         {
             if (string.IsNullOrEmpty(message)) return;
+            Log.Debug($"Triggering CASSIE message: {message}");
             if (isGlitchy)
             {
                 Cassie.GlitchyMessage(message, Config.GlitchChance / 100, Config.JamChance / 100);
@@ -334,7 +362,12 @@ namespace SCP_575.Npc
                     {
                         player.Hurt(damage: Config.KeterDamage * blackoutStacks, damageReason: Config.KilledBy);
                         player.Hurt(amount: 0.5f, damageType: DamageType.Bleeding);
+                        Log.Debug($"SCP-575 dealt {Config.KeterDamage * blackoutStacks} damage to {player.Nickname} due to no light source in hand during blackout.");
                         player.Broadcast(Config.KeterBroadcast);
+                    }
+                    else if (player.IsHuman)
+                    {
+                        Log.Debug($"SCP-575 did not deal damage to {player.Nickname} due to having a light source in hand or lights being on in their current room.");
                     }
                 }
             }
