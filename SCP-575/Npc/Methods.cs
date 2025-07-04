@@ -63,7 +63,7 @@ namespace SCP_575.Npc
         {
             if (!IsBlackoutStacks())
             {
-                if(Config.CassieMessageClearBeforeImportant) Cassie.Clear();
+                if (Config.CassieMessageClearBeforeImportant) Cassie.Clear();
                 Log.Debug("Executing blackout event...");
                 TriggerCassieMessage(Config.CassieMessageStart, true);
 
@@ -309,7 +309,7 @@ namespace SCP_575.Npc
                 if (!IsBlackoutStacks())
                 {
                     ResetTeslaGates();
-                    triggeredZones.Clear();     
+                    triggeredZones.Clear();
                     Log.Debug("Zones and Tesla Gates reset after blackout.");
                 }
 
@@ -356,22 +356,24 @@ namespace SCP_575.Npc
             while (true)
             {
                 yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
-                foreach (var player in Player.List)
+                if (blackoutStacks > 0)
                 {
-                    if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightEmittingItem && lightEmittingItem.IsEmittingLight))
+                    foreach (var player in Player.List)
                     {
-                        player.Hurt(damage: Config.KeterDamage * blackoutStacks, damageReason: Config.KilledBy);
-                        player.Hurt(amount: 0.5f, damageType: DamageType.Bleeding);
-                        Log.Debug($"SCP-575 dealt {Config.KeterDamage * blackoutStacks} damage to {player.Nickname} due to no light source in hand during blackout.");
-                        player.Broadcast(Config.KeterBroadcast);
-                    }
-                    else if (player.IsHuman)
-                    {
-                        Log.Debug($"SCP-575 did not deal damage to {player.Nickname} due to having a light source in hand or lights being on in their current room.");
+                        if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightEmittingItem && lightEmittingItem.IsEmittingLight))
+                        {
+                            player.Hurt(damage: Config.KeterDamage * blackoutStacks, damageReason: Config.KilledBy);
+                            player.Hurt(amount: 0.5f, damageType: DamageType.Bleeding);
+                            Log.Debug($"SCP-575 dealt {Config.KeterDamage * blackoutStacks} damage to {player.Nickname} due to no light source in hand during blackout.");
+                            player.Broadcast(Config.KeterBroadcast);
+                        }
+                        else if (player.IsHuman)
+                        {
+                            Log.Debug($"SCP-575 did not deal damage to {player.Nickname} due to having a light source in hand or lights being on in their current room.");
+                        }
                     }
                 }
             }
         }
-
     }
 }
