@@ -19,7 +19,14 @@ namespace SCP_575.Npc
         public Methods(Plugin plugin) => _plugin = plugin;
 
         private readonly HashSet<ZoneType> triggeredZones = new HashSet<ZoneType>();
+
+        private static readonly object BlackoutLock = new();
         private static int blackoutStacks = 0;
+        /// <summary>
+        /// Public getter indicating whether the blackout effect is currently active.
+        /// Returns true if blackoutStacks is greater than zero.
+        /// </summary>
+        public bool IsBlackoutActive => blackoutStacks > 0;
 
         public void Init()
         {
@@ -56,11 +63,9 @@ namespace SCP_575.Npc
             }
         }
 
-        private bool IsBlackoutStacks() => blackoutStacks > 0;
-
         private IEnumerator<float> ExecuteBlackoutEvent()
         {
-            if (!IsBlackoutStacks())
+            if (!IsBlackoutActive)
             {
                 if (Config.CassieMessageClearBeforeImportant) Cassie.Clear();
                 Log.Debug("Executing blackout event...");
@@ -111,7 +116,7 @@ namespace SCP_575.Npc
             isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Entrance, Config.ChanceEntrance, Config.CassieMessageEntrance, blackoutDuration);
             isBlackoutTriggered |= AttemptZoneBlackout(ZoneType.Surface, Config.ChanceSurface, Config.CassieMessageSurface, blackoutDuration);
 
-            if (!IsBlackoutStacks() && !isBlackoutTriggered && Config.EnableFacilityBlackout)
+            if (!IsBlackoutActive && !isBlackoutTriggered && Config.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
                 Log.Debug("No specific zone blackout triggered, applying facility-wide blackout.");
@@ -291,7 +296,8 @@ namespace SCP_575.Npc
         {
             if (blackoutOccurred)
             {
-                blackoutStacks++;
+                IncrementBlackoutStack();
+                Log.Debug($"Increased blackoutStacks to {blackoutStacks}");
                 Log.Debug($"Blackout event triggered. Current stacks: {blackoutStacks}, Duration: {blackoutDuration}");
                 if (Config.Voice)
                 {
@@ -299,13 +305,13 @@ namespace SCP_575.Npc
                 }
 
                 yield return Timing.WaitForSeconds(blackoutDuration);
-                blackoutStacks--;
+                DecrementBlackoutStack();
                 Log.Debug($"Blackout event ended. Current stacks: {blackoutStacks}");
 
-                if (!IsBlackoutStacks()) TriggerCassieMessage(Config.CassieMessageEnd);
+                if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageEnd);
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
 
-                if (!IsBlackoutStacks())
+                if (!IsBlackoutActive)
                 {
                     ResetTeslaGates();
                     triggeredZones.Clear();
@@ -315,7 +321,7 @@ namespace SCP_575.Npc
             }
             else
             {
-                if (!IsBlackoutStacks()) TriggerCassieMessage(Config.CassieMessageWrong);
+                if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageWrong);
             }
         }
 
@@ -350,12 +356,26 @@ namespace SCP_575.Npc
             }
         }
 
+        private void IncrementBlackoutStack()
+        {
+            lock (BlackoutLock)
+                blackoutStacks++;
+        }
+
+        private void DecrementBlackoutStack()
+        {
+            lock (BlackoutLock)
+                blackoutStacks = Math.Max(0, blackoutStacks - 1);
+        }
+
         public IEnumerator<float> KeterDamage()
         {
+            Log.Debug("KeterDamage() Called: Starting SCP-575 Keter damage coroutine...");
             while (true)
             {
                 yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
-                if (blackoutStacks > 0)
+                Log.Debug($"SCP-575 Keter damage handler check with {blackoutStacks} stacks.");
+                if (IsBlackoutActive)
                 {
                     Log.Debug($"SCP-575 Keter damage handler active with {blackoutStacks} stacks.");
                     foreach (var player in Player.List)
@@ -366,7 +386,7 @@ namespace SCP_575.Npc
                             Log.Debug($"SCP-575 is attempting to deal damage to {player.Nickname} due to no light source in hand during blackout.");
                             float rawDamage = Config.KeterDamage * blackoutStacks;
                             float clampedDamage = Mathf.Max(rawDamage, 1f);
-                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(damage: clampedDamage, reason: Config.KilledBy);
+                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(damage: clampedDamage, killedByName: Config.KilledBy, reason: Config.KilledByRagdollDesc);
                             player.Hurt(damageHandler);
 
 

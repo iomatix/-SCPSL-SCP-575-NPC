@@ -57,6 +57,9 @@ namespace SCP_575.ConfigObjects
         [Description("Name displayed in player's death information.")]
         public string KilledBy { get; set; } = "SCP-575";
 
+        [Description("Ragdoll death information.")]
+        public string KilledByRagdollDesc { get; set; } = "SCP-575";
+
         // MESSAGES
         [Description("Glitch chance during message per word in CASSIE sentence.")]
         public float GlitchChance { get; private set; } = 10f;

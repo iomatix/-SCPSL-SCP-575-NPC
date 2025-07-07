@@ -10,11 +10,30 @@
 
     public class Scp575DamageHandler : StandardDamageHandler
     {
+
+
         private float _damage;
 
-        public Scp575DamageHandler(float damage, string reason = "Killed by SCP-575")
+        private readonly string _killedBy;
+
+        public readonly string Reason;
+
+
+        public override string RagdollInspectText => Reason;
+
+        public override string DeathScreenText => _killedBy;
+        public override string ServerLogsText => _killedBy;
+
+        public override string ServerMetricsText => base.ServerMetricsText;
+
+        public override CassieAnnouncement CassieDeathAnnouncement => null;
+
+        public string AttackerNick => "SCP-575";
+
+        public Scp575DamageHandler(float damage, string killedByName = "SCP-575", string reason = "Killed by SCP-575")
         {
             _damage = damage;
+            _killedBy = killedByName;
             Reason = reason;
         }
 
@@ -24,15 +43,8 @@
             set => _damage = value;
         }
 
-        public override string ServerLogsText => Reason;
 
-        public override string ServerMetricsText => base.ServerMetricsText;
 
-        public override CassieAnnouncement CassieDeathAnnouncement => null;
-
-        public string AttackerNick => "SCP-575";
-
-        public readonly string Reason;
 
         /// <summary>
         /// Apply any active status effect modifiers to the base damage.
@@ -93,5 +105,7 @@
 
             base.ProcessRagdoll(ragdoll);
         }
+
+
     }
 }

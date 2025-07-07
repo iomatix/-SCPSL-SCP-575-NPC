@@ -22,6 +22,7 @@ namespace SCP_575
             {
                 return;
             }
+
             ev.IsAllowed = false;
             _plugin.StopRagdollList.Remove(ev.Player);
         }

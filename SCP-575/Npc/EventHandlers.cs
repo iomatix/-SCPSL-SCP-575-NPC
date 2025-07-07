@@ -1,6 +1,7 @@
 namespace SCP_575.Npc
 {
     using System.Collections.Generic;
+    using Exiled.API.Features;
     using Exiled.Events.EventArgs.Server;
     using Exiled.Loader;
     using MEC;
@@ -19,12 +20,17 @@ namespace SCP_575.Npc
 
         public void OnRoundStart()
         {
-            if (Loader.Random.Next(100) <= _plugin.Config.NpcConfig.SpawnChance)
+            var roll = Loader.Random.Next(100);
+            Log.Debug($"EnableKeter = {Config.EnableKeter}, SpawnChance roll = {roll}");
+
+            if (roll <= _plugin.Config.NpcConfig.SpawnChance)
             {
+                Log.Debug($"SCP-575 Npc spawned with a roll of {roll} (SpawnChance: {_plugin.Config.NpcConfig.SpawnChance})");
                 Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.RunBlackoutTimer()));
 
                 if (Config.EnableKeter)
                 {
+                    Log.Debug("Keter mode enabled, starting Keter damage coroutine.");
                     Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.KeterDamage(), tag: "SCP575keter"));
                 }
             }
