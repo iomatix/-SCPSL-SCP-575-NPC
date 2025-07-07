@@ -4,9 +4,8 @@ namespace SCP_575.Npc
     using System.Collections.Generic;
     using Exiled.API.Enums;
     using Exiled.API.Features;
-    using Exiled.API.Features.Items;
+    using Exiled.API.Features.DamageHandlers;
     using Exiled.Loader;
-    using InventorySystem.Items;
     using MEC;
     using SCP_575.ConfigObjects;
     using UnityEngine;
@@ -358,13 +357,20 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(Config.KeterDamageDelay);
                 if (blackoutStacks > 0)
                 {
+                    Log.Debug($"SCP-575 Keter damage handler active with {blackoutStacks} stacks.");
                     foreach (var player in Player.List)
                     {
+                        Log.Debug($"Checking player {player.Nickname} for Keter damage during blackout.");
                         if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightEmittingItem && lightEmittingItem.IsEmittingLight))
                         {
-                            player.Hurt(damage: Config.KeterDamage * blackoutStacks, damageReason: Config.KilledBy);
-                            player.Hurt(amount: 0.5f, damageType: DamageType.Bleeding);
-                            Log.Debug($"SCP-575 dealt {Config.KeterDamage * blackoutStacks} damage to {player.Nickname} due to no light source in hand during blackout.");
+                            Log.Debug($"SCP-575 is attempting to deal damage to {player.Nickname} due to no light source in hand during blackout.");
+                            float rawDamage = Config.KeterDamage * blackoutStacks;
+                            float clampedDamage = Mathf.Max(rawDamage, 1f);
+                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(damage: clampedDamage, reason: Config.KilledBy);
+                            player.Hurt(damageHandler);
+
+
+                            Log.Debug($"SCP-575 is dealing {clampedDamage} damage to {player.Nickname} (raw: {rawDamage}) due to no light source during blackout.");
                             player.Broadcast(Config.KeterBroadcast);
                         }
                         else if (player.IsHuman)

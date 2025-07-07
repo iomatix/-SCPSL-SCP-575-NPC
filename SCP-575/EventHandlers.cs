@@ -5,7 +5,6 @@ namespace SCP_575
     using Exiled.Loader;
     using MEC;
     using SCP_575.ConfigObjects;
-    
 
     public class EventHandlers
     {
@@ -23,7 +22,6 @@ namespace SCP_575
             {
                 return;
             }
-
             ev.IsAllowed = false;
             _plugin.StopRagdollList.Remove(ev.Player);
         }
