@@ -60,6 +60,9 @@
     <Reference Include="NorthwoodLib">
       <HintPath>..\..\_API\7.2.0\NorthwoodLib.dll</HintPath>
     </Reference>
+    <Reference Include="Pooling">
+      <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
+    </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations">
       <HintPath>..\..\_API\7.2.0\System.ComponentModel.DataAnnotations.dll</HintPath>
     </Reference>

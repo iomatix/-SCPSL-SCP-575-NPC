@@ -10,8 +10,6 @@
     using CustomPlayerEffects;
     using PlayerRoles.Spectating;
     using PlayerRoles;
-    using Discord;
-    using System.Runtime.InteropServices;
 
     public class Scp575DamageHandler : StandardDamageHandler, IRagdollInspectOverride
     {
