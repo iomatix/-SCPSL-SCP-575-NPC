@@ -4,7 +4,6 @@ namespace SCP_575.Npc
     using System.Collections.Generic;
     using Exiled.API.Enums;
     using Exiled.API.Features;
-    using Exiled.API.Features.DamageHandlers;
     using Exiled.Loader;
     using MEC;
     using SCP_575.ConfigObjects;
@@ -386,9 +385,8 @@ namespace SCP_575.Npc
                             Log.Debug($"SCP-575 is attempting to deal damage to {player.Nickname} due to no light source in hand during blackout.");
                             float rawDamage = Config.KeterDamage * blackoutStacks;
                             float clampedDamage = Mathf.Max(rawDamage, 1f);
-                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(clampedDamage, Config);
+                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(damage: clampedDamage, pluginNpcConfig: Config);
                             player.Hurt(damageHandler);
-
 
                             Log.Debug($"SCP-575 is dealing {clampedDamage} damage to {player.Nickname} (raw: {rawDamage}) due to no light source during blackout.");
                             player.Broadcast(Config.KeterBroadcast);
