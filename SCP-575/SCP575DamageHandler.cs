@@ -10,10 +10,13 @@
     using CustomPlayerEffects;
     using PlayerRoles.Spectating;
     using PlayerRoles;
+    using Discord;
+    using System.Runtime.InteropServices;
 
     public class Scp575DamageHandler : StandardDamageHandler, IRagdollInspectOverride
     {
         private Vector3 _velocity;
+        private NpcConfig _config;
         private string _ragdollInspectText;
         private string _deathScreenText;
         private string _serverLogsText;
@@ -34,44 +37,67 @@
             Damage = damage;
             if (attacker != null) Attacker = new Footprint(attacker.ReferenceHub);
 
-            _ragdollInspectText = pluginNpcConfig.RagdollInspectText;
-            _deathScreenText = pluginNpcConfig.KilledByMessage;
-            _serverLogsText = "Died to " + pluginNpcConfig.KilledBy;
-            Log.Info($"[Scp575] InspectText='{_ragdollInspectText}', DeathText='{_deathScreenText}', LogText='{_serverLogsText}'");
+            _config = pluginNpcConfig;
+            _ragdollInspectText = _config.RagdollInspectText;
+            _deathScreenText = _config.KilledByMessage;
+            _serverLogsText = "Died to " + _config.KilledBy;
+            Log.Info($"[Scp575DamageHandler] InspectText='{_ragdollInspectText}', DeathText='{_deathScreenText}', LogText='{_serverLogsText}'");
 
             Vector3 randomDirectionVelocity = Random.onUnitSphere;
-            float normalizedDamageModifier = Mathf.Log(3 * Damage + 1) * pluginNpcConfig.KeterDamageVelocityModifier;
+            float normalizedDamageModifier = Mathf.Log(3 * Damage + 1) * _config.KeterDamageVelocityModifier;
             _velocity = randomDirectionVelocity * normalizedDamageModifier;
 
         }
 
         public override HandlerOutput ApplyDamage(ReferenceHub ply)
         {
-            HandlerOutput handlerOutput = base.ApplyDamage(ply);
             try
             {
-                if (handlerOutput != HandlerOutput.Death)
+                Player player = Player.Get(ply);
+
+                // Apply some effects
+                player.EnableEffect<Flashed>(0.25f);
+                player.EnableEffect<Blindness>(0.75f);
+                player.EnableEffect<Slowness>(1.25f);
+                player.EnableEffect<Deafened>(2f);
+                player.EnableEffect<Corroding>(1.5f);
+                player.EnableEffect<Sinkhole>(1.5f);
+                player.EnableEffect<Asphyxiated>(1.5f);
+                player.EnableEffect<Bleeding>(3f);
+                player.PlaceBlood(_velocity);
+
+                HandlerOutput handlerOutput = base.ApplyDamage(ply);
+
+                switch (handlerOutput)
                 {
-                    Player player = Player.Get(ply);
-                    player.EnableEffect(new Blindness(), 0.75f);
-                    player.EnableEffect(new Slowness(), 1.25f);
-                    player.PlaceBlood(_velocity);
+                    case HandlerOutput.Death:
+                        Log.Debug($"[Scp575DamageHandler] {player.Nickname} was killed by {_config.KilledBy} | Damage: {Damage:F1} | HP before death: {player.Health + Damage:F1}");
+                        break;
+
+                    case HandlerOutput.Damaged:
+                        Log.Debug($"[Scp575DamageHandler] {player.Nickname} took {Damage:F1} damage from {_config.KilledBy} | Remaining HP: {player.Health:F1} | Raw HP damage dealt: {DealtHealthDamage:F1}");
+                        break;
+
+                    default:
+                        Log.Debug($"[Scp575DamageHandler] {player.Nickname} received non-damaging interaction by {_config.KilledBy} | Damage: {Damage:F1} | HandlerOutput: {handlerOutput}");
+                        break;
                 }
+
+                return handlerOutput;
             }
             catch (System.Exception e)
             {
-                Log.Error($"[Scp575DamageHandler] Error during handling ApplyDamage: {e}");
+                Log.Error($"[Scp575DamageHandler] Error in ApplyDamage: {e}");
+                return HandlerOutput.Nothing;
             }
-
-            Log.Debug($"[Scp575DamageHandler] ApplyDamage invoked for player {ply.characterClassManager.name}, result = {handlerOutput}");
-
-            return handlerOutput;
         }
+
 
         public override void ProcessRagdoll(BasicRagdoll ragdoll)
         {
             // ALWAYS call base first to wire up texts, network state, etc.
             base.ProcessRagdoll(ragdoll);
+            Log.Debug($"[Scp575DamageHandler] Ragdoll processed: {ragdoll.name}");
             // ONLY DynamicRagdoll can be remapped by the converter:
             if (ragdoll is DynamicRagdoll dyn)
             {
