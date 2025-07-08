@@ -386,7 +386,7 @@ namespace SCP_575.Npc
                             Log.Debug($"SCP-575 is attempting to deal damage to {player.Nickname} due to no light source in hand during blackout.");
                             float rawDamage = Config.KeterDamage * blackoutStacks;
                             float clampedDamage = Mathf.Max(rawDamage, 1f);
-                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(damage: clampedDamage, killedByName: Config.KilledBy, reason: Config.KilledByRagdollDesc);
+                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(clampedDamage, Config);
                             player.Hurt(damageHandler);
 
 

@@ -54,11 +54,17 @@ namespace SCP_575.ConfigObjects
         [Description("The delay of receiving damage.")]
         public float KeterDamageDelay { get; private set; } = 8f;
 
+        [Description("The velocity modifier applied to players when they are damaged by SCP-575. This is a multiplier applied to the player's velocity when they are hit by SCP-575's damage.")]
+        public float KeterDamageVelocityModifier { get; set; } = 15f;
+
         [Description("Name displayed in player's death information.")]
         public string KilledBy { get; set; } = "SCP-575";
 
+        [Description("Killed by message")]
+        public string KilledByMessage { get; set; } = "Shredded apart by SCP-575";
+
         [Description("Ragdoll death information.")]
-        public string KilledByRagdollDesc { get; set; } = "SCP-575";
+        public string RagdollInspectText { get; set; } = "Flesh stripped by shadow tendrils, leaving a shadowy skeleton.";
 
         // MESSAGES
         [Description("Glitch chance during message per word in CASSIE sentence.")]

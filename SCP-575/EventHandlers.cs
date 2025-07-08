@@ -16,16 +16,16 @@ namespace SCP_575
         public bool NukeDisabled = false;
         public List<CoroutineHandle> Coroutines = new List<CoroutineHandle>();
 
-        public void OnSpawningRagdoll(SpawningRagdollEventArgs ev)
-        {
-            if (!_plugin.StopRagdollList.Contains(ev.Player))
-            {
-                return;
-            }
+        //public void OnSpawningRagdoll(SpawningRagdollEventArgs ev)
+        //{
+        //    if (!_plugin.StopRagdollList.Contains(ev.Player))
+        //    {
+        //        return;
+        //    }
 
-            ev.IsAllowed = false;
-            _plugin.StopRagdollList.Remove(ev.Player);
-        }
+        //    ev.IsAllowed = false;
+        //    _plugin.StopRagdollList.Remove(ev.Player);
+        //}
 
         public void OnWaitingForPlayers()
         {
