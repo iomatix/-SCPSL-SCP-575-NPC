@@ -1,11 +1,15 @@
 namespace SCP_575
 {
-    using System.Collections.Generic;
     using Exiled.API.Features;
+    using Exiled.API.Features.Items;
+    using Exiled.API.Features.Pickups;
     using Exiled.Events.EventArgs.Player;
     using Exiled.Loader;
+    using InventorySystem;
     using MEC;
     using SCP_575.ConfigObjects;
+    using System.Collections.Generic;
+    using UnityEngine;
 
     public class EventHandlers
     {
@@ -26,6 +30,48 @@ namespace SCP_575
                 Log.Debug($"[Event On Spawning Ragdoll] The event was caused by Scp575DamageHandler");
             }
         }
+        public void OnDyingEvent(DyingEventArgs ev)
+        {
+            Scp575DamageHandler tempHandler = new Scp575DamageHandler();
+            Debug.Log($"[OnDyingEvent] Checking if the damage handler is {Scp575DamageHandler.IdentifierName} for player: {ev.Player.Nickname}");
+            Debug.Log($"[OnDyingEvent] Damage handler name: {nameof(ev.DamageHandler)}");
+            if (nameof(ev.DamageHandler) == Scp575DamageHandler.IdentifierName)
+            {
+
+                Player player = ev.Player;
+
+                List<Item> itemsDropped = new List<Item>();
+                foreach (Item item in player.Items)
+                {
+
+                    Log.Debug($"[OnDyingEvent] Dropped item added to the list: {item.Serial} from player: {player.Nickname}");
+                    itemsDropped.Add(item);
+                }
+
+                Log.Debug($"[OnDyingEvent] Dropping all items from {player.Nickname}'s inventory called by Server.");
+                player.Inventory.ServerDropEverything();
+
+                Timing.CallDelayed(0.15f, () =>
+                {
+                    foreach (Item item in itemsDropped)
+                    {
+                        Pickup droppedPickup = Pickup.Get(item.Serial);
+
+                        if (droppedPickup != null)
+                        {
+
+                            Vector3 randomDirection = tempHandler.GetRandomUnitSphereVelocity();
+                            float forceMagnitude = tempHandler.calculateForcePush();
+                            Log.Debug($"[Scp575DamageHandler] Applying force to dropped item: {droppedPickup.Serial} with direction: {randomDirection} and magnitude: {forceMagnitude}");
+                            droppedPickup.Base.transform.GetComponent<Rigidbody>()?.AddForce(randomDirection * forceMagnitude, ForceMode.Force);
+                        }
+                    }
+
+                });
+            }
+        }
+
+
 
         public void OnWaitingForPlayers()
         {

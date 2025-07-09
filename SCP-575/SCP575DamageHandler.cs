@@ -1,5 +1,6 @@
 ﻿namespace SCP_575
 {
+    using System.Collections.Generic;
     using CustomPlayerEffects;
     using Exiled.API.Features;
     using Footprinting;
@@ -10,13 +11,13 @@
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
     using SCP_575.ConfigObjects;
-    using System.Collections.Generic;
     using UnityEngine;
     using Utils.Networking;
 
-
-    public class Scp575DamageHandler : StandardDamageHandler, IRagdollInspectOverride
+    public class Scp575DamageHandler : AttackerDamageHandler
     {
+        public static string IdentifierName => nameof(Scp575DamageHandler);
+
         private static Plugin Instance => Plugin.Singleton;
         private NpcConfig Config => Instance.Config.NpcConfig;
 
@@ -53,7 +54,7 @@
 
         public override float Damage { get; set; }
 
-        public bool AllowSelfDamage => false;
+        public override bool AllowSelfDamage => false;
 
         // From IRagdollInspectOverride
         public override string RagdollInspectText => string.Format(_deathReasonFormat, Config.RagdollInspectText);
@@ -64,9 +65,10 @@
 
         public override string ServerMetricsText => base.ServerMetricsText;
 
-        public Footprint Attacker { get; set; }
+        public override Footprint Attacker { get; set; }
 
         public Footprint Target { get; set; }
+
 
         public Scp575DamageHandler()
         {
@@ -78,13 +80,12 @@
         {
             Log.Debug($"[Scp575DamageHandler] Handler initialized with damage: {damage}, Attacker: {attacker?.Nickname ?? "null"}");
             Damage = damage;
-            if (attacker != null) Attacker = new Footprint(attacker.ReferenceHub);
+            Attacker = attacker?.ReferenceHub is var hub ? new Footprint(hub) : default;
+
             Target = new Footprint(target.ReferenceHub);
 
-            Vector3 randomDirectionVelocity = Random.onUnitSphere;
-            float normalizedDamageModifier = Mathf.Log(3 * Damage + 1) * Config.KeterDamageVelocityModifier;
 
-            _velocity = randomDirectionVelocity * normalizedDamageModifier;
+            _velocity = GetRandomUnitSphereVelocity(Config.KeterDamageVelocityModifier);
             _penetration = Config.KeterDamagePenetration;
             _useHumanHitboxes = useHumanMutltipliers;
             Vector3 forward = target.ReferenceHub.PlayerCameraReference.forward;
@@ -101,17 +102,6 @@
             writer.WriteSByte(_hitDirectionZ);
             writer.WriteVector3(_velocity);
             writer.WriteReferenceHub(Target.Hub);
-            try
-            {
-                Log.Debug("[Scp575DamageHandler] Trying to write Attacker ReferenceHub: " + Attacker.Hub);
-                writer.WriteReferenceHub(Attacker.Hub);
-            }
-            catch (System.Exception e)
-            {
-                writer.WriteReferenceHub(null); // Write null if there's an error
-                Log.Debug($"[Scp575DamageHandler] writing Attacker ReferenceHub aborted: {e}");
-            }
-
         }
 
         public override void ReadAdditionalData(NetworkReader reader)
@@ -122,56 +112,55 @@
             _hitDirectionZ = reader.ReadSByte();
             _velocity = reader.ReadVector3();
             Target = new Footprint(reader.ReadReferenceHub());
-            var attackerHub = reader.ReadReferenceHub();
-            Attacker = attackerHub != null ? new Footprint(attackerHub) : default;
-            Log.Debug("[Scp575DamageHandler] Read Attacker ReferenceHub: " + attackerHub);
-
-
         }
 
         public override HandlerOutput ApplyDamage(ReferenceHub ply)
         {
-            try
+            Player player = Player.Get(ply);
+            // Apply some effects
+            player.EnableEffect<Ensnared>(0.35f);
+            player.EnableEffect<Flashed>(0.1f);
+            player.EnableEffect<Blurred>(0.25f);
+
+            player.EnableEffect<Deafened>(3.85f);
+            player.EnableEffect<AmnesiaVision>(3.65f);
+            player.EnableEffect<Sinkhole>(3.25f);
+            player.EnableEffect<Concussed>(3.15f);
+            player.EnableEffect<Blindness>(2.65f);
+            player.EnableEffect<Burned>(2.5f);
+
+            player.EnableEffect<AmnesiaItems>(1.65f);
+            player.EnableEffect<Stained>(0.75f);
+            player.EnableEffect<Asphyxiated>(1.25f);
+
+            player.EnableEffect<Disabled>(3.75f);
+            player.EnableEffect<Exhausted>(5.75f);
+            player.EnableEffect<Traumatized>(15.5f);
+
+            HandlerOutput handlerOutput = base.ApplyDamage(ply);
+
+            player.PlaceBlood(_velocity);
+
+            switch (handlerOutput)
             {
-                Player player = Player.Get(ply);
+                case HandlerOutput.Death:
+                    Log.Debug($"[Scp575DamageHandler] {player.Nickname} was killed by {Config.KilledBy} | Damage: {Damage:F1} | HP before death: {player.Health + Damage:F1}");
+                    break;
 
-                // Apply some effects
-                player.EnableEffect<Flashed>(0.25f);
-                player.EnableEffect<Blindness>(0.75f);
-                player.EnableEffect<Slowness>(3.25f);
-                player.EnableEffect<Deafened>(2f);
-                player.EnableEffect<Corroding>(1.5f);
-                player.EnableEffect<Sinkhole>(1.5f);
-                player.EnableEffect<Asphyxiated>(1.5f);
-                player.EnableEffect<Bleeding>(3.25f);
-                player.EnableEffect<Ensnared>(0.35f);
-                player.PlaceBlood(_velocity);
+                case HandlerOutput.Damaged:
+                    Log.Debug($"[Scp575DamageHandler] {player.Nickname} took {Damage:F1} damage from {Config.KilledBy} | Remaining HP: {player.Health:F1} | Raw HP damage dealt: {DealtHealthDamage:F1}");
+                    break;
 
-                HandlerOutput handlerOutput = base.ApplyDamage(ply);
-
-                switch (handlerOutput)
-                {
-                    case HandlerOutput.Death:
-                        Log.Debug($"[Scp575DamageHandler] {player.Nickname} was killed by {Config.KilledBy} | Damage: {Damage:F1} | HP before death: {player.Health + Damage:F1}");
-                        break;
-
-                    case HandlerOutput.Damaged:
-                        Log.Debug($"[Scp575DamageHandler] {player.Nickname} took {Damage:F1} damage from {Config.KilledBy} | Remaining HP: {player.Health:F1} | Raw HP damage dealt: {DealtHealthDamage:F1}");
-                        break;
-
-                    default:
-                        Log.Debug($"[Scp575DamageHandler] {player.Nickname} received non-damaging interaction by {Config.KilledBy} | Damage: {Damage:F1} | HandlerOutput: {handlerOutput}");
-                        break;
-                }
-
-                return handlerOutput;
+                default:
+                    Log.Debug($"[Scp575DamageHandler] {player.Nickname} received non-damaging interaction by {Config.KilledBy} | Damage: {Damage:F1} | HandlerOutput: {handlerOutput}");
+                    break;
             }
-            catch (System.Exception e)
-            {
-                Log.Error($"[Scp575DamageHandler] Error in ApplyDamage: {e}");
-                return HandlerOutput.Nothing;
-            }
+
+            return handlerOutput;
         }
+
+
+
         public override void ProcessDamage(ReferenceHub ply)
         {
             if (!_useHumanHitboxes && ply.IsHuman())
@@ -207,8 +196,8 @@
                 return;
             }
 
-            float value2 = Random.Range(1f, 5f);
-            float num = value * value2;
+            float num = calculateForcePush(value);
+            Log.Debug($"[Scp575DamageHandler] Applying force: {num} to ragdoll: {ragdoll.name} with hitbox: {Hitbox}");
 
             HitboxData[] hitboxes = dynamicRagdoll.Hitboxes;
             for (int i = 0; i < hitboxes.Length; i++)
@@ -240,6 +229,19 @@
             {
                 //rb.linearVelocity = _velocity;
             }
+        }
+
+        public float calculateForcePush(float baseValue = 1.0f)
+        {
+            float value2 = Random.Range(Config.KeterForceMinModifier, Config.KeterForceMaxModifier);
+            return baseValue * value2;
+        }
+
+        public Vector3 GetRandomUnitSphereVelocity(float baseValue = 1.0f)
+        {
+            Vector3 randomDirection = Random.onUnitSphere;
+            float modifier = baseValue * Mathf.Log(3 * Damage + 1) * calculateForcePush(Config.KeterDamageVelocityModifier);
+            return randomDirection * modifier;
         }
 
     }

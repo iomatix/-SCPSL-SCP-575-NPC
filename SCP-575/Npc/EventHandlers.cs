@@ -51,5 +51,8 @@ namespace SCP_575.Npc
             Coroutines.Clear();
         }
 
+
+
+
     }
 }
