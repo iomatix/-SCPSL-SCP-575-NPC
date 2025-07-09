@@ -51,11 +51,20 @@ namespace SCP_575.ConfigObjects
         [Description("Base damage per each stack of delay. Tha damage is inflicted if EnableKeter is set to true.")]
         public float KeterDamage { get; private set; } = 10f;
 
+        [Description("Penetration modifier same as in FirearmsDamageHandler.")]
+        public float KeterDamagePenetration { get; internal set; } = 0.75f;
+
         [Description("The delay of receiving damage.")]
         public float KeterDamageDelay { get; private set; } = 8f;
 
-        [Description("The velocity modifier applied to players when they are damaged by SCP-575. This is a multiplier applied to the player's velocity when they are hit by SCP-575's damage.")]
-        public float KeterDamageVelocityModifier { get; set; } = 15f;
+        [Description("The minimum modifier applied to ragdolls when they were damaged by SCP-575.")]
+        public float KeterForceMinModifier { get; set; } = 1f;
+
+        [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
+        public float KeterForceMaxModifier { get; set; } = 5f;
+
+        [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
+        public float KeterDamageVelocityModifier { get; set; } = 2.5f;
 
         [Description("Name displayed in player's death information.")]
         public string KilledBy { get; set; } = "SCP-575";
@@ -136,7 +145,5 @@ namespace SCP_575.ConfigObjects
 
         [Description("Change this to true if want to use per room probability settings isntead of per zone settings. The script will check all rooms in the specified zone with its probability.")]
         public bool UsePerRoomChances { get; set; } = false;
-
-
     }
 }

@@ -17,7 +17,7 @@ namespace SCP_575
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(6, 5, 3);
+        public override Version Version { get; } = new(6, 6, 0);
         public override Version RequiredExiledVersion { get; } = new(9, 6, 1);
 
         public EventHandlers EventHandlers { get; private set; }
@@ -36,7 +36,7 @@ namespace SCP_575
             //Playable = new NestingObjects.Playable(this);
 
             Server.WaitingForPlayers += EventHandlers.OnWaitingForPlayers;
-            //Exiled.Events.Handlers.Player.SpawningRagdoll += EventHandlers.OnSpawningRagdoll;
+            Exiled.Events.Handlers.Player.SpawningRagdoll += EventHandlers.OnSpawningRagdoll;
 
             base.OnEnabled();
         }
@@ -47,7 +47,7 @@ namespace SCP_575
             foreach (CoroutineHandle handle in EventHandlers.Coroutines) Timing.KillCoroutines(handle);
             EventHandlers.Coroutines.Clear();
             Server.WaitingForPlayers -= EventHandlers.OnWaitingForPlayers;
-            //Exiled.Events.Handlers.Player.SpawningRagdoll -= EventHandlers.OnSpawningRagdoll;
+            Exiled.Events.Handlers.Player.SpawningRagdoll -= EventHandlers.OnSpawningRagdoll;
 
             EventHandlers = null;
             Npc = null;

@@ -1,6 +1,7 @@
 namespace SCP_575
 {
     using System.Collections.Generic;
+    using Exiled.API.Features;
     using Exiled.Events.EventArgs.Player;
     using Exiled.Loader;
     using MEC;
@@ -16,16 +17,15 @@ namespace SCP_575
         public bool NukeDisabled = false;
         public List<CoroutineHandle> Coroutines = new List<CoroutineHandle>();
 
-        //public void OnSpawningRagdoll(SpawningRagdollEventArgs ev)
-        //{
-        //    if (!_plugin.StopRagdollList.Contains(ev.Player))
-        //    {
-        //        return;
-        //    }
-
-        //    ev.IsAllowed = false;
-        //    _plugin.StopRagdollList.Remove(ev.Player);
-        //}
+        public void OnSpawningRagdoll(SpawningRagdollEventArgs ev)
+        {
+            Log.Debug($"[Catched Event] On Spawning Ragdoll: {ev.Info.Handler.RagdollInspectText}");
+            Scp575DamageHandler tempHandler = new Scp575DamageHandler();
+            if (ev.Info.Handler.RagdollInspectText == tempHandler.RagdollInspectText)
+            {
+                Log.Debug($"[Event On Spawning Ragdoll] The event was caused by Scp575DamageHandler");
+            }
+        }
 
         public void OnWaitingForPlayers()
         {
