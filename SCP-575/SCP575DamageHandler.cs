@@ -48,7 +48,7 @@
         // Death Translation
         // Unique byte that doesn't conflict with others
         private static readonly byte scp575Id = 31;
-        public static readonly DeathTranslation scp575Translation = new DeathTranslation(scp575Id, 36, 36, "{0}");
+        public static readonly DeathTranslation scp575Translation = new DeathTranslation(scp575Id, 26, 26, "{0}");
 
         public override CassieAnnouncement CassieDeathAnnouncement => null;
 
