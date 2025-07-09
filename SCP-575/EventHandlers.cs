@@ -24,22 +24,9 @@ namespace SCP_575
         public void OnSpawningRagdoll(SpawningRagdollEventArgs ev)
         {
             Log.Debug($"[Catched Event] On Spawning Ragdoll: {ev.Info.Handler.RagdollInspectText}");
-            Scp575DamageHandler tempHandler = new Scp575DamageHandler();
-            if (ev.Info.Handler.RagdollInspectText == tempHandler.RagdollInspectText)
+            if (ev.Info.Handler is Scp575DamageHandler scp575Handler)
             {
-                Log.Debug($"[Event On Spawning Ragdoll] The event was caused by Scp575DamageHandler");
-            }
-        }
-        public void OnDyingEvent(DyingEventArgs ev)
-        {
-            Log.Debug($"[Catched Event] On Dying: {ev.Player.Nickname}");
-            Log.Debug($"Damage handler value: {ev.DamageHandler.ToString() ?? "null"}");
-            Scp575DamageHandler tempHandler = new Scp575DamageHandler();
-            Log.Debug($"[OnDyingEvent] Checking if the damage handler is {Scp575DamageHandler.IdentifierName} for player: {ev.Player.Nickname}");
-            Log.Debug($"[OnDyingEvent] Damage handler name: {ev.DamageHandler}");
-            if (ev.DamageHandler.ToString() == Scp575DamageHandler.IdentifierName)
-            {
-                Log.Debug($"[OnDyingEvent] Matched SCP575 handler! Now pushing items…");
+                Log.Debug($"[Event On Spawning Ragdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
 
                 Player player = ev.Player;
 
@@ -63,8 +50,8 @@ namespace SCP_575
                         if (droppedPickup != null)
                         {
 
-                            Vector3 randomDirection = tempHandler.GetRandomUnitSphereVelocity();
-                            float forceMagnitude = tempHandler.calculateForcePush();
+                            Vector3 randomDirection = scp575Handler.GetRandomUnitSphereVelocity();
+                            float forceMagnitude = scp575Handler.calculateForcePush();
                             Log.Debug($"[Scp575DamageHandler] Applying force to dropped item: {droppedPickup.Serial} with direction: {randomDirection} and magnitude: {forceMagnitude}");
                             droppedPickup.Base.transform.GetComponent<Rigidbody>()?.AddForce(randomDirection * forceMagnitude, ForceMode.Force);
                         }
@@ -72,13 +59,12 @@ namespace SCP_575
 
                 });
             }
-            else
-            {
-                Log.Debug($"[OnDyingEvent] Different handler: {ev.DamageHandler}");
-            }
         }
 
-
+        public void OnDyingEvent(DyingEventArgs ev)
+        {
+            Log.Debug($"[Catched Event] On Dying: {ev.Player.Nickname}");
+        }
 
         public void OnWaitingForPlayers()
         {
