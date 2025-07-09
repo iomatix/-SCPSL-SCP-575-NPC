@@ -4,6 +4,8 @@ namespace SCP_575.Npc
     using System.Collections.Generic;
     using Exiled.API.Enums;
     using Exiled.API.Features;
+    using Exiled.API.Features.Items;
+    using Exiled.API.Features.Pickups;
     using Exiled.Loader;
     using MEC;
     using SCP_575.ConfigObjects;
@@ -399,5 +401,47 @@ namespace SCP_575.Npc
                 }
             }
         }
+
+        public IEnumerator<float> DropAndPushItems(
+            Player player,
+            List<Item> itemsToDrop,
+            Scp575DamageHandler handler
+        )
+        {
+            yield return Timing.WaitForOneFrame;  // let engine spawn pickups
+
+            foreach (var item in itemsToDrop)
+            {
+                var pickup = Pickup.Get(item.Serial);
+                if (pickup == null)
+                {
+                    Log.Warn($"[DropAndPush] Pickup {item.Serial} not found—skipping.");
+                    continue;
+                }
+
+                var rb = pickup.Base.GetComponent<Rigidbody>();
+                if (rb == null)
+                {
+                    Log.Warn($"[DropAndPush] Rigidbody missing on {item.Serial}.");
+                    continue;
+                }
+
+                var dir = handler.GetRandomUnitSphereVelocity();
+                var mag = handler.calculateForcePush();
+
+                try
+                {
+                    rb.AddForce(dir * mag, ForceMode.Impulse);
+                    Log.Debug($"[DropAndPush] Pushed {item.Serial}: dir={dir}, mag={mag}");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"[DropAndPush] Error pushing {item.Serial}: {ex}");
+                }
+
+                yield return Timing.WaitForOneFrame;  // stagger pushes
+            }
+        }
+
     }
 }

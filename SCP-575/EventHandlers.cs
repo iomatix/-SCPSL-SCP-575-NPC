@@ -3,19 +3,23 @@
     using System.Collections.Generic;
     using Exiled.API.Features;
     using Exiled.API.Features.Items;
-    using Exiled.API.Features.Pickups;
     using Exiled.Events.EventArgs.Player;
     using Exiled.Loader;
     using InventorySystem;
     using MEC;
     using SCP_575.ConfigObjects;
-    using UnityEngine;
+    using SCP_575.Npc;
+
 
     public class EventHandlers
     {
         private readonly Plugin _plugin;
 
+        
+
         public EventHandlers(Plugin plugin) => _plugin = plugin;
+        private Methods _methods => _plugin.Npc.Methods;
+
 
         public bool TeslasDisabled = false;
         public bool NukeDisabled = false;
@@ -30,34 +34,13 @@
 
                 Player player = ev.Player;
 
-                List<Item> itemsDropped = new List<Item>();
-                foreach (Item item in player.Items)
-                {
-
-                    Log.Debug($"[OnSpawningRagdoll] Dropped item added to the list: {item.Serial} from player: {player.Nickname}");
-                    itemsDropped.Add(item);
-                }
-
                 Log.Debug($"[OnSpawningRagdoll] Dropping all items from {player.Nickname}'s inventory called by Server.");
+                List<Item> items = new List<Item>(player.Items);
                 player.Inventory.ServerDropEverything();
+                
+                Timing.RunCoroutine(_methods.DropAndPushItems(player, items, scp575Handler));
 
-                Timing.CallDelayed(0.15f, () =>
-                {
-                    foreach (Item item in itemsDropped)
-                    {
-                        Pickup droppedPickup = Pickup.Get(item.Serial);
 
-                        if (droppedPickup != null)
-                        {
-
-                            Vector3 randomDirection = scp575Handler.GetRandomUnitSphereVelocity();
-                            float forceMagnitude = scp575Handler.calculateForcePush();
-                            Log.Debug($"[OnSpawningRagdoll] Applying force to dropped item: {droppedPickup.Serial} with direction: {randomDirection} and magnitude: {forceMagnitude}");
-                            droppedPickup.Base.transform.GetComponent<Rigidbody>()?.AddForce(randomDirection * forceMagnitude, ForceMode.Impulse);
-                        }
-                    }
-
-                });
             }
         }
 
