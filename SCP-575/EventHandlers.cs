@@ -1,5 +1,6 @@
 ﻿namespace SCP_575
 {
+    using System.Collections.Generic;
     using Exiled.API.Features;
     using Exiled.API.Features.Items;
     using Exiled.API.Features.Pickups;
@@ -7,11 +8,7 @@
     using Exiled.Loader;
     using InventorySystem;
     using MEC;
-    using PlayerRoles.PlayableScps.Scp3114;
-    using PlayerRoles.Ragdolls;
     using SCP_575.ConfigObjects;
-    using System;
-    using System.Collections.Generic;
     using UnityEngine;
 
     public class EventHandlers

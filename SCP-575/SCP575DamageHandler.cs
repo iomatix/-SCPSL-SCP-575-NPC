@@ -1,5 +1,7 @@
 ﻿namespace SCP_575
 {
+    using System;
+    using System.Collections.Generic;
     using CustomPlayerEffects;
     using Exiled.API.Features;
     using Footprinting;
@@ -10,8 +12,6 @@
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
     using SCP_575.ConfigObjects;
-    using System;
-    using System.Collections.Generic;
     using UnityEngine;
     using Utils.Networking;
 
@@ -240,13 +240,13 @@
 
         public float calculateForcePush(float baseValue = 1.0f)
         {
-            float value2 = Random.Range(Config.KeterForceMinModifier, Config.KeterForceMaxModifier);
+            float value2 = UnityEngine.Random.Range(Config.KeterForceMinModifier, Config.KeterForceMaxModifier);
             return baseValue * value2;
         }
 
         public Vector3 GetRandomUnitSphereVelocity(float baseValue = 1.0f)
         {
-            Vector3 randomDirection = Random.onUnitSphere;
+            Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
             float modifier = baseValue * Mathf.Log(3 * Damage + 1) * calculateForcePush(Config.KeterDamageVelocityModifier);
             return randomDirection * modifier;
         }
