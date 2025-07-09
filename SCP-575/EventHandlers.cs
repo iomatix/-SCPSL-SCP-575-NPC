@@ -1,4 +1,4 @@
-namespace SCP_575
+﻿namespace SCP_575
 {
     using Exiled.API.Features;
     using Exiled.API.Features.Items;
@@ -7,7 +7,10 @@ namespace SCP_575
     using Exiled.Loader;
     using InventorySystem;
     using MEC;
+    using PlayerRoles.PlayableScps.Scp3114;
+    using PlayerRoles.Ragdolls;
     using SCP_575.ConfigObjects;
+    using System;
     using System.Collections.Generic;
     using UnityEngine;
 
@@ -23,10 +26,10 @@ namespace SCP_575
 
         public void OnSpawningRagdoll(SpawningRagdollEventArgs ev)
         {
-            Log.Debug($"[Catched Event] On Spawning Ragdoll: {ev.Info.Handler.RagdollInspectText}");
+            Log.Debug($"[Catched Event] OnSpawningRagdoll: {ev.Info.Handler.RagdollInspectText}");
             if (ev.Info.Handler is Scp575DamageHandler scp575Handler)
             {
-                Log.Debug($"[Event On Spawning Ragdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
+                Log.Debug($"[OnSpawningRagdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
 
                 Player player = ev.Player;
 
@@ -34,11 +37,11 @@ namespace SCP_575
                 foreach (Item item in player.Items)
                 {
 
-                    Log.Debug($"[OnDyingEvent] Dropped item added to the list: {item.Serial} from player: {player.Nickname}");
+                    Log.Debug($"[OnSpawningRagdoll] Dropped item added to the list: {item.Serial} from player: {player.Nickname}");
                     itemsDropped.Add(item);
                 }
 
-                Log.Debug($"[OnDyingEvent] Dropping all items from {player.Nickname}'s inventory called by Server.");
+                Log.Debug($"[OnSpawningRagdoll] Dropping all items from {player.Nickname}'s inventory called by Server.");
                 player.Inventory.ServerDropEverything();
 
                 Timing.CallDelayed(0.15f, () =>
@@ -52,8 +55,8 @@ namespace SCP_575
 
                             Vector3 randomDirection = scp575Handler.GetRandomUnitSphereVelocity();
                             float forceMagnitude = scp575Handler.calculateForcePush();
-                            Log.Debug($"[Scp575DamageHandler] Applying force to dropped item: {droppedPickup.Serial} with direction: {randomDirection} and magnitude: {forceMagnitude}");
-                            droppedPickup.Base.transform.GetComponent<Rigidbody>()?.AddForce(randomDirection * forceMagnitude, ForceMode.Force);
+                            Log.Debug($"[OnSpawningRagdoll] Applying force to dropped item: {droppedPickup.Serial} with direction: {randomDirection} and magnitude: {forceMagnitude}");
+                            droppedPickup.Base.transform.GetComponent<Rigidbody>()?.AddForce(randomDirection * forceMagnitude, ForceMode.Impulse);
                         }
                     }
 
@@ -63,7 +66,7 @@ namespace SCP_575
 
         public void OnDyingEvent(DyingEventArgs ev)
         {
-            Log.Debug($"[Catched Event] On Dying: {ev.Player.Nickname}");
+            Log.Debug($"[Catched Event] OnDyingEvent: {ev.Player.Nickname}");
         }
 
         public void OnWaitingForPlayers()

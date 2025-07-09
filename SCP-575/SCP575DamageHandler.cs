@@ -1,6 +1,5 @@
 ﻿namespace SCP_575
 {
-    using System.Collections.Generic;
     using CustomPlayerEffects;
     using Exiled.API.Features;
     using Footprinting;
@@ -11,6 +10,8 @@
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
     using SCP_575.ConfigObjects;
+    using System;
+    using System.Collections.Generic;
     using UnityEngine;
     using Utils.Networking;
 
@@ -193,47 +194,47 @@
 
         public override void ProcessRagdoll(BasicRagdoll ragdoll)
         {
-            // ALWAYS call base first to wire up texts, network state, etc.
             base.ProcessRagdoll(ragdoll);
-            Log.Debug($"[Scp575DamageHandler] Processing ragdoll: {ragdoll.name}");
-            if (!HitboxToForce.TryGetValue(Hitbox, out var value) || !(ragdoll is DynamicRagdoll dynamicRagdoll))
+
+            Log.Debug($"[SCP-575] Processing ragdoll: {ragdoll.name}");
+
+            if (ragdoll is not DynamicRagdoll dynamicRagdoll)
             {
-                Log.Warn($"[Scp575DamageHandler] Hitbox {Hitbox} not found in HitboxToForce or ragdoll is not DynamicRagdoll. Skipping velocity application.");
+                Log.Warn($"[SCP-575] Ragdoll is not DynamicRagdoll. Skipping.");
                 return;
             }
 
-            float num = calculateForcePush(value);
-            Log.Debug($"[Scp575DamageHandler] Applying force: {num} to ragdoll: {ragdoll.name} with hitbox: {Hitbox}");
-
-            HitboxData[] hitboxes = dynamicRagdoll.Hitboxes;
-            for (int i = 0; i < hitboxes.Length; i++)
+            if (!HitboxToForce.TryGetValue(Hitbox, out float baseForce))
             {
-                Log.Debug($"[Scp575DamageHandler] Hitbox {i}: {hitboxes[i].RelatedHitbox} on {hitboxes[i].Target.name}");
-                HitboxData hitboxData = hitboxes[i];
-                if (hitboxData.RelatedHitbox == Hitbox)
-                {
-                    Log.Debug($"[Scp575DamageHandler] Applying velocity to hitbox {i} on {hitboxData.Target.name}");
-                    hitboxData.Target.AddForce(_velocity, ForceMode.VelocityChange);
-                }
+                Log.Warn($"[SCP-575] Unknown hitbox: {Hitbox}. No force applied.");
+                return;
             }
 
-            // This will:
-            //  - remove the old human mesh
-            //  - remap all bones
+            float finalForce = calculateForcePush(baseForce);
+            Log.Debug($"[SCP-575] Final push force: {finalForce}");
+
+            foreach (var hitbox in dynamicRagdoll.Hitboxes)
+            {
+                if (hitbox.RelatedHitbox != Hitbox) continue;
+
+                Log.Debug($"[SCP-575] Applying force to hitbox: {hitbox.RelatedHitbox}");
+                hitbox.Target.AddForce(_velocity * finalForce, ForceMode.VelocityChange);
+            }
+
             try
             {
-                Log.Debug($"[Scp575DamageHandler] Converting ragdoll to bones by Scp3114RagdollToBonesConverter");
                 Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
+                Log.Debug($"[SCP-575] Converted ragdoll to bones.");
             }
-            catch (System.Exception e)
+            catch (Exception ex)
             {
-                Log.Error($"[Scp575DamageHandler] Error converting ragdoll: {e}");
-                return; // If conversion fails, we don't want to proceed with applying velocity.
+                Log.Error($"[SCP-575] Bone conversion error: {ex}");
+                return;
             }
-            // Re-apply velocity to all rigidbodies:
+
             foreach (var rb in dynamicRagdoll.LinkedRigidbodies)
             {
-                //rb.linearVelocity = _velocity;
+                rb.AddForce(_velocity * finalForce, ForceMode.VelocityChange);
             }
         }
 
