@@ -33,12 +33,13 @@ namespace SCP_575
         public void OnDyingEvent(DyingEventArgs ev)
         {
             Log.Debug($"[Catched Event] On Dying: {ev.Player.Nickname}");
-            Log.Debug($"[OnDyingEvent] Player {ev.Player.Nickname} is dying. Damage handler: {ev.DamageHandler?.GetType().Name ?? "null"}");
+            Log.Debug($"Damage handler value: {ev.DamageHandler.ToString() ?? "null"}");
             Scp575DamageHandler tempHandler = new Scp575DamageHandler();
             Log.Debug($"[OnDyingEvent] Checking if the damage handler is {Scp575DamageHandler.IdentifierName} for player: {ev.Player.Nickname}");
-            Log.Debug($"[OnDyingEvent] Damage handler name: {nameof(ev.DamageHandler)}");
-            if (nameof(ev.DamageHandler) == Scp575DamageHandler.IdentifierName)
+            Log.Debug($"[OnDyingEvent] Damage handler name: {ev.DamageHandler}");
+            if (ev.DamageHandler.ToString() == Scp575DamageHandler.IdentifierName)
             {
+                Log.Debug($"[OnDyingEvent] Matched SCP575 handler! Now pushing items…");
 
                 Player player = ev.Player;
 
@@ -70,6 +71,10 @@ namespace SCP_575
                     }
 
                 });
+            }
+            else
+            {
+                Log.Debug($"[OnDyingEvent] Different handler: {ev.DamageHandler}");
             }
         }
 
