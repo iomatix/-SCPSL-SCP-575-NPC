@@ -78,7 +78,7 @@
         public Scp575DamageHandler(Player target, float damage, Player attacker = null, bool useHumanMutltipliers = true)
             : this()
         {
-            Log.Debug($"[Scp575DamageHandler] Handler initialized with damage: {damage}, Attacker: {attacker?.Nickname ?? "null"}");
+            Log.Debug($"[Scp575DamageHandler] Handler initialized with damage: {damage}, Target: {target.Nickname}, Attacker: {attacker?.Nickname ?? "null"}");
             Damage = damage;
             Attacker = attacker?.ReferenceHub is var hub ? new Footprint(hub) : default;
 
@@ -163,25 +163,31 @@
 
         public override void ProcessDamage(ReferenceHub ply)
         {
+            Log.Debug($"[Scp575DamageHandler] Processing damage for {ply.nicknameSync.MyNick} with Hitbox: {Hitbox} and Damage: {Damage:F1}");
             if (!_useHumanHitboxes && ply.IsHuman())
             {
+                Log.Debug($"[Scp575DamageHandler] Using human hitboxes is disabled, setting Hitbox to Body for {ply.nicknameSync.MyNick}");
                 Hitbox = HitboxType.Body;
             }
 
             if (_useHumanHitboxes && HitboxDamageMultipliers.TryGetValue(Hitbox, out var value))
             {
                 Damage *= value;
+                Log.Debug($"[Scp575DamageHandler] Hitbox {Hitbox} found in HitboxDamageMultipliers, applying multiplier: {value} to Damage: {Damage:F1}");
             }
 
+            Log.Debug($"[Scp575DamageHandler] Processing base() for ProcessDamage(ply) after multipliers: {Damage:F1} for player: {ply.nicknameSync.MyNick}");
             base.ProcessDamage(ply);
             if (Damage != 0f && ply.roleManager.CurrentRole is IArmoredRole armoredRole)
             {
+                Log.Debug($"[Scp575DamageHandler] Player {ply.nicknameSync.MyNick} is an armored role: {armoredRole.ToString()}");
                 int armorEfficacy = armoredRole.GetArmorEfficacy(Hitbox);
                 int penetrationPercent = Mathf.RoundToInt(_penetration * 100f);
                 float num = Mathf.Clamp(ply.playerStats.GetModule<HumeShieldStat>().CurValue, 0f, Damage);
                 float baseDamage = Mathf.Max(0f, Damage - num);
                 float num2 = BodyArmorUtils.ProcessDamage(armorEfficacy, baseDamage, penetrationPercent);
                 Damage = num2 + num;
+                Log.Debug($"[Scp575DamageHandler] Player {ply.nicknameSync.MyNick} armor efficacy: {armorEfficacy}, penetration percent: {penetrationPercent}, base damage: {baseDamage:F1}, processed damage: {num2:F1}, final Damage: {Damage:F1}");
             }
         }
 
