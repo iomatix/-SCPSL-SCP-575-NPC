@@ -1,8 +1,6 @@
 ﻿namespace SCP_575
 {
 
-    using System;
-    using System.Collections.Generic;
     using Exiled.API.Features;
     using Exiled.Loader;
     using InventorySystem;
@@ -14,7 +12,11 @@
     using ProgressiveCulling;
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
+    using System;
+    using System.Collections.Generic;
+    using System.Reflection.Emit;
     using UnityEngine;
+    using static PlayerRoles.FirstPersonControl.Thirdperson.Subcontrollers.FeetStabilizerSubcontroller;
 
     public class EventHandlers
     {
@@ -185,8 +187,11 @@
                     if (_hitbox.RelatedHitbox != hitbox) continue;
 
                     Log.Debug($"[OnSpawnedRagdoll] Applying force to hitbox: {_hitbox.RelatedHitbox}");
-                    _hitbox.Target.AddForce(safeVelocity, ForceMode.Impulse);
+                    _hitbox.Target.AddForce(safeVelocity, ForceMode.VelocityChange);
                 }
+
+                foreach (Transform child in ragdollGO.transform)
+                    Log.Debug($"[OnSpawnedRagdoll] Child: {child.name}, active={child.gameObject.activeSelf}");
 
                 // 🧍 Convert ragdoll visual mesh to bones
                 try
@@ -200,11 +205,21 @@
                     return;
                 }
 
+                foreach (Transform child in ragdollGO.transform)
+                    Log.Debug($"[OnSpawnedRagdoll] Child: {child.name}, active={child.gameObject.activeSelf}");
+
+
                 // 💥 Scatter additional force across ragdoll limbs
                 foreach (var rb in dynamicRagdoll.LinkedRigidbodies)
                 {
-                    rb.AddForce(safeVelocity, ForceMode.Impulse);
+                    rb.AddForce(safeVelocity, ForceMode.VelocityChange);
                 }
+
+                /// DEBUG
+                GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                marker.transform.position = ragdoll.Position + Vector3.up * 1.3f;
+                marker.GetComponent<Renderer>().material.color = Color.yellow;
+                GameObject.Destroy(marker, 120f);
             }
         }
 
