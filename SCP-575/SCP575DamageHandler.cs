@@ -145,15 +145,15 @@
             switch (handlerOutput)
             {
                 case HandlerOutput.Death:
-                    Log.Debug($"[Scp575DamageHandler] {player.Nickname} was killed by {Config.KilledBy} | Damage: {Damage:F1} | HP before death: {player.Health + Damage:F1}");
+                    Log.Debug($"[ApplyDamage] {player.Nickname} was killed by {Config.KilledBy} | Damage: {Damage:F1} | HP before death: {player.Health + Damage:F1}");
                     break;
 
                 case HandlerOutput.Damaged:
-                    Log.Debug($"[Scp575DamageHandler] {player.Nickname} took {Damage:F1} damage from {Config.KilledBy} | Remaining HP: {player.Health:F1} | Raw HP damage dealt: {DealtHealthDamage:F1}");
+                    Log.Debug($"[ApplyDamage] {player.Nickname} took {Damage:F1} damage from {Config.KilledBy} | Remaining HP: {player.Health:F1} | Raw HP damage dealt: {DealtHealthDamage:F1}");
                     break;
 
                 default:
-                    Log.Debug($"[Scp575DamageHandler] {player.Nickname} received non-damaging interaction by {Config.KilledBy} | Damage: {Damage:F1} | HandlerOutput: {handlerOutput}");
+                    Log.Debug($"[ApplyDamage] {player.Nickname} received non-damaging interaction by {Config.KilledBy} | Damage: {Damage:F1} | HandlerOutput: {handlerOutput}");
                     break;
             }
 
@@ -164,31 +164,31 @@
 
         public override void ProcessDamage(ReferenceHub ply)
         {
-            Log.Debug($"[Scp575DamageHandler] Processing damage for {ply.nicknameSync.MyNick} with Hitbox: {Hitbox} and Damage: {Damage:F1}");
+            Log.Debug($"[ProcessDamage] Processing damage for {ply.nicknameSync.MyNick} with Hitbox: {Hitbox} and Damage: {Damage:F1}");
             if (!_useHumanHitboxes && ply.IsHuman())
             {
-                Log.Debug($"[Scp575DamageHandler] Using human hitboxes is disabled, setting Hitbox to Body for {ply.nicknameSync.MyNick}");
+                Log.Debug($"[ProcessDamage] Using human hitboxes is disabled, setting Hitbox to Body for {ply.nicknameSync.MyNick}");
                 Hitbox = HitboxType.Body;
             }
 
             if (_useHumanHitboxes && HitboxDamageMultipliers.TryGetValue(Hitbox, out var value))
             {
                 Damage *= value;
-                Log.Debug($"[Scp575DamageHandler] Hitbox {Hitbox} found in HitboxDamageMultipliers, applying multiplier: {value} to Damage: {Damage:F1}");
+                Log.Debug($"[ProcessDamage] Hitbox {Hitbox} found in HitboxDamageMultipliers, applying multiplier: {value} to Damage: {Damage:F1}");
             }
 
-            Log.Debug($"[Scp575DamageHandler] Processing base() for ProcessDamage(ply) after multipliers: {Damage:F1} for player: {ply.nicknameSync.MyNick}");
+            Log.Debug($"[ProcessDamage] Processing base() for ProcessDamage(ply) after multipliers: {Damage:F1} for player: {ply.nicknameSync.MyNick}");
             base.ProcessDamage(ply);
             if (Damage != 0f && ply.roleManager.CurrentRole is IArmoredRole armoredRole)
             {
-                Log.Debug($"[Scp575DamageHandler] Player {ply.nicknameSync.MyNick} is an armored role: {armoredRole.ToString()}");
+                Log.Debug($"[ProcessDamage] Player {ply.nicknameSync.MyNick} is an armored role: {armoredRole.ToString()}");
                 int armorEfficacy = armoredRole.GetArmorEfficacy(Hitbox);
                 int penetrationPercent = Mathf.RoundToInt(_penetration * 100f);
                 float num = Mathf.Clamp(ply.playerStats.GetModule<HumeShieldStat>().CurValue, 0f, Damage);
                 float baseDamage = Mathf.Max(0f, Damage - num);
                 float num2 = BodyArmorUtils.ProcessDamage(armorEfficacy, baseDamage, penetrationPercent);
                 Damage = num2 + num;
-                Log.Debug($"[Scp575DamageHandler] Player {ply.nicknameSync.MyNick} armor efficacy: {armorEfficacy}, penetration percent: {penetrationPercent}, base damage: {baseDamage:F1}, processed damage: {num2:F1}, final Damage: {Damage:F1}");
+                Log.Debug($"[ProcessDamage] Player {ply.nicknameSync.MyNick} armor efficacy: {armorEfficacy}, penetration percent: {penetrationPercent}, base damage: {baseDamage:F1}, processed damage: {num2:F1}, final Damage: {Damage:F1}");
             }
         }
 
@@ -196,39 +196,39 @@
         {
             base.ProcessRagdoll(ragdoll);
 
-            Log.Debug($"[SCP-575] Processing ragdoll: {ragdoll.name}");
+            Log.Debug($"[ProcessRagdoll] Processing ragdoll: {ragdoll.name}");
 
             if (ragdoll is not DynamicRagdoll dynamicRagdoll)
             {
-                Log.Warn($"[SCP-575] Ragdoll is not DynamicRagdoll. Skipping.");
+                Log.Warn($"[ProcessRagdoll] Ragdoll is not DynamicRagdoll. Skipping.");
                 return;
             }
 
             if (!HitboxToForce.TryGetValue(Hitbox, out float baseForce))
             {
-                Log.Warn($"[SCP-575] Unknown hitbox: {Hitbox}. No force applied.");
+                Log.Warn($"[ProcessRagdoll] Unknown hitbox: {Hitbox}. No force applied.");
                 return;
             }
 
             float finalForce = calculateForcePush(baseForce);
-            Log.Debug($"[SCP-575] Final push force: {finalForce}");
+            Log.Debug($"[ProcessRagdoll] Final push force: {finalForce}");
 
             foreach (var hitbox in dynamicRagdoll.Hitboxes)
             {
                 if (hitbox.RelatedHitbox != Hitbox) continue;
 
-                Log.Debug($"[SCP-575] Applying force to hitbox: {hitbox.RelatedHitbox}");
+                Log.Debug($"[ProcessRagdoll] Applying force to hitbox: {hitbox.RelatedHitbox}");
                 hitbox.Target.AddForce(_velocity * finalForce, ForceMode.VelocityChange);
             }
 
             try
             {
                 Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
-                Log.Debug($"[SCP-575] Converted ragdoll to bones.");
+                Log.Debug($"[ProcessRagdoll] Converted ragdoll to bones.");
             }
             catch (Exception ex)
             {
-                Log.Error($"[SCP-575] Bone conversion error: {ex}");
+                Log.Error($"[ProcessRagdoll] Bone conversion error: {ex}");
                 return;
             }
 
@@ -252,6 +252,7 @@
             // If it's mostly pointing downward (e.g. more than 45° down), flip it!
             if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f) // cos(45°) ≈ 0.707
             {
+                Log.Debug($"[GetRandomUnitSphereVelocity] Vector3 is pointing downward, reflecting.");
                 randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
             }
             
