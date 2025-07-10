@@ -440,7 +440,7 @@ namespace SCP_575.Npc
                 var pickup = Pickup.Get(item.Serial);
                 if (pickup == null)
                 {
-                    Log.Warn($"[DropAndPush] Pickup {item.Serial} not foundskipping.");
+                    Log.Warn($"[DropAndPush] Pickup {item.Serial} not found - skipping.");
                     continue;
                 }
 
