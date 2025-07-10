@@ -58,13 +58,13 @@ namespace SCP_575.ConfigObjects
         public float KeterDamageDelay { get; private set; } = 8f;
 
         [Description("The minimum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMinModifier { get; set; } = 1f;
+        public float KeterForceMinModifier { get; set; } = 0.75f;
 
         [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMaxModifier { get; set; } = 5f;
+        public float KeterForceMaxModifier { get; set; } = 2.5f;
 
         [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
-        public float KeterDamageVelocityModifier { get; set; } = 2.5f;
+        public float KeterDamageVelocityModifier { get; set; } = 1.25f;
 
         [Description("Name displayed in player's death information.")]
         public string KilledBy { get; set; } = "SCP-575";

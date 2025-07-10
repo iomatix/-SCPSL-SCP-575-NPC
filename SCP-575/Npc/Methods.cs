@@ -467,7 +467,7 @@ namespace SCP_575.Npc
 
                 try
                 {
-                    rb.AddForce(dir * mag, ForceMode.VelocityChange);
+                    rb.AddForce(dir * mag, ForceMode.Impulse);
                     Log.Debug($"[DropAndPush] Pushed {pickup.Info.ItemId} [id:{item.Serial}]: dir={dir}, mag={mag}");
                 }
                 catch (Exception ex)

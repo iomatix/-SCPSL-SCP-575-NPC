@@ -160,7 +160,7 @@
                         Log.Debug($"[SCP-575] Renderer status: enabled = {postConvertRenderer.enabled}, isVisible = {postConvertRenderer.isVisible}");
                         if (!postConvertRenderer.isVisible)
                         {
-                            Log.Warn($"[SCP-575] Ragdoll still not visible. Position = {ragdoll.Position}, Role = {ev.Player.Role.Type}");
+                            Log.Warn($"[SCP-575] Ragdoll still not visible. Position = {ragdoll.Position}, Role = {ev.Player.Role}");
                         }
                     }
                 });
@@ -185,7 +185,7 @@
                     if (_hitbox.RelatedHitbox != hitbox) continue;
 
                     Log.Debug($"[OnSpawnedRagdoll] Applying force to hitbox: {_hitbox.RelatedHitbox}");
-                    _hitbox.Target.AddForce(safeVelocity, ForceMode.VelocityChange);
+                    _hitbox.Target.AddForce(safeVelocity, ForceMode.Impulse);
                 }
 
                 // 🧍 Convert ragdoll visual mesh to bones
@@ -203,7 +203,7 @@
                 // 💥 Scatter additional force across ragdoll limbs
                 foreach (var rb in dynamicRagdoll.LinkedRigidbodies)
                 {
-                    rb.AddForce(safeVelocity, ForceMode.VelocityChange);
+                    rb.AddForce(safeVelocity, ForceMode.Impulse);
                 }
             }
         }
