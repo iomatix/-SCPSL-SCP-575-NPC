@@ -1,19 +1,17 @@
 ﻿namespace SCP_575
 {
-    using System;
     using System.Collections.Generic;
+    using UnityEngine;
+    using Utils.Networking;
     using CustomPlayerEffects;
-    using Exiled.API.Features;
     using Footprinting;
     using InventorySystem.Items.Armor;
+    using LabApi.Features.Wrappers;
     using Mirror;
     using PlayerRoles;
-    using PlayerRoles.PlayableScps.Scp3114;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
     using SCP_575.ConfigObjects;
-    using UnityEngine;
-    using Utils.Networking;
 
     public class Scp575DamageHandler : AttackerDamageHandler
     {
@@ -79,7 +77,7 @@
         public Scp575DamageHandler(Player target, float damage, Player attacker = null, bool useHumanMutltipliers = true)
             : this()
         {
-            Log.Debug($"[Scp575DamageHandler] Handler initialized with damage: {damage}, Target: {target.Nickname}, Attacker: {attacker?.Nickname ?? "null"}");
+            Exiled.API.Features.Log.Debug($"[Scp575DamageHandler] Handler initialized with damage: {damage}, Target: {target.Nickname}, Attacker: {attacker?.Nickname ?? "null"}");
             Damage = damage;
             Attacker = attacker?.ReferenceHub is var hub ? new Footprint(hub) : default;
 
@@ -117,43 +115,45 @@
 
         public override HandlerOutput ApplyDamage(ReferenceHub ply)
         {
+            Exiled.API.Features.Log.Debug($"[ApplyDamage] Applying damage to {ply.nicknameSync.MyNick} with Hitbox: {Hitbox} and Damage: {Damage:F1}");
             Player player = Player.Get(ply);
             // Apply some effects
-            player.EnableEffect<Ensnared>(0.35f);
-            player.EnableEffect<Flashed>(0.1f);
-            player.EnableEffect<Blurred>(0.25f);
+            player.EnableEffect<Ensnared>(duration: 0.35f);
+            player.EnableEffect<Flashed>(duration: 0.1f);
+            player.EnableEffect<Blurred>(duration: 0.25f);
 
-            player.EnableEffect<Deafened>(3.85f);
-            player.EnableEffect<AmnesiaVision>(3.65f);
-            player.EnableEffect<Sinkhole>(3.25f);
-            player.EnableEffect<Concussed>(3.15f);
-            player.EnableEffect<Blindness>(2.65f);
-            player.EnableEffect<Burned>(2.5f);
+            player.EnableEffect<Deafened>(duration: 3.85f);
+            player.EnableEffect<AmnesiaVision>(duration: 3.65f);
+            player.EnableEffect<Sinkhole>(duration: 3.25f);
+            player.EnableEffect<Concussed>(duration: 3.15f);
+            player.EnableEffect<Blindness>(duration: 2.65f);
+            player.EnableEffect<Burned>(duration: 2.5f);
 
-            player.EnableEffect<AmnesiaItems>(1.65f);
-            player.EnableEffect<Stained>(0.75f);
-            player.EnableEffect<Asphyxiated>(1.25f);
+            player.EnableEffect<AmnesiaItems>(duration: 1.65f);
+            player.EnableEffect<Stained>(duration: 0.75f);
+            player.EnableEffect<Asphyxiated>(duration: 1.25f);
 
-            player.EnableEffect<Disabled>(3.75f);
-            player.EnableEffect<Exhausted>(5.75f);
-            player.EnableEffect<Traumatized>(15.5f);
+            player.EnableEffect<Bleeding>(duration: 3.5f, intensity: 0);
+            player.EnableEffect<Disabled>(duration: 3.75f);
+            player.EnableEffect<Exhausted>(duration: 5.75f);
+            player.EnableEffect<Traumatized>(duration: 15.5f);
 
             HandlerOutput handlerOutput = base.ApplyDamage(ply);
 
-            player.PlaceBlood(_velocity);
+            Exiled.API.Features.Player.Get(ply).PlaceBlood(new Vector3(0f, 0f, -1f));
 
             switch (handlerOutput)
             {
                 case HandlerOutput.Death:
-                    Log.Debug($"[ApplyDamage] {player.Nickname} was killed by {Config.KilledBy} | Damage: {Damage:F1} | HP before death: {player.Health + Damage:F1}");
+                    Exiled.API.Features.Log.Debug($"[ApplyDamage] {player.Nickname} was killed by {Config.KilledBy} | Damage: {Damage:F1} | HP before death: {player.Health + Damage:F1}");
                     break;
 
                 case HandlerOutput.Damaged:
-                    Log.Debug($"[ApplyDamage] {player.Nickname} took {Damage:F1} damage from {Config.KilledBy} | Remaining HP: {player.Health:F1} | Raw HP damage dealt: {DealtHealthDamage:F1}");
+                    Exiled.API.Features.Log.Debug($"[ApplyDamage] {player.Nickname} took {Damage:F1} damage from {Config.KilledBy} | Remaining HP: {player.Health:F1} | Raw HP damage dealt: {DealtHealthDamage:F1}");
                     break;
 
                 default:
-                    Log.Debug($"[ApplyDamage] {player.Nickname} received non-damaging interaction by {Config.KilledBy} | Damage: {Damage:F1} | HandlerOutput: {handlerOutput}");
+                    Exiled.API.Features.Log.Debug($"[ApplyDamage] {player.Nickname} received non-damaging interaction by {Config.KilledBy} | Damage: {Damage:F1} | HandlerOutput: {handlerOutput}");
                     break;
             }
 
@@ -164,41 +164,38 @@
 
         public override void ProcessDamage(ReferenceHub ply)
         {
-            Log.Debug($"[ProcessDamage] Processing damage for {ply.nicknameSync.MyNick} with Hitbox: {Hitbox} and Damage: {Damage:F1}");
+            Exiled.API.Features.Log.Debug($"[ProcessDamage] Processing damage for {ply.nicknameSync.MyNick} with Hitbox: {Hitbox} and Damage: {Damage:F1}");
             if (!_useHumanHitboxes && ply.IsHuman())
             {
-                Log.Debug($"[ProcessDamage] Using human hitboxes is disabled, setting Hitbox to Body for {ply.nicknameSync.MyNick}");
+                Exiled.API.Features.Log.Debug($"[ProcessDamage] Using human hitboxes is disabled, setting Hitbox to Body for {ply.nicknameSync.MyNick}");
                 Hitbox = HitboxType.Body;
             }
 
             if (_useHumanHitboxes && HitboxDamageMultipliers.TryGetValue(Hitbox, out var value))
             {
                 Damage *= value;
-                Log.Debug($"[ProcessDamage] Hitbox {Hitbox} found in HitboxDamageMultipliers, applying multiplier: {value} to Damage: {Damage:F1}");
+                Exiled.API.Features.Log.Debug($"[ProcessDamage] Hitbox {Hitbox} found in HitboxDamageMultipliers, applying multiplier: {value} to Damage: {Damage:F1}");
             }
 
-            Log.Debug($"[ProcessDamage] Processing base() for ProcessDamage(ply) after multipliers: {Damage:F1} for player: {ply.nicknameSync.MyNick}");
+            Exiled.API.Features.Log.Debug($"[ProcessDamage] Processing base() for ProcessDamage(ply) after multipliers: {Damage:F1} for player: {ply.nicknameSync.MyNick}");
             base.ProcessDamage(ply);
             if (Damage != 0f && ply.roleManager.CurrentRole is IArmoredRole armoredRole)
             {
-                Log.Debug($"[ProcessDamage] Player {ply.nicknameSync.MyNick} is an armored role: {armoredRole.ToString()}");
+                Exiled.API.Features.Log.Debug($"[ProcessDamage] Player {ply.nicknameSync.MyNick} is an armored role: {armoredRole.ToString()}");
                 int armorEfficacy = armoredRole.GetArmorEfficacy(Hitbox);
                 int penetrationPercent = Mathf.RoundToInt(_penetration * 100f);
                 float num = Mathf.Clamp(ply.playerStats.GetModule<HumeShieldStat>().CurValue, 0f, Damage);
                 float baseDamage = Mathf.Max(0f, Damage - num);
                 float num2 = BodyArmorUtils.ProcessDamage(armorEfficacy, baseDamage, penetrationPercent);
                 Damage = num2 + num;
-                Log.Debug($"[ProcessDamage] Player {ply.nicknameSync.MyNick} armor efficacy: {armorEfficacy}, penetration percent: {penetrationPercent}, base damage: {baseDamage:F1}, processed damage: {num2:F1}, final Damage: {Damage:F1}");
+                Exiled.API.Features.Log.Debug($"[ProcessDamage] Player {ply.nicknameSync.MyNick} armor efficacy: {armorEfficacy}, penetration percent: {penetrationPercent}, base damage: {baseDamage:F1}, processed damage: {num2:F1}, final Damage: {Damage:F1}");
             }
         }
 
         public override void ProcessRagdoll(BasicRagdoll ragdoll)
         {
+            Exiled.API.Features.Log.Debug($"[ProcessRagdoll] Processing ragdoll: {ragdoll.name}");
             base.ProcessRagdoll(ragdoll);
-
-            Log.Debug($"[ProcessRagdoll] Processing ragdoll: {ragdoll.name}");
-
-
         }
 
         public float calculateForcePush(float baseValue = 1.0f)
@@ -215,10 +212,10 @@
             // If it's mostly pointing downward (e.g. more than 45° down), flip it!
             if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f) // cos(45°) ≈ 0.707
             {
-                Log.Debug($"[GetRandomUnitSphereVelocity] Vector3 is pointing downward, reflecting.");
+                Exiled.API.Features.Log.Debug($"[GetRandomUnitSphereVelocity] Vector3 is pointing downward, reflecting.");
                 randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
             }
-            
+
             float modifier = baseValue * Mathf.Log(3 * Damage + 1) * calculateForcePush(Config.KeterDamageVelocityModifier);
             return randomDirection * modifier;
         }

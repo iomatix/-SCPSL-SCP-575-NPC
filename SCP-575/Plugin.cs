@@ -29,6 +29,7 @@ namespace SCP_575
 
         public override void OnEnabled()
         {
+
             Singleton = this;
             //Config.PlayableConfig.Scp575.Register();
             EventHandlers = new EventHandlers(this);
