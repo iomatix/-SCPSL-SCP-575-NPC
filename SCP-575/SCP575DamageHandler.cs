@@ -247,6 +247,14 @@
         public Vector3 GetRandomUnitSphereVelocity(float baseValue = 1.0f)
         {
             Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
+
+            // Potential fix for items falling through the floor
+            // If it's mostly pointing downward (e.g. more than 45° down), flip it!
+            if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f) // cos(45°) ≈ 0.707
+            {
+                randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
+            }
+            
             float modifier = baseValue * Mathf.Log(3 * Damage + 1) * calculateForcePush(Config.KeterDamageVelocityModifier);
             return randomDirection * modifier;
         }
