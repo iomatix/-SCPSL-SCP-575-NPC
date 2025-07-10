@@ -142,13 +142,20 @@
             }
         }
 
+        // Todo Turn On Lights in the room/whole heavy on generator completed, Play creepy sound via Cassie
+
+        // Todo turn On ALL lights in the facility on three generators, Play creepy sound via Cassie
+
+        // Todo kill SCP 575 on kill switch for computer SCP, Play creepy sound via Cassie
+
+        // ToDo turn On lights for 5 seconds On FLASHNADE explosion in the SCP575 dark room, Play creepy sound via Cassie
+
         public void OnPlayerDeath(PlayerDeathEventArgs ev)
         {
             Log.Debug($"[Catched Event] OnPlayerDeath: {ev.Player.Nickname}");
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
                 Log.Debug($"[OnPlayerDeath] The event was caused by {Scp575DamageHandler.IdentifierName}");
-
             }
         }
 
