@@ -1,6 +1,6 @@
 ﻿namespace SCP_575
 {
-
+    using Exiled.API.Extensions;
     using Exiled.API.Features;
     using Exiled.Loader;
     using InventorySystem;
@@ -104,6 +104,11 @@
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
                 Log.Debug($"[OnSpawnedRagdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
+
+                if (!ev.Player.Role.IsFpcRole())
+                {
+                    Log.Warn("[OnSpawnedRagdoll] Player's role is not valid for ragdoll spawn (IsFpcRole = false)");
+                }
 
                 LabApi.Features.Wrappers.Ragdoll ragdoll = ev.Ragdoll;
                 GameObject ragdollGO = ragdoll.Base.gameObject;
