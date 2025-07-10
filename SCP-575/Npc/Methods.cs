@@ -369,6 +369,30 @@ namespace SCP_575.Npc
                 blackoutStacks = Math.Max(0, blackoutStacks - 1);
         }
 
+        private bool ShouldApplyBlackoutDamage(Player player)
+        {
+            return IsHumanWithoutLight(player) && IsInDarkRoom(player);
+        }
+        
+        private bool IsHumanWithoutLight(Player player)
+        {
+            if (!player.IsHuman || player.HasFlashlightModuleEnabled)
+                return false;
+        
+            // Check if current item is a light-emitting item and if it's on
+            if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
+            {
+                return !lightItem.IsEmittingLight;
+            }
+        
+            return true;
+        }
+        
+        private bool IsInDarkRoom(Player player)
+        {
+            return player.CurrentRoom?.AreLightsOff ?? false;
+        }
+        
         public IEnumerator<float> KeterDamage()
         {
             Log.Debug("KeterDamage() Called: Starting SCP-575 Keter damage coroutine...");
@@ -383,10 +407,7 @@ namespace SCP_575.Npc
                     {
                         Log.Debug($"Checking player {player.Nickname} for Keter damage during blackout.");
                         
-                        // ToDo: Extract methods
-                        // M1: Check if the item is emitting light
-                        // M2: Check if to apply damage (player IsHuman and its within the dark room)
-                        if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightEmittingItem && lightEmittingItem.IsEmittingLight))
+                        if(ShouldApplyBlackoutDamage(player))
                         {
                             Log.Debug($"SCP-575 is attempting to deal damage to {player.Nickname} due to no light source in hand during blackout.");
                             float rawDamage = Config.KeterDamage * blackoutStacks;
