@@ -18,6 +18,7 @@
     public class Scp575DamageHandler : AttackerDamageHandler
     {
         public static string IdentifierName => nameof(Scp575DamageHandler);
+        public static byte IdentifierByte => 175;
 
         private static Plugin Instance => Plugin.Singleton;
         private NpcConfig Config => Instance.Config.NpcConfig;
@@ -48,8 +49,7 @@
 
         // Death Translation
         // Unique byte that doesn't conflict with others
-        private static readonly byte scp575Id = 31;
-        public static readonly DeathTranslation scp575Translation = new DeathTranslation(scp575Id, 26, 26, "{0}");
+        public static readonly DeathTranslation scp575Translation = new DeathTranslation(IdentifierByte, IdentifierByte, IdentifierByte, "{0}");
 
         public override CassieAnnouncement CassieDeathAnnouncement => null;
 
