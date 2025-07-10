@@ -382,6 +382,10 @@ namespace SCP_575.Npc
                     foreach (var player in Player.List)
                     {
                         Log.Debug($"Checking player {player.Nickname} for Keter damage during blackout.");
+                        
+                        // ToDo: Extract methods
+                        // M1: Check if the item is emitting light
+                        // M2: Check if to apply damage (player IsHuman and its within the dark room)
                         if (player.IsHuman && player.CurrentRoom.AreLightsOff && !player.HasFlashlightModuleEnabled && !(player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightEmittingItem && lightEmittingItem.IsEmittingLight))
                         {
                             Log.Debug($"SCP-575 is attempting to deal damage to {player.Nickname} due to no light source in hand during blackout.");
@@ -415,7 +419,7 @@ namespace SCP_575.Npc
                 var pickup = Pickup.Get(item.Serial);
                 if (pickup == null)
                 {
-                    Log.Warn($"[DropAndPush] Pickup {item.Serial} not found—skipping.");
+                    Log.Warn($"[DropAndPush] Pickup {item.Serial} not foundÂ—skipping.");
                     continue;
                 }
 
