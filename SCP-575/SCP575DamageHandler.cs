@@ -198,44 +198,7 @@
 
             Log.Debug($"[ProcessRagdoll] Processing ragdoll: {ragdoll.name}");
 
-            if (ragdoll is not DynamicRagdoll dynamicRagdoll)
-            {
-                Log.Warn($"[ProcessRagdoll] Ragdoll is not DynamicRagdoll. Skipping.");
-                return;
-            }
 
-            if (!HitboxToForce.TryGetValue(Hitbox, out float baseForce))
-            {
-                Log.Warn($"[ProcessRagdoll] Unknown hitbox: {Hitbox}. No force applied.");
-                return;
-            }
-
-            float finalForce = calculateForcePush(baseForce);
-            Log.Debug($"[ProcessRagdoll] Final push force: {finalForce}");
-
-            foreach (var hitbox in dynamicRagdoll.Hitboxes)
-            {
-                if (hitbox.RelatedHitbox != Hitbox) continue;
-
-                Log.Debug($"[ProcessRagdoll] Applying force to hitbox: {hitbox.RelatedHitbox}");
-                hitbox.Target.AddForce(_velocity * finalForce, ForceMode.VelocityChange);
-            }
-
-            try
-            {
-                Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
-                Log.Debug($"[ProcessRagdoll] Converted ragdoll to bones.");
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[ProcessRagdoll] Bone conversion error: {ex}");
-                return;
-            }
-
-            foreach (var rb in dynamicRagdoll.LinkedRigidbodies)
-            {
-                rb.AddForce(_velocity * finalForce, ForceMode.VelocityChange);
-            }
         }
 
         public float calculateForcePush(float baseValue = 1.0f)

@@ -438,8 +438,8 @@ namespace SCP_575.Npc
 
         public IEnumerator<float> DropAndPushItems(
             Player player,
-            List<Item> itemsToDrop,
-            Scp575DamageHandler handler
+            List<LabApi.Features.Wrappers.Item> itemsToDrop,
+            Scp575DamageHandler scp575Handler
         )
         {
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
@@ -460,8 +460,8 @@ namespace SCP_575.Npc
                     continue;
                 }
 
-                var dir = handler.GetRandomUnitSphereVelocity();
-                var mag = handler.calculateForcePush();
+                var dir = scp575Handler.GetRandomUnitSphereVelocity();
+                var mag = scp575Handler.calculateForcePush();
 
                 yield return Timing.WaitForOneFrame; // ensure physics engine is ready
 

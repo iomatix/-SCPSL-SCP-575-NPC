@@ -1,14 +1,16 @@
 ﻿namespace SCP_575
 {
     using Exiled.API.Features;
-    using Exiled.API.Features.Items;
-    using Exiled.Events.EventArgs.Player;
     using Exiled.Loader;
     using InventorySystem;
     using LabApi.Events.Arguments.PlayerEvents;
+    using LabApi.Features.Wrappers;
     using MEC;
+    using PlayerRoles.PlayableScps.Scp3114;
+    using PlayerRoles.Ragdolls;
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
+    using System;
     using System.Collections.Generic;
 
 
@@ -24,6 +26,19 @@
         public bool TeslasDisabled = false;
         public bool NukeDisabled = false;
         public List<CoroutineHandle> Coroutines = new List<CoroutineHandle>();
+
+
+        public void OnWaitingForPlayers()
+        {
+            if (_plugin.Config.SpawnType == InstanceType.Npc || (_plugin.Config.SpawnType == InstanceType.Random && Loader.Random.Next(100) > 55))
+            {
+                _plugin.Npc.Methods.Init();
+            }
+            else
+            {
+                //_plugin.Playable.Methods.Init();
+            }
+        }
 
         public void OnPlayerHurting(PlayerHurtingEventArgs ev)
         {
@@ -48,7 +63,23 @@
 
         }
 
+        public void OnPlayerDying(PlayerDyingEventArgs ev)
+        {
+            Log.Debug($"[Catched Event] OnPlayerDying: {ev.Player.Nickname}");
+            if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
+            {
+                Log.Debug($"[OnPlayerDying] The event was caused by {Scp575DamageHandler.IdentifierName}");
 
+                LabApi.Features.Wrappers.Player player = ev.Player;
+
+                Log.Debug($"[OnPlayerDying] Dropping all items from {player.Nickname}'s inventory called by Server.");
+                List<Item> items = new List<Item>(player.Items);
+                player.Inventory.ServerDropEverything();
+
+                Timing.RunCoroutine(_methods.DropAndPushItems(player, items, scp575Handler));
+
+            }
+        }
 
         public void OnSpawningRagdoll(PlayerSpawningRagdollEventArgs ev)
         {
@@ -58,13 +89,6 @@
             {
                 Log.Debug($"[OnSpawningRagdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
 
-                Player player = ev.Player;
-
-                Log.Debug($"[OnSpawningRagdoll] Dropping all items from {player.Nickname}'s inventory called by Server.");
-                List<Item> items = new List<Item>(player.Items);
-                player.Inventory.ServerDropEverything();
-
-                Timing.RunCoroutine(_methods.DropAndPushItems(player, items, scp575Handler));
             }
         }
 
@@ -74,16 +98,46 @@
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
                 Log.Debug($"[OnSpawnedRagdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
+                LabApi.Features.Wrappers.Ragdoll ragdoll = ev.Ragdoll;
+                if (ragdoll.Base is not DynamicRagdoll dynamicRagdoll)
+                {
+                    Log.Warn($"[OnSpawnedRagdoll] Ragdoll is not DynamicRagdoll. Skipping.");
+                    return;
+                }
 
-            }
-        }
+                var hitbox = scp575Handler.Hitbox;
+                if (!Scp575DamageHandler.HitboxToForce.TryGetValue(hitbox, out float baseForce))
+                {
+                    Log.Warn($"[OnSpawnedRagdoll] Unknown hitbox: {hitbox}. No force applied.");
+                    return;
+                }
 
-        public void OnPlayerDying(PlayerDyingEventArgs ev)
-        {
-            Log.Debug($"[Catched Event] OnPlayerDying: {ev.Player.Nickname}");
-            if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
-            {
-                Log.Debug($"[OnPlayerDying] The event was caused by {Scp575DamageHandler.IdentifierName}");
+                float finalForce = scp575Handler.calculateForcePush(baseForce);
+                Log.Debug($"[OnSpawnedRagdoll] Final push force: {finalForce}");
+
+                foreach (var _hitbox in dynamicRagdoll.Hitboxes)
+                {
+                    if (_hitbox.RelatedHitbox != hitbox) continue;
+
+                    Log.Debug($"[OnSpawnedRagdoll] Applying force to hitbox: {_hitbox.RelatedHitbox}");
+                    _hitbox.Target.AddForce(scp575Handler._velocity * finalForce, UnityEngine.ForceMode.VelocityChange);
+                }
+
+                try
+                {
+                    Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
+                    Log.Debug($"[OnSpawnedRagdoll] Converted ragdoll to bones.");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"[OnSpawnedRagdoll] Bone conversion error: {ex}");
+                    return;
+                }
+
+                foreach (var rb in dynamicRagdoll.LinkedRigidbodies)
+                {
+                    rb.AddForce(scp575Handler._velocity * finalForce, UnityEngine.ForceMode.VelocityChange);
+                }
 
             }
         }
@@ -98,18 +152,5 @@
             }
         }
 
-        
-
-        public void OnWaitingForPlayers()
-        {
-            if (_plugin.Config.SpawnType == InstanceType.Npc || (_plugin.Config.SpawnType == InstanceType.Random && Loader.Random.Next(100) > 55))
-            {
-                _plugin.Npc.Methods.Init();
-            }
-            else
-            {
-                //_plugin.Playable.Methods.Init();
-            }
-        }
     }
 }

@@ -17,7 +17,7 @@ namespace SCP_575
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(6, 6, 7);
+        public override Version Version { get; } = new(6, 7, 1);
         public override Version RequiredExiledVersion { get; } = new(9, 6, 1);
 
         public EventHandlers EventHandlers { get; private set; }
