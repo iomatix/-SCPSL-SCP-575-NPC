@@ -84,7 +84,7 @@
         public void OnSpawningRagdoll(PlayerSpawningRagdollEventArgs ev)
         {
 
-            Log.Debug($"[Catched Event] OnSpawningRagdoll: {ev.Ragdoll.DamageHandler.RagdollInspectText}");
+            Log.Debug($"[Catched Event] OnSpawningRagdoll: {ev.DamageHandler.RagdollInspectText}");
             if (ev.Ragdoll.DamageHandler is Scp575DamageHandler scp575Handler)
             {
                 Log.Debug($"[OnSpawningRagdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
