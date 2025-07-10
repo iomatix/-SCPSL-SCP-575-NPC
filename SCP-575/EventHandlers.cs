@@ -216,10 +216,13 @@
                 }
 
                 /// DEBUG
-                GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                marker.transform.position = ragdoll.Position + Vector3.up * 1.3f;
-                marker.GetComponent<Renderer>().material.color = Color.yellow;
-                GameObject.Destroy(marker, 120f);
+                GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                marker.transform.position = ragdoll.Position + Vector3.up * 1f;
+                marker.transform.localScale = new Vector3(0.3f, 0.6f, 0.3f);
+                marker.GetComponent<Renderer>().material.color = Color.magenta;
+                GameObject.Destroy(marker, 180f);
+                Log.Warn($"[DEBUG MARKER] Would spawn at: {ragdoll.Position + Vector3.up * 1f}");
+
             }
         }
 
