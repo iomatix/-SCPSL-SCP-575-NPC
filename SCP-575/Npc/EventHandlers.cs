@@ -7,7 +7,7 @@ namespace SCP_575.Npc
     using MEC;
     using SCP_575.ConfigObjects;
 
-
+    // Todo this file shouldn't `using` any API, instead apply methods from sourcecode of this repo.
     public class EventHandlers
     {
         private readonly Plugin _plugin;
