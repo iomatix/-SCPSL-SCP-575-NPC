@@ -13,6 +13,7 @@
     using PlayerStatsSystem;
     using SCP_575.ConfigObjects;
 
+     // TODO: Separate Logic from LabAPI vs Exiled API to different files
     public class Scp575DamageHandler : AttackerDamageHandler
     {
         public static string IdentifierName => nameof(Scp575DamageHandler);
