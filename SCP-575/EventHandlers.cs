@@ -41,7 +41,7 @@
 
         public void OnPlayerHurting(LabApi.Events.Arguments.PlayerEvents.PlayerHurtingEventArgs ev)
         {
-            Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerHurting: {ev.Attacker?.Nickname ?? "No Attacker"} -> {ev.Player.Nickname}");
+            Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerHurting: {ev.Attacker?.Nickname ?? "SCP-575 NPC"} -> {ev.Player.Nickname}");
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
                 Library_ExiledAPI.LogDebug("OnPlayerHurting", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
@@ -52,7 +52,7 @@
 
         public void OnPlayerHurt(LabApi.Events.Arguments.PlayerEvents.PlayerHurtEventArgs ev)
         { 
-            Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerHurt: {ev.Attacker?.Nickname ?? "No Attacker"} -> {ev.Player.Nickname}");
+            Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerHurt: {ev.Attacker?.Nickname ?? "SCP-575 NPC"} -> {ev.Player.Nickname}");
 
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
@@ -73,7 +73,7 @@
                 LabApi.Features.Wrappers.Player player = ev.Player;
 
                 Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
-                
+
                 List<LabApi.Features.Wrappers.Item> items = new List<LabApi.Features.Wrappers.Item>(player.Items);
                 player.Inventory.ServerDropEverything();
 

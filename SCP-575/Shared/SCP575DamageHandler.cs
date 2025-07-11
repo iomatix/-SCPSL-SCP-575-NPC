@@ -17,7 +17,6 @@
     {
         public static string IdentifierName => nameof(Scp575DamageHandler);
 
-        public static readonly SCP575DeathTranslation scp575Translation = new SCP575DeathTranslation(1, 2, 2, "{0}");
         public static byte IdentifierByte => 175;
 
         private static NpcConfig Config = Plugin.Singleton.Config.NpcConfig;
@@ -52,25 +51,24 @@
 
         public Scp575DamageHandler()
         {
-            _deathReasonFormat = scp575Translation.RagdollTranslation;
+            _deathReasonFormat = SCP575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
         }
 
 
         public override CassieAnnouncement CassieDeathAnnouncement => null;
 
-        public override string RagdollInspectText => string.Format(_deathReasonFormat, Config.RagdollInspectText);
+        public override string RagdollInspectText => string.Format(_deathReasonFormat, Config.KilledByMessage);
 
-        public override string DeathScreenText => Config.KilledByMessage;
+        public override string DeathScreenText => string.Empty;
 
-        public override string ServerLogsText => "Obliterated by " + Config.KilledBy;
+        public override string ServerLogsText => $"Killed by {Config.KilledBy}, Attacker: {Attacker.Hub?.playerStats.name ?? "SCP-575 NPC"}, Hitbox: {Hitbox}";
 
-        public override string ServerMetricsText => base.ServerMetricsText;
-
+        public override string ServerMetricsText => base.ServerMetricsText + "," + Config.KilledByMessage;
 
         public Scp575DamageHandler(LabApi.Features.Wrappers.Player target, float damage, LabApi.Features.Wrappers.Player attacker = null, bool useHumanMultipliers = true
         ) : this()
         {
-            Library_ExiledAPI.LogDebug("Scp575DamageHandler", $"Handler initialized with damage: {damage}, Target: {target.Nickname}, Attacker: {attacker?.Nickname ?? "null"}");
+            Library_ExiledAPI.LogDebug("Scp575DamageHandler", $"Handler initialized with damage: {damage}, Target: {target.Nickname}, Attacker: {attacker?.Nickname ?? "SCP-575 NPC"}");
             Damage = damage;
             Attacker = attacker?.ReferenceHub is var hub ? new Footprint(hub) : default;
 

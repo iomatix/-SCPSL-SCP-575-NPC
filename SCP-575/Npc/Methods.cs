@@ -441,7 +441,8 @@ namespace SCP_575.Npc
 
             foreach (var item in itemsToDrop)
             {
-                var pickup = LabApi.Features.Wrappers.Pickup.Get(item.Serial);
+
+                var pickup = Exiled.API.Features.Pickups.Pickup.Get(item.Serial);
                 if (pickup == null)
                 {
                     Library_ExiledAPI.LogWarn("DropAndPushItems", $"Pickup {item.Serial} not found - skipping.");
@@ -462,7 +463,7 @@ namespace SCP_575.Npc
 
                 try
                 {
-                    rb.AddForce(dir * mag, ForceMode.Impulse);
+                    rb.AddForce(dir * mag, ForceMode.Force);
                     Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {item.Serial} with direction {dir} and magnitude {mag}.");
 
 
