@@ -5,15 +5,6 @@ namespace SCP_575.Shared
     public static class Library_ExiledAPI
     {
 
-
-
-
-
-
-
-
-
-
         // Logging methods for the plugin
         public static void LogDebug(string moduleId, string message)
         {
