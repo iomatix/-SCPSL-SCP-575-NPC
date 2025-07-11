@@ -1,11 +1,9 @@
 namespace SCP_575.Npc
 {
     using System.Collections.Generic;
-    using Exiled.API.Features;
-    using Exiled.Events.EventArgs.Server;
-    using Exiled.Loader;
     using MEC;
     using SCP_575.ConfigObjects;
+    using SCP_575.Shared;
 
     // Todo this file shouldn't `using` any API, instead apply methods from sourcecode of this repo.
     public class EventHandlers
@@ -20,39 +18,35 @@ namespace SCP_575.Npc
 
         public void OnRoundStart()
         {
-            var roll = Loader.Random.Next(100);
-            Log.Debug($"EnableKeter = {Config.EnableKeter}, SpawnChance roll = {roll}");
+            var roll = Library_ExiledAPI.Loader_Random_Next(100);
+            Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}, EnableKeter = {Config.EnableKeter}");
 
             if (roll <= _plugin.Config.NpcConfig.SpawnChance)
             {
-                Log.Debug($"SCP-575 Npc spawned with a roll of {roll} (SpawnChance: {_plugin.Config.NpcConfig.SpawnChance})");
+                Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "OnRoundStart: SCP-575 NPC spawning due to roll being within spawn chance.");
                 Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.RunBlackoutTimer()));
 
                 if (Config.EnableKeter)
                 {
-                    Log.Debug("Keter mode enabled, starting Keter damage coroutine.");
+                    Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "OnRoundStart: Keter mode enabled, starting Keter damage coroutine.");
                     Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.KeterDamage(), tag: "SCP575keter"));
                 }
             }
 
         }
 
-        public void OnRoundEnd(RoundEndedEventArgs ev)
+        public void OnRoundEnd(Exiled.Events.EventArgs.Server.RoundEndedEventArgs ev)
         {
             _plugin.Npc.Methods.Disable();
             foreach (CoroutineHandle handle in Coroutines) Timing.KillCoroutines(handle);
             Coroutines.Clear();
         }
 
-        public void OnWaitingPlayers(RoundEndedEventArgs ev)
+        public void OnWaitingPlayers()
         {
             _plugin.Npc.Methods.Disable();
             foreach (CoroutineHandle handle in Coroutines) Timing.KillCoroutines(handle);
             Coroutines.Clear();
         }
-
-
-
-
     }
 }

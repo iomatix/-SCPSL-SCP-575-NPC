@@ -2,6 +2,7 @@
 {
     using CustomPlayerEffects;
     using LabApi.Features.Wrappers;
+
     public static class Scp575DamageHandler_LabAPI
     {
         public static void ApplyDamageEffects(Player player)
