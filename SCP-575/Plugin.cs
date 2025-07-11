@@ -2,13 +2,12 @@ namespace SCP_575
 {
     using System;
     using System.Collections.Generic;
-    using Exiled.API.Features;
     //using Exiled.CustomRoles.API;
     //using Exiled.CustomRoles.API.Features;
     using MEC;
     using Server = Exiled.Events.Handlers.Server;
 
-    public class Plugin : Plugin<Config>
+    public class Plugin : Exiled.API.Features.Plugin<Config>
     {
         public static Plugin Singleton;
 
@@ -17,7 +16,7 @@ namespace SCP_575
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(6, 7, 5);
+        public override Version Version { get; } = new(6, 8, 0);
         public override Version RequiredExiledVersion { get; } = new(9, 6, 2);
 
         public EventHandlers EventHandlers { get; private set; }
