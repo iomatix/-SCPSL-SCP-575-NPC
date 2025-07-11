@@ -115,8 +115,6 @@
             return handlerOutput;
         }
 
-
-
         public override void ProcessDamage(ReferenceHub ply)
         {
             Library_ExiledAPI.LogDebug("ProcessDamage", $"Processing damage for {ply.nicknameSync.MyNick} with Hitbox: {Hitbox} and Damage: {Damage:F1}");
