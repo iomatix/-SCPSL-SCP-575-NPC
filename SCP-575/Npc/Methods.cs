@@ -13,6 +13,7 @@ namespace SCP_575.Npc
     using Map = Exiled.API.Features.Map;
     using Server = Exiled.Events.Handlers.Server;
 
+    // TODO: Crate MethodsExiledAPI and Move methods there, Last one ist LabAPI so should stay in default
     public class Methods
     {
         private readonly Plugin _plugin;
@@ -444,6 +445,7 @@ namespace SCP_575.Npc
         {
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
 
+           
             foreach (var item in itemsToDrop)
             {
                 var pickup = Pickup.Get(item.Serial);
