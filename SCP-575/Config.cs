@@ -1,10 +1,9 @@
 namespace SCP_575
 {
     using System.ComponentModel;
-    using Exiled.API.Interfaces;
     using SCP_575.ConfigObjects;
 
-    public class Config : IConfig
+    public class Config : Exiled.API.Interfaces.IConfig
     {
         [Description("Whether or not the plugin is enabled.")]
         public bool IsEnabled { get; set; } = true;

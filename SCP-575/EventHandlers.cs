@@ -1,11 +1,8 @@
 ﻿namespace SCP_575
 {
-    using Exiled.API.Extensions;
-    using Exiled.API.Features;
-    using Exiled.Loader;
+    using System;
+    using System.Collections.Generic;
     using InventorySystem;
-    using LabApi.Events.Arguments.PlayerEvents;
-    using LabApi.Features.Wrappers;
     using MEC;
     using PlayerRoles.PlayableScps.Scp3114;
     using PlayerRoles.Ragdolls;
@@ -13,8 +10,6 @@
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
     using Shared;
-    using System;
-    using System.Collections.Generic;
     using UnityEngine;
 
      // Todo: This class shouldnt be 'using' any of APIs, instead import methods from different modules from this repo
@@ -34,7 +29,7 @@
 
         public void OnWaitingForPlayers()
         {
-            if (_plugin.Config.SpawnType == InstanceType.Npc || (_plugin.Config.SpawnType == InstanceType.Random && Loader.Random.Next(100) > 55))
+            if (_plugin.Config.SpawnType == InstanceType.Npc || (_plugin.Config.SpawnType == InstanceType.Random && Library_ExiledAPI.Loader_Random_Next(100) > 55))
             {
                 _plugin.Npc.Methods.Init();
             }
@@ -44,40 +39,42 @@
             }
         }
 
-        public void OnPlayerHurting(PlayerHurtingEventArgs ev)
+        public void OnPlayerHurting(LabApi.Events.Arguments.PlayerEvents.PlayerHurtingEventArgs ev)
         {
-            Log.Debug($"[Catched Event] OnPlayerHurting: {ev.Attacker?.Nickname ?? "No Attacker"} -> {ev.Player.Nickname}");
+            Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerHurting: {ev.Attacker?.Nickname ?? "No Attacker"} -> {ev.Player.Nickname}");
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
-                Log.Debug($"[OnPlayerHurting] The event was caused by {Scp575DamageHandler.IdentifierName}");
+                Library_ExiledAPI.LogDebug("OnPlayerHurting", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
             }
 
         }
 
-        public void OnPlayerHurt(PlayerHurtEventArgs ev)
-        {
+        public void OnPlayerHurt(LabApi.Events.Arguments.PlayerEvents.PlayerHurtEventArgs ev)
+        { 
+            Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerHurt: {ev.Attacker?.Nickname ?? "No Attacker"} -> {ev.Player.Nickname}");
 
-            Log.Debug($"[Catched Event] OnPlayerHurt: {ev.Attacker?.Nickname ?? "No Attacker"} -> {ev.Player.Nickname}");
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
-                Log.Debug($"[OnPlayerHurt] The event was caused by {Scp575DamageHandler.IdentifierName}");
+                Library_ExiledAPI.LogDebug("OnPlayerHurt", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
             }
 
         }
 
-        public void OnPlayerDying(PlayerDyingEventArgs ev)
+        public void OnPlayerDying(LabApi.Events.Arguments.PlayerEvents.PlayerDyingEventArgs ev)
         {
-            Log.Debug($"[Catched Event] OnPlayerDying: {ev.Player.Nickname}");
+            Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerDying: {ev.Player.Nickname}");
+
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
-                Log.Debug($"[OnPlayerDying] The event was caused by {Scp575DamageHandler.IdentifierName}");
+                Library_ExiledAPI.LogDebug("OnPlayerDying", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
                 LabApi.Features.Wrappers.Player player = ev.Player;
 
-                Log.Debug($"[OnPlayerDying] Dropping all items from {player.Nickname}'s inventory called by Server.");
-                List<Item> items = new List<Item>(player.Items);
+                Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
+                
+                List<LabApi.Features.Wrappers.Item> items = new List<LabApi.Features.Wrappers.Item>(player.Items);
                 player.Inventory.ServerDropEverything();
 
                 Timing.RunCoroutine(_methods.DropAndPushItems(player, items, scp575Handler));
@@ -85,30 +82,26 @@
             }
         }
 
-        public void OnSpawningRagdoll(PlayerSpawningRagdollEventArgs ev)
+        public void OnSpawningRagdoll(LabApi.Events.Arguments.PlayerEvents.PlayerSpawningRagdollEventArgs ev)
         {
 
-            Log.Debug($"[Catched Event] OnSpawningRagdoll: {ev.DamageHandler.RagdollInspectText}");
+            Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawningRagdoll: {ev.Player.Nickname}");
+
             if (ev.Ragdoll.DamageHandler is Scp575DamageHandler scp575Handler)
             {
-                Log.Debug($"[OnSpawningRagdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
+                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
             }
         }
 
-        public void OnSpawnedRagdoll(PlayerSpawnedRagdollEventArgs ev)
+        public void OnSpawnedRagdoll(LabApi.Events.Arguments.PlayerEvents.PlayerSpawnedRagdollEventArgs ev)
         {
-            Log.Debug($"[Catched Event] OnSpawnedRagdoll: {ev.Player.Nickname}");
+            Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawnedRagdoll: {ev.Player.Nickname}");
 
             // ✅ Only proceed if the damage handler matches SCP-575
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
-                Log.Debug($"[OnSpawnedRagdoll] The event was caused by {Scp575DamageHandler.IdentifierName}");
-
-                if (!ev.Player.Role.IsFpcRole())
-                {
-                    Log.Warn("[OnSpawnedRagdoll] Player's role is not valid for ragdoll spawn (IsFpcRole = false)");
-                }
+                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
                 LabApi.Features.Wrappers.Ragdoll ragdoll = ev.Ragdoll;
                 GameObject ragdollGO = ragdoll.Base.gameObject;
@@ -117,42 +110,40 @@
                 if (!ragdollGO.activeSelf)
                 {
                     ragdollGO.SetActive(true);
-                    Log.Warn("[OnSpawnedRagdoll] Ragdoll GameObject was inactive — enabled manually.");
+                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "Ragdoll GameObject was inactive — enabled manually.");
                 }
 
                 // 🟢 Force CullableBehaviour visibility if present
                 if (ragdollGO.TryGetComponent(out CullableBehaviour cullable))
                 {
                     cullable.enabled = true;
-                    Log.Debug($"[OnSpawnedRagdoll] CullableBehaviour enabled. ShouldBeVisible = {cullable.ShouldBeVisible}");
+                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", $"CullableBehaviour enabled. ShouldBeVisible = {cullable.ShouldBeVisible}");
                 }
                 else
                 {
-                    Log.Debug("[OnSpawnedRagdoll] No CullableBehaviour attached.");
+                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "No CullableBehaviour attached to the ragdoll GameObject.");
                 }
 
                 // 🟢 Offset Y-position if ragdoll appears underground
                 if (ragdoll.Position.y < 0.1f)
                 {
                     ragdollGO.transform.position += Vector3.up * 0.5f;
-                    Log.Warn($"[OnSpawnedRagdoll] Adjusted ragdoll Y position to avoid clipping: {ragdollGO.transform.position}");
+                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", $"Adjusted ragdoll Y position to avoid clipping: {ragdollGO.transform.position}");
                 }
 
-                Log.Debug($"[OnSpawnedRagdoll] Ragdoll transform: Position = {ragdoll.Position}, Rotation = {ragdoll.Rotation.eulerAngles}");
+                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Ragdoll transform: Position = {ragdoll.Position}, Rotation = {ragdoll.Rotation.eulerAngles}");
 
                 // 🛑 Ensure ragdoll is a DynamicRagdoll
                 if (ragdoll.Base is not DynamicRagdoll dynamicRagdoll)
                 {
-                    Log.Warn("[OnSpawnedRagdoll] Ragdoll is not DynamicRagdoll. Skipping.");
+                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "Ragdoll is not a DynamicRagdoll. Skipping force application and conversion.");
                     return;
                 }
 
                 // 🎯 Inspect renderer status pre-conversion
                 var renderer = ragdoll.Base.GetComponentInChildren<Renderer>();
-                if (renderer == null)
-                    Log.Warn("[OnSpawnedRagdoll] No Renderer found in ragdoll hierarchy.");
-                else
-                    Log.Debug($"[OnSpawnedRagdoll] Renderer enabled = {renderer.enabled}, isVisible = {renderer.isVisible}, bounds = {renderer.bounds.size}");
+                if (renderer == null) Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "No Renderer found in ragdoll hierarchy.");
+                else Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Renderer found: enabled = {renderer.enabled}, isVisible = {renderer.isVisible}, bounds = {renderer.bounds.size}");
 
                 // ⏱️ Run delayed renderer visibility audit after bone conversion
                 Timing.CallDelayed(0.5f, () =>
@@ -160,14 +151,15 @@
                     var postConvertRenderer = ragdoll.Base.GetComponentInChildren<Renderer>();
                     if (postConvertRenderer == null)
                     {
-                        Log.Warn("[SCP-575] Post-conversion: No renderer found.");
+                        Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "Post-conversion: No Renderer found in ragdoll hierarchy.");
                     }
                     else
                     {
-                        Log.Debug($"[SCP-575] Renderer status: enabled = {postConvertRenderer.enabled}, isVisible = {postConvertRenderer.isVisible}");
+                        Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Renderer status: enabled = {postConvertRenderer.enabled}, isVisible = {postConvertRenderer.isVisible}");
+                        Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Post-conversion Renderer bounds: {postConvertRenderer.bounds.size}");
                         if (!postConvertRenderer.isVisible)
                         {
-                            Log.Warn($"[SCP-575] Ragdoll still not visible. Position = {ragdoll.Position}, Role = {ev.Player.Role}");
+                            Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "Ragdoll is not visible after conversion. This may indicate an issue with the ragdoll's visibility settings or the conversion process.");
                         }
                     }
                 });
@@ -176,13 +168,13 @@
                 var hitbox = scp575Handler.Hitbox;
                 if (!Scp575DamageHandler.HitboxToForce.TryGetValue(hitbox, out float baseForce))
                 {
-                    Log.Warn($"[OnSpawnedRagdoll] Unknown hitbox: {hitbox}. No force applied.");
+                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", $"Unknown hitbox: {hitbox}. No force applied.");
                     return;
                 }
 
                 // 💨 Generate randomized, upward-safe force vector
                 float finalForce = scp575Handler.calculateForcePush(baseForce);
-                Log.Debug($"[OnSpawnedRagdoll] Final push force: {finalForce}");
+                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Applying force to hitbox: {hitbox} with base force: {baseForce}");
 
                 Vector3 safeVelocity = scp575Handler.GetRandomUnitSphereVelocity(baseForce);
 
@@ -191,27 +183,25 @@
                 {
                     if (_hitbox.RelatedHitbox != hitbox) continue;
 
-                    Log.Debug($"[OnSpawnedRagdoll] Applying force to hitbox: {_hitbox.RelatedHitbox}");
+                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Applying force to hitbox: {_hitbox.RelatedHitbox} with velocity {safeVelocity}");
                     _hitbox.Target.AddForce(safeVelocity, ForceMode.VelocityChange);
                 }
 
-                foreach (Transform child in ragdollGO.transform)
-                    Log.Debug($"[OnSpawnedRagdoll] Child: {child.name}, active={child.gameObject.activeSelf}");
+                foreach (Transform child in ragdollGO.transform) Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Child: {child.name}, active={child.gameObject.activeSelf}");
 
                 // 🧍 Convert ragdoll visual mesh to bones
                 try
                 {
                     Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
-                    Log.Debug("[OnSpawnedRagdoll] Converted ragdoll to bones.");
+                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion completed successfully.");
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"[OnSpawnedRagdoll] Bone conversion error: {ex}");
+                    Library_ExiledAPI.LogError("OnSpawnedRagdoll", $"Bone conversion error: {ex}");
                     return;
                 }
 
-                foreach (Transform child in ragdollGO.transform)
-                    Log.Debug($"[OnSpawnedRagdoll] Child: {child.name}, active={child.gameObject.activeSelf}");
+                foreach (Transform child in ragdollGO.transform) Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Child: {child.name}, active={child.gameObject.activeSelf}");
 
 
                 // 💥 Scatter additional force across ragdoll limbs
@@ -223,10 +213,10 @@
                 /// DEBUG
                 GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 marker.transform.position = ragdoll.Position + Vector3.up * 1f;
-                marker.transform.localScale = new Vector3(0.3f, 0.6f, 0.3f);
+                marker.transform.localScale = new Vector3(0.35f, 0.65f, 0.35f);
                 marker.GetComponent<Renderer>().material.color = Color.magenta;
                 GameObject.Destroy(marker, 180f);
-                Log.Warn($"[DEBUG MARKER] Would spawn at: {ragdoll.Position + Vector3.up * 1f}");
+                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - Marker", $"Spawned {Color.magenta} debug marker at: {marker.transform.position}, Duration: 180 seconds");
 
             }
         }
@@ -239,12 +229,13 @@
 
         // ToDo turn On lights for 5 seconds On FLASHNADE explosion in the SCP575 dark room, Play creepy sound via Cassie
 
-        public void OnPlayerDeath(PlayerDeathEventArgs ev)
+        public void OnPlayerDeath(LabApi.Events.Arguments.PlayerEvents.PlayerDeathEventArgs ev)
         {
-            Log.Debug($"[Catched Event] OnPlayerDeath: {ev.Player.Nickname}");
+            Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerDeath: {ev.Player.Nickname}");
             if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
             {
-                Log.Debug($"[OnPlayerDeath] The event was caused by {Scp575DamageHandler.IdentifierName}");
+                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+
             }
         }
 

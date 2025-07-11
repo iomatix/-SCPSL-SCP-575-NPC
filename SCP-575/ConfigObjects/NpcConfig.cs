@@ -3,7 +3,6 @@ namespace SCP_575.ConfigObjects
     using System.ComponentModel;
     using Exiled.API.Features;
 
-
     public class NpcConfig
     {
         [Description("Whether or not randomly timed events should occur. If false, all events will be at the same interval apart.")]
