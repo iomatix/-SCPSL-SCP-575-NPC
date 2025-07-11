@@ -1,4 +1,4 @@
-﻿namespace SCP_575
+﻿namespace Shared
 {
     using System.Collections.Generic;
     using UnityEngine;
@@ -12,8 +12,9 @@
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
     using SCP_575.ConfigObjects;
+    using SCP_575;
 
-     // TODO: Separate Logic from LabAPI vs Exiled API to different files
+    // TODO: Separate Logic from LabAPI vs Exiled API to different files
     public class Scp575DamageHandler : AttackerDamageHandler
     {
         public static string IdentifierName => nameof(Scp575DamageHandler);
@@ -201,13 +202,13 @@
 
         public float calculateForcePush(float baseValue = 1.0f)
         {
-            float value2 = UnityEngine.Random.Range(Config.KeterForceMinModifier, Config.KeterForceMaxModifier);
+            float value2 = Random.Range(Config.KeterForceMinModifier, Config.KeterForceMaxModifier);
             return baseValue * value2;
         }
 
         public Vector3 GetRandomUnitSphereVelocity(float baseValue = 1.0f)
         {
-            Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
+            Vector3 randomDirection = Random.onUnitSphere;
 
             // Potential fix for items falling through the floor
             // If it's mostly pointing downward (e.g. more than 45° down), flip it!

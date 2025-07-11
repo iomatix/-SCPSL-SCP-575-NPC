@@ -12,11 +12,10 @@
     using ProgressiveCulling;
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
+    using Shared;
     using System;
     using System.Collections.Generic;
-    using System.Reflection.Emit;
     using UnityEngine;
-    using static PlayerRoles.FirstPersonControl.Thirdperson.Subcontrollers.FeetStabilizerSubcontroller;
 
      // Todo: This class shouldnt be 'using' any of APIs, instead import methods from different modules from this repo
     public class EventHandlers

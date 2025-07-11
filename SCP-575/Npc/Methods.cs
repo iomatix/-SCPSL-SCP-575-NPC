@@ -9,6 +9,7 @@ namespace SCP_575.Npc
     using Exiled.Loader;
     using MEC;
     using SCP_575.ConfigObjects;
+    using Shared;
     using UnityEngine;
     using Map = Exiled.API.Features.Map;
     using Server = Exiled.Events.Handlers.Server;
