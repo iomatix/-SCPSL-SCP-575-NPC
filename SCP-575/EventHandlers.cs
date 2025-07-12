@@ -1,4 +1,4 @@
-﻿namespace SCP_575
+namespace SCP_575
 {
     using System;
     using System.Collections.Generic;
@@ -190,6 +190,7 @@
                 // 🧍 Convert ragdoll visual mesh to bones
                 try
                 {
+                 // todo check ragdoll origin 
                     Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
                     Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion completed successfully.");
                 }
