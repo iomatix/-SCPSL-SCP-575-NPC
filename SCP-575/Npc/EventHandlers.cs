@@ -5,7 +5,6 @@ namespace SCP_575.Npc
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
 
-    // Todo this file shouldn't `using` any API, instead apply methods from sourcecode of this repo.
     public class EventHandlers
     {
         private readonly Plugin _plugin;

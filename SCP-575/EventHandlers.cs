@@ -11,8 +11,6 @@
     using SCP_575.Npc;
     using Shared;
     using UnityEngine;
-
-     // Todo: This class shouldnt be 'using' any of APIs, instead import methods from different modules from this repo
     public class EventHandlers
     {
         private readonly Plugin _plugin;
@@ -75,9 +73,9 @@
                 Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
 
                 List<LabApi.Features.Wrappers.Item> items = new List<LabApi.Features.Wrappers.Item>(player.Items);
-                player.Inventory.ServerDropEverything();
+                List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
 
-                Timing.RunCoroutine(_methods.DropAndPushItems(player, items, scp575Handler));
+                Timing.RunCoroutine(_methods.DropAndPushItems(player, droppedPickups, scp575Handler));
 
             }
         }

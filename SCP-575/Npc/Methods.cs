@@ -2,6 +2,7 @@ namespace SCP_575.Npc
 {
     using CommandSystem.Commands;
     using MEC;
+    using RemoteAdmin.Communication;
     using SCP_575.ConfigObjects;
     using Shared;
     using System;
@@ -402,11 +403,12 @@ namespace SCP_575.Npc
                 if (IsBlackoutActive)
                 {
                     Library_ExiledAPI.LogDebug("KeterDamage", $"SCP-575 Keter damage handler active with {blackoutStacks} stacks.");
-                    foreach (Exiled.API.Features.Player player in Library_ExiledAPI.Players)
+                    
+                    foreach (LabApi.Features.Wrappers.Player player in Library_LabAPI.Players)
                     {
-                        Library_ExiledAPI.LogDebug("KeterDamage", $"Player {player.Nickname} is in room {player.CurrentRoom?.Name ?? "None"} with lights {(player.CurrentRoom?.AreLightsOff == true ? "off" : "on")}.");
+                        Library_ExiledAPI.LogDebug("KeterDamage", $"Checking player {player.Nickname} for Keter damage during blackout.");
 
-                        if (ShouldApplyBlackoutDamage(player))
+                        if (ShouldApplyBlackoutDamage(Library_ExiledAPI.ToExiledPlayer(player)))
                         {
                             Library_ExiledAPI.LogDebug("KeterDamage", $"Applying damage to player {player.Nickname} due to no light source in hand during blackout.");
 
@@ -416,10 +418,11 @@ namespace SCP_575.Npc
 
                             yield return Timing.WaitForOneFrame; // Ensure engine is ready before applying damage
 
-                            player.Hurt(damageHandler);
+                            player.Damage(damageHandler);
 
                             Library_ExiledAPI.LogDebug("KeterDamage", $"Player {player.Nickname} has been damaged by SCP-575. Damage: {clampedDamage}, Raw Damage: {rawDamage}");
-                            player.Broadcast(Config.KeterBroadcast);
+                            player.SendBroadcast(Config.KeterBroadcast, 3, type: Broadcast.BroadcastFlags.Normal, shouldClearPrevious: true);
+
                         }
                         else if (player.IsHuman)
                         {
@@ -432,27 +435,26 @@ namespace SCP_575.Npc
 
         public IEnumerator<float> DropAndPushItems(
             LabApi.Features.Wrappers.Player player,
-            List<LabApi.Features.Wrappers.Item> itemsToDrop,
+            List<LabApi.Features.Wrappers.Pickup> droppedPickups,
             Scp575DamageHandler scp575Handler
         )
         {
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
 
 
-            foreach (var item in itemsToDrop)
+            foreach (var pickup in droppedPickups)
             {
 
-                var pickup = Exiled.API.Features.Pickups.Pickup.Get(item.Serial);
                 if (pickup == null)
                 {
-                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Pickup {item.Serial} not found - skipping.");
+                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Pickup {pickup.Serial}:{pickup.Base.name} not found - skipping.");
                     continue;
                 }
 
                 var rb = pickup.Base.GetComponent<Rigidbody>();
                 if (rb == null)
                 {
-                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Rigidbody missing on pickup {item.Serial} - skipping.");
+                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Rigidbody missing on pickup {pickup.Serial}:{pickup.Base.name} - skipping.");
                     continue;
                 }
 
@@ -464,13 +466,13 @@ namespace SCP_575.Npc
                 try
                 {
                     rb.AddForce(dir * mag, ForceMode.Force);
-                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {item.Serial} with direction {dir} and magnitude {mag}.");
+                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial}:{pickup.Base.name} with direction {dir} and magnitude {mag}.");
 
 
                 }
                 catch (Exception ex)
                 {
-                    Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {item.Serial}: {ex}");
+                    Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex}");
                 }
 
                 yield return Timing.WaitForOneFrame;  // stagger pushes

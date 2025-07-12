@@ -35,8 +35,8 @@ namespace SCP_575.ConfigObjects
         [Description("Whether or not people in dark rooms should take damage if they have no light source in their hand.")]
         public bool EnableKeter { get; private set; } = true;
 
-        [Description("Broadcast shown when a player is damaged by SCP-575.")]
-        public Broadcast KeterBroadcast { get; set; } = new Broadcast("You were damaged by SCP-575! Equip a flashlight!", 5);
+        [Description("Broadcast message shown when a player is damaged by SCP-575.")]
+        public string KeterBroadcast { get; set; } = "You were damaged by SCP-575! Equip a flashlight!";
 
         [Description("Whether or not SCP-575's \"roar\" should happen after a blackout starts.")]
         public bool Voice { get; private set; } = true;

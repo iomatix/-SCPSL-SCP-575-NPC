@@ -30,6 +30,11 @@
 
         public static void Cassie_Message(string message) => Cassie.Message(message, isNoisy: false, isSubtitles: false);
 
+        // Adapters
+        public static Player ToLabApiPlayer(Exiled.API.Features.Player exPlayer)
+        {
+            return Player.Get(exPlayer.ReferenceHub);
+        }
 
     }
 }

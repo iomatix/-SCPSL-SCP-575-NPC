@@ -59,5 +59,12 @@
         {
             Log.Error($"[{moduleId}] {message}");
         }
+
+        // Adapters
+        public static Player ToExiledPlayer(LabApi.Features.Wrappers.Player labPlayer)
+        {
+            return Player.Get(labPlayer.ReferenceHub);
+        }
+
     }
 }

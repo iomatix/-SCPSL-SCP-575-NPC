@@ -11,8 +11,6 @@
     using SCP_575.ConfigObjects;
     using UnityEngine;
     using Utils.Networking;
-
-    // TODO: Separate Logic from LabAPI vs Exiled API to different files
     public class Scp575DamageHandler : AttackerDamageHandler
     {
         public static string IdentifierName => nameof(Scp575DamageHandler);
