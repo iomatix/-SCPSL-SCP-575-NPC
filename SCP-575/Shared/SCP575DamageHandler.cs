@@ -19,7 +19,6 @@
 
         private static NpcConfig Config = Plugin.Singleton.Config.NpcConfig;
 
-
         // Config & State
         public override float Damage { get; set; }
         public override bool AllowSelfDamage => false;
@@ -68,7 +67,10 @@
         {
             Library_ExiledAPI.LogDebug("Scp575DamageHandler", $"Handler initialized with damage: {damage}, Target: {target.Nickname}, Attacker: {attacker?.Nickname ?? "SCP-575 NPC"}");
             Damage = damage;
-            Attacker = attacker?.ReferenceHub is var hub ? new Footprint(hub) : default;
+
+            Attacker = attacker?.ReferenceHub != null 
+                ? new Footprint(attacker.ReferenceHub) : LabApi.Features.Wrappers.Server.Host?.ReferenceHub != null
+                ? new Footprint(LabApi.Features.Wrappers.Server.Host.ReferenceHub) : default;
 
             Target = new Footprint(target.ReferenceHub);
 
@@ -145,7 +147,8 @@
 
         public override void ProcessRagdoll(BasicRagdoll ragdoll)
         {
-            Library_ExiledAPI.LogDebug("ProcessRagdoll", $"Processing ragdoll for {ragdoll.name} with Hitbox: {Hitbox}, Damage: {Damage:F1}, Velocity: {_velocity}, Direction: ({_hitDirectionX}, {_hitDirectionZ})");
+            Library_ExiledAPI.LogDebug("ProcessRagdoll", $"Ragdoll role: {ragdoll.NetworkInfo.RoleType}, Position: {ragdoll.transform.position}");
+            Library_ExiledAPI.LogDebug("ProcessRagdoll", $"Attacker: {Attacker.Hub?.nicknameSync.MyNick ?? "NULL"}");
             base.ProcessRagdoll(ragdoll);
         }
 
