@@ -451,6 +451,7 @@ namespace SCP_575.Npc
             Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
             List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
 
+            // TODO Check if nessary
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
 
 
@@ -480,6 +481,7 @@ namespace SCP_575.Npc
                     Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex}");
                 }
 
+                // TODO Check if nessary
                 yield return Timing.WaitForOneFrame;  // stagger pushes
             }
         }
