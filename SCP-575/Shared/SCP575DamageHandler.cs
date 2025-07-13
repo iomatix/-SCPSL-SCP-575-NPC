@@ -7,8 +7,6 @@
     using PlayerRoles;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
-    using SCP_575;
-    using SCP_575.ConfigObjects;
     using UnityEngine;
     using Utils.Networking;
     public class Scp575DamageHandler : AttackerDamageHandler

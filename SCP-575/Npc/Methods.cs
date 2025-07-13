@@ -408,7 +408,7 @@ namespace SCP_575.Npc
                     {
                         Library_ExiledAPI.LogDebug("KeterDamage", $"Checking player {player.Nickname} for Keter damage during blackout.");
 
-                        if (ShouldApplyBlackoutDamage(Library_ExiledAPI.ToExiledPlayer(player)))
+                        if (player.IsAlive && ShouldApplyBlackoutDamage(Library_ExiledAPI.ToExiledPlayer(player)))
                         {
                             Library_ExiledAPI.LogDebug("KeterDamage", $"Applying damage to player {player.Nickname} due to no light source in hand during blackout.");
 
