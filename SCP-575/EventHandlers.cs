@@ -83,10 +83,7 @@ namespace SCP_575
             {
                 Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
-                // Store the player's death position  
-                Vector3 deathPosition = ev.Player.Position;
-
-                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Setting ragdoll spawn position to: {ev.Ragdoll.Position} (death position: {deathPosition})");
+                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Setting ragdoll spawn position to: {ev.Ragdoll.Position} (death position: {ev.Player.Position})");
             }
         }
 
