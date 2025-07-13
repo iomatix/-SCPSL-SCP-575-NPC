@@ -6,6 +6,7 @@
     using PlayerRoles;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
+    using SCP_575.ConfigObjects;
     using System.Collections.Generic;
     using UnityEngine;
     using Utils.Networking;
@@ -51,11 +52,11 @@
 
         public override CassieAnnouncement CassieDeathAnnouncement => null;
 
-        public override string RagdollInspectText => string.Format(_deathReasonFormat, Library_LabAPI.NpcConfig.KilledByMessage);
+        public override string ServerLogsText => $"Killed by {Library_LabAPI.NpcConfig.KilledBy}, Attacker: {Library_LabAPI.NpcConfig.KilledBy}, Hitbox: {Hitbox}";
 
-        public override string DeathScreenText => string.Empty;
+        public override string DeathScreenText => Library_LabAPI.NpcConfig.KilledByMessage;
 
-        public override string ServerLogsText => $"Killed by {Library_LabAPI.NpcConfig.KilledBy}, Attacker: {Attacker.Hub?.playerStats.name ?? "SCP-575 NPC"}, Hitbox: {Hitbox}";
+        public override string RagdollInspectText => string.Format(_deathReasonFormat, Library_LabAPI.NpcConfig.RagdollInspectText);
 
         public override string ServerMetricsText => base.ServerMetricsText + "," + Library_LabAPI.NpcConfig.KilledByMessage;
 
