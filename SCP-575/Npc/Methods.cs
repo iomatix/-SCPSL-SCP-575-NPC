@@ -442,7 +442,7 @@ namespace SCP_575.Npc
             Scp575DamageHandler scp575Handler
         )
         {
-            List<LabApi.Features.Wrappers.Item> items = new List<LabApi.Features.Wrappers.Item>(player.Items);
+            Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
             List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
 
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
@@ -451,19 +451,13 @@ namespace SCP_575.Npc
             foreach (var pickup in droppedPickups)
             {
 
-                if (pickup == null)
+                if (pickup?.Rigidbody == null)
                 {
-                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Pickup {pickup.Serial}:{pickup.Base.name} not found - skipping.");
+                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
                     continue;
                 }
 
-                var rb = pickup.Base.GetComponent<Rigidbody>();
-                if (rb == null)
-                {
-                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Rigidbody missing on pickup {pickup.Serial}:{pickup.Base.name} - skipping.");
-                    continue;
-                }
-
+                var rb = pickup.Rigidbody;
                 var dir = scp575Handler.GetRandomUnitSphereVelocity();
                 var mag = scp575Handler.calculateForcePush();
 
@@ -471,10 +465,9 @@ namespace SCP_575.Npc
 
                 try
                 {
-                    rb.AddForce(dir * mag, ForceMode.Force);
-                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial}:{pickup.Base.name} with direction {dir} and magnitude {mag}.");
-
-
+                    rb.linearVelocity = dir * mag;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 5f;
+                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
                 }
                 catch (Exception ex)
                 {

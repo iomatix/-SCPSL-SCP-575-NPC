@@ -70,8 +70,6 @@ namespace SCP_575
 
                 LabApi.Features.Wrappers.Player player = ev.Player;
 
-                Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
-
                 Timing.RunCoroutine(_methods.DropAndPushItems(player, scp575Handler));
 
             }
