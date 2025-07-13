@@ -439,10 +439,12 @@ namespace SCP_575.Npc
 
         public IEnumerator<float> DropAndPushItems(
             LabApi.Features.Wrappers.Player player,
-            List<LabApi.Features.Wrappers.Pickup> droppedPickups,
             Scp575DamageHandler scp575Handler
         )
         {
+            List<LabApi.Features.Wrappers.Item> items = new List<LabApi.Features.Wrappers.Item>(player.Items);
+            List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
+
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
 
 

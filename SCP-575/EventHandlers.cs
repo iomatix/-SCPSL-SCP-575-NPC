@@ -72,10 +72,7 @@ namespace SCP_575
 
                 Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
 
-                List<LabApi.Features.Wrappers.Item> items = new List<LabApi.Features.Wrappers.Item>(player.Items);
-                List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
-
-                Timing.RunCoroutine(_methods.DropAndPushItems(player, droppedPickups, scp575Handler));
+                Timing.RunCoroutine(_methods.DropAndPushItems(player, scp575Handler));
 
             }
         }
