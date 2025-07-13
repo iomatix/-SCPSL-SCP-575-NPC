@@ -87,7 +87,8 @@ namespace SCP_575
                 Vector3 deathPosition = ev.Player.Position;
 
                 // Set the ragdoll position before it's fully spawned
-                ev.Ragdoll.Position = deathPosition + (Vector3.up * 0.2f);
+                Vector3 groundPosition = new Vector3(deathPosition.x, 0.5f, deathPosition.z);
+                ev.Ragdoll.Position = groundPosition;
 
                 Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Setting ragdoll spawn position to: {ev.Ragdoll.Position} (death position: {deathPosition})");
             }
@@ -101,8 +102,24 @@ namespace SCP_575
             {
                 Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
+                // SANITY DEBUG
+                var allRenderers = ragdollGO.GetComponentsInChildren<Renderer>(true); // Include inactive
+                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Found {allRenderers.Length} renderers in hierarchy (including inactive)");
+
+                foreach (var r in allRenderers)
+                {
+                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Renderer: {r.name}, enabled: {r.enabled}, gameObject active: {r.gameObject.activeSelf}");
+                }
+                //
+
                 LabApi.Features.Wrappers.Ragdoll ragdoll = ev.Ragdoll;
                 GameObject ragdollGO = ragdoll.Base.gameObject;
+
+                // SANITY DEBUG
+                :ibrary_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll type: {ragdoll.Base.GetType().Name}");
+                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll GameObject active: {ragdollGO.activeSelf}");
+                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll transform parent: {ragdollGO.transform.parent?.name ?? "None"}");
+                //
 
                 // Ensure ragdoll is active in hierarchy  
                 if (!ragdollGO.activeSelf)
@@ -130,9 +147,9 @@ namespace SCP_575
                 // 1. FIRST: Handle bone conversion before any position/force manipulation  
                 try
                 {
-                    //Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
-                    //Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion completed successfully.");
-                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion disabled for now, dumb method called successfully.");
+                    Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
+                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion completed successfully.");
+                    //Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion disabled for now, dumb method called successfully.");
                 }
                 catch (Exception ex)
                 {
