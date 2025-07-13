@@ -104,7 +104,7 @@ namespace SCP_575
 
                 LabApi.Features.Wrappers.Ragdoll ragdoll = ev.Ragdoll;
                 GameObject ragdollGO = ragdoll.Base.gameObject;
-                
+
                 // SANITY DEBUG
                 var allRenderers = ragdollGO.GetComponentsInChildren<Renderer>(true); // Include inactive
                 Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Found {allRenderers.Length} renderers in hierarchy (including inactive)");
@@ -154,14 +154,7 @@ namespace SCP_575
                     return;
                 }
 
-                // 2. SECOND: Fix position if needed using LabAPI properties  
-                if (ragdoll.Position.y < 0.1f)
-                {
-                    ragdoll.Position = new Vector3(ragdoll.Position.x, 0.5f, ragdoll.Position.z);
-                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", $"Adjusted ragdoll Y position to: {ragdoll.Position}");
-                }
-
-                // 3. THIRD: Apply forces after conversion and position fixes  
+                // 2. SECOND: Apply forces after conversion and position fixes
                 var hitbox = scp575Handler.Hitbox;
                 if (!Scp575DamageHandler.HitboxToForce.TryGetValue(hitbox, out float baseForce))
                 {
@@ -209,7 +202,7 @@ namespace SCP_575
 
                 // DEBUG: Create marker at final ragdoll position  
                 GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                marker.transform.position = ragdoll.Position + Vector3.up * 1f;
+                marker.transform.position = ragdoll.Position + (Vector3.up * 1f);
                 marker.transform.localScale = new Vector3(0.35f, 0.65f, 0.35f);
                 marker.GetComponent<Renderer>().material.color = Color.magenta;
                 GameObject.Destroy(marker, 180f);
@@ -224,6 +217,8 @@ namespace SCP_575
         // Todo kill SCP 575 on kill switch for computer SCP, Play creepy sound via Cassie
 
         // ToDo turn On lights for 5 seconds On FLASHNADE explosion in the SCP575 dark room, Play creepy sound via Cassie
+
+        // TODO 2176 triggers SCP-575 in the room
 
         public void OnPlayerDeath(LabApi.Events.Arguments.PlayerEvents.PlayerDeathEventArgs ev)
         {
