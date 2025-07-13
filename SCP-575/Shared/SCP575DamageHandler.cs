@@ -17,8 +17,6 @@
 
         public static byte IdentifierByte => 175;
 
-        private static NpcConfig Config = Plugin.Singleton.Config.NpcConfig;
-
         // Config & State
         public override float Damage { get; set; }
         public override bool AllowSelfDamage => false;
@@ -54,13 +52,13 @@
 
         public override CassieAnnouncement CassieDeathAnnouncement => null;
 
-        public override string RagdollInspectText => string.Format(_deathReasonFormat, Config.KilledByMessage);
+        public override string RagdollInspectText => string.Format(_deathReasonFormat, Library_LabAPI.NpcConfig.KilledByMessage);
 
         public override string DeathScreenText => string.Empty;
 
-        public override string ServerLogsText => $"Killed by {Config.KilledBy}, Attacker: {Attacker.Hub?.playerStats.name ?? "SCP-575 NPC"}, Hitbox: {Hitbox}";
+        public override string ServerLogsText => $"Killed by {Library_LabAPI.NpcConfig.KilledBy}, Attacker: {Attacker.Hub?.playerStats.name ?? "SCP-575 NPC"}, Hitbox: {Hitbox}";
 
-        public override string ServerMetricsText => base.ServerMetricsText + "," + Config.KilledByMessage;
+        public override string ServerMetricsText => base.ServerMetricsText + "," + Library_LabAPI.NpcConfig.KilledByMessage;
 
         public Scp575DamageHandler(LabApi.Features.Wrappers.Player target, float damage, LabApi.Features.Wrappers.Player attacker = null, bool useHumanMultipliers = true
         ) : this()
@@ -73,9 +71,9 @@
                 ? new Footprint(LabApi.Features.Wrappers.Server.Host.ReferenceHub) : default;
 
             Target = new Footprint(target.ReferenceHub);
-
-            _velocity = GetRandomUnitSphereVelocity(Config.KeterDamageVelocityModifier);
-            _penetration = Config.KeterDamagePenetration;
+            
+            _velocity = GetRandomUnitSphereVelocity(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier);
+            _penetration = Library_LabAPI.NpcConfig.KeterDamagePenetration;
             _useHumanHitboxes = useHumanMultipliers;
             Vector3 forward = target.ReferenceHub.PlayerCameraReference.forward;
             _hitDirectionX = (sbyte)Mathf.RoundToInt(forward.x * 127f);
@@ -106,7 +104,7 @@
         {
             Exiled.API.Features.Log.Debug($"[ApplyDamage] Applying damage to {ply.nicknameSync.MyNick} with Hitbox: {Hitbox} and Damage: {Damage:F1}");
             var labPlayer = LabApi.Features.Wrappers.Player.Get(ply);
-            Scp575DamageHandler_LabAPI.ApplyDamageEffects(labPlayer);
+            if(Library_LabAPI.NpcConfig.EnableKeterOnDealDamageEffects) Scp575DamageHandler_LabAPI.ApplyDamageEffects(labPlayer);
 
             HandlerOutput handlerOutput = base.ApplyDamage(ply);
 
@@ -154,7 +152,7 @@
 
         public float calculateForcePush(float baseValue = 1.0f)
         {
-            float r = Random.Range(Config.KeterForceMinModifier, Config.KeterForceMaxModifier);
+            float r = Random.Range(Library_LabAPI.NpcConfig.KeterForceMinModifier, Library_LabAPI.NpcConfig.KeterForceMaxModifier);
             return baseValue * r;
         }
 
@@ -170,7 +168,7 @@
                 rDir = Vector3.Reflect(rDir, Vector3.up);
             }
 
-            float modifier = baseValue * Mathf.Log((3 * Damage) + 1) * calculateForcePush(Config.KeterDamageVelocityModifier);
+            float modifier = baseValue * Mathf.Log((3 * Damage) + 1) * calculateForcePush(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier);
             return rDir * modifier;
         }
 

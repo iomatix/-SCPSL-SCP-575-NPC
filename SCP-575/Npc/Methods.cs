@@ -296,7 +296,7 @@ namespace SCP_575.Npc
             {
                 IncrementBlackoutStack();
                 Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout event triggered. Current stacks: {blackoutStacks}, Duration: {blackoutDuration}");
-                if (Config.Voice)
+                if (Config.EnableScreamSound)
                 {
                     TriggerCassieMessage(Config.CassieKeter);
                 }
@@ -403,7 +403,7 @@ namespace SCP_575.Npc
                 if (IsBlackoutActive)
                 {
                     Library_ExiledAPI.LogDebug("KeterDamage", $"SCP-575 Keter damage handler active with {blackoutStacks} stacks.");
-                    
+
                     foreach (LabApi.Features.Wrappers.Player player in Library_LabAPI.Players)
                     {
                         Library_ExiledAPI.LogDebug("KeterDamage", $"Checking player {player.Nickname} for Keter damage during blackout.");
@@ -420,9 +420,13 @@ namespace SCP_575.Npc
 
                             player.Damage(damageHandler);
 
-                            Library_ExiledAPI.LogDebug("KeterDamage", $"Player {player.Nickname} has been damaged by SCP-575. Damage: {clampedDamage}, Raw Damage: {rawDamage}");
-                            player.SendBroadcast(Config.KeterBroadcast, 3, type: Broadcast.BroadcastFlags.Normal, shouldClearPrevious: true);
-
+                            if (Config.EnableKeterBroadcast)
+                            {
+                                bool shouldClearPrevious = false;
+                                if (Config.CassieMessageClearBeforeImportant) shouldClearPrevious = true;
+                                Library_ExiledAPI.LogDebug("KeterDamage", $"Player {player.Nickname} has been damaged by SCP-575. Damage: {clampedDamage}, Raw Damage: {rawDamage}");
+                                player.SendBroadcast(Config.KeterBroadcast, 3, type: Broadcast.BroadcastFlags.Normal, shouldClearPrevious: shouldClearPrevious);
+                            }
                         }
                         else if (player.IsHuman)
                         {

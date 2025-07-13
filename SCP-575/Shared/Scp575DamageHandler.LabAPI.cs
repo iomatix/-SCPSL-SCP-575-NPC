@@ -1,32 +1,53 @@
 ﻿namespace SCP_575.Shared
 {
     using CustomPlayerEffects;
+    using LabApi.Features.Audio;
     using LabApi.Features.Wrappers;
+    using SCP_575.ConfigObjects;
+    using System;
+    using System.Collections.Generic;
+
 
     public static class Scp575DamageHandler_LabAPI
     {
+
+        public static Plugin Plugin => Plugin.Singleton;
+        public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
+        public static Config Config => Plugin.Config;
+
         public static void ApplyDamageEffects(Player player)
         {
-            // Visual & status effects from LabAPI
-            player.EnableEffect<Ensnared>(duration: 0.35f);
-            player.EnableEffect<Flashed>(duration: 0.075f);
-            player.EnableEffect<Blurred>(duration: 0.25f);
+            // Play horror sound effect  
+            if (NpcConfig.EnableScreamSound)
+            {
+                AudioManager.PlayScreamSound(player);
+            }
 
-            player.EnableEffect<Deafened>(duration: 3.75f);
-            player.EnableEffect<AmnesiaVision>(duration: 3.65f);
-            player.EnableEffect<Sinkhole>(duration: 3.25f);
-            player.EnableEffect<Concussed>(duration: 3.15f);
-            player.EnableEffect<Blindness>(duration: 2.65f);
-            player.EnableEffect<Burned>(duration: 2.5f, intensity: 3); // Intensity of three: Damage is increased by 8.75%.
+            var effectActions = new List<(bool Enabled, Action Apply)>
+            {
+                (NpcConfig.EnableEffectEnsnared,      () => player.EnableEffect<Ensnared>(duration: 0.35f)),
+                (NpcConfig.EnableEffectFlashed,       () => player.EnableEffect<Flashed>(duration: 0.075f)),
+                (NpcConfig.EnableEffectBlurred,       () => player.EnableEffect<Blurred>(duration: 0.25f)),
+                (NpcConfig.EnableEffectDeafened,      () => player.EnableEffect<Deafened>(duration: 3.75f)),
+                (NpcConfig.EnableEffectAmnesiaVision, () => player.EnableEffect<AmnesiaVision>(duration: 3.65f)),
+                (NpcConfig.EnableEffectSinkhole,      () => player.EnableEffect<Sinkhole>(duration: 3.25f)),
+                (NpcConfig.EnableEffectConcussed,     () => player.EnableEffect<Concussed>(duration: 3.15f)),
+                (NpcConfig.EnableEffectBlindness,     () => player.EnableEffect<Blindness>(duration: 2.65f)),
+                (NpcConfig.EnableEffectBurned,        () => player.EnableEffect<Burned>(duration: 2.5f, intensity: 3)),
+                (NpcConfig.EnableEffectAmnesiaItems,  () => player.EnableEffect<AmnesiaItems>(duration: 1.65f)),
+                (NpcConfig.EnableEffectStained,       () => player.EnableEffect<Stained>(duration: 0.75f)),
+                (NpcConfig.EnableEffectAsphyxiated,   () => player.EnableEffect<Asphyxiated>(duration: 1.25f, intensity: 3)),
+                (NpcConfig.EnableEffectBleeding,      () => player.EnableEffect<Bleeding>(duration: 3.65f, intensity: 3)),
+                (NpcConfig.EnableEffectDisabled,      () => player.EnableEffect<Disabled>(duration: 4.75f, intensity: 1)),
+                (NpcConfig.EnableEffectExhausted,     () => player.EnableEffect<Exhausted>(duration: 6.75f)),
+                (NpcConfig.EnableEffectTraumatized,   () => player.EnableEffect<Traumatized>(duration: 9.5f)),
+            };
 
-            player.EnableEffect<AmnesiaItems>(duration: 1.65f);
-            player.EnableEffect<Stained>(duration: 0.75f);
-            player.EnableEffect<Asphyxiated>(duration: 1.25f, intensity: 3); // Intensity of three: Stamina drains at 1.75% per second. HP drains at 0.7 per second.
-
-            player.EnableEffect<Bleeding>(duration: 3.65f, intensity: 3); // Intensity of three: Damage values are 7, 3.5, 1.75, 0.875 and 0.7.
-            player.EnableEffect<Disabled>(duration: 4.75f, intensity: 1); // Intensity of one: Movement is slowed down by 12%.
-            player.EnableEffect<Exhausted>(duration: 6.75f);
-            player.EnableEffect<Traumatized>(duration: 9.5f);
+            foreach (var (enabled, apply) in effectActions)
+            {
+                if (enabled)
+                    apply();
+            }
         }
     }
 }

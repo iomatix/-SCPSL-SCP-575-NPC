@@ -1,11 +1,15 @@
 ﻿namespace SCP_575.Shared
 {
-    using UnityEngine;
     using Exiled.API.Features;
+    using SCP_575.ConfigObjects;
+    using UnityEngine;
     using static PlayerStatsSystem.DamageHandlerBase;
 
     public static class Scp575DamageHandler_ExiledAPI
     {
+        public static Plugin Plugin => Plugin.Singleton;
+        public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
+        public static Config Config => Plugin.Config;
         public static void HandleApplyDamageFeedback(ReferenceHub ply, float damage, HandlerOutput result)
         {
             // Place a blood decal on the Exiled player

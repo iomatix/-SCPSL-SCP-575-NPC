@@ -7,16 +7,12 @@
     public static class Library_LabAPI
     {
 
-
-
         // Getters 
 
         public static Plugin Plugin => Plugin.Singleton;
-
         public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
-
         public static Config Config => Plugin.Config;
-        
+
 
         public static IReadOnlyCollection<Player> Players => Player.List;
 

@@ -35,11 +35,65 @@ namespace SCP_575.ConfigObjects
         [Description("Whether or not people in dark rooms should take damage if they have no light source in their hand.")]
         public bool EnableKeter { get; private set; } = true;
 
-        [Description("Broadcast message shown when a player is damaged by SCP-575.")]
+        [Description("Whether or not to inform players about being damaged by SCP-575 via Broadcast messages.")]
+        public bool EnableKeterBroadcast { get; private set; } = true;
+
+        [Description("Broadcast message shown when a player is damaged by SCP-575 if EnableKeterBroadcast is set to true.")]
         public string KeterBroadcast { get; set; } = "You were damaged by SCP-575! Equip a flashlight!";
 
-        [Description("Whether or not SCP-575's \"roar\" should happen after a blackout starts.")]
-        public bool Voice { get; private set; } = true;
+        [Description("Whether or not to enable effects triggered by SCP-575 on player hurt.")]
+        public bool EnableKeterOnDealDamageEffects { get; private set; } = true;
+
+        [Description("Enable 'Ensnared' effect when damaged by SCP-575.")]
+        public bool EnableEffectEnsnared { get; private set; } = true;
+
+        [Description("Enable 'Flashed' effect when damaged by SCP-575.")]
+        public bool EnableEffectFlashed { get; private set; } = true;
+
+        [Description("Enable 'Blurred' effect when damaged by SCP-575.")]
+        public bool EnableEffectBlurred { get; private set; } = true;
+
+        [Description("Enable 'Deafened' effect when damaged by SCP-575.")]
+        public bool EnableEffectDeafened { get; private set; } = true;
+
+        [Description("Enable 'AmnesiaVision' effect when damaged by SCP-575.")]
+        public bool EnableEffectAmnesiaVision { get; private set; } = true;
+
+        [Description("Enable 'Sinkhole' effect when damaged by SCP-575.")]
+        public bool EnableEffectSinkhole { get; private set; } = true;
+
+        [Description("Enable 'Concussed' effect when damaged by SCP-575.")]
+        public bool EnableEffectConcussed { get; private set; } = true;
+
+        [Description("Enable 'Blindness' effect when damaged by SCP-575.")]
+        public bool EnableEffectBlindness { get; private set; } = true;
+
+        [Description("Enable 'Burned' effect when damaged by SCP-575.")]
+        public bool EnableEffectBurned { get; private set; } = false;
+
+        [Description("Enable 'AmnesiaItems' effect when damaged by SCP-575.")]
+        public bool EnableEffectAmnesiaItems { get; private set; } = false;
+
+        [Description("Enable 'Stained' effect when damaged by SCP-575.")]
+        public bool EnableEffectStained { get; private set; } = true;
+
+        [Description("Enable 'Asphyxiated' effect when damaged by SCP-575.")]
+        public bool EnableEffectAsphyxiated { get; private set; } = false;
+
+        [Description("Enable 'Bleeding' effect when damaged by SCP-575.")]
+        public bool EnableEffectBleeding { get; private set; } = false;
+
+        [Description("Enable 'Disabled' effect when damaged by SCP-575.")]
+        public bool EnableEffectDisabled { get; private set; } = true;
+
+        [Description("Enable 'Exhausted' effect when damaged by SCP-575.")]
+        public bool EnableEffectExhausted { get; private set; } = true;
+
+        [Description("Enable 'Traumatized' effect when damaged by SCP-575.")]
+        public bool EnableEffectTraumatized { get; private set; } = true;
+
+        [Description("Whether or not SCP-575's sound effect should happen on the client damaged by the entity.")]
+        public bool EnableScreamSound { get; private set; } = true;
 
         [Description("Flicker lights when the event starts.")]
         public bool FlickerLights { get; private set; } = true;
@@ -120,7 +174,7 @@ namespace SCP_575.ConfigObjects
         [Description("The message CASSIE will say when a blackout ends.")]
         public string CassieMessageEnd { get; set; } = "facility power system now operational";
 
-        [Description("Should cassie clear the messeage cue before important message to prevent spam?")]
+        [Description("Should cassie clear the messeage and broadcast cue before important message to prevent spam?")]
         public bool CassieMessageClearBeforeImportant { get; set; } = true;
 
         // Probability 
