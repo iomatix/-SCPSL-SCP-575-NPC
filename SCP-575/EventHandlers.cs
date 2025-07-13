@@ -102,6 +102,9 @@ namespace SCP_575
             {
                 Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
+                LabApi.Features.Wrappers.Ragdoll ragdoll = ev.Ragdoll;
+                GameObject ragdollGO = ragdoll.Base.gameObject;
+                
                 // SANITY DEBUG
                 var allRenderers = ragdollGO.GetComponentsInChildren<Renderer>(true); // Include inactive
                 Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Found {allRenderers.Length} renderers in hierarchy (including inactive)");
@@ -110,13 +113,7 @@ namespace SCP_575
                 {
                     Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Renderer: {r.name}, enabled: {r.enabled}, gameObject active: {r.gameObject.activeSelf}");
                 }
-                //
-
-                LabApi.Features.Wrappers.Ragdoll ragdoll = ev.Ragdoll;
-                GameObject ragdollGO = ragdoll.Base.gameObject;
-
-                // SANITY DEBUG
-                :ibrary_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll type: {ragdoll.Base.GetType().Name}");
+                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll type: {ragdoll.Base.GetType().Name}");
                 Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll GameObject active: {ragdollGO.activeSelf}");
                 Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll transform parent: {ragdollGO.transform.parent?.name ?? "None"}");
                 //
