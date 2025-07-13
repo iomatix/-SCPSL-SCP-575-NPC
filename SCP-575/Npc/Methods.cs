@@ -420,7 +420,7 @@ namespace SCP_575.Npc
 
                             float rawDamage = Config.KeterDamage * blackoutStacks;
                             float clampedDamage = Mathf.Max(rawDamage, 1f);
-                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(player, damage: clampedDamage);
+                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(damage: clampedDamage);
 
                             yield return Timing.WaitForOneFrame; // Ensure engine is ready before applying damage
 

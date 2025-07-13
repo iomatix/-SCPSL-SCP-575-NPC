@@ -130,8 +130,9 @@ namespace SCP_575
                 // 1. FIRST: Handle bone conversion before any position/force manipulation  
                 try
                 {
-                    Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
-                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion completed successfully.");
+                    //Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
+                    //Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion completed successfully.");
+                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion disabled for now, dumb method called successfully.");
                 }
                 catch (Exception ex)
                 {

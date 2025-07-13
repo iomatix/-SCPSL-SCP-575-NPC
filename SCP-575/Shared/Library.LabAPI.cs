@@ -19,6 +19,10 @@
 
         public static IReadOnlyCollection<Room> Rooms => Room.List;
 
+        public static Player GetPlayer(ReferenceHub ply)
+        {
+            return Player.Get(ply);
+        }
 
         // Cassie methods for the plugin
         public static void Cassie_Clear() => Cassie.Clear();
@@ -27,6 +31,7 @@
         public static void Cassie_Message(string message) => Cassie.Message(message, isNoisy: false, isSubtitles: false);
 
         // Adapters
+
         public static Player ToLabApiPlayer(Exiled.API.Features.Player exPlayer)
         {
             return Player.Get(exPlayer.ReferenceHub);

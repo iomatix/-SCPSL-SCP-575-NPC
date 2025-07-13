@@ -1,14 +1,16 @@
 ﻿namespace SCP_575.Shared
 {
-    using System.Collections.Generic;
     using Footprinting;
     using InventorySystem.Items.Armor;
     using Mirror;
     using PlayerRoles;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
+    using System.Collections.Generic;
     using UnityEngine;
     using Utils.Networking;
+    using static UnityEngine.GraphicsBuffer;
+
     public class Scp575DamageHandler : AttackerDamageHandler
     {
         public static string IdentifierName => nameof(Scp575DamageHandler);
@@ -18,7 +20,6 @@
         // Config & State
         public override float Damage { get; set; }
         public override bool AllowSelfDamage => false;
-        public Footprint Target { get; set; }
         public override Footprint Attacker { get; set; }
 
         // Direction & Physics
@@ -58,24 +59,22 @@
 
         public override string ServerMetricsText => base.ServerMetricsText + "," + Library_LabAPI.NpcConfig.KilledByMessage;
 
-        public Scp575DamageHandler(LabApi.Features.Wrappers.Player target, float damage, LabApi.Features.Wrappers.Player attacker = null, bool useHumanMultipliers = true
-        ) : this()
+        public Scp575DamageHandler(float damage, LabApi.Features.Wrappers.Player attacker = null, bool useHumanMultipliers = true)
+        : this()
         {
-            Library_ExiledAPI.LogDebug("Scp575DamageHandler", $"Handler initialized with damage: {damage}, Target: {target.Nickname}, Attacker: {attacker?.Nickname ?? "SCP-575 NPC"}");
+            Library_ExiledAPI.LogDebug("Scp575DamageHandler", $"Handler initialized with damage: {damage}, Attacker: {attacker?.Nickname ?? "SCP-575 NPC"}");
             Damage = damage;
 
-            Attacker = attacker?.ReferenceHub != null 
-                ? new Footprint(attacker.ReferenceHub) : LabApi.Features.Wrappers.Server.Host?.ReferenceHub != null
-                ? new Footprint(LabApi.Features.Wrappers.Server.Host.ReferenceHub) : default;
+            Attacker = attacker?.ReferenceHub != null
+                ? new Footprint(attacker.ReferenceHub)
+                : LabApi.Features.Wrappers.Server.Host?.ReferenceHub != null
+                ? new Footprint(LabApi.Features.Wrappers.Server.Host.ReferenceHub)
+                : default;
 
-            Target = new Footprint(target.ReferenceHub);
             
             _velocity = GetRandomUnitSphereVelocity(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier);
             _penetration = Library_LabAPI.NpcConfig.KeterDamagePenetration;
             _useHumanHitboxes = useHumanMultipliers;
-            Vector3 forward = target.ReferenceHub.PlayerCameraReference.forward;
-            _hitDirectionX = (sbyte)Mathf.RoundToInt(forward.x * 127f);
-            _hitDirectionZ = (sbyte)Mathf.RoundToInt(forward.z * 127f);
         }
 
         public override void WriteAdditionalData(NetworkWriter writer)
@@ -85,7 +84,6 @@
             writer.WriteSByte(_hitDirectionX);
             writer.WriteSByte(_hitDirectionZ);
             writer.WriteVector3(_velocity);
-            writer.WriteReferenceHub(Target.Hub);
         }
 
         public override void ReadAdditionalData(NetworkReader reader)
@@ -95,7 +93,6 @@
             _hitDirectionX = reader.ReadSByte();
             _hitDirectionZ = reader.ReadSByte();
             _velocity = reader.ReadVector3();
-            Target = new Footprint(reader.ReadReferenceHub());
         }
 
         public override HandlerOutput ApplyDamage(ReferenceHub ply)
@@ -107,6 +104,11 @@
             HandlerOutput handlerOutput = base.ApplyDamage(ply);
 
             Scp575DamageHandler_ExiledAPI.HandleApplyDamageFeedback(ply, Damage, handlerOutput);
+
+            
+            Vector3 forward = Library_LabAPI.GetPlayer(ply).ReferenceHub.PlayerCameraReference.forward;
+            _hitDirectionX = (sbyte)Mathf.RoundToInt(forward.x * 127f);
+            _hitDirectionZ = (sbyte)Mathf.RoundToInt(forward.z * 127f);
 
             return handlerOutput;
         }
