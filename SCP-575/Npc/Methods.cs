@@ -367,6 +367,12 @@ namespace SCP_575.Npc
 
         private bool ShouldApplyBlackoutDamage(Exiled.API.Features.Player player)
         {
+            if (!player.IsAlive)
+            {
+                Library_ExiledAPI.LogDebug("ShouldApplyBlackoutDamage", $"Player {player.Nickname} is not alive, skipping damage check.");
+                return false;
+            }
+
             Library_ExiledAPI.LogDebug("ShouldApplyBlackoutDamage", $"Checking if player {player.Nickname} should receive damage during blackout.");
             return IsHumanWithoutLight(player) && IsInDarkRoom(player);
         }
