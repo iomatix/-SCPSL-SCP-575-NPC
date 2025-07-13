@@ -86,10 +86,6 @@ namespace SCP_575
                 // Store the player's death position  
                 Vector3 deathPosition = ev.Player.Position;
 
-                // Set the ragdoll position before it's fully spawned
-                Vector3 groundPosition = new Vector3(deathPosition.x, 0.5f, deathPosition.z);
-                ev.Ragdoll.Position = groundPosition;
-
                 Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Setting ragdoll spawn position to: {ev.Ragdoll.Position} (death position: {deathPosition})");
             }
         }
