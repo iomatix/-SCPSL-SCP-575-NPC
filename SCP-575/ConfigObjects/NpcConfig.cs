@@ -171,6 +171,9 @@ namespace SCP_575.ConfigObjects
         [Description("The sound CASSIE will make during a blackout.")]
         public string CassieKeter { get; set; } = "pitch_0.15 .g7";
 
+        [Description("Play horror ambient sound on blackout.")]
+        public bool KeterAmbient { get; set; } = true;
+
         [Description("The message CASSIE will say when a blackout ends.")]
         public string CassieMessageEnd { get; set; } = "facility power system now operational";
 

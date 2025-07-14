@@ -1,101 +1,242 @@
 ﻿namespace SCP_575.Shared
 {
-    using System;
-    using System.IO;
-    using System.Reflection;
-    using System.Collections.Generic;
-    using UnityEngine;
     using LabApi.Features.Audio;
     using LabApi.Features.Wrappers;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
+    using UnityEngine;
 
     public static class AudioManager
     {
-        private static float[] screamSamples;
-        private static bool audioLoaded = false;
+        private static readonly Dictionary<string, float[]> audioSamples = new();
+        private static readonly Dictionary<string, bool> audioLoadStatus = new();
         private static readonly Dictionary<byte, SpeakerToy> managedSpeakers = new();
         private static readonly object lockObject = new();
 
+        public static bool IsLoopingGlobalAmbience = false;
+
+        // Audio file definitions  
+        private static readonly Dictionary<string, string> AudioFiles = new()
+        {
+            { "scream", "SCP-575.Shared.Audio.scream.wav" },
+            { "ambience", "SCP-575.Shared.Audio.ambience.wav" },
+        };
+
         public static void LoadEmbeddedAudio()
         {
-            if (audioLoaded) return;
-
             lock (lockObject)
             {
-                if (audioLoaded) return;
-
-                try
+                foreach (var audioFile in AudioFiles)
                 {
-                    Assembly assembly = Assembly.GetExecutingAssembly();
-                    using Stream stream = assembly.GetManifestResourceStream("SCP-575.Shared.Audio.scream.wav");
+                    string audioKey = audioFile.Key;
+                    string resourcePath = audioFile.Value;
 
-                    if (stream == null)
-                    {
-                        Library_ExiledAPI.LogError("LoadEmbeddedAudio", "Could not find embedded audio file: scream.wav");
-                        return;
-                    }
+                    if (audioLoadStatus.ContainsKey(audioKey) && audioLoadStatus[audioKey])
+                        continue;
 
-                    screamSamples = ConvertWavToPcm(stream);
+                    try
+                    {
+                        Assembly assembly = Assembly.GetExecutingAssembly();
+                        using Stream stream = assembly.GetManifestResourceStream(resourcePath);
 
-                    // Validate sample rate and apply volume boost  
-                    if (screamSamples != null && screamSamples.Length > 0)
-                    {
-                        // Apply volume boost to compensate for potential quietness  
-                        ApplyVolumeBoost(screamSamples, 1.5f);
-                        audioLoaded = true;
-                        Library_ExiledAPI.LogDebug("LoadEmbeddedAudio", $"Successfully loaded scream audio with {screamSamples.Length} samples");
+                        if (stream == null)
+                        {
+                            Library_ExiledAPI.LogError("LoadEmbeddedAudio", $"Could not find embedded audio file: {audioKey}.wav");
+                            audioLoadStatus[audioKey] = false;
+                            continue;
+                        }
+
+                        float[] samples = ConvertWavToPcm(stream);
+
+                        if (samples != null && samples.Length > 0)
+                        {
+                            // Apply different volume boosts based on audio type  
+                            float volumeMultiplier = audioKey == "scream" ? 1.5f : 1.0f;
+                            ApplyVolumeBoost(samples, volumeMultiplier);
+
+                            audioSamples[audioKey] = samples;
+                            audioLoadStatus[audioKey] = true;
+                            Library_ExiledAPI.LogDebug("LoadEmbeddedAudio", $"Successfully loaded {audioKey} audio with {samples.Length} samples");
+                        }
+                        else
+                        {
+                            Library_ExiledAPI.LogError("LoadEmbeddedAudio", $"Failed to convert {audioKey} WAV to PCM samples");
+                            audioLoadStatus[audioKey] = false;
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        Library_ExiledAPI.LogError("LoadEmbeddedAudio", "Failed to convert WAV to PCM samples");
+                        Library_ExiledAPI.LogError("LoadEmbeddedAudio", $"Failed to load {audioKey} audio: {ex.Message}");
+                        audioLoadStatus[audioKey] = false;
                     }
-                }
-                catch (Exception ex)
-                {
-                    Library_ExiledAPI.LogError("LoadEmbeddedAudio", $"Failed to load audio: {ex.Message}");
                 }
             }
         }
 
-        public static bool PlayScreamSound(Player player, Vector3? position = null, byte controllerId = 1)
+        public static bool PlayAudio(string audioKey, Player player, Vector3? position = null, byte controllerId = 1, bool loop = false)
         {
-            if (!audioLoaded || screamSamples == null)
+            if (!IsAudioLoaded(audioKey))
             {
-                Library_ExiledAPI.LogWarn("PlayScreamSound", "Audio not loaded or samples are null");
+                Library_ExiledAPI.LogWarn("PlayAudio", $"Audio '{audioKey}' not loaded or samples are null");
                 return false;
             }
 
             if (player == null)
             {
-                Library_ExiledAPI.LogWarn("PlayScreamSound", "Player is null");
+                Library_ExiledAPI.LogWarn("PlayAudio", "Player is null");
                 return false;
             }
 
             try
             {
-                // Ensure speaker exists for the controller ID  
                 SpeakerToy speaker = EnsureSpeakerExists(controllerId, position ?? player.Position);
 
-                // Validate player is authenticated and in correct state  
                 if (!IsPlayerValidForAudio(player))
                 {
-                    Library_ExiledAPI.LogWarn("PlayScreamSound", $"Player {player.Nickname} is not in valid state for audio");
+                    Library_ExiledAPI.LogWarn("PlayAudio", $"Player {player.Nickname} is not in valid state for audio");
                     return false;
                 }
 
-                // Create transmitter with proper player filtering  
                 var transmitter = SpeakerToy.GetTransmitter(controllerId);
                 transmitter.ValidPlayers = p => p != null && p == player && IsPlayerValidForAudio(p);
 
-                // Play audio with proper settings  
-                transmitter.Play(screamSamples, queue: false, loop: false);
+                transmitter.Play(audioSamples[audioKey], queue: false, loop: loop);
 
-                Library_ExiledAPI.LogDebug("PlayScreamSound", $"Successfully played scream audio to {player.Nickname} using controller {controllerId}");
+                Library_ExiledAPI.LogDebug("PlayAudio", $"Successfully played {audioKey} audio to {player.Nickname} using controller {controllerId}");
                 return true;
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("PlayScreamSound", $"Failed to play scream sound: {ex.Message}");
+                Library_ExiledAPI.LogError("PlayAudio", $"Failed to play {audioKey} sound: {ex.Message}");
                 return false;
+            }
+        }
+
+        // Convenience methods for specific audio types  
+        public static bool PlayScreamSound(Player player, Vector3? position = null, byte controllerId = 1)
+            => PlayAudio("scream", player, position, controllerId, false);
+
+        // Method for global ambience playback
+        public static bool PlayGlobalAmbience(Vector3? centralPosition = null, byte controllerId = 2, bool loop = true)
+        {
+            if (!IsAudioLoaded("ambience"))
+            {
+                Library_ExiledAPI.LogWarn("PlayGlobalAmbience", "Ambience audio not loaded");
+                return false;
+            }
+
+            if (IsLoopingGlobalAmbience)
+            {
+                Library_ExiledAPI.LogWarn("PlayGlobalAmbience", "Ambience is already on Loop, request canceled.");
+                return false;
+            }
+
+            try
+            {
+                // Use a central position or default to server spawn  
+                Vector3 position = centralPosition ?? Vector3.zero;
+                SpeakerToy speaker = EnsureSpeakerExists(controllerId, position);
+
+                // Configure speaker for global ambience
+                speaker.Volume = 0.8f; // Slightly lower for ambience
+                speaker.IsSpatial = false; // Non-spatial for global effect
+                speaker.MinDistance = 1.0f;
+                speaker.MaxDistance = 1500.0f; // Large range
+
+                var transmitter = SpeakerToy.GetTransmitter(controllerId);
+
+                // Set to broadcast to all valid players  
+                transmitter.ValidPlayers = p => p != null && IsPlayerValidForAudio(p);
+
+                transmitter.Play(audioSamples["ambience"], queue: false, loop: loop);
+                if (loop == true) IsLoopingGlobalAmbience = true;
+
+                Library_ExiledAPI.LogDebug("PlayGlobalAmbience", $"Started global ambience on controller {controllerId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("PlayGlobalAmbience", $"Failed to play global ambience: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Enhanced method for targeted ambience (multiple players, single transmission)  
+        public static bool PlayAmbienceToPlayers(IEnumerable<Player> targetPlayers, Vector3? position = null, byte controllerId = 2, bool loop = true)
+        {
+            if (!IsAudioLoaded("ambience"))
+            {
+                Library_ExiledAPI.LogWarn("PlayAmbienceToPlayers", "Ambience audio not loaded");
+                return false;
+            }
+
+            var validPlayers = targetPlayers.Where(IsPlayerValidForAudio).ToList();
+            if (!validPlayers.Any())
+            {
+                Library_ExiledAPI.LogWarn("PlayAmbienceToPlayers", "No valid players to play ambience to");
+                return false;
+            }
+
+            try
+            {
+                Vector3 speakerPosition = position ?? Vector3.zero;
+                SpeakerToy speaker = EnsureSpeakerExists(controllerId, speakerPosition);
+
+                speaker.Volume = 0.8f;
+                speaker.IsSpatial = position.HasValue; // Spatial if position specified  
+                speaker.MinDistance = 1.0f;
+                speaker.MaxDistance = 50.0f;
+
+                var transmitter = SpeakerToy.GetTransmitter(controllerId);
+
+                // Efficient player filtering - single transmission to multiple players  
+                var playerSet = new HashSet<Player>(validPlayers);
+                transmitter.ValidPlayers = p => p != null && playerSet.Contains(p) && IsPlayerValidForAudio(p);
+
+                transmitter.Play(audioSamples["ambience"], queue: false, loop: loop);
+
+                Library_ExiledAPI.LogDebug("PlayAmbienceToPlayers", $"Started ambience for {validPlayers.Count} players on controller {controllerId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("PlayAmbienceToPlayers", $"Failed to play ambience to players: {ex.Message}");
+                return false;
+            }
+        }
+
+        public static void StopGlobalAmbienceLoop(byte controllerId = 2)
+        {
+            StopAudio(controllerId);
+            IsLoopingGlobalAmbience = false;
+        }
+
+        // Method for single player use
+        public static bool PlayAmbienceSound(Player player, Vector3? position = null, byte controllerId = 2, bool loop = true)
+            => PlayAudio("ambience", player, position, controllerId, loop);
+
+        public static bool IsAudioLoaded(string audioKey)
+        {
+            return audioLoadStatus.ContainsKey(audioKey) &&
+                   audioLoadStatus[audioKey] &&
+                   audioSamples.ContainsKey(audioKey) &&
+                   audioSamples[audioKey] != null;
+        }
+
+        public static void StopAudio(byte controllerId)
+        {
+            try
+            {
+                var transmitter = SpeakerToy.GetTransmitter(controllerId);
+                transmitter.Stop();
+                Library_ExiledAPI.LogDebug("StopAudio", $"Stopped audio on controller {controllerId}");
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("StopAudio", $"Failed to stop audio on controller {controllerId}: {ex.Message}");
             }
         }
 
@@ -107,7 +248,6 @@
                 return existingSpeaker;
             }
 
-            // Create new speaker at specified position  
             SpeakerToy speaker = SpeakerToy.Create(position, networkSpawn: true);
             speaker.ControllerId = controllerId;
             speaker.Volume = 1.0f;
@@ -142,14 +282,12 @@
         {
             try
             {
-                // Validate WAV header  
                 if (!ValidateWavHeader(wavStream))
                 {
                     Library_ExiledAPI.LogError("ConvertWavToPcm", "Invalid WAV file format");
                     return null;
                 }
 
-                // Skip WAV header (44 bytes for standard PCM WAV)  
                 wavStream.Seek(44, SeekOrigin.Begin);
 
                 var buffer = new byte[wavStream.Length - 44];
@@ -164,7 +302,7 @@
                 for (int i = 0; i < samples.Length; i++)
                 {
                     short sample = BitConverter.ToInt16(buffer, i * 2);
-                    samples[i] = sample / 32768f; // Convert to -1.0f to 1.0f range  
+                    samples[i] = sample / 32768f;
                 }
 
                 Library_ExiledAPI.LogDebug("ConvertWavToPcm", $"Converted {samples.Length} samples from WAV");
@@ -185,27 +323,22 @@
             byte[] header = new byte[44];
             wavStream.Read(header, 0, 44);
 
-            // Check RIFF header  
             if (System.Text.Encoding.ASCII.GetString(header, 0, 4) != "RIFF") return false;
             if (System.Text.Encoding.ASCII.GetString(header, 8, 4) != "WAVE") return false;
             if (System.Text.Encoding.ASCII.GetString(header, 12, 4) != "fmt ") return false;
 
-            // Check format (PCM = 1)  
             short audioFormat = BitConverter.ToInt16(header, 20);
             if (audioFormat != 1) return false;
 
-            // Check channels (should be 1 for mono)  
             short channels = BitConverter.ToInt16(header, 22);
             if (channels != 1) return false;
 
-            // Check sample rate (should be 48000 for LabAPI)  
             int sampleRate = BitConverter.ToInt32(header, 24);
             if (sampleRate != AudioTransmitter.SampleRate)
             {
                 Library_ExiledAPI.LogWarn("ValidateWavHeader", $"Sample rate mismatch: WAV has {sampleRate}Hz, expected {AudioTransmitter.SampleRate}Hz");
             }
 
-            // Check bits per sample (should be 16)  
             short bitsPerSample = BitConverter.ToInt16(header, 34);
             if (bitsPerSample != 16) return false;
 

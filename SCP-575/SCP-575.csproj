@@ -12,6 +12,7 @@
     <LangVersion>9.0</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Shared\Audio\ambience.wav" />
     <None Remove="Shared\Audio\scream.wav" />
   </ItemGroup>
 
@@ -22,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Shared\Audio\ambience.wav" />
     <EmbeddedResource Include="Shared\Audio\scream.wav" />
   </ItemGroup>
 

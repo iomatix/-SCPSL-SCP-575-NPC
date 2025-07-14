@@ -36,7 +36,6 @@ namespace SCP_575.Npc
 
         public void OnRoundEnd(Exiled.Events.EventArgs.Server.RoundEndedEventArgs ev)
         {
-            AudioManager.CleanupSpeakers();
             _plugin.Npc.Methods.Disable();
             foreach (CoroutineHandle handle in Coroutines) Timing.KillCoroutines(handle);
             Coroutines.Clear();
@@ -44,7 +43,6 @@ namespace SCP_575.Npc
 
         public void OnWaitingPlayers()
         {
-            AudioManager.CleanupSpeakers();
             _plugin.Npc.Methods.Disable();
             foreach (CoroutineHandle handle in Coroutines) Timing.KillCoroutines(handle);
             Coroutines.Clear();

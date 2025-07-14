@@ -46,6 +46,8 @@ namespace SCP_575.Npc
             blackoutStacks = 0;
             triggeredZones.Clear();
             Timing.KillCoroutines("SCP575keter");
+            AudioManager.StopGlobalAmbienceLoop();
+            AudioManager.CleanupSpeakers();
             ResetTeslaGates();
         }
         public IEnumerator<float> RunBlackoutTimer()
@@ -294,6 +296,7 @@ namespace SCP_575.Npc
         {
             if (blackoutOccurred)
             {
+
                 IncrementBlackoutStack();
                 Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout event triggered. Current stacks: {blackoutStacks}, Duration: {blackoutDuration}");
                 if (Config.EnableScreamSound)
@@ -301,13 +304,21 @@ namespace SCP_575.Npc
                     TriggerCassieMessage(Config.CassieKeter);
                 }
 
+                if (Config.KeterAmbient && !AudioManager.IsLoopingGlobalAmbience)
+                {
+                    AudioManager.PlayGlobalAmbience(controllerId: 2, loop: true);
+                }
+
                 yield return Timing.WaitForSeconds(blackoutDuration);
                 DecrementBlackoutStack();
                 Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout event finalized, stacks decremented to {blackoutStacks}.");
 
-                if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageEnd);
+                if (!IsBlackoutActive)
+                {
+                    TriggerCassieMessage(Config.CassieMessageEnd);
+                    AudioManager.StopGlobalAmbienceLoop();
+                }
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
-
                 if (!IsBlackoutActive)
                 {
                     ResetTeslaGates();
