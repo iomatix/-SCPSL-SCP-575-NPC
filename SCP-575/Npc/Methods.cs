@@ -316,13 +316,13 @@ namespace SCP_575.Npc
                 if (!IsBlackoutActive)
                 {
                     TriggerCassieMessage(Config.CassieMessageEnd);
-                    AudioManager.StopGlobalAmbienceLoop();
                 }
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndEnd);
                 if (!IsBlackoutActive)
                 {
                     ResetTeslaGates();
                     triggeredZones.Clear();
+                    AudioManager.StopGlobalAmbienceLoop();
                     Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", "Blackout event completed. All systems reset.");
                 }
 
