@@ -1,7 +1,6 @@
 ﻿namespace SCP_575.Shared
 {
     using CustomPlayerEffects;
-    using LabApi.Features.Audio;
     using LabApi.Features.Wrappers;
     using SCP_575.ConfigObjects;
     using System;

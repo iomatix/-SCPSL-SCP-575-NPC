@@ -3,7 +3,7 @@
     using SCP_575;
     using SCP_575.ConfigObjects;
 
-    public struct SCP575DeathTranslation
+    public struct Scp575DeathTranslation
     {
         public readonly int _ragdollTranId;
 
@@ -17,7 +17,7 @@
 
         public readonly string DeathscreenTranslation;
 
-        public SCP575DeathTranslation(byte id, int ragdoll, int deathscreen, string backup)
+        public Scp575DeathTranslation(byte id, int ragdoll, int deathscreen, string backup)
         {
             _ragdollTranId = ragdoll - 1;
             _deathTranId = deathscreen - 1;
@@ -29,7 +29,7 @@
             RagdollTranslation = Config.RagdollInspectText;
             DeathscreenTranslation = Config.KilledByMessage;
 
-            SCP575DeathTranslations.TranslationsById[id] = this;
+            Scp575DeathTranslations.TranslationsById[id] = this;
         }
     }
 }

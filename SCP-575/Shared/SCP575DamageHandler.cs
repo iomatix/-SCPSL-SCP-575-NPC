@@ -6,11 +6,8 @@
     using PlayerRoles;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
-    using SCP_575.ConfigObjects;
     using System.Collections.Generic;
     using UnityEngine;
-    using Utils.Networking;
-    using static UnityEngine.GraphicsBuffer;
 
     public class Scp575DamageHandler : AttackerDamageHandler
     {
@@ -46,7 +43,7 @@
 
         public Scp575DamageHandler()
         {
-            _deathReasonFormat = SCP575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
+            _deathReasonFormat = Scp575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
         }
 
 

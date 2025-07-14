@@ -2,15 +2,12 @@ namespace SCP_575
 {
     using System;
     using System.Collections.Generic;
-    using InventorySystem;
     using MEC;
-    using PlayerRoles.PlayableScps.Scp3114;
-    using PlayerRoles.Ragdolls;
-    using ProgressiveCulling;
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
     using Shared;
     using UnityEngine;
+
     public class EventHandlers
     {
         private readonly Plugin _plugin;
@@ -79,11 +76,29 @@ namespace SCP_575
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawningRagdoll: {ev.Player.Nickname}");
 
-            if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
-            {
-                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+            if (ev.DamageHandler is not Scp575DamageHandler scp575Handler)
+                return;
 
-                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Setting ragdoll spawn position to: {ev.Ragdoll.Position} (death position: {ev.Player.Position})");
+            Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+
+            try
+            {
+                // Set proper ragdoll position at spawn time  
+                Vector3 deathPosition = ev.Player.Position;
+                ev.Ragdoll.Position = deathPosition;
+
+                // Ensure proper rotation (face up for dramatic effect)  
+                ev.Ragdoll.Rotation = Quaternion.Euler(0, ev.Player.Rotation.eulerAngles.y, 0);
+
+                // Set ragdoll properties before spawning  
+                ev.Ragdoll.Nickname = ev.Player.DisplayName;
+
+                Library_ExiledAPI.LogDebug("OnSpawningRagdoll",
+                    $"Configured ragdoll - Position: {ev.Ragdoll.Position}, Death Position: {deathPosition}");
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("OnSpawningRagdoll", $"Failed to configure ragdoll: {ex.Message}");
             }
         }
 
@@ -91,117 +106,22 @@ namespace SCP_575
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawnedRagdoll: {ev.Player.Nickname}");
 
-            if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
+            if (ev.DamageHandler is not Scp575DamageHandler scp575Handler)
+                return;
+
+            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+
+            try
             {
-                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
-
-                LabApi.Features.Wrappers.Ragdoll ragdoll = ev.Ragdoll;
-                GameObject ragdollGO = ragdoll.Base.gameObject;
-
-                // SANITY DEBUG
-                var allRenderers = ragdollGO.GetComponentsInChildren<Renderer>(true); // Include inactive
-                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Found {allRenderers.Length} renderers in hierarchy (including inactive)");
-
-                foreach (var r in allRenderers)
-                {
-                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Renderer: {r.name}, enabled: {r.enabled}, gameObject active: {r.gameObject.activeSelf}");
-                }
-                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll type: {ragdoll.Base.GetType().Name}");
-                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll GameObject active: {ragdollGO.activeSelf}");
-                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - SANITY", $"Ragdoll transform parent: {ragdollGO.transform.parent?.name ?? "None"}");
-                //
-
-                // Ensure ragdoll is active in hierarchy  
-                if (!ragdollGO.activeSelf)
-                {
-                    ragdollGO.SetActive(true);
-                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "Ragdoll GameObject was inactive — enabled manually.");
-                }
-
-                // Handle CullableBehaviour visibility issues  
-                if (ragdollGO.TryGetComponent(out CullableBehaviour cullable))
-                {
-                    cullable.enabled = false; // Disable culling entirely to force visibility  
-                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Disabled CullableBehaviour to force visibility");
-                }
-
-                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Ragdoll initial position: {ragdoll.Position}, Rotation: {ragdoll.Rotation.eulerAngles}");
-
-                // Ensure ragdoll is a DynamicRagdoll  
-                if (ragdoll.Base is not DynamicRagdoll dynamicRagdoll)
-                {
-                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "Ragdoll is not a DynamicRagdoll. Skipping force application and conversion.");
-                    return;
-                }
-
-                // 1. FIRST: Handle bone conversion before any position/force manipulation  
-                try
-                {
-                    Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
-                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion completed successfully.");
-                    //Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll bones conversion disabled for now, dumb method called successfully.");
-                }
-                catch (Exception ex)
-                {
-                    Library_ExiledAPI.LogError("OnSpawnedRagdoll", $"Bone conversion error: {ex}");
-                    return;
-                }
-
-                // 2. SECOND: Apply forces after conversion and position fixes
-                var hitbox = scp575Handler.Hitbox;
-                if (!Scp575DamageHandler.HitboxToForce.TryGetValue(hitbox, out float baseForce))
-                {
-                    Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", $"Unknown hitbox: {hitbox}. No force applied.");
-                    return;
-                }
-
-                // Generate force vector  
-                Vector3 safeVelocity = scp575Handler.GetRandomUnitSphereVelocity(baseForce);
-                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Applying force to hitbox: {hitbox} with base force: {baseForce}, velocity: {safeVelocity}");
-
-                // Apply force to specific hitbox  
-                foreach (var _hitbox in dynamicRagdoll.Hitboxes)
-                {
-                    if (_hitbox.RelatedHitbox != hitbox) continue;
-
-                    Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Applying force to hitbox: {_hitbox.RelatedHitbox}");
-                    _hitbox.Target.AddForce(safeVelocity, ForceMode.VelocityChange);
-                }
-
-                // Apply additional force to all ragdoll limbs for dramatic effect  
-                foreach (var rb in dynamicRagdoll.LinkedRigidbodies)
-                {
-                    rb.AddForce(safeVelocity * 0.5f, ForceMode.VelocityChange); // Reduced force for limbs  
-                }
-
-                // Post-conversion renderer check  
-                Timing.CallDelayed(0.3f, () =>
-                {
-                    var renderer = ragdoll.Base.GetComponentInChildren<Renderer>();
-                    if (renderer == null)
-                    {
-                        Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "Post-conversion: No Renderer found in ragdoll hierarchy.");
-                    }
-                    else
-                    {
-                        Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Post-conversion renderer: enabled={renderer.enabled}, visible={renderer.isVisible}");
-
-                        if (!renderer.isVisible)
-                        {
-                            Library_ExiledAPI.LogWarn("OnSpawnedRagdoll", "Ragdoll renderer not visible after conversion.");
-                        }
-                    }
-                });
-
-                // DEBUG: Create marker at final ragdoll position  
-                GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                marker.transform.position = ragdoll.Position + (Vector3.up * 1f);
-                marker.transform.localScale = new Vector3(0.35f, 0.65f, 0.35f);
-                marker.GetComponent<Renderer>().material.color = Color.magenta;
-                GameObject.Destroy(marker, 180f);
-                Library_ExiledAPI.LogDebug("OnSpawnedRagdoll - Marker", $"Spawned debug marker at: {marker.transform.position}");
+                Scp575Helpers.RagdollProcess(ev.Ragdoll, scp575Handler);
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("OnSpawnedRagdoll", $"Failed to process SCP-575 ragdoll: {ex.Message}");
             }
         }
+
+        
 
         // Todo Turn On Lights in the room/whole heavy on generator completed, Play creepy sound via Cassie
 

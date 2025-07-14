@@ -14,7 +14,7 @@ namespace SCP_575
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(6, 9, 6);
+        public override Version Version { get; } = new(6, 9, 8);
         public override Version RequiredExiledVersion { get; } = new(9, 6, 0);
 
         public EventHandlers EventHandlers { get; private set; }
@@ -60,6 +60,8 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.Death -= EventHandlers.OnPlayerDeath;
             LabApi.Events.Handlers.PlayerEvents.SpawningRagdoll -= EventHandlers.OnSpawningRagdoll;
             LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll -= EventHandlers.OnSpawnedRagdoll;
+
+            AudioManager.CleanupSpeakers();
 
             EventHandlers = null;
             Npc = null;
