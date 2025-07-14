@@ -16,10 +16,10 @@
 
         public static void ApplyDamageEffects(Player player)
         {
-            // Play horror sound effect  
+            // Play horror sound effect
             if (NpcConfig.EnableScreamSound)
             {
-                AudioManager.PlayScreamSound(player);
+                AudioManager.PlayScreamySound(player);
             }
 
             var effectActions = new List<(bool Enabled, Action Apply)>

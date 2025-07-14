@@ -22,8 +22,11 @@
         private static readonly Dictionary<string, string> AudioFiles = new()
         {
             { "scream", "SCP-575.Shared.Audio.scream.wav" },
+            { "scream-angry", "SCP-575.Shared.Audio.scream-angry.wav" },
             { "ambience", "SCP-575.Shared.Audio.ambience.wav" },
         };
+
+        // Todo Automated handling of controllerId 
 
         public static void LoadEmbeddedAudio()
         {
@@ -115,12 +118,12 @@
             }
         }
 
-        // Convenience methods for specific audio types  
-        public static bool PlayScreamSound(Player player, Vector3? position = null, byte controllerId = 1)
-            => PlayAudio("scream", player, position, controllerId, false);
+        // Convenience methods for specific audio types
+        public static bool PlayScreamAngrySound(Player player, Vector3? position = null, byte controllerId = 1) => PlayAudio("scream-angry", player, position, controllerId, false);
+        public static bool PlayScreamySound(Player player, Vector3? position = null, byte controllerId = 1) => PlayAudio("scream", player, position, controllerId, false);
 
         // Method for global ambience playback
-        public static bool PlayGlobalAmbience(Vector3? centralPosition = null, byte controllerId = 2, bool loop = true)
+        public static bool PlayGlobalAmbience(Vector3? centralPosition = null, byte controllerId = 157, bool loop = true)
         {
             if (!IsAudioLoaded("ambience"))
             {

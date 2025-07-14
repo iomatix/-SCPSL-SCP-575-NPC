@@ -93,8 +93,7 @@ namespace SCP_575
                 // Set ragdoll properties before spawning  
                 ev.Ragdoll.Nickname = ev.Player.DisplayName;
 
-                Library_ExiledAPI.LogDebug("OnSpawningRagdoll",
-                    $"Configured ragdoll - Position: {ev.Ragdoll.Position}, Death Position: {deathPosition}");
+                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Configured ragdoll - Position: {ev.Ragdoll.Position}, Death Position: {deathPosition}");
             }
             catch (Exception ex)
             {
@@ -121,17 +120,17 @@ namespace SCP_575
             }
         }
 
-        
 
-        // Todo Turn On Lights in the room/whole heavy on generator completed, Play creepy sound via Cassie
 
-        // Todo turn On ALL lights in the facility on three generators, Play creepy sound via Cassie
+        // Todo Turn On Lights in the room/whole heavy on generator completed, Play creepy sound audio manager in the room (angry)
 
-        // Todo kill SCP 575 on kill switch for computer SCP, Play creepy sound via Cassie
+        // Todo turn On ALL lights in the facility on three generators, Play creepy sound audio manager global (Dying 1)
 
-        // ToDo turn On lights for 5 seconds On FLASHNADE explosion in the SCP575 dark room, Play creepy sound via Cassie
+        // Todo kill SCP 575 on kill switch for computer SCP, Play creepy sound audio manager global (Angry->Dying 2)
 
-        // TODO 2176 triggers SCP-575 in the room
+        // ToDo turn On lights for 5 seconds On FLASHNADE explosion in the SCP575 dark room, Play creepy sound audio manager in the room->where nade exploded (angry)
+
+        // TODO 2176 triggers SCP-575 in the room (scream, ambient) in the room/where scp-2176 exploded
 
         public void OnPlayerDeath(LabApi.Events.Arguments.PlayerEvents.PlayerDeathEventArgs ev)
         {

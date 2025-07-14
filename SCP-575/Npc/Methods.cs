@@ -443,6 +443,7 @@ namespace SCP_575.Npc
                                 if (Config.CassieMessageClearBeforeImportant) shouldClearPrevious = true;
                                 Library_ExiledAPI.LogDebug("KeterDamage", $"Player {player.Nickname} has been damaged by SCP-575. Damage: {clampedDamage}, Raw Damage: {rawDamage}");
                                 player.SendBroadcast(Config.KeterBroadcast, 3, type: Broadcast.BroadcastFlags.Normal, shouldClearPrevious: shouldClearPrevious);
+                                AudioManager.PlayScreamySound(player);
                             }
                         }
                         else if (player.IsHuman)

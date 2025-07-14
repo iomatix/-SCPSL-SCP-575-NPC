@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Shared\Audio\ambience.wav" />
+    <None Remove="Shared\Audio\scream-angry.wav" />
     <None Remove="Shared\Audio\scream.wav" />
   </ItemGroup>
 
@@ -24,6 +25,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Shared\Audio\ambience.wav" />
+    <EmbeddedResource Include="Shared\Audio\scream-angry.wav" />
     <EmbeddedResource Include="Shared\Audio\scream.wav" />
   </ItemGroup>
 
