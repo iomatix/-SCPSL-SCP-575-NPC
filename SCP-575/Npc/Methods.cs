@@ -472,7 +472,7 @@ namespace SCP_575.Npc
 
                 var rb = pickup.Rigidbody;
                 var dir = scp575Handler.GetRandomUnitSphereVelocity();
-                var mag = scp575Handler.calculateForcePush();
+                var mag = scp575Handler.CalculateForcePush();
 
                 yield return Timing.WaitForOneFrame; // ensure physics engine is ready
 

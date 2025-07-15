@@ -749,7 +749,7 @@
         /// Plays the ambience audio to a collection of players using a specified controller ID.
         /// </summary>
         /// <param name="targetPlayers">The players to play the ambience for.</param>
-        /// <param name="customVolume">Optional volume level as a float. Default is 0.85f.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.75f.</param>
         /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
         /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="position">Optional position to play the ambience from. If <c>null</c>, uses the origin (0,0,0).</param>
@@ -757,7 +757,7 @@
         /// <param name="loop">Whether to loop the ambience. Defaults to <c>true</c>.</param>
         /// <returns><c>true</c> if the ambience was successfully played; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="targetPlayers"/> is <c>null</c>.</exception>
-        public static bool PlayAmbienceToPlayers(IEnumerable<Player> targetPlayers, float customVolume = 0.85f, float customMinDistance = 0.5f, float customMaxDistance = 50.0f, Vector3? position = null, byte controllerId = 2, bool loop = true)
+        public static bool PlayAmbienceToPlayers(IEnumerable<Player> targetPlayers, float customVolume = 0.75f, float customMinDistance = 0.5f, float customMaxDistance = 50.0f, Vector3? position = null, byte controllerId = 2, bool loop = true)
         {
             if (isDisposed)
             {
@@ -822,14 +822,14 @@
         /// <summary>
         /// Plays the ambience sound globally for all valid players.
         /// </summary>
-        /// <param name="customVolume">Optional volume level as a float. Default is 0.75f.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.55f.</param>
         /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
         /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="centralPosition">Optional central position for the ambience. If <c>null</c>, uses the origin (0,0,0).</param>
         /// <param name="loop">Whether to loop the ambience. Defaults to <c>true</c>.</param>
         /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
         /// <returns><c>true</c> if the ambience was successfully played; otherwise, <c>false</c>.</returns>
-        public static bool PlayGlobalAmbience(float customVolume = 0.75f, float customMinDistance = 1.0f, float customMaxDistance = 1500.5f, Vector3? centralPosition = null, bool loop = true, float? customLifespan = null)
+        public static bool PlayGlobalAmbience(float customVolume = 0.55f, float customMinDistance = 1.0f, float customMaxDistance = 1500.5f, Vector3? centralPosition = null, bool loop = true, float? customLifespan = null)
         {
             if (IsLoopingGlobalAmbience)
             {

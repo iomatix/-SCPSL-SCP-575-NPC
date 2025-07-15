@@ -5,11 +5,23 @@
     using UnityEngine;
     using static PlayerStatsSystem.DamageHandlerBase;
 
+    /// <summary>
+    /// Provides Exiled API–based utility methods for handling visual and debug feedback 
+    /// during SCP-575 damage processing.
+    /// </summary>
     public static class Scp575DamageHandler_ExiledAPI
     {
-        public static Plugin Plugin => Plugin.Singleton;
-        public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
-        public static Config Config => Plugin.Config;
+
+        /// <summary>
+        /// Applies visual feedback and structured debug logging when damage is dealt to a player.
+        /// </summary>
+        /// <param name="ply">The reference hub of the damaged player.</param>
+        /// <param name="damage">The amount of damage dealt.</param>
+        /// <param name="result">The result of the damage handling process, indicating the outcome (e.g., death, damage).</param>
+        /// <remarks>
+        /// This method places a blood decal behind the player and logs outcome-specific damage data. 
+        /// It supports unified logging for death, partial damage, and non-damaging interactions.
+        /// </remarks>
         public static void HandleApplyDamageFeedback(ReferenceHub ply, float damage, HandlerOutput result)
         {
             // Place a blood decal on the Exiled player

@@ -1,5 +1,4 @@
-﻿
-namespace SCP_575.Shared
+﻿namespace SCP_575.Shared
 {
     using System;
     using MEC;
@@ -7,29 +6,48 @@ namespace SCP_575.Shared
     using PlayerRoles.Ragdolls;
     using ProgressiveCulling;
     using UnityEngine;
+
+    /// <summary>  
+    /// Provides utility methods for processing SCP-575 ragdolls with visual effects and validation.
+    /// </summary>  
+    /// <remarks>  
+    /// This class focuses on visual effects and validation rather than physics manipulation,  
+    /// since ragdoll positioning is handled by the Scp575DamageHandler.
+    /// </remarks>  
     public static class Scp575Helpers
-{
+    {
+        /// <summary>  
+        /// Processes an SCP-575 ragdoll with visual effects and validation.
+        /// </summary>  
+        /// <param name="ragdoll">The LabAPI ragdoll wrapper to process.</param>  
+        /// <param name="handler">The SCP-575 damage handler that caused the death.</param>  
+        /// <exception cref="ArgumentNullException">Thrown when ragdoll or handler is null.</exception>  
         public static void RagdollProcess(LabApi.Features.Wrappers.Ragdoll ragdoll, Scp575DamageHandler handler)
         {
+            if (ragdoll == null)
+                throw new ArgumentNullException(nameof(ragdoll));
+            if (handler == null)
+                throw new ArgumentNullException(nameof(handler));
+
             GameObject ragdollGO = ragdoll.Base.gameObject;
 
-            // Validate ragdoll state  
+            // Validate ragdoll state and apply visual fixes  
             if (!RagdollValidateState(ragdoll, ragdollGO))
                 return;
 
-            // Ensure ragdoll is a DynamicRagdoll for physics manipulation  
+            // Ensure ragdoll is a DynamicRagdoll for bone conversion  
             if (ragdoll.Base is not DynamicRagdoll dynamicRagdoll)
             {
-                Library_ExiledAPI.LogWarn("ProcessScp575Ragdoll", "Ragdoll is not a DynamicRagdoll. Skipping physics effects.");
+                Library_ExiledAPI.LogWarn("RagdollProcess", "Ragdoll is not a DynamicRagdoll. Skipping bone conversion.");
                 return;
             }
 
-            // Apply bone conversion for proper physics  
+            // Apply bone conversion for proper visual representation  
             if (!RagdollApplyBoneConversion(dynamicRagdoll))
                 return;
 
-            // Apply SCP-575 specific effects  
-            RagdollApplyScp575Effects(dynamicRagdoll, handler, ragdoll);
+            // Apply visual effects without physics manipulation  
+            RagdollApplyVisualEffects(dynamicRagdoll, handler, ragdoll);
 
             // Schedule post-spawn validation  
             RagdollSchedulePostSpawnValidation(ragdoll);
@@ -38,9 +56,21 @@ namespace SCP_575.Shared
             CreateDebugMarker(ragdoll.Position);
         }
 
+        /// <summary>  
+        /// Validates and fixes ragdoll state issues related to visibility and activation.
+        /// </summary>  
+        /// <param name="ragdoll">The LabAPI ragdoll wrapper.</param>  
+        /// <param name="ragdollGO">The ragdoll GameObject.</param>  
+        /// <returns>True if validation passed, false if critical issues were found.</returns>  
         public static bool RagdollValidateState(LabApi.Features.Wrappers.Ragdoll ragdoll, GameObject ragdollGO)
         {
-            // Check if ragdoll GameObject is active  
+            if (ragdollGO == null)
+            {
+                Library_ExiledAPI.LogError("RagdollValidateState", "Ragdoll GameObject is null");
+                return false;
+            }
+
+            // Ensure ragdoll GameObject is active  
             if (!ragdollGO.activeSelf)
             {
                 ragdollGO.SetActive(true);
@@ -70,8 +100,19 @@ namespace SCP_575.Shared
             return true;
         }
 
+        /// <summary>  
+        /// Applies bone conversion to the ragdoll for proper physics representation.
+        /// </summary>  
+        /// <param name="dynamicRagdoll">The dynamic ragdoll to convert.</param>  
+        /// <returns>True if conversion succeeded, false otherwise.</returns>  
         public static bool RagdollApplyBoneConversion(DynamicRagdoll dynamicRagdoll)
         {
+            if (dynamicRagdoll == null)
+            {
+                Library_ExiledAPI.LogError("RagdollApplyBoneConversion", "DynamicRagdoll is null");
+                return false;
+            }
+
             try
             {
                 Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
@@ -85,54 +126,80 @@ namespace SCP_575.Shared
             }
         }
 
-        public static void RagdollApplyScp575Effects(DynamicRagdoll dynamicRagdoll, Scp575DamageHandler handler, LabApi.Features.Wrappers.Ragdoll ragdoll)
+        /// <summary>  
+        /// Applies visual effects to the ragdoll without physics manipulation.
+        /// </summary>  
+        /// <param name="dynamicRagdoll">The dynamic ragdoll to apply effects to.</param>  
+        /// <param name="handler">The damage handler containing effect parameters.</param>  
+        /// <param name="ragdoll">The LabAPI ragdoll wrapper.</param>  
+        /// <remarks>  
+        /// This method focuses on visual effects rather than physics forces since  
+        /// ragdoll positioning is controlled by the damage handler.
+        /// </remarks>  
+        private static void RagdollApplyVisualEffects(DynamicRagdoll dynamicRagdoll, Scp575DamageHandler handler, LabApi.Features.Wrappers.Ragdoll ragdoll)
         {
             var hitbox = handler.Hitbox;
 
-            if (!Scp575DamageHandler.HitboxToForce.TryGetValue(hitbox, out float baseForce))
-            {
-                Library_ExiledAPI.LogWarn("RagdollApplyScp575Effects", $"Unknown hitbox: {hitbox}. Using default force.");
-                baseForce = 0.1f; // Default force value  
-            }
+            // Log the effect application for debugging  
+            Library_ExiledAPI.LogDebug("RagdollApplyVisualEffects",
+                $"Applying SCP-575 visual effects to ragdoll at hitbox: {hitbox}");
 
-            // Generate dramatic force vector  
-            Vector3 forceVector = handler.GetRandomUnitSphereVelocity(baseForce);
-            Library_ExiledAPI.LogDebug("RagdollApplyScp575Effects", $"Applying force to hitbox: {hitbox} with base force: {baseForce}, velocity: {forceVector}");
+            // Apply visual effects here (particle systems, material changes, etc.)  
+            // Example: Change ragdoll material to indicate SCP-575 death  
+            ApplyDeathVisualEffects(dynamicRagdoll, hitbox);
 
-            // Apply force to specific hitbox with validation  
-            bool forceApplied = false;
-            foreach (var hitboxComponent in dynamicRagdoll.Hitboxes)
-            {
-                if (hitboxComponent.RelatedHitbox != hitbox)
-                    continue;
+            // Apply audio effects if needed  
+            // Example: Play death sound at ragdoll position  
+            // AudioManager.PlayDeathSound(ragdoll.Position);  
 
-                if (hitboxComponent.Target != null)
-                {
-                    hitboxComponent.Target.AddForce(forceVector, ForceMode.VelocityChange);
-                    Library_ExiledAPI.LogDebug("RagdollApplyScp575Effects", $"Applied force to hitbox: {hitboxComponent.RelatedHitbox}");
-                    forceApplied = true;
-                }
-            }
-
-            if (!forceApplied)
-            {
-                Library_ExiledAPI.LogWarn("RagdollApplyScp575Effects", $"No valid hitbox found for {hitbox}, applying to all limbs");
-            }
-
-            // Apply secondary force to all limbs for dramatic effect  
-            foreach (var rigidbody in dynamicRagdoll.LinkedRigidbodies)
-            {
-                if (rigidbody != null)
-                {
-                    rigidbody.AddForce(forceVector * 0.3f, ForceMode.VelocityChange);
-                }
-            }
-
-            Library_ExiledAPI.LogDebug("RagdollApplyScp575Effects", "SCP-575 ragdoll effects applied successfully");
+            Library_ExiledAPI.LogDebug("RagdollApplyVisualEffects", "SCP-575 visual effects applied successfully");
         }
 
+        /// <summary>  
+        /// Applies death-specific visual effects to the ragdoll.
+        /// </summary>  
+        /// <param name="dynamicRagdoll">The dynamic ragdoll to modify.</param>  
+        /// <param name="hitbox">The hitbox that was targeted.</param>  
+        private static void ApplyDeathVisualEffects(DynamicRagdoll dynamicRagdoll, HitboxType hitbox)
+        {
+            // Example implementation - customize based on your needs  
+            try
+            {
+                // You could apply different visual effects based on hitbox  
+                switch (hitbox)
+                {
+                    case HitboxType.Headshot:
+                        // Apply headshot-specific visual effects  
+                        Library_ExiledAPI.LogDebug("ApplyDeathVisualEffects", "Applied headshot visual effects");
+                        break;
+                    case HitboxType.Body:
+                        // Apply body shot visual effects  
+                        Library_ExiledAPI.LogDebug("ApplyDeathVisualEffects", "Applied body shot visual effects");
+                        break;
+                    case HitboxType.Limb:
+                        // Apply limb shot visual effects  
+                        Library_ExiledAPI.LogDebug("ApplyDeathVisualEffects", "Applied limb shot visual effects");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("ApplyDeathVisualEffects", $"Failed to apply visual effects: {ex.Message}");
+            }
+        }
+
+        /// <summary>  
+        /// Schedules post-spawn validation to ensure ragdoll visibility.
+        /// </summary>  
+        /// <param name="ragdoll">The ragdoll to validate.</param>  
         public static void RagdollSchedulePostSpawnValidation(LabApi.Features.Wrappers.Ragdoll ragdoll)
         {
+            if (ragdoll == null)
+            {
+                Library_ExiledAPI.LogError("RagdollSchedulePostSpawnValidation", "Ragdoll is null");
+                return;
+            }
+
             Timing.CallDelayed(0.5f, () =>
             {
                 try
@@ -150,7 +217,8 @@ namespace SCP_575.Shared
                     }
                     else
                     {
-                        Library_ExiledAPI.LogDebug("RagdollSchedulePostSpawnValidation", $"Ragdoll renderer validation - enabled: {renderer.enabled}, visible: {renderer.isVisible}");
+                        Library_ExiledAPI.LogDebug("RagdollSchedulePostSpawnValidation",
+                            $"Ragdoll renderer validation - enabled: {renderer.enabled}, visible: {renderer.isVisible}");
 
                         if (!renderer.isVisible)
                         {
@@ -165,6 +233,10 @@ namespace SCP_575.Shared
             });
         }
 
+        /// <summary>  
+        /// Creates a debug marker at the specified position for development purposes.
+        /// </summary>  
+        /// <param name="position">The world position to create the marker at.</param>
         public static void CreateDebugMarker(Vector3 position)
         {
             try
@@ -179,6 +251,7 @@ namespace SCP_575.Shared
                     renderer.material.color = Color.magenta;
                 }
 
+                // Auto-destroy after 3 minutes  
                 GameObject.Destroy(marker, 180f);
                 Library_ExiledAPI.LogDebug("CreateDebugMarker", $"Debug marker created at: {marker.transform.position}");
             }

@@ -109,17 +109,10 @@ namespace SCP_575
 
             try
             {
-                // Set proper ragdoll position at spawn time  
-                Vector3 deathPosition = ev.Player.Position;
-                ev.Ragdoll.Position = deathPosition;
-
-                // Ensure proper rotation (face up for dramatic effect)  
-                ev.Ragdoll.Rotation = Quaternion.Euler(0, ev.Player.Rotation.eulerAngles.y, 0);
-
-                // Set ragdoll properties before spawning  
+                // Only set properties that aren't handled by the damage handler
                 ev.Ragdoll.Nickname = ev.Player.DisplayName;
 
-                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Configured ragdoll - Position: {ev.Ragdoll.Position}, Death Position: {deathPosition}");
+                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Configured ragdoll nickname for {ev.Player.Nickname}");
             }
             catch (Exception ex)
             {
@@ -138,6 +131,7 @@ namespace SCP_575
 
             try
             {
+                // This should now work correctly since the damage handler prevents position changes
                 Scp575Helpers.RagdollProcess(ev.Ragdoll, scp575Handler);
             }
             catch (Exception ex)
