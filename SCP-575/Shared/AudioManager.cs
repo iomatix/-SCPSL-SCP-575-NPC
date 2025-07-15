@@ -98,9 +98,19 @@
         private const int MAX_PROCESSING_TIMES = 100;
 
         /// <summary>
+        /// Cooldown for global screams in seconds.
+        /// </summary>
+        private const float GLOBAL_SCREAM_COOLDOWN = 35f;
+
+        /// <summary>
         /// Gets or sets a value indicating whether the global ambience is currently looping.
         /// </summary>
         public static bool IsLoopingGlobalAmbience { get; set; }
+
+        /// <summary>
+        /// Tracks the last time a global scream was played to enforce cooldown.
+        /// </summary>
+        private static DateTime lastGlobalScreamTime = DateTime.MinValue;
 
         /// <summary>
         /// Defines the mapping of audio keys to their respective resource paths.
@@ -475,6 +485,83 @@
         #region Playback Methods
 
         /// <summary>
+        /// Plays an audio clip for a specific player using a specified controller ID.
+        /// </summary>
+        /// <param name="audioKey">The key of the audio clip to play.</param>
+        /// <param name="player">The player to play the audio for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
+        /// <param name="position">Optional position to play the audio from. If <c>null</c>, uses the player's position.</param>
+        /// <param name="controllerId">The controller ID to use for the speaker. Defaults to 1.</param>
+        /// <param name="loop">Whether to loop the audio.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
+        /// <returns><c>true</c> if the audio was successfully played; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="audioKey"/> or <paramref name="player"/> is <c>null</c>.</exception>
+        public static bool PlayAudio(string audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, byte controllerId = 1, bool loop = false, bool hearableForAllPlayers = false)
+        {
+            return PlayAudioCore(
+                audioKey,
+                controllerId,
+                position ?? player.Position,
+                loop,
+                null,
+                p => p == player && IsPlayerValidForAudio(p),
+                speaker => ConfigureSpeaker(speaker, true, customVolume, customMinDistance, customMaxDistance),
+                hearableForAllPlayers
+            );
+        }
+
+        /// <summary>
+        /// Plays a scream audio when an SCP damages or kills a player, either locally or globally based on the event type.
+        /// </summary>
+        /// <param name="targetPlayer">The player who was damaged or killed.</param>
+        /// <param name="isKill">Whether the event is a kill (triggers global scream with cooldown).</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
+        /// <param name="position">Optional position to play the scream from. If <c>null</c>, uses the player's position.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="targetPlayer"/> is <c>null</c>.</exception>
+        public static byte? PlayDamagedScream(Player targetPlayer, bool isKill, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null)
+        {
+            if (isDisposed)
+            {
+                Library_ExiledAPI.LogError("PlayDamagedScream", "AudioManager is disposed");
+                return null;
+            }
+
+            if (!ValidatePlaybackParameters("scream", targetPlayer, customLifespan, "PlayDamagedScream"))
+            {
+                return null;
+            }
+
+            if (isKill)
+            {
+                // Check global scream cooldown
+                if (DateTime.UtcNow - lastGlobalScreamTime < TimeSpan.FromSeconds(GLOBAL_SCREAM_COOLDOWN))
+                {
+                    Library_ExiledAPI.LogDebug("PlayDamagedScream", "Global scream on cooldown");
+                    return null;
+                }
+
+                bool success = PlayGlobalSound("scream", customVolume, customMinDistance, customMaxDistance, position ?? targetPlayer.Position, false, customLifespan);
+                if (success)
+                {
+                    lastGlobalScreamTime = DateTime.UtcNow;
+                    Library_ExiledAPI.LogDebug("PlayDamagedScream", "Played global scream for kill event");
+                }
+                return success ? GLOBAL_AMBIENCE_ID : null;
+            }
+            else
+            {
+                // Play localized scream for nearby players
+                return PlayAudioAutoManaged("scream", targetPlayer, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers: true);
+            }
+        }
+
+        /// <summary>
         /// Core method for playing audio with customizable player filtering and speaker configuration.
         /// </summary>
         /// <param name="audioKey">The key of the audio clip to play.</param>
@@ -484,10 +571,11 @@
         /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
         /// <param name="playerFilter">Function to filter valid players for playback.</param>
         /// <param name="configureSpeaker">Action to configure the speaker's properties.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
         /// <returns><c>true</c> if the audio was successfully played; otherwise, <c>false</c>.</returns>
         /// <exception cref="InvalidOperationException">Thrown if the audio transmission fails.</exception>
         private static bool PlayAudioCore(string audioKey, byte controllerId, Vector3 position, bool isLooped, float? customLifespan,
-            Func<Player, bool> playerFilter, Action<SpeakerToy> configureSpeaker)
+            Func<Player, bool> playerFilter, Action<SpeakerToy> configureSpeaker, bool hearableForAllPlayers = false)
         {
             if (isDisposed)
             {
@@ -519,7 +607,9 @@
                         Library_ExiledAPI.LogError("PlayAudioCore", $"Failed to get transmitter for controller {controllerId}");
                         throw new InvalidOperationException($"Failed to get transmitter for controller {controllerId}");
                     }
-                    transmitter.ValidPlayers = playerFilter;
+                    transmitter.ValidPlayers = hearableForAllPlayers
+                        ? p => IsPlayerValidForAudio(p) && Vector3.Distance(p.Position, position) <= speaker.MaxDistance
+                        : playerFilter;
                     transmitter.Play(audioSamples[audioKey], queue: false, loop: isLooped);
 
                     if (!isLooped || customLifespan.HasValue)
@@ -527,7 +617,7 @@
                         ScheduleSpeakerCleanup(controllerId, audioKey, isLooped, customLifespan);
                     }
 
-                    Library_ExiledAPI.LogDebug("PlayAudioCore", $"Played {audioKey} on controller {controllerId}");
+                    Library_ExiledAPI.LogDebug("PlayAudioCore", $"Played {audioKey} on controller {controllerId} (hearableForAllPlayers={hearableForAllPlayers})");
                     RecordMetrics(audioKey, startTime, true);
                     return true;
                 }
@@ -545,12 +635,16 @@
         /// </summary>
         /// <param name="audioKey">The key of the audio clip to play.</param>
         /// <param name="player">The player to play the audio for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="position">Optional position to play the audio from. If <c>null</c>, uses the player's position.</param>
         /// <param name="loop">Whether to loop the audio.</param>
         /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
         /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="audioKey"/> or <paramref name="player"/> is <c>null</c>.</exception>
-        public static byte? PlayAudioAutoManaged(string audioKey, Player player, Vector3? position = null, bool loop = false, float? customLifespan = null)
+        public static byte? PlayAudioAutoManaged(string audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, bool loop = false, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             if (isDisposed)
             {
@@ -577,7 +671,8 @@
                 loop,
                 customLifespan,
                 p => p == player && IsPlayerValidForAudio(p),
-                speaker => ConfigureSpeaker(speaker, true, 1.0f, 1.0f, 15.0f)
+                speaker => ConfigureSpeaker(speaker, true, customVolume, customMinDistance, customMaxDistance),
+                hearableForAllPlayers
             );
 
             if (!success)
@@ -593,27 +688,35 @@
         /// Plays the ambience audio for a specific player with automatic speaker management.
         /// </summary>
         /// <param name="player">The player to play the ambience for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="position">Optional position to play the ambience from. If <c>null</c>, uses the player's position.</param>
         /// <param name="loop">Whether to loop the ambience. Defaults to <c>true</c>.</param>
         /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
         /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is <c>null</c>.</exception>
-        public static byte? PlayAmbienceAutoManaged(Player player, Vector3? position = null, bool loop = true, float? customLifespan = null)
+        public static byte? PlayAmbienceAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, bool loop = true, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
-            return PlayAudioAutoManaged("ambience", player, position, loop, customLifespan);
+            return PlayAudioAutoManaged("ambience", player, customVolume, customMinDistance, customMaxDistance, position, loop, customLifespan, hearableForAllPlayers);
         }
 
         /// <summary>
         /// Plays the scream audio for a specific player with automatic speaker management.
         /// </summary>
         /// <param name="player">The player to play the scream for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="position">Optional position to play the scream from. If <c>null</c>, uses the player's position.</param>
         /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
         /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is <c>null</c>.</exception>
-        public static byte? PlayScreamAutoManaged(Player player, Vector3? position = null, float? customLifespan = null)
+        public static byte? PlayScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
-            return PlayAudioAutoManaged("scream", player, position, false, customLifespan);
+            return PlayAudioAutoManaged("scream", player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
         }
 
         /// <summary>
@@ -621,12 +724,15 @@
         /// </summary>
         /// <param name="audioKey">The key of the audio clip to play.</param>
         /// <param name="player">The player to play the audio for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="position">Optional position to play the audio from. If <c>null</c>, uses the player's position.</param>
         /// <param name="controllerId">The controller ID to use for the speaker. Defaults to 1.</param>
         /// <param name="loop">Whether to loop the audio.</param>
         /// <returns><c>true</c> if the audio was successfully played; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="audioKey"/> or <paramref name="player"/> is <c>null</c>.</exception>
-        public static bool PlayAudio(string audioKey, Player player, Vector3? position = null, byte controllerId = 1, bool loop = false)
+        public static bool PlayAudio(string audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, byte controllerId = 1, bool loop = false)
         {
             return PlayAudioCore(
                 audioKey,
@@ -635,7 +741,7 @@
                 loop,
                 null,
                 p => p == player && IsPlayerValidForAudio(p),
-                speaker => ConfigureSpeaker(speaker, true, 1.0f, 1.0f, 15.0f)
+                speaker => ConfigureSpeaker(speaker, true, customVolume, customMinDistance, customMaxDistance)
             );
         }
 
@@ -643,12 +749,15 @@
         /// Plays the ambience audio to a collection of players using a specified controller ID.
         /// </summary>
         /// <param name="targetPlayers">The players to play the ambience for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.85f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="position">Optional position to play the ambience from. If <c>null</c>, uses the origin (0,0,0).</param>
         /// <param name="controllerId">The controller ID to use for the speaker. Defaults to 2.</param>
         /// <param name="loop">Whether to loop the ambience. Defaults to <c>true</c>.</param>
         /// <returns><c>true</c> if the ambience was successfully played; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="targetPlayers"/> is <c>null</c>.</exception>
-        public static bool PlayAmbienceToPlayers(IEnumerable<Player> targetPlayers, Vector3? position = null, byte controllerId = 2, bool loop = true)
+        public static bool PlayAmbienceToPlayers(IEnumerable<Player> targetPlayers, float customVolume = 0.85f, float customMinDistance = 0.5f, float customMaxDistance = 50.0f, Vector3? position = null, byte controllerId = 2, bool loop = true)
         {
             if (isDisposed)
             {
@@ -676,7 +785,7 @@
                 loop,
                 null,
                 p => validPlayers.Contains(p) && IsPlayerValidForAudio(p),
-                speaker => ConfigureSpeaker(speaker, position.HasValue, 0.95f, 1.0f, 50.0f)
+                speaker => ConfigureSpeaker(speaker, position.HasValue, customVolume, customMinDistance, customMaxDistance)
             );
         }
 
@@ -684,13 +793,16 @@
         /// Plays a sound globally for all valid players.
         /// </summary>
         /// <param name="audioKey">The key of the audio clip to play.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.85f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="centralPosition">Optional central position for the sound. If <c>null</c>, uses the origin (0,0,0).</param>
         /// <param name="loop">Whether to loop the sound.</param>
         /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
         /// <param name="controllerId">Optional specific controller ID to use. If <c>null</c>, allocates a new ID or uses <see cref="GLOBAL_AMBIENCE_ID"/>.</param>
         /// <returns><c>true</c> if the sound was successfully played; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="audioKey"/> is <c>null</c>.</exception>
-        public static bool PlayGlobalSound(string audioKey, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
+        public static bool PlayGlobalSound(string audioKey, float customVolume = 0.85f, float customMinDistance = 0.85f, float customMaxDistance = 1500.0f, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
         {
             byte actualControllerId = controllerId ?? AllocateControllerId() ?? GLOBAL_AMBIENCE_ID;
             bool success = PlayAudioCore(
@@ -700,7 +812,7 @@
                 loop,
                 customLifespan,
                 p => IsPlayerValidForAudio(p),
-                speaker => ConfigureSpeaker(speaker, false, 0.85f, 1.0f, 1500.0f)
+                speaker => ConfigureSpeaker(speaker, false, customVolume, customMinDistance, customMaxDistance)
             );
 
             if (success && audioKey == "ambience" && loop) IsLoopingGlobalAmbience = true;
@@ -710,11 +822,14 @@
         /// <summary>
         /// Plays the ambience sound globally for all valid players.
         /// </summary>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.75f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="centralPosition">Optional central position for the ambience. If <c>null</c>, uses the origin (0,0,0).</param>
         /// <param name="loop">Whether to loop the ambience. Defaults to <c>true</c>.</param>
         /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
         /// <returns><c>true</c> if the ambience was successfully played; otherwise, <c>false</c>.</returns>
-        public static bool PlayGlobalAmbience(Vector3? centralPosition = null, bool loop = true, float? customLifespan = null)
+        public static bool PlayGlobalAmbience(float customVolume = 0.75f, float customMinDistance = 1.0f, float customMaxDistance = 1500.5f, Vector3? centralPosition = null, bool loop = true, float? customLifespan = null)
         {
             if (IsLoopingGlobalAmbience)
             {
@@ -728,7 +843,7 @@
                 loop,
                 customLifespan,
                 p => IsPlayerValidForAudio(p),
-                speaker => ConfigureSpeaker(speaker, false, 0.85f, 1.0f, 1500.0f)
+                speaker => ConfigureSpeaker(speaker, false, customVolume, customMinDistance, customMaxDistance)
             );
 
             if (success && loop) IsLoopingGlobalAmbience = true;
@@ -833,6 +948,7 @@
         {
             return player != null && player.IsAlive && player.ReferenceHub?.connectionToClient?.isAuthenticated == true;
         }
+
 
         /// <summary>
         /// Configures a speaker with the specified properties.
