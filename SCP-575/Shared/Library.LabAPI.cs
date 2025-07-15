@@ -1,6 +1,7 @@
 ﻿namespace SCP_575.Shared
 {
     using System.Collections.Generic;
+    using System.Runtime.InteropServices;
     using LabApi.Features.Wrappers;
     using SCP_575.ConfigObjects;
 
@@ -22,6 +23,11 @@
         public static Player GetPlayer(ReferenceHub ply)
         {
             return Player.Get(ply);
+        }
+
+        public static Ragdoll GetRagdoll(PlayerRoles.Ragdolls.BasicRagdoll ragdoll)
+        {
+            return Ragdoll.Get(ragdoll);
         }
 
         // Cassie methods for the plugin

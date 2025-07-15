@@ -129,15 +129,6 @@ namespace SCP_575
 
             Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
-            try
-            {
-                // This should now work correctly since the damage handler prevents position changes
-                Scp575Helpers.RagdollProcess(ev.Ragdoll, scp575Handler);
-            }
-            catch (Exception ex)
-            {
-                Library_ExiledAPI.LogError("OnSpawnedRagdoll", $"Failed to process SCP-575 ragdoll: {ex.Message}");
-            }
         }
 
 

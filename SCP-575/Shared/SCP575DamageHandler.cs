@@ -359,6 +359,10 @@
 
             Library_ExiledAPI.LogDebug("ProcessRagdoll",
                 $"Restored ragdoll position to: {originalPosition}");
+
+            // Convert BasicRagdoll to LabAPI wrapper and call helper  
+            LabApi.Features.Wrappers.Ragdoll labRagdoll = Library_LabAPI.GetRagdoll(ragdoll);
+            Scp575Helpers.RagdollProcess(labRagdoll, this);
         }
 
         #endregion
