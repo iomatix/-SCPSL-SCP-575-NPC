@@ -1,15 +1,12 @@
 namespace SCP_575.Npc
 {
-    using CommandSystem.Commands;
     using MEC;
-    using RemoteAdmin.Communication;
     using SCP_575.ConfigObjects;
     using Shared;
     using System;
     using System.Collections.Generic;
     using UnityEngine;
 
-    // TODO: Crate MethodsExiledAPI and Move methods there, Last one ist LabAPI so should stay in default
     public class Methods
     {
         private readonly Plugin _plugin;
