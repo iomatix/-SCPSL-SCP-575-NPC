@@ -84,15 +84,26 @@
                 Library_ExiledAPI.LogDebug("RagdollValidateState", "Disabled CullableBehaviour to force visibility");
             }
 
-            // Log renderer information for debugging  
+            // Force all renderers to be visible  
             var renderers = ragdollGO.GetComponentsInChildren<Renderer>(true);
             Library_ExiledAPI.LogDebug("RagdollValidateState", $"Found {renderers.Length} renderers in hierarchy");
 
             foreach (var renderer in renderers)
             {
+                // Force enable inactive renderers if their GameObjects are supposed to be active  
+                if (renderer.enabled && renderer.gameObject.activeSelf && !renderer.isVisible)
+                {
+                    // Try to force visibility by temporarily disabling and re-enabling  
+                    renderer.enabled = false;
+                    renderer.enabled = true;
+                }
+
                 Library_ExiledAPI.LogDebug("RagdollValidateState",
                     $"Renderer: {renderer.name}, enabled: {renderer.enabled}, active: {renderer.gameObject.activeSelf}");
             }
+
+            // Force refresh the ragdoll's network data to ensure synchronization  
+            ragdoll.Position = ragdoll.Position; // This triggers the NetworkInfo update  
 
             Library_ExiledAPI.LogDebug("RagdollValidateState",
                 $"Ragdoll type: {ragdoll.Base.GetType().Name}, Position: {ragdoll.Position}");
@@ -200,7 +211,7 @@
                 return;
             }
 
-            Timing.CallDelayed(0.5f, () =>
+            Timing.CallDelayed(1.5f, () =>
             {
                 try
                 {
