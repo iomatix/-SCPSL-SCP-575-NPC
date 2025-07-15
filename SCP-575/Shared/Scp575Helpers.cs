@@ -46,6 +46,12 @@
             if (!RagdollApplyBoneConversion(dynamicRagdoll))
                 return;
 
+
+            Library_ExiledAPI.LogDebug("RagdollProcess", "Validating post RagdollApplyBoneConversion(dynamicRagdoll) ragdoll state");
+            // Validate the converted ragdoll state  
+            if (!RagdollValidateState(ragdoll, ragdollGO))
+                return;
+
             // Apply visual effects without physics manipulation  
             RagdollApplyVisualEffects(dynamicRagdoll, handler, ragdoll);
 
@@ -53,7 +59,7 @@
             RagdollSchedulePostSpawnValidation(ragdoll);
 
             // Create debug marker if needed  
-            CreateDebugMarker(ragdoll.Position);
+            if(Library_LabAPI.Config.Debug) CreateDebugMarker(ragdoll.Position);
         }
 
         /// <summary>  
