@@ -822,14 +822,14 @@
         /// <summary>
         /// Plays the ambience sound globally for all valid players.
         /// </summary>
-        /// <param name="customVolume">Optional volume level as a float. Default is 0.55f.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.65f.</param>
         /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
         /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="centralPosition">Optional central position for the ambience. If <c>null</c>, uses the origin (0,0,0).</param>
         /// <param name="loop">Whether to loop the ambience. Defaults to <c>true</c>.</param>
         /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
         /// <returns><c>true</c> if the ambience was successfully played; otherwise, <c>false</c>.</returns>
-        public static bool PlayGlobalAmbience(float customVolume = 0.55f, float customMinDistance = 1.0f, float customMaxDistance = 1500.5f, Vector3? centralPosition = null, bool loop = true, float? customLifespan = null)
+        public static bool PlayGlobalAmbience(float customVolume = 0.65f, float customMinDistance = 1.0f, float customMaxDistance = 1500.5f, Vector3? centralPosition = null, bool loop = true, float? customLifespan = null)
         {
             if (IsLoopingGlobalAmbience)
             {
@@ -841,8 +841,8 @@
                 GLOBAL_AMBIENCE_ID,
                 centralPosition ?? Vector3.zero,
                 loop,
-                customLifespan,
-                p => IsPlayerValidForAudio(p),
+                customLifespan, 
+                p => IsPlayerValidForAudio(p) && Library_LabAPI.IsPlayerInDarkRoom(Library_LabAPI.GetPlayer(p.ReferenceHub)), // Real time detect if is in the dark room to play/stop creepy ambient sounds
                 speaker => ConfigureSpeaker(speaker, false, customVolume, customMinDistance, customMaxDistance)
             );
 

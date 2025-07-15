@@ -30,6 +30,15 @@
             return Ragdoll.Get(ragdoll);
         }
 
+        public static bool IsPlayerInDarkRoom(Player player)
+        {
+            // Remove debug logging for performance  
+            var room = player.Room;
+            if (room?.LightController == null) return false;
+
+            return !room.LightController.LightsEnabled;
+        }
+
         // Cassie methods for the plugin
         public static void Cassie_Clear() => Cassie.Clear();
         public static void Cassie_GlitchyMessage(string message) => Cassie.GlitchyMessage(message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
