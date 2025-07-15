@@ -6,7 +6,6 @@
     using PlayerRoles;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
-    using SCP_575.ConfigObjects;
     using System.Collections.Generic;
     using UnityEngine;
 
