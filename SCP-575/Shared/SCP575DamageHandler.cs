@@ -108,13 +108,6 @@
             _hitDirectionX = (sbyte)Mathf.RoundToInt(forward.x * 127f);
             _hitDirectionZ = (sbyte)Mathf.RoundToInt(forward.z * 127f);
 
-            // Play horror sound effect
-            if (Library_LabAPI.NpcConfig.EnableScreamSound)
-            {
-                if (handlerOutput == HandlerOutput.Damaged) AudioManager.PlayDamagedScream(Library_LabAPI.GetPlayer(ply), isKill: false, customLifespan: 15f);
-                else if (handlerOutput == HandlerOutput.Death) AudioManager.PlayDamagedScream(Library_LabAPI.GetPlayer(ply), isKill: true, customLifespan: 15f);
-            }
-
             return handlerOutput;
         }
 
