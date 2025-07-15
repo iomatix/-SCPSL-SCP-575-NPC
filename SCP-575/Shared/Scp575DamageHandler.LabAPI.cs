@@ -19,7 +19,7 @@
             // Play horror sound effect
             if (NpcConfig.EnableScreamSound)
             {
-                AudioManager.PlayScreamySound(player);
+                AudioManager.PlayScreamAutoManaged(player, customLifespan: 15f);
             }
 
             var effectActions = new List<(bool Enabled, Action Apply)>

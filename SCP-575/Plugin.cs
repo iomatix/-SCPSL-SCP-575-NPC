@@ -1,6 +1,7 @@
 namespace SCP_575
 {
     using MEC;
+    using SCP_575.Npc;
     using SCP_575.Shared;
     using System;
     using Server = Exiled.Events.Handlers.Server;
@@ -14,7 +15,7 @@ namespace SCP_575
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(6, 9, 13);
+        public override Version Version { get; } = new(6, 9, 14);
         public override Version RequiredExiledVersion { get; } = new(9, 6, 0);
 
         public EventHandlers EventHandlers { get; private set; }
@@ -34,7 +35,9 @@ namespace SCP_575
             Npc = new NestingObjects.Npc(this);
             //Playable = new NestingObjects.Playable(this);
 
-            Server.WaitingForPlayers += EventHandlers.OnWaitingForPlayers;
+            LabApi.Events.Handlers.ServerEvents.RoundStarted += EventHandlers.OnRoundStarted;
+            LabApi.Events.Handlers.ServerEvents.RoundEnded += EventHandlers.OnRoundEnded;
+            LabApi.Events.Handlers.ServerEvents.WaitingForPlayers += EventHandlers.OnWaitingForPlayers;
 
             LabApi.Events.Handlers.PlayerEvents.Hurting += EventHandlers.OnPlayerHurting;
             LabApi.Events.Handlers.PlayerEvents.Hurt += EventHandlers.OnPlayerHurt;
@@ -43,7 +46,7 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.SpawningRagdoll += EventHandlers.OnSpawningRagdoll;
             LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll += EventHandlers.OnSpawnedRagdoll;
 
-            AudioManager.LoadEmbeddedAudio();
+            AudioManager.Enable();
             base.OnEnabled();
         }
 
@@ -52,7 +55,10 @@ namespace SCP_575
             //CustomRole.UnregisterRoles();
             foreach (CoroutineHandle handle in EventHandlers.Coroutines) Timing.KillCoroutines(handle);
             EventHandlers.Coroutines.Clear();
-            Server.WaitingForPlayers -= EventHandlers.OnWaitingForPlayers;
+
+            LabApi.Events.Handlers.ServerEvents.RoundStarted -= EventHandlers.OnRoundStarted;
+            LabApi.Events.Handlers.ServerEvents.RoundEnded -= EventHandlers.OnRoundEnded;
+            LabApi.Events.Handlers.ServerEvents.WaitingForPlayers -= EventHandlers.OnWaitingForPlayers;
 
             LabApi.Events.Handlers.PlayerEvents.Hurting -= EventHandlers.OnPlayerHurting;
             LabApi.Events.Handlers.PlayerEvents.Hurt -= EventHandlers.OnPlayerHurt;
@@ -61,7 +67,7 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.SpawningRagdoll -= EventHandlers.OnSpawningRagdoll;
             LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll -= EventHandlers.OnSpawnedRagdoll;
 
-            AudioManager.CleanupSpeakers();
+            AudioManager.Disable();
 
             EventHandlers = null;
             Npc = null;

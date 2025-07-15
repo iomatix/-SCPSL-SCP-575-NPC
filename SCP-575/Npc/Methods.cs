@@ -46,8 +46,6 @@ namespace SCP_575.Npc
             blackoutStacks = 0;
             triggeredZones.Clear();
             Timing.KillCoroutines("SCP575keter");
-            AudioManager.StopGlobalAmbienceLoop();
-            AudioManager.CleanupSpeakers();
             ResetTeslaGates();
         }
         public IEnumerator<float> RunBlackoutTimer()
@@ -306,7 +304,7 @@ namespace SCP_575.Npc
 
                 if (Config.KeterAmbient && !AudioManager.IsLoopingGlobalAmbience)
                 {
-                    AudioManager.PlayGlobalAmbience(controllerId: 2, loop: true);
+                    AudioManager.PlayGlobalAmbience();
                 }
 
                 yield return Timing.WaitForSeconds(blackoutDuration);
@@ -322,7 +320,7 @@ namespace SCP_575.Npc
                 {
                     ResetTeslaGates();
                     triggeredZones.Clear();
-                    AudioManager.StopGlobalAmbienceLoop();
+                    AudioManager.StopGlobalAmbience();
                     Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", "Blackout event completed. All systems reset.");
                 }
 
@@ -443,7 +441,7 @@ namespace SCP_575.Npc
                                 if (Config.CassieMessageClearBeforeImportant) shouldClearPrevious = true;
                                 Library_ExiledAPI.LogDebug("KeterDamage", $"Player {player.Nickname} has been damaged by SCP-575. Damage: {clampedDamage}, Raw Damage: {rawDamage}");
                                 player.SendBroadcast(Config.KeterBroadcast, 3, type: Broadcast.BroadcastFlags.Normal, shouldClearPrevious: shouldClearPrevious);
-                                AudioManager.PlayScreamySound(player);
+                                AudioManager.PlayScreamAutoManaged(player, customLifespan: 15f);
                             }
                         }
                         else if (player.IsHuman)

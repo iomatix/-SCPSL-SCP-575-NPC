@@ -32,6 +32,25 @@ namespace SCP_575
             {
                 //_plugin.Playable.Methods.Init();
             }
+
+
+        }
+        public void OnRoundStarted()
+        {
+
+        }
+
+        public void OnRoundEnded(LabApi.Events.Arguments.ServerEvents.RoundEndedEventArgs ev)
+        {
+            try
+            {
+                AudioManager.CleanupAllSpeakers();
+                Library_ExiledAPI.LogDebug("OnRoundEnded", "Stopped global ambience and cleaned up speakers on round end");
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("OnRoundEnded", $"Failed to stop global ambience: {ex.Message}\nStackTrace: {ex.StackTrace}");
+            }
         }
 
         public void OnPlayerHurting(LabApi.Events.Arguments.PlayerEvents.PlayerHurtingEventArgs ev)
