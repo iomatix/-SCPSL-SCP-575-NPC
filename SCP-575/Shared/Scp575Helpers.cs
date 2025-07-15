@@ -126,7 +126,24 @@
 
             try
             {
+                // Log before conversion  
+                Library_ExiledAPI.LogDebug("RagdollApplyBoneConversion", $"Before conversion - Child count: {dynamicRagdoll.transform.childCount}");
+                Library_ExiledAPI.LogDebug("RagdollApplyBoneConversion", $"Before conversion - Rigidbodies count: {dynamicRagdoll.LinkedRigidbodies?.Length ?? 0}");
+
                 Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
+
+                // Log after conversion  
+                Library_ExiledAPI.LogDebug("RagdollApplyBoneConversion", $"After conversion - Child count: {dynamicRagdoll.transform.childCount}");
+                Library_ExiledAPI.LogDebug("RagdollApplyBoneConversion", $"After conversion - Rigidbodies count: {dynamicRagdoll.LinkedRigidbodies?.Length ?? 0}");
+                Library_ExiledAPI.LogDebug("RagdollApplyBoneConversion", $"After conversion - Hitboxes count: {dynamicRagdoll.Hitboxes?.Length ?? 0}");
+
+                // Log the new bone parts  
+                for (int i = 0; i < dynamicRagdoll.transform.childCount; i++)
+                {
+                    var child = dynamicRagdoll.transform.GetChild(i);
+                    Library_ExiledAPI.LogDebug("RagdollApplyBoneConversion", $"New bone part: {child.name}");
+                }
+
                 Library_ExiledAPI.LogDebug("RagdollApplyBoneConversion", "Ragdoll bones conversion completed successfully.");
                 return true;
             }
