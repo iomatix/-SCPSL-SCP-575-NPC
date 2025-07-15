@@ -1,8 +1,5 @@
-﻿using System;
-
-namespace SCP_575.Shared
+﻿namespace SCP_575.Shared
 {
-    using Exiled.API.Interfaces;
     using LabApi.Features.Audio;
     using LabApi.Features.Wrappers;
     using MEC;
@@ -12,7 +9,6 @@ namespace SCP_575.Shared
     using System.Linq;
     using System.Reflection;
     using UnityEngine;
-    using Waits;
 
     public static class AudioManager
     {
