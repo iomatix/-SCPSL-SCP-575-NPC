@@ -135,12 +135,12 @@
             return true;
         }
 
-        /// <summary>  
-        /// Applies bone conversion to the ragdoll using LabAPI synchronization.  
-        /// </summary>  
-        /// <param name="dynamicRagdoll">The dynamic ragdoll to convert.</param>  
-        /// <param name="ragdollWrapper">The LabAPI ragdoll wrapper for synchronization.</param>  
-        /// <returns>True if conversion succeeded, false otherwise.</returns>  
+        /// <summary>
+        /// Applies bone conversion to the ragdoll using LabAPI synchronization with forced network spawning.
+        /// </summary>
+        /// <param name="dynamicRagdoll">The dynamic ragdoll to convert.</param>
+        /// <param name="ragdollWrapper">The LabAPI ragdoll wrapper for synchronization.</param>
+        /// <returns>True if conversion succeeded, false otherwise.</returns>
         private static bool ApplyBoneConversion(DynamicRagdoll dynamicRagdoll, Ragdoll ragdollWrapper)
         {
             try
@@ -148,17 +148,20 @@
                 Library_ExiledAPI.LogDebug("ApplyBoneConversion",
                     $"Starting bone conversion - Child count: {dynamicRagdoll.transform.childCount}");
 
-                // Apply the bone conversion  
-                Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
+                // Apply the bone conversion TODO: DISABLED FROM NOW
+                // Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
 
                 Library_ExiledAPI.LogDebug("ApplyBoneConversion",
                     $"Bone conversion completed - Child count: {dynamicRagdoll.transform.childCount}");
 
-                // Process bone parts without manually adding NetworkTransform  
-                ProcessBoneParts(dynamicRagdoll, ragdollWrapper);
+                // Force network spawning of bone parts (experimental approach) TODO: DISABLED FROM NOW
+                // ForceNetworkSpawnBones(dynamicRagdoll);
 
-                // Use LabAPI's synchronization to ensure network consistency  
+                // Force immediate synchronization using LabAPI's built-in mechanisms    
                 SynchronizeRagdollState(ragdollWrapper);
+
+                // Schedule multiple validation passes to ensure visibility    
+                ScheduleEnhancedBoneValidation(dynamicRagdoll, ragdollWrapper);
 
                 return true;
             }
@@ -167,6 +170,72 @@
                 Library_ExiledAPI.LogError("ApplyBoneConversion", $"Bone conversion failed: {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>  
+        /// Enhanced validation system with multiple passes to ensure bone visibility  
+        /// </summary>  
+        private static void ScheduleEnhancedBoneValidation(DynamicRagdoll dynamicRagdoll, Ragdoll ragdollWrapper)
+        {
+            // Immediate validation  
+            ValidateAndFixBoneParts(dynamicRagdoll, ragdollWrapper);
+
+            // Multiple delayed validations to catch timing issues  
+            Timing.CallDelayed(0.1f, () => ValidateAndFixBoneParts(dynamicRagdoll, ragdollWrapper));
+            Timing.CallDelayed(0.25f, () => ValidateAndFixBoneParts(dynamicRagdoll, ragdollWrapper));
+            Timing.CallDelayed(0.5f, () => ValidateAndFixBoneParts(dynamicRagdoll, ragdollWrapper));
+        }
+
+        /// <summary>  
+        /// Comprehensive bone part validation and fixing  
+        /// </summary>  
+        private static void ValidateAndFixBoneParts(DynamicRagdoll dynamicRagdoll, Ragdoll ragdollWrapper)
+        {
+            if (dynamicRagdoll == null || ragdollWrapper?.Base == null) return;
+
+            foreach (Transform child in dynamicRagdoll.transform)
+            {
+                if (child.name.EndsWith("(Clone)"))
+                {
+                    GameObject boneGO = child.gameObject;
+
+                    // Ensure bone part is active  
+                    if (!boneGO.activeSelf)
+                    {
+                        boneGO.SetActive(true);
+                        Library_ExiledAPI.LogDebug("ValidateAndFixBoneParts", $"Activated bone part: {boneGO.name}");
+                    }
+
+                    // Force renderer visibility  
+                    var renderers = boneGO.GetComponentsInChildren<Renderer>(true);
+                    foreach (var renderer in renderers)
+                    {
+                        if (!renderer.enabled)
+                        {
+                            renderer.enabled = true;
+                        }
+
+                        // Force visibility refresh  
+                        if (!renderer.isVisible)
+                        {
+                            renderer.enabled = false;
+                            renderer.enabled = true;
+
+                            // Force bounds recalculation  
+                            if (renderer is SkinnedMeshRenderer skinnedRenderer)
+                            {
+                                skinnedRenderer.updateWhenOffscreen = true;
+                            }
+                        }
+                    }
+
+                    // Force transform updates  
+                    boneGO.transform.hasChanged = true;
+                }
+            }
+
+            // Trigger LabAPI synchronization after bone fixes  
+            SynchronizeRagdollState(ragdollWrapper);
         }
 
         /// <summary>  
@@ -458,6 +527,57 @@
             {
                 Library_ExiledAPI.LogError("CreateDebugMarker", $"Failed to create debug marker: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Force network spawning of bone parts (experimental approach)
+        /// </summary>
+        /// <param name="dynamicRagdoll">The dynamic ragdoll containing bone parts</param>
+        private static void ForceNetworkSpawnBones(DynamicRagdoll dynamicRagdoll)
+        {
+            if (dynamicRagdoll == null)
+            {
+                Library_ExiledAPI.LogError("ForceNetworkSpawnBones", "DynamicRagdoll is null");
+                return;
+            }
+
+            Library_ExiledAPI.LogDebug("ForceNetworkSpawnBones", "Starting forced network spawning of bone parts");
+
+            foreach (Transform child in dynamicRagdoll.transform)
+            {
+                if (child.name.EndsWith("(Clone)"))
+                {
+                    GameObject boneGO = child.gameObject;
+                    Library_ExiledAPI.LogDebug("ForceNetworkSpawnBones", $"Processing bone part: {boneGO.name}");
+
+                    // Add NetworkIdentity if not present  
+                    if (!boneGO.TryGetComponent<NetworkIdentity>(out var netId))
+                    {
+                        netId = boneGO.AddComponent<NetworkIdentity>();
+                        Library_ExiledAPI.LogDebug("ForceNetworkSpawnBones", $"Added NetworkIdentity to {boneGO.name}");
+                    }
+
+                    // Try to spawn the bone part on the network  
+                    try
+                    {
+                        if (!netId.isServer)
+                        {
+                            NetworkServer.Spawn(boneGO);
+                            Library_ExiledAPI.LogDebug("ForceNetworkSpawnBones", $"Network spawned bone: {boneGO.name}");
+                        }
+                        else
+                        {
+                            Library_ExiledAPI.LogDebug("ForceNetworkSpawnBones", $"Bone {boneGO.name} already spawned on server");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Library_ExiledAPI.LogError("ForceNetworkSpawnBones", $"Failed to spawn {boneGO.name}: {ex.Message}");
+                    }
+                }
+            }
+
+            Library_ExiledAPI.LogDebug("ForceNetworkSpawnBones", "Completed forced network spawning attempt");
         }
     }
 }
