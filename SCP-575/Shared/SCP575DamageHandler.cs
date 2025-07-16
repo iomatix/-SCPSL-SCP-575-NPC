@@ -17,7 +17,7 @@
     /// This handler extends <see cref="AttackerDamageHandler"/> to provide SCP-575 specific functionality  
     /// including custom death messages, armor penetration, and controlled ragdoll positioning.
     /// </remarks>  
-    public sealed class Scp575DamageHandler : AttackerDamageHandler
+    public sealed class Scp575DamageHandler : CustomReasonDamageHandler
     {
         #region Constants and Static Properties  
 
@@ -95,12 +95,12 @@
         /// Gets a value indicating whether this damage handler allows self-damage.
         /// SCP-575 cannot damage itself.
         /// </summary>  
-        public override bool AllowSelfDamage => false;
+        public bool AllowSelfDamage => false;
 
         /// <summary>  
         /// Gets or sets the attacker's footprint for tracking purposes.
         /// </summary>  
-        public override Footprint Attacker { get; set; }
+        public Footprint Attacker { get; set; }
 
         /// <summary>  
         /// Gets the CASSIE announcement for deaths caused by this handler.
@@ -142,8 +142,10 @@
         /// This constructor is primarily used for deserialization and should not be called directly.
         /// Use the parameterized constructor for normal instantiation.
         /// </remarks>  
-        public Scp575DamageHandler()
+        public Scp575DamageHandler() : base("SCP-575 Constructor Reason", 0.0f, "")
         {
+            _penetration = 0f; // Default value for deserialization  
+            _useHumanHitboxes = true; // Default value  
             _deathReasonFormat = Scp575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
         }
 
@@ -155,7 +157,7 @@
         /// <param name="useHumanMultipliers">Whether to apply human-specific hitbox damage multipliers.</param>
         /// <exception cref="System.ArgumentOutOfRangeException">Thrown when damage is negative.</exception>  
         public Scp575DamageHandler(float damage, LabApi.Features.Wrappers.Player attacker = null, bool useHumanMultipliers = true)
-            : this()
+            : base(Library_LabAPI.NpcConfig.KilledByMessage, damage)
         {
             if (damage < 0)
                 throw new System.ArgumentOutOfRangeException(nameof(damage), "Damage cannot be negative.");
@@ -164,6 +166,7 @@
                 $"Handler initialized with damage: {damage}, Attacker: {attacker?.Nickname ?? "SCP-575 NPC"}");
 
             Damage = damage;
+            _deathReasonFormat = Scp575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
             _penetration = Library_LabAPI.NpcConfig.KeterDamagePenetration;
             _useHumanHitboxes = useHumanMultipliers;
 
@@ -213,7 +216,17 @@
 
         #endregion
 
-        #region Damage Processing  
+        #region Damage Processing 
+
+        /// <summary>  
+        /// Applies damage to the specified player. Use this method to damage target player.
+        /// </summary>  
+        /// <param name="target">The reference of the LabApi.Features.Wrappers.Player receiving damage.</param>
+        /// <returns>The boolean result of the damage application.</returns>
+        public bool DamagePlayer(LabApi.Features.Wrappers.Player target)
+        {
+            return target.Damage(this);
+        } 
 
         /// <summary>  
         /// Applies damage to the specified player and handles SCP-575 specific effects.
@@ -279,10 +292,12 @@
             Library_ExiledAPI.LogDebug("ProcessDamage",
                 $"Processing base for ProcessDamage(ply) after multipliers: {Damage:F1} for player: {ply.nicknameSync.MyNick}");
 
-            base.ProcessDamage(ply);
-
             // Handle armor interactions for armored roles  
             ProcessArmorInteraction(ply);
+
+            base.ProcessDamage(ply);
+
+
         }
 
         /// <summary>  
