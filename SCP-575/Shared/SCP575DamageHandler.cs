@@ -155,7 +155,7 @@
         /// <param name="useHumanMultipliers">Whether to apply human-specific hitbox damage multipliers.</param>
         /// <exception cref="System.ArgumentOutOfRangeException">Thrown when damage is negative.</exception>  
         public Scp575DamageHandler(float damage, LabApi.Features.Wrappers.Player attacker = null, bool useHumanMultipliers = true)
-            : this()
+            : base(Library_LabAPI.NpcConfig.KilledByMessage, damage)
         {
             if (damage < 0)
                 throw new System.ArgumentOutOfRangeException(nameof(damage), "Damage cannot be negative.");
