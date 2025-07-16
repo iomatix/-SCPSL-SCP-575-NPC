@@ -102,32 +102,23 @@ namespace SCP_575
         }
 
 
-        public void OnSpawningRagdoll(LabApi.Events.Arguments.PlayerEvents.PlayerSpawningRagdollEventArgs ev)
-        {
-            Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawningRagdoll: {ev.Player.Nickname}");
-            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
-                return;
-
-            Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
-            Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event caused by {ev.Ragdoll.Nickname} Ragdoll at {ev.Ragdoll.Position}");
-
-        }
-
-        public void OnSpawnedRagdoll(LabApi.Events.Arguments.PlayerEvents.PlayerSpawnedRagdollEventArgs ev)
+        // Use Exiled's ragdoll event instead  
+        public void OnSpawnedRagdoll(Exiled.Events.EventArgs.Player.SpawnedRagdollEventArgs ev)
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawnedRagdoll: {ev.Player.Nickname}");
 
-            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
+            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandlerBase))
                 return;
 
             Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
 
-            // process Ragdoll
-            LabApi.Features.Wrappers.Ragdoll eventRagdoll = ev.Ragdoll;
-            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Trying to process {ev.Ragdoll.Nickname} Ragdoll at {ev.Ragdoll.Position}");
-            
-            // TODO:
-            Scp575DamageSystem.ReplaceRagdollWithPhysics(ev.Player, ev.Ragdoll);
+            // Convert Exiled ragdoll to LabAPI wrapper for your processing  
+
+            var labApiRagdoll = Library_LabAPI.GetRagdoll(ev.Ragdoll.Base);
+            var labApiPlayer = Library_LabAPI.GetPlayer(ev.Player.ReferenceHub);
+
+            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was called by {ev.Ragdoll.Nickname} Ragdoll at {ev.Ragdoll.Position}, From {ev.Player.Nickname} at {ev.Player.Position}");
+            Scp575DamageSystem.ReplaceRagdollWithPhysics(labApiPlayer, labApiRagdoll);
 
         }
 

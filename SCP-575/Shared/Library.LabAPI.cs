@@ -21,7 +21,6 @@
         {
             return Player.Get(ply);
         }
-
         public static Ragdoll GetRagdoll(PlayerRoles.Ragdolls.BasicRagdoll ragdoll)
         {
             return Ragdoll.Get(ragdoll);
@@ -50,10 +49,34 @@
 
         #region Adapters
 
-        public static Player ToLabApiPlayer(Exiled.API.Features.Player exPlayer)
+        /// <summary>  
+        /// Converts an Exiled player to a LabAPI player wrapper.  
+        /// </summary>  
+        /// <param name="exiledPlayer">The Exiled player to convert.</param>  
+        /// <returns>The LabAPI player wrapper or null if input is null.</returns>  
+        public static LabApi.Features.Wrappers.Player? ToLabAPIPlayer(Exiled.API.Features.Player? exiledPlayer)
         {
-            return Player.Get(exPlayer.ReferenceHub);
+            if (exiledPlayer?.ReferenceHub == null)
+                return null;
+
+            return LabApi.Features.Wrappers.Player.Get(exiledPlayer.ReferenceHub);
         }
+
+
+        /// <summary>  
+        /// Converts an Exiled ragdoll to a LabAPI ragdoll wrapper.  
+        /// </summary>  
+        /// <param name="exiledRagdoll">The Exiled ragdoll to convert.</param>  
+        /// <returns>The LabAPI ragdoll wrapper or null if input is null.</returns>  
+        public static Ragdoll? ToLabAPIRagdoll(Exiled.API.Features.Ragdoll? exiledRagdoll)
+        {
+            if (exiledRagdoll?.Base == null)
+                return null;
+
+            return Ragdoll.Get(exiledRagdoll.Base);
+        }
+
+
         #endregion
 
     }

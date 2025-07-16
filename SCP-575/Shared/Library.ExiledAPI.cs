@@ -63,9 +63,30 @@
         #endregion
 
         #region Adapters
-        public static Player ToExiledPlayer(LabApi.Features.Wrappers.Player labPlayer)
+        /// <summary>  
+        /// Converts a LabAPI player wrapper to an Exiled player.  
+        /// </summary>  
+        /// <param name="labApiPlayer">The LabAPI player wrapper to convert.</param>  
+        /// <returns>The Exiled player or null if input is null.</returns>  
+        public static Player? ToExiledPlayer(LabApi.Features.Wrappers.Player? labApiPlayer)
         {
-            return Player.Get(labPlayer.ReferenceHub);
+            if (labApiPlayer?.ReferenceHub == null)
+                return null;
+
+            return Player.Get(labApiPlayer.ReferenceHub);
+        }
+
+        /// <summary>  
+        /// Converts a LabAPI ragdoll wrapper to an Exiled ragdoll.  
+        /// </summary>  
+        /// <param name="labApiRagdoll">The LabAPI ragdoll wrapper to convert.</param>  
+        /// <returns>The Exiled ragdoll or null if input is null.</returns>  
+        public static Ragdoll? ToExiledRagdoll(LabApi.Features.Wrappers.Ragdoll? labApiRagdoll)
+        {
+            if (labApiRagdoll?.Base == null)
+                return null;
+
+            return Ragdoll.Get(labApiRagdoll.Base);
         }
         #endregion
 

@@ -13,7 +13,7 @@ namespace SCP_575
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(7, 2, 12);
+        public override Version Version { get; } = new(7, 3, 3);
         public override Version RequiredExiledVersion { get; } = new(9, 6, 0);
 
         public EventHandlers EventHandlers { get; private set; }
@@ -42,8 +42,7 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.Dying += EventHandlers.OnPlayerDying;
             LabApi.Events.Handlers.PlayerEvents.Death += EventHandlers.OnPlayerDeath;
 
-            LabApi.Events.Handlers.PlayerEvents.SpawningRagdoll += EventHandlers.OnSpawningRagdoll;
-            LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll += EventHandlers.OnSpawnedRagdoll;
+            Exiled.Events.Handlers.Player.SpawnedRagdoll += EventHandlers.OnSpawnedRagdoll;
 
             AudioManager.Enable();
             base.OnEnabled();
@@ -63,8 +62,8 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.Hurt -= EventHandlers.OnPlayerHurt;
             LabApi.Events.Handlers.PlayerEvents.Dying -= EventHandlers.OnPlayerDying;
             LabApi.Events.Handlers.PlayerEvents.Death -= EventHandlers.OnPlayerDeath;
-            LabApi.Events.Handlers.PlayerEvents.SpawningRagdoll -= EventHandlers.OnSpawningRagdoll;
-            LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll -= EventHandlers.OnSpawnedRagdoll;
+
+            Exiled.Events.Handlers.Player.SpawnedRagdoll -= EventHandlers.OnSpawnedRagdoll;
 
             AudioManager.Disable();
 
