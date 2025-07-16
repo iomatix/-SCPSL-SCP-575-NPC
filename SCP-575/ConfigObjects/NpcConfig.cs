@@ -114,7 +114,7 @@ namespace SCP_575.ConfigObjects
         public float KeterForceMinModifier { get; set; } = 0.75f;
 
         [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMaxModifier { get; set; } = 2.5f;
+        public float KeterForceMaxModifier { get; set; } = 2.35f;
 
         [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
         public float KeterDamageVelocityModifier { get; set; } = 1.25f;

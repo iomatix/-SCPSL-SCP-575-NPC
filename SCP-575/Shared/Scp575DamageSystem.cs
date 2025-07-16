@@ -189,11 +189,11 @@
 
         #region Ragdoll Processing  
 
-        /// <summary>  
-        /// Processes an SCP-575 ragdoll with visual effects and validation using LabAPI synchronization.  
-        /// </summary>  
-        /// <param name="ragdoll">The LabAPI ragdoll wrapper to process.</param>   
-        /// <exception cref="ArgumentNullException">Thrown when ragdoll or handler is null.</exception>  
+        /// <summary>
+        /// Processes an SCP-575 ragdoll with visual effects and validation using LabAPI synchronization.
+        /// </summary>
+        /// <param name="ragdoll">The LabAPI ragdoll wrapper to process.</param>
+        /// <exception cref="ArgumentNullException">Thrown when ragdoll or handler is null.</exception>
         public static void RagdollProcessor(LabApi.Features.Wrappers.Ragdoll ragdoll)
         {
             if (ragdoll == null)
@@ -201,50 +201,42 @@
 
             Library_ExiledAPI.LogDebug("RagdollProcess", $"Processing SCP-575 ragdoll at position: {ragdoll.Position}");
 
-            // Set the damage handler to control ragdoll inspection text
-            var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
-            ragdoll.DamageHandler = customHandler;
-
-            // Apply bone conversion if ragdoll is DynamicRagdoll  
-            if (ragdoll.Base is DynamicRagdoll dynamicRagdoll)
-            {
-                if (!ApplyBoneConversion(dynamicRagdoll, ragdoll))
-                    return;
-            }
-            else
-            {
-                Library_ExiledAPI.LogWarn("RagdollProcess", "Ragdoll is not a DynamicRagdoll. Skipping bone conversion.");
-            }
+            ApplyStandardRagdollPhysics(ragdoll);
 
             Library_ExiledAPI.LogDebug("RagdollProcess", "SCP-575 ragdoll processing completed successfully");
         }
 
-        /// <summary>
-        /// Applies bone conversion to the ragdoll using LabAPI synchronization with forced network spawning.
-        /// </summary>
-        /// <param name="dynamicRagdoll">The dynamic ragdoll to convert.</param>
-        /// <param name="ragdollWrapper">The LabAPI ragdoll wrapper for synchronization.</param>
-        /// <returns>True if conversion succeeded, false otherwise.</returns>
-        public static bool ApplyBoneConversion(DynamicRagdoll dynamicRagdoll, LabApi.Features.Wrappers.Ragdoll ragdollWrapper)
+        /// <summary>  
+        /// Applies physics forces to standard ragdoll for dynamic movement effects.  
+        /// Used for original ragdolls without bone conversion.  
+        /// </summary>  
+        /// <param name="ragdoll">The LabAPI ragdoll wrapper to apply physics to.</param>  
+        private static void ApplyStandardRagdollPhysics(LabApi.Features.Wrappers.Ragdoll ragdoll)
         {
             try
             {
-                Library_ExiledAPI.LogDebug("ApplyBoneConversion",
-                    $"Starting bone conversion - Child count: {dynamicRagdoll.transform.childCount}");
+                Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on ragdoll at {ragdoll.Position}");
 
+                if (ragdoll.Base.TryGetComponent<Rigidbody>(out var mainRigidbody))
+                {
+                    Vector3 upwardVelocity = Vector3.up * CalculateForcePush(2.5f);
+                    Vector3 randomVelocity = GetRandomUnitSphereVelocity(2.5f);
 
-                // Apply the bone conversion
-                Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
+                    // Direct velocity assignment instead of AddForce
+                    mainRigidbody.linearVelocity += upwardVelocity + randomVelocity;
+                    mainRigidbody.angularVelocity += UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier;
 
-                Library_ExiledAPI.LogDebug("ApplyBoneConversion",
-                    $"Bone conversion completed - Child count: {dynamicRagdoll.transform.childCount}");
-
-                return true;
+                    Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics",
+                        $"Applied velocity directly - Combined: {upwardVelocity + randomVelocity}");
+                }
+                else
+                {
+                    Library_ExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbody found on standard ragdoll");
+                }
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("ApplyBoneConversion", $"Bone conversion failed: {ex.Message}");
-                return false;
+                Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply standard ragdoll physics: {ex.Message}");
             }
         }
 
@@ -296,7 +288,7 @@
 
             // Apply logarithmic scaling based on damage for realistic force distribution  
             float modifier = baseValue *
-                           Mathf.Log((5 * Library_LabAPI.NpcConfig.KeterDamage) + 1) *
+                           Mathf.Log((Library_LabAPI.NpcConfig.KeterDamageVelocityModifier * Library_LabAPI.NpcConfig.KeterDamage) + 1) *
                            CalculateForcePush(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier);
 
             return randomDirection * modifier;
@@ -309,9 +301,7 @@
             Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
             List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
 
-            // TODO Check if nessary
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
-
 
             foreach (var pickup in droppedPickups)
             {
@@ -331,7 +321,7 @@
                 try
                 {
                     rb.linearVelocity = dir * mag;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 5f;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier;
                     Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
                 }
                 catch (Exception ex)
