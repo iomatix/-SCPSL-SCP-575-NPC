@@ -301,6 +301,11 @@
                     Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
                         $"Applied physics to limb {limbRb.name} - Force: {combinedVelocity}");
                 }
+
+                // Convert to bones
+                if (newExiledRagdoll.Base.TryGetComponent<DynamicRagdoll>(out var dr))
+                    Scp3114RagdollToBonesConverter.ConvertExisting(dr);
+
             });
         }
 
