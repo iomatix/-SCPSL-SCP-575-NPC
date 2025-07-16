@@ -220,7 +220,7 @@
         /// </summary>  
         /// <param name="target">The reference of the LabApi.Features.Wrappers.Player receiving damage.</param>
         /// <returns>The boolean result of the damage application.</returns>
-        public bool Damage(LabApi.Features.Wrappers.Player target)
+        public bool DamagePlayer(LabApi.Features.Wrappers.Player target)
         {
             return target.Damage(this);
         } 
