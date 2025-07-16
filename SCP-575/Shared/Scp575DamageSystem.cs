@@ -1,13 +1,11 @@
 ﻿namespace SCP_575.Shared
 {
-    using Footprinting;
     using InventorySystem.Items.Armor;
-    using Mirror;
+    using MEC;
     using PlayerRoles;
     using PlayerRoles.PlayableScps.Scp3114;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
-    using RemoteAdmin.Communication;
     using System;
     using System.Collections.Generic;
     using UnityEngine;
@@ -302,6 +300,47 @@
                            CalculateForcePush(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier);
 
             return randomDirection * modifier;
+        }
+
+        public static IEnumerator<float> DropAndPushItems(
+            LabApi.Features.Wrappers.Player player
+        )
+        {
+            Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
+            List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
+
+            // TODO Check if nessary
+            yield return Timing.WaitForOneFrame;  // let engine spawn pickups
+
+
+            foreach (var pickup in droppedPickups)
+            {
+
+                if (pickup?.Rigidbody == null)
+                {
+                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
+                    continue;
+                }
+
+                var rb = pickup.Rigidbody;
+                var dir = GetRandomUnitSphereVelocity();
+                var mag = CalculateForcePush();
+
+                yield return Timing.WaitForOneFrame; // ensure physics engine is ready
+
+                try
+                {
+                    rb.linearVelocity = dir * mag;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 5f;
+                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
+                }
+                catch (Exception ex)
+                {
+                    Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex}");
+                }
+
+                yield return Timing.WaitForOneFrame;  // stagger pushes
+            }
         }
 
         public static bool IsScp575Damage(DamageHandlerBase handler)

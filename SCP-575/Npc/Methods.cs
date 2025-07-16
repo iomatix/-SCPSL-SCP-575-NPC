@@ -71,13 +71,13 @@ namespace SCP_575.Npc
                 }
                 Library_ExiledAPI.LogDebug("ExecuteBlackoutEvent", $"Waiting for {Config.FlickerLightsDuration} seconds after flickering lights.");
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndStart);
+
+                TriggerCassieMessage(Config.CassiePostMessage);
             }
 
             float blackoutDuration = Config.RandomEvents
                 ? GetRandomBlackoutDuration()
                 : Config.DurationMax;
-
-            TriggerCassieMessage(Config.CassiePostMessage);
 
             bool blackoutOccurred = Config.UsePerRoomChances
                 ? HandleRoomSpecificBlackout(blackoutDuration)
@@ -447,47 +447,5 @@ namespace SCP_575.Npc
                 }
             }
         }
-
-        public IEnumerator<float> DropAndPushItems(
-            LabApi.Features.Wrappers.Player player
-        )
-        {
-            Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
-            List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
-
-            // TODO Check if nessary
-            yield return Timing.WaitForOneFrame;  // let engine spawn pickups
-
-
-            foreach (var pickup in droppedPickups)
-            {
-
-                if (pickup?.Rigidbody == null)
-                {
-                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
-                    continue;
-                }
-
-                var rb = pickup.Rigidbody;
-                var dir = Scp575DamageSystem.GetRandomUnitSphereVelocity();
-                var mag = Scp575DamageSystem.CalculateForcePush();
-
-                yield return Timing.WaitForOneFrame; // ensure physics engine is ready
-
-                try
-                {
-                    rb.linearVelocity = dir * mag;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 5f;
-                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
-                }
-                catch (Exception ex)
-                {
-                    Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex}");
-                }
-
-                yield return Timing.WaitForOneFrame;  // stagger pushes
-            }
-        }
-
     }
 }

@@ -96,7 +96,7 @@ namespace SCP_575
 
             // Effects
             AudioManager.PlayDamagedScream(player, isKill: true, customLifespan: 15f);
-            Timing.RunCoroutine(_methods.DropAndPushItems(player));
+            Timing.RunCoroutine(Scp575DamageSystem.DropAndPushItems(player));
 
 
         }
