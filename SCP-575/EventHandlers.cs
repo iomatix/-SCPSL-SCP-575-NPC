@@ -1,6 +1,7 @@
 namespace SCP_575
 {
     using MEC;
+    using PlayerStatsSystem;
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
     using Shared;
@@ -57,77 +58,70 @@ namespace SCP_575
         public void OnPlayerHurting(LabApi.Events.Arguments.PlayerEvents.PlayerHurtingEventArgs ev)
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerHurting: {ev.Attacker?.Nickname ?? "SCP-575 NPC"} -> {ev.Player.Nickname}");
-            if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
-            {
-                Library_ExiledAPI.LogDebug("OnPlayerHurting", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
+                return;
 
-            }
+            Library_ExiledAPI.LogDebug("OnPlayerHurting", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
+
+
 
         }
 
         public void OnPlayerHurt(LabApi.Events.Arguments.PlayerEvents.PlayerHurtEventArgs ev)
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerHurt: {ev.Attacker?.Nickname ?? "SCP-575 NPC"} -> {ev.Player.Nickname}");
+            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
+                return;
 
-            if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
-            {
-                Library_ExiledAPI.LogDebug("OnPlayerHurt", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
 
-                LabApi.Features.Wrappers.Player player = ev.Player;
-                
-                // Play horror sound effect
-                AudioManager.PlayDamagedScream(player, isKill: false, customLifespan: 15f);
-            }
+            Library_ExiledAPI.LogDebug("OnPlayerHurt", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
+
+            LabApi.Features.Wrappers.Player player = ev.Player;
+
+            // Play horror sound effect
+            AudioManager.PlayDamagedScream(player, isKill: false, customLifespan: 15f);
+
 
         }
 
         public void OnPlayerDying(LabApi.Events.Arguments.PlayerEvents.PlayerDyingEventArgs ev)
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerDying: {ev.Player.Nickname}");
+            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
+                return;
 
-            if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
-            {
-                Library_ExiledAPI.LogDebug("OnPlayerDying", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+            Library_ExiledAPI.LogDebug("OnPlayerDying", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
 
-                LabApi.Features.Wrappers.Player player = ev.Player;
+            LabApi.Features.Wrappers.Player player = ev.Player;
 
-                // Effects
-                AudioManager.PlayDamagedScream(player, isKill: true, customLifespan: 15f);
-                Timing.RunCoroutine(_methods.DropAndPushItems(player, scp575Handler));
+            // Effects
+            AudioManager.PlayDamagedScream(player, isKill: true, customLifespan: 15f);
+            Timing.RunCoroutine(_methods.DropAndPushItems(player));
 
-            }
+
         }
 
         public void OnSpawningRagdoll(LabApi.Events.Arguments.PlayerEvents.PlayerSpawningRagdollEventArgs ev)
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawningRagdoll: {ev.Player.Nickname}");
-
-            if (ev.DamageHandler is not Scp575DamageHandler scp575Handler)
+            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
                 return;
 
-            Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+            Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
 
-            try
-            {
-                // Only set properties that aren't handled by the damage handler
-                ev.Ragdoll.Nickname = ev.Player.DisplayName;
-
-                Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"Configured ragdoll nickname for {ev.Player.Nickname}");
-            }
-            catch (Exception ex)
-            {
-                Library_ExiledAPI.LogError("OnSpawningRagdoll", $"Failed to configure ragdoll: {ex.Message}");
-            }
         }
 
         public void OnSpawnedRagdoll(LabApi.Events.Arguments.PlayerEvents.PlayerSpawnedRagdollEventArgs ev)
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawnedRagdoll: {ev.Player.Nickname}");
 
-            if (ev.DamageHandler is not Scp575DamageHandler scp575Handler)
+            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
                 return;
 
-            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
+
+            // process Ragdoll
+            Scp575DamageSystem.RagdollProcessor(ev.Ragdoll);
 
         }
 
@@ -146,11 +140,12 @@ namespace SCP_575
         public void OnPlayerDeath(LabApi.Events.Arguments.PlayerEvents.PlayerDeathEventArgs ev)
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnPlayerDeath: {ev.Player.Nickname}");
-            if (ev.DamageHandler is Scp575DamageHandler scp575Handler)
-            {
-                Library_ExiledAPI.LogDebug("OnPlayerDeath", $"The event was caused by {Scp575DamageHandler.IdentifierName}");
+            if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
+                return;
 
-            }
+            Library_ExiledAPI.LogDebug("OnPlayerDeath", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
+
+            
         }
 
     }

@@ -9,7 +9,7 @@
     /// Provides Exiled API–based utility methods for handling visual and debug feedback 
     /// during SCP-575 damage processing.
     /// </summary>
-    public static class Scp575DamageHandler_ExiledAPI
+    public static class SScp575DamageSystem_ExiledAPI
     {
 
         /// <summary>

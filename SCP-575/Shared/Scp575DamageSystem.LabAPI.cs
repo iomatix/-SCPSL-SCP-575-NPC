@@ -11,7 +11,7 @@
     /// Provides Lab API–based utility methods for handling visual and debug feedback 
     /// during SCP-575 damage processing.
     /// </summary>
-    public static class Scp575DamageHandler_LabAPI
+    public static class Scp575DamageSystem_LabAPI
     {
 
         public static void ApplyDamageEffects(Player player)
@@ -19,7 +19,7 @@
 
             var effectActions = new List<(bool Enabled, Action Apply)>
             {
-                
+
                 (Library_LabAPI.NpcConfig.EnableEffectEnsnared,      () => player.EnableEffect<Ensnared>(duration: 0.35f)),
                 (Library_LabAPI.NpcConfig.EnableEffectFlashed,       () => player.EnableEffect<Flashed>(duration: 0.075f)),
                 (Library_LabAPI.NpcConfig.EnableEffectBlurred,       () => player.EnableEffect<Blurred>(duration: 0.25f)),

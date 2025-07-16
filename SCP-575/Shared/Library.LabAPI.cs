@@ -8,15 +8,12 @@
     public static class Library_LabAPI
     {
 
-        // Getters 
-
+        #region Getters
         public static Plugin Plugin => Plugin.Singleton;
         public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
         public static Config Config => Plugin.Config;
 
-
         public static IReadOnlyCollection<Player> Players => Player.List;
-
 
         public static IReadOnlyCollection<Room> Rooms => Room.List;
 
@@ -30,6 +27,9 @@
             return Ragdoll.Get(ragdoll);
         }
 
+        #endregion
+
+        #region Utilities
         public static bool IsPlayerInDarkRoom(Player player)
         {
             // Remove debug logging for performance  
@@ -38,19 +38,23 @@
 
             return !room.LightController.LightsEnabled;
         }
+        #endregion
 
-        // Cassie methods for the plugin
+        #region Cassie methods
         public static void Cassie_Clear() => Cassie.Clear();
+
         public static void Cassie_GlitchyMessage(string message) => Cassie.GlitchyMessage(message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
 
         public static void Cassie_Message(string message) => Cassie.Message(message, isNoisy: false, isSubtitles: false);
+        #endregion
 
-        // Adapters
+        #region Adapters
 
         public static Player ToLabApiPlayer(Exiled.API.Features.Player exPlayer)
         {
             return Player.Get(exPlayer.ReferenceHub);
         }
+        #endregion
 
     }
 }

@@ -426,11 +426,10 @@ namespace SCP_575.Npc
 
                             float rawDamage = Config.KeterDamage * blackoutStacks;
                             float clampedDamage = Mathf.Max(rawDamage, 1f);
-                            Scp575DamageHandler damageHandler = new Scp575DamageHandler(damage: clampedDamage);
 
                             yield return Timing.WaitForOneFrame; // Ensure engine is ready before applying damage
 
-                            damageHandler.DamagePlayer(player);
+                            Scp575DamageSystem.DamagePlayer(player, clampedDamage);
 
                             if (Config.EnableKeterBroadcast)
                             {
@@ -450,8 +449,7 @@ namespace SCP_575.Npc
         }
 
         public IEnumerator<float> DropAndPushItems(
-            LabApi.Features.Wrappers.Player player,
-            Scp575DamageHandler scp575Handler
+            LabApi.Features.Wrappers.Player player
         )
         {
             Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
@@ -471,8 +469,8 @@ namespace SCP_575.Npc
                 }
 
                 var rb = pickup.Rigidbody;
-                var dir = scp575Handler.GetRandomUnitSphereVelocity();
-                var mag = scp575Handler.CalculateForcePush();
+                var dir = Scp575DamageSystem.GetRandomUnitSphereVelocity();
+                var mag = Scp575DamageSystem.CalculateForcePush();
 
                 yield return Timing.WaitForOneFrame; // ensure physics engine is ready
 
@@ -487,7 +485,6 @@ namespace SCP_575.Npc
                     Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex}");
                 }
 
-                // TODO Check if nessary
                 yield return Timing.WaitForOneFrame;  // stagger pushes
             }
         }

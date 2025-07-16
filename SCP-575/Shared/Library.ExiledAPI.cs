@@ -8,11 +8,9 @@
     public static class Library_ExiledAPI
     {
 
+        #region Getters
 
-
-        // Getters 
-
-        public static  Plugin Plugin => Plugin.Singleton;
+        public static Plugin Plugin => Plugin.Singleton;
         public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
         public static SCP_575.Config Config => Plugin.Config;
 
@@ -22,8 +20,9 @@
 
         public static IReadOnlyCollection<Exiled.API.Features.TeslaGate> TeslaGates => Exiled.API.Features.TeslaGate.List;
 
+        #endregion
 
-        // Loader methods for the plugin
+        #region Loader Methods
 
         public static int Loader_Random_Next(int range = 100) => Loader.Random.Next(range);
 
@@ -31,15 +30,16 @@
 
         public static double Loader_Random_NextDouble() => Loader.Random.NextDouble();
 
-        // Cassie methods for the plugin
+        #endregion
+
+        #region Cassie methods
         public static void Cassie_Clear() => Cassie.Clear();
         public static void Cassie_GlitchyMessage(string message) => Cassie.GlitchyMessage(message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
 
         public static void Cassie_Message(string message) => Cassie.Message(message, false, false, false);
+        #endregion
 
-
-
-        // Logging methods for the plugin
+        #region Logging methods
         public static void LogDebug(string moduleId, string message)
         {
             Log.Debug($"[{moduleId}] {message}");
@@ -60,11 +60,14 @@
             Log.Error($"[{moduleId}] {message}");
         }
 
-        // Adapters
+        #endregion
+
+        #region Adapters
         public static Player ToExiledPlayer(LabApi.Features.Wrappers.Player labPlayer)
         {
             return Player.Get(labPlayer.ReferenceHub);
         }
+        #endregion
 
     }
 }
