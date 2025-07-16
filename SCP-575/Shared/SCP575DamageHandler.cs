@@ -213,7 +213,17 @@
 
         #endregion
 
-        #region Damage Processing  
+        #region Damage Processing 
+
+        /// <summary>  
+        /// Applies damage to the specified player. Use this method to damage target player.
+        /// </summary>  
+        /// <param name="target">The reference of the LabApi.Features.Wrappers.Player receiving damage.</param>
+        /// <returns>The boolean result of the damage application.</returns>
+        public bool Damage(LabApi.Features.Wrappers.Player target)
+        {
+            return target.Damage(this);
+        } 
 
         /// <summary>  
         /// Applies damage to the specified player and handles SCP-575 specific effects.
@@ -279,10 +289,12 @@
             Library_ExiledAPI.LogDebug("ProcessDamage",
                 $"Processing base for ProcessDamage(ply) after multipliers: {Damage:F1} for player: {ply.nicknameSync.MyNick}");
 
-            base.ProcessDamage(ply);
-
             // Handle armor interactions for armored roles  
             ProcessArmorInteraction(ply);
+
+            base.ProcessDamage(ply);
+
+
         }
 
         /// <summary>  

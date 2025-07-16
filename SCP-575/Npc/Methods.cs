@@ -430,7 +430,7 @@ namespace SCP_575.Npc
 
                             yield return Timing.WaitForOneFrame; // Ensure engine is ready before applying damage
 
-                            player.Damage(damageHandler);
+                            damageHandler.Damage(player);
 
                             if (Config.EnableKeterBroadcast)
                             {
