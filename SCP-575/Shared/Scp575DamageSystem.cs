@@ -248,10 +248,6 @@
             Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
                 $"Replacing ragdoll for {player.Nickname} at position: {originalRagdoll.Position}");
 
-            // Disable Exiled's ragdoll freeze window
-            int tempFreezeTime = Exiled.API.Features.Ragdoll.FreezeTime;
-            Exiled.API.Features.Ragdoll.FreezeTime = 0;
-
             // Calculate physics before destroying original
             Vector3 upwardVelocity = Vector3.up * CalculateForcePush(2.5f);
             Vector3 randomVelocity = GetRandomUnitSphereVelocity(2.5f);
