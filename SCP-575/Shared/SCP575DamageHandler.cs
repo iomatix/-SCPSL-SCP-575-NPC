@@ -144,6 +144,9 @@
         /// </remarks>  
         public Scp575DamageHandler() : base("SCP-575 Constructor Reason", 0.0f, "")
         {
+            _deathReasonFormat = Scp575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;  
+            _penetration = 0f; // Default value for deserialization  
+            _useHumanHitboxes = true; // Default value  
             _deathReasonFormat = Scp575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
         }
 
