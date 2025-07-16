@@ -126,7 +126,7 @@ namespace SCP_575.Npc
             {
                 Exiled.API.Features.Map.TurnOffAllLights(blackoutDuration, zone);
                 Library_ExiledAPI.LogDebug("AttemptZoneBlackout", $"Attempting to trigger blackout in zone {zone} with chance {chance}% and duration {blackoutDuration} seconds.");
-                TriggerCassieMessage(cassieMessage, true);
+                if (!IsBlackoutActive) TriggerCassieMessage(cassieMessage, true);
 
                 if (disableSystems)
                 {
@@ -149,7 +149,7 @@ namespace SCP_575.Npc
             }
 
             DisableFacilitySystems(blackoutDuration);
-            TriggerCassieMessage(Config.CassieMessageFacility, true);
+            if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageFacility, true);
         }
 
         private bool HandleRoomSpecificBlackout(float blackoutDuration)
@@ -186,7 +186,7 @@ namespace SCP_575.Npc
                         HandleRoomBlackout(room, blackoutDuration);
                         if (!triggeredZones.Contains(Exiled.API.Enums.ZoneType.HeavyContainment))
                         {
-                            TriggerCassieMessage(Config.CassieMessageHeavy);
+                            if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageHeavy);
                             triggeredZones.Add(Exiled.API.Enums.ZoneType.HeavyContainment);
                             Library_ExiledAPI.LogDebug("AttemptRoomBlackout", $"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
@@ -199,7 +199,7 @@ namespace SCP_575.Npc
                         HandleRoomBlackout(room, blackoutDuration);
                         if (!triggeredZones.Contains(Exiled.API.Enums.ZoneType.LightContainment))
                         {
-                            TriggerCassieMessage(Config.CassieMessageLight);
+                            if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageLight);
                             triggeredZones.Add(Exiled.API.Enums.ZoneType.LightContainment);
                             Library_ExiledAPI.LogDebug("AttemptRoomBlackout", $"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
@@ -212,7 +212,7 @@ namespace SCP_575.Npc
                         HandleRoomBlackout(room, blackoutDuration);
                         if (!triggeredZones.Contains(Exiled.API.Enums.ZoneType.Entrance))
                         {
-                            TriggerCassieMessage(Config.CassieMessageEntrance);
+                            if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageEntrance);
                             triggeredZones.Add(Exiled.API.Enums.ZoneType.Entrance);
                             Library_ExiledAPI.LogDebug("AttemptRoomBlackout", $"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
@@ -225,7 +225,7 @@ namespace SCP_575.Npc
                         HandleRoomBlackout(room, blackoutDuration);
                         if (!triggeredZones.Contains(Exiled.API.Enums.ZoneType.Surface))
                         {
-                            TriggerCassieMessage(Config.CassieMessageSurface);
+                            if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageSurface);
                             triggeredZones.Add(Exiled.API.Enums.ZoneType.Surface);
                             Library_ExiledAPI.LogDebug("AttemptRoomBlackout", $"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
@@ -238,7 +238,7 @@ namespace SCP_575.Npc
                         HandleRoomBlackout(room, blackoutDuration);
                         if (!triggeredZones.Contains(Exiled.API.Enums.ZoneType.Other))
                         {
-                            TriggerCassieMessage(Config.CassieMessageOther);
+                            if (!IsBlackoutActive) TriggerCassieMessage(Config.CassieMessageOther);
                             triggeredZones.Add(Exiled.API.Enums.ZoneType.Other);
                             Library_ExiledAPI.LogDebug("AttemptRoomBlackout", $"Blackout triggered in room {room.Name} of type {room.Type} with blackout duration {blackoutDuration} seconds.");
                         }
