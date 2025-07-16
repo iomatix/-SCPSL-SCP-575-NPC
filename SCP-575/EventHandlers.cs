@@ -101,6 +101,7 @@ namespace SCP_575
 
         }
 
+
         public void OnSpawningRagdoll(LabApi.Events.Arguments.PlayerEvents.PlayerSpawningRagdollEventArgs ev)
         {
             Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawningRagdoll: {ev.Player.Nickname}");
@@ -108,6 +109,7 @@ namespace SCP_575
                 return;
 
             Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
+            Library_ExiledAPI.LogDebug("OnSpawningRagdoll", $"The event caused by {ev.Ragdoll.Nickname} Ragdoll at {ev.Ragdoll.Position}");
 
         }
 
@@ -121,7 +123,11 @@ namespace SCP_575
             Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
 
             // process Ragdoll
-            Scp575DamageSystem.RagdollProcessor(ev.Ragdoll);
+            LabApi.Features.Wrappers.Ragdoll eventRagdoll = ev.Ragdoll;
+            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Trying to process {ev.Ragdoll.Nickname} Ragdoll at {ev.Ragdoll.Position}");
+            
+            // TODO:
+            Scp575DamageSystem.ReplaceRagdollWithPhysics(ev.Player, ev.Ragdoll);
 
         }
 

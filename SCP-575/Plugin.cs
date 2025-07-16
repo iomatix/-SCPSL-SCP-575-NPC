@@ -1,10 +1,8 @@
 namespace SCP_575
 {
     using MEC;
-    using SCP_575.Npc;
     using SCP_575.Shared;
     using System;
-    using Server = Exiled.Events.Handlers.Server;
 
     public class Plugin : Exiled.API.Features.Plugin<Config>
     {
@@ -15,7 +13,7 @@ namespace SCP_575
         public override string Prefix { get; } = "SCP575";
 
 
-        public override Version Version { get; } = new(7, 2, 8);
+        public override Version Version { get; } = new(7, 2, 12);
         public override Version RequiredExiledVersion { get; } = new(9, 6, 0);
 
         public EventHandlers EventHandlers { get; private set; }
@@ -43,6 +41,7 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.Hurt += EventHandlers.OnPlayerHurt;
             LabApi.Events.Handlers.PlayerEvents.Dying += EventHandlers.OnPlayerDying;
             LabApi.Events.Handlers.PlayerEvents.Death += EventHandlers.OnPlayerDeath;
+
             LabApi.Events.Handlers.PlayerEvents.SpawningRagdoll += EventHandlers.OnSpawningRagdoll;
             LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll += EventHandlers.OnSpawnedRagdoll;
 

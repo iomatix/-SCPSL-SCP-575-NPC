@@ -1,5 +1,6 @@
 ﻿namespace SCP_575.Shared
 {
+    using Exiled.API.Features.Roles;
     using InventorySystem.Items.Armor;
     using MEC;
     using PlayerRoles;
@@ -201,7 +202,7 @@
 
             Library_ExiledAPI.LogDebug("RagdollProcess", $"Processing SCP-575 ragdoll at position: {ragdoll.Position}");
 
-            ApplyStandardRagdollPhysics(ragdoll);
+            MEC.Timing.RunCoroutine(ApplyStandardRagdollPhysics(ragdoll));
 
             Library_ExiledAPI.LogDebug("RagdollProcess", "SCP-575 ragdoll processing completed successfully");
         }
@@ -211,32 +212,133 @@
         /// Used for original ragdolls without bone conversion.  
         /// </summary>  
         /// <param name="ragdoll">The LabAPI ragdoll wrapper to apply physics to.</param>  
-        private static void ApplyStandardRagdollPhysics(LabApi.Features.Wrappers.Ragdoll ragdoll)
+        public static IEnumerator<float> ApplyStandardRagdollPhysics(LabApi.Features.Wrappers.Ragdoll ragdoll)
         {
+            // Wait for ragdoll to fully initialize (outside try-catch)  
+            yield return Timing.WaitForSeconds(0.25f);
+
+            // Validate ragdoll position (outside try-catch)  
+            Vector3 ragdollPos = ragdoll.Position;
+            if (ragdollPos.magnitude < 1f)
+            {
+                Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics",
+                    $"Ragdoll still at origin-like position {ragdollPos}, waiting additional time");
+                yield return Timing.WaitForSeconds(0.35f);
+                ragdollPos = ragdoll.Position;
+            }
+
+
+            RoleTypeId role;
+            string nickname;
+            Quaternion rotation;
+            CustomReasonDamageHandler customHandler;
+
+            Vector3 upwardVelocity;
+            Vector3 randomVelocity;
+            Vector3 combinedVelocity;
             try
             {
-                Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on ragdoll at {ragdoll.Position}");
+                Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics",
+                    $"Spawning new ragdoll with physics at position {ragdollPos}");
 
-                if (ragdoll.Base.TryGetComponent<Rigidbody>(out var mainRigidbody))
+                // Get ragdoll properties before destroying  
+                role = ragdoll.Role;
+                nickname = ragdoll.Nickname;
+                rotation = ragdoll.Rotation;
+
+                // Create custom damage handler  
+                customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
+
+                // Calculate initial velocity  
+                upwardVelocity = Vector3.up * CalculateForcePush(2.5f);
+                randomVelocity = GetRandomUnitSphereVelocity(2.5f);
+                combinedVelocity = upwardVelocity + randomVelocity;
+
+                // Destroy the old ragdoll  
+                ragdoll.Destroy();
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to prepare ragdoll replacement: {ex.Message}");
+                yield break; // Exit the coroutine on error  
+            }
+
+            // Wait for destruction to complete (outside try-catch)
+            yield return Timing.WaitForOneFrame;
+
+            // Spawn new ragdoll in separate try-catch  
+            try
+            {
+                var newRagdoll = LabApi.Features.Wrappers.Ragdoll.SpawnRagdoll(
+                    role,
+                    ragdollPos,
+                    rotation,
+                    customHandler,
+                    nickname
+                );
+
+                if (newRagdoll != null)
                 {
-                    Vector3 upwardVelocity = Vector3.up * CalculateForcePush(2.5f);
-                    Vector3 randomVelocity = GetRandomUnitSphereVelocity(2.5f);
+                    // Apply physics immediately (no yield needed here)  
+                    if (newRagdoll.Base.TryGetComponent<Rigidbody>(out var newRigidbody))
+                    {
+                        newRigidbody.linearVelocity = combinedVelocity;
+                        newRigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier;
 
-                    // Direct velocity assignment instead of AddForce
-                    mainRigidbody.linearVelocity += upwardVelocity + randomVelocity;
-                    mainRigidbody.angularVelocity += UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier;
-
-                    Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics",
-                        $"Applied velocity directly - Combined: {upwardVelocity + randomVelocity}");
+                        Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics",
+                            $"Applied velocity to new ragdoll - Combined: {combinedVelocity}");
+                    }
                 }
                 else
                 {
-                    Library_ExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbody found on standard ragdoll");
+                    Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", "Failed to spawn new ragdoll");
                 }
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply standard ragdoll physics: {ex.Message}");
+                Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to spawn new ragdoll with physics: {ex.Message}");
+            }
+        }
+
+        public static void ReplaceRagdollWithPhysics(LabApi.Features.Wrappers.Player player, LabApi.Features.Wrappers.Ragdoll originalRagdoll)
+        {
+            if (player == null || originalRagdoll == null)
+                return;
+
+            Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
+                $"Replacing ragdoll for {player.Nickname} at position: {originalRagdoll.Position}");
+
+            // Calculate physics before destroying original  
+            Vector3 upwardVelocity = Vector3.up * CalculateForcePush(2.5f);
+            Vector3 randomVelocity = GetRandomUnitSphereVelocity(2.5f);
+            Vector3 combinedVelocity = upwardVelocity + randomVelocity;
+
+            // Create custom damage handler  
+            var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
+
+            // Store original ragdoll position before destroying  
+            Vector3 ragdollPosition = player.Position;
+            Quaternion ragdollRotation = player.Rotation;
+
+            // Destroy the original ragdoll  
+            originalRagdoll.Destroy();
+
+            // Spawn new ragdoll using player data  
+            var newRagdoll = LabApi.Features.Wrappers.Ragdoll.SpawnRagdoll(
+                player.Role,
+                ragdollPosition,
+                ragdollRotation,
+                customHandler,
+                player.DisplayName
+            );
+
+            if (newRagdoll != null && newRagdoll.Base.TryGetComponent<Rigidbody>(out var rigidbody))
+            {
+                rigidbody.linearVelocity = combinedVelocity;
+                rigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier;
+
+                Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
+                    $"Applied physics to new ragdoll - Velocity: {combinedVelocity}");
             }
         }
 
@@ -305,7 +407,6 @@
 
             foreach (var pickup in droppedPickups)
             {
-
                 if (pickup?.Rigidbody == null)
                 {
                     Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
