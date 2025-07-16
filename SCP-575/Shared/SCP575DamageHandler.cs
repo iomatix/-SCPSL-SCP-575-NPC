@@ -142,7 +142,7 @@
         /// This constructor is primarily used for deserialization and should not be called directly.
         /// Use the parameterized constructor for normal instantiation.
         /// </remarks>  
-        public Scp575DamageHandler() : base("SC-575 Constructor Reason", 0.0f, "")
+        public Scp575DamageHandler() : base("SCP-575 Constructor Reason", 0.0f, "")
         {
             _deathReasonFormat = Scp575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
         }
