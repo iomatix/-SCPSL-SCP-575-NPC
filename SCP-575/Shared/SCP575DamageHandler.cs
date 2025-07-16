@@ -335,35 +335,38 @@
             Library_ExiledAPI.LogDebug("ProcessRagdoll",
                 $"Attacker: {Attacker.Hub?.nicknameSync.MyNick ?? "NULL"}");
 
-            // Store the original position before base processing to prevent physics displacement
             Vector3 originalPosition = ragdoll.transform.position;
 
-            // Call base processing which applies standard ragdoll effects and physics forces
-            base.ProcessRagdoll(ragdoll);
+            // Call base processing  
+            try
+            {
+                Library_ExiledAPI.LogDebug("ProcessRagdoll", "Calling base.ProcessRagdoll");
+                base.ProcessRagdoll(ragdoll);
+                Library_ExiledAPI.LogDebug("ProcessRagdoll", "base.ProcessRagdoll completed successfully");
+            }
+            catch (System.Exception ex)
+            {
+                Library_ExiledAPI.LogError("ProcessRagdoll", $"base.ProcessRagdoll failed: {ex.Message}");
+                Library_ExiledAPI.LogError("ProcessRagdoll", $"Stack trace: {ex.StackTrace}");
+                throw; // Re-throw
+            }
 
-            // Immediately restore the original position to prevent unwanted movement
-            ragdoll.transform.position = originalPosition;
-
-            // Update NetworkInfo to synchronize the restored position across all clients
-            ragdoll.NetworkInfo = new RagdollData(
-                ragdoll.NetworkInfo.OwnerHub,
-                ragdoll.NetworkInfo.Handler,
-                ragdoll.NetworkInfo.RoleType,
-                originalPosition, // Use original position to prevent displacement
-                ragdoll.NetworkInfo.StartRotation,
-                ragdoll.NetworkInfo.Scale,
-                ragdoll.NetworkInfo.Nickname,
-                ragdoll.NetworkInfo.CreationTime
-            );
-
-            Library_ExiledAPI.LogDebug("ProcessRagdoll",
-                $"Restored ragdoll position to: {originalPosition}");
-
-            // Convert BasicRagdoll to LabAPI wrapper and call helper  
+            // Get LabAPI wrapper immediately after base processing  
             LabApi.Features.Wrappers.Ragdoll labRagdoll = Library_LabAPI.GetRagdoll(ragdoll);
-            Scp575Helpers.RagdollProcess(labRagdoll, this);
 
-            Library_ExiledAPI.LogDebug("ProcessRagdoll", $"Processed SCP-575 ragdoll with bone conversion");
+            // Force immediate synchronization using LabAPI's Position property  
+            labRagdoll.Position = originalPosition;
+
+            // Add a small delay to ensure network synchronization completes  
+            MEC.Timing.CallDelayed(0.05f, () => {
+                if (labRagdoll?.Base != null)
+                {
+                    labRagdoll.Position = originalPosition; // Second sync attempt  
+                    Scp575Helpers.RagdollProcess(labRagdoll, this);
+                }
+            });
+
+            Library_ExiledAPI.LogDebug("ProcessRagdoll", $"Processed SCP-575 ragdoll with delayed helper call");
         }
 
         #endregion
