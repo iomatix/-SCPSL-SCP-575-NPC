@@ -17,7 +17,7 @@
     /// This handler extends <see cref="AttackerDamageHandler"/> to provide SCP-575 specific functionality  
     /// including custom death messages, armor penetration, and controlled ragdoll positioning.
     /// </remarks>  
-    public sealed class Scp575DamageHandler : AttackerDamageHandler
+    public sealed class Scp575DamageHandler : CustomReasonDamageHandler
     {
         #region Constants and Static Properties  
 
@@ -95,12 +95,12 @@
         /// Gets a value indicating whether this damage handler allows self-damage.
         /// SCP-575 cannot damage itself.
         /// </summary>  
-        public override bool AllowSelfDamage => false;
+        public bool AllowSelfDamage => false;
 
         /// <summary>  
         /// Gets or sets the attacker's footprint for tracking purposes.
         /// </summary>  
-        public override Footprint Attacker { get; set; }
+        public Footprint Attacker { get; set; }
 
         /// <summary>  
         /// Gets the CASSIE announcement for deaths caused by this handler.
@@ -142,7 +142,7 @@
         /// This constructor is primarily used for deserialization and should not be called directly.
         /// Use the parameterized constructor for normal instantiation.
         /// </remarks>  
-        public Scp575DamageHandler()
+        public Scp575DamageHandler() : base("SC-575 Constructor Reason", 0.0f, "")
         {
             _deathReasonFormat = Scp575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
         }
