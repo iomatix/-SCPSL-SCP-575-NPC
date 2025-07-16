@@ -164,6 +164,7 @@
                 $"Handler initialized with damage: {damage}, Attacker: {attacker?.Nickname ?? "SCP-575 NPC"}");
 
             Damage = damage;
+            _deathReasonFormat = Scp575DeathTranslations.CustomDeathTranslation_arg1.RagdollTranslation;
             _penetration = Library_LabAPI.NpcConfig.KeterDamagePenetration;
             _useHumanHitboxes = useHumanMultipliers;
 
