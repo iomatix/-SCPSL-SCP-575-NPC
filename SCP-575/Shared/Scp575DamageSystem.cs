@@ -194,8 +194,7 @@
         /// <summary>  
         /// Processes an SCP-575 ragdoll with visual effects and validation using LabAPI synchronization.  
         /// </summary>  
-        /// <param name="ragdoll">The LabAPI ragdoll wrapper to process.</param>  
-        /// <param name="handler">The SCP-575 damage handler that caused the death.</param>  
+        /// <param name="ragdoll">The LabAPI ragdoll wrapper to process.</param>   
         /// <exception cref="ArgumentNullException">Thrown when ragdoll or handler is null.</exception>  
         public static void RagdollProcessor(LabApi.Features.Wrappers.Ragdoll ragdoll)
         {
