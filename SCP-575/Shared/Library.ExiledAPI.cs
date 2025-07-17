@@ -3,8 +3,10 @@
     using Exiled.API.Features;
     using Exiled.Loader;
     using SCP_575.ConfigObjects;
+    using System;
     using System.Collections.Generic;
     using System.Linq;
+    using UnityEngine;
 
     public static class Library_ExiledAPI
     {
@@ -47,6 +49,41 @@
             return Generator.List.Any(gen => gen.Room == room && gen.IsEngaged);
         }
 
+        public static bool IsRoomAndNeighborsFreeOfEngagedGenerators(Room room)
+        {
+            return !Generator.List.Any(gen =>
+                gen.IsEngaged
+                && (gen.Room == room || room.NearestRooms.Contains(gen.Room))
+            );
+        }
+
+        /// <summary>  
+        /// Enables and flickers lights in the specified room and all its neighboring rooms.  
+        /// </summary>  
+        /// <param name="labRoom">The LabAPI room where the generator was activated</param>  
+        public static void EnableAndFlickerRoomAndNeighborLights(Room room)
+        {
+
+            if (room != null)
+            {
+                // Turn on & flicker lights in the main room  
+                room.RoomLightController.LightsEnabled = true;
+                room.RoomLightController.ServerFlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
+
+                // Process all neighboring rooms  
+                foreach (var neighbor in room.NearestRooms)
+                {
+                    Library_ExiledAPI.LogDebug(
+                        "EnableAndFlickerRoomLights",
+                        $"Also flickering lights in neighbor room: {neighbor.Name}"
+                    );
+
+                    neighbor.RoomLightController.LightsEnabled = true;
+                    neighbor.RoomLightController.ServerFlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
+                }
+            }
+        }
+
         #endregion
 
         #region Logging methods
@@ -80,8 +117,7 @@
         /// <returns>The Exiled player or null if input is null.</returns>  
         public static Player? ToExiledPlayer(LabApi.Features.Wrappers.Player? labApiPlayer)
         {
-            if (labApiPlayer?.ReferenceHub == null)
-                return null;
+            if (labApiPlayer?.ReferenceHub == null) return null;
 
             return Player.Get(labApiPlayer.ReferenceHub);
         }
@@ -93,11 +129,25 @@
         /// <returns>The Exiled ragdoll or null if input is null.</returns>  
         public static Ragdoll? ToExiledRagdoll(LabApi.Features.Wrappers.Ragdoll? labApiRagdoll)
         {
-            if (labApiRagdoll?.Base == null)
-                return null;
+            if (labApiRagdoll?.Base == null) return null;
 
             return Ragdoll.Get(labApiRagdoll.Base);
         }
+
+        /// <summary>
+        /// Converts a LabAPI Room wrapper into its corresponding Exiled Room,
+        /// matching by world position using the static Distance(a,b).
+        /// </summary>
+        public static Room? ToExiledRoom(LabApi.Features.Wrappers.Room? labApiRoom)
+        {
+            if (labApiRoom == null) return null;
+
+            // Use your static Distance method to compare positions:
+            return Room.List
+                .FirstOrDefault(r => Scp575Helpers.Distance(r.Position, labApiRoom.Position) < 0.5f);
+        }
+
+
         #endregion
 
     }

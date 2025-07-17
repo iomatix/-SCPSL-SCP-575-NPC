@@ -50,18 +50,23 @@ namespace SCP_575.Npc
             Coroutines.Clear();
         }
 
+
+        /// <summary>
+        /// Called when a LabAPI generator is flipped on.  
+        /// Enables & flickers lights in that room and all its neighbors, plays a global sound,
+        /// then checks whether all generators are active to drive your SCP-575 logic.
+        /// </summary>
         public void OnGeneratorActivated(LabApi.Events.Arguments.ServerEvents.GeneratorActivatedEventArgs ev)
         {
+            // 1) Grab the LabAPI room where the generator was activated as Exiled room.
+            Exiled.API.Features.Room exiledRoom = Library_ExiledAPI.ToExiledRoom(ev.Generator.Room);
+            Library_ExiledAPI.LogDebug("OnGeneratorActivated", $"Generator activated in room: {exiledRoom.Name}");
+            Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(exiledRoom);
 
-            LabApi.Features.Wrappers.Room room = ev.Generator.Room;
-            Library_ExiledAPI.LogDebug("OnGeneratorActivated", $"Generator activated in room: {room.Name}");
-            // Flicker or Turn ON lights depending on your aesthetic
-            room.LightController.LightsEnabled = true;
-            room.LightController.FlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
-
-            // Play creepy global sound
+            // 4) Creepy audio cue
             AudioManager.PlayGlobalSound("scream-angry");
 
+            // 5) If all generators are up, trigger your SCP-575 behavior
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
                 if (Library_LabAPI.NpcConfig.IsNpcKillable)
@@ -84,17 +89,9 @@ namespace SCP_575.Npc
             if (room == null || !room.AreLightsOff || !_plugin.Npc.Methods.IsBlackoutActive) return;
 
             Library_ExiledAPI.LogDebug("OnGrenadeExploded", $"Grenade or disruptor used in dark SCP-575 room: {room.Name}");
-            room.RoomLightController.ServerFlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
+            Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
 
             _plugin.Npc.Methods.AngryGlobalSound();
-            foreach (Exiled.API.Features.Room r in room.NearestRooms)
-            {
-                if (r.AreLightsOff)
-                {
-                    r.RoomLightController.ServerFlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
-                    Library_ExiledAPI.LogDebug("OnGrenadeExploded", $"Nearest room impacted by explosion: {r.Name}");
-                }
-            }
 
         }
     }

@@ -15,6 +15,16 @@
     public static class Scp575Helpers
     {
 
+        /// <summary>
+        /// Calculates Euclidean distance between two Vector3 points.
+        /// </summary>
+        public static float Distance(Vector3 a, Vector3 b)
+        {
+            float dx = a.x - b.x;
+            float dy = a.y - b.y;
+            float dz = a.z - b.z;
+            return (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+        }
 
     }
 }

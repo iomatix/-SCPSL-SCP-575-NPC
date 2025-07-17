@@ -45,6 +45,36 @@
             return Generator.List.Any(gen => gen.Room == room && gen.Engaged);
         }
 
+        /// <summary>  
+        /// Enables and flickers lights in the specified room and all its neighboring rooms.  
+        /// </summary>  
+        /// <param name="labRoom">The LabAPI room where the generator was activated</param>  
+        public static void EnableAndFlickerRoomAndNeighborLights(LabApi.Features.Wrappers.Room labRoom)
+        {
+            // Convert LabAPI room to Exiled room to access neighbors  
+            Exiled.API.Features.Room exiledRoom = Library_ExiledAPI.ToExiledRoom(labRoom);
+            Library_ExiledAPI.LogDebug("EnableAndFlickerRoomLights", $"Processing room: {exiledRoom?.Name}");
+
+            if (exiledRoom != null)
+            {
+                // Turn on & flicker lights in the main room  
+                exiledRoom.RoomLightController.LightsEnabled = true;
+                exiledRoom.RoomLightController.ServerFlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
+
+                // Process all neighboring rooms  
+                foreach (var neighbor in exiledRoom.NearestRooms)
+                {
+                    Library_ExiledAPI.LogDebug(
+                        "EnableAndFlickerRoomLights",
+                        $"Also flickering lights in neighbor room: {neighbor.Name}"
+                    );
+
+                    neighbor.RoomLightController.LightsEnabled = true;
+                    neighbor.RoomLightController.ServerFlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
+                }
+            }
+        }
+
         #endregion
 
         #region Cassie methods
@@ -64,8 +94,7 @@
         /// <returns>The LabAPI player wrapper or null if input is null.</returns>  
         public static LabApi.Features.Wrappers.Player? ToLabAPIPlayer(Exiled.API.Features.Player? exiledPlayer)
         {
-            if (exiledPlayer?.ReferenceHub == null)
-                return null;
+            if (exiledPlayer?.ReferenceHub == null) return null;
 
             return LabApi.Features.Wrappers.Player.Get(exiledPlayer.ReferenceHub);
         }
@@ -78,12 +107,22 @@
         /// <returns>The LabAPI ragdoll wrapper or null if input is null.</returns>  
         public static Ragdoll? ToLabAPIRagdoll(Exiled.API.Features.Ragdoll? exiledRagdoll)
         {
-            if (exiledRagdoll?.Base == null)
-                return null;
+            if (exiledRagdoll?.Base == null) return null;
 
             return Ragdoll.Get(exiledRagdoll.Base);
         }
 
+        /// <summary>
+        /// Converts an Exiled Room back into the LabAPI wrapper,
+        /// matching by world position using the static Distance(a,b).
+        /// </summary>
+        public static Room? ToLabApiRoom(this Exiled.API.Features.Room? exiledRoom)
+        {
+            if (exiledRoom == null) return null;
+
+            return Room.List
+                .FirstOrDefault(r => Scp575Helpers.Distance(r.Position, exiledRoom.Position) < 0.5f);
+        }
 
         #endregion
 

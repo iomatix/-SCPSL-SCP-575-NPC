@@ -207,7 +207,7 @@ namespace SCP_575.Npc
 
         private bool AttemptRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration)
         {
-            if (!Library_ExiledAPI.IsRoomFreeOfEngagedGenerators(room)) return false; // Darkness won't spawn within the engaged generator rooms
+            if (!Library_ExiledAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return false; // Darkness won't spawn within the engaged generator rooms
 
             switch (room.Zone)
             {
@@ -283,7 +283,7 @@ namespace SCP_575.Npc
 
         private void HandleRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration)
         {
-            if (!Library_ExiledAPI.IsRoomFreeOfEngagedGenerators(room)) return; // Darkness won't spawn within the engaged generator rooms
+            if (!Library_ExiledAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return; // Darkness won't spawn within the engaged generator rooms
 
             if (Config.DisableTeslas && room.Type.Equals(Exiled.API.Enums.RoomType.HczTesla))
             {
@@ -305,7 +305,7 @@ namespace SCP_575.Npc
         {
             foreach (Exiled.API.Features.Room room in Library_ExiledAPI.Rooms)
             {
-                if (!Library_ExiledAPI.IsRoomFreeOfEngagedGenerators(room)) return; // Darkness won't spawn within the engaged generator rooms
+                if (!Library_ExiledAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return; // Darkness won't spawn within the engaged generator rooms
                 room.TurnOffLights(blackoutDuration);
                 Library_ExiledAPI.LogDebug("DisableFacilitySystems", $"Turning off lights in room {room.Name} for {blackoutDuration} seconds.");
             }
@@ -520,14 +520,16 @@ namespace SCP_575.Npc
 
         public bool IsDangerousToScp575(LabApi.Features.Wrappers.Projectile projectile)
         {
+            if (projectile == null) return false;
+
             // Check the item type of the projectile  
             return projectile.Type switch
             {
-                ItemType.GrenadeHE => true,        // Hand grenades  
-                ItemType.GrenadeFlash => true,     // Flashbangs    
-                ItemType.SCP2176 => true,          // Disruptor-like effects  
-                ItemType.SCP018 => true,           // SCP-018 (Super Ball)  
-                ItemType.Jailbird => true,         // Jailbird (can explode) 
+                ItemType.GrenadeHE => true,
+                ItemType.GrenadeFlash => true,
+                ItemType.SCP018 => true,
+                ItemType.Jailbird => true,
+                ItemType.ParticleDisruptor => true,
                 _ => false
             };
         }
