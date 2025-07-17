@@ -35,6 +35,9 @@ namespace SCP_575.ConfigObjects
         [Description("Whether or not people in dark rooms should take damage if they have no light source in their hand.")]
         public bool EnableKeter { get; private set; } = true;
 
+        [Description("Specifies whether SCP-575 can be terminated when all generators are engaged. If set to false, generator activation only halts SCP-575's behavior and resets its event state without killing it.")]
+        public bool IsNpcKillable { get; private set; } = false;
+
         [Description("Whether or not to inform players about being damaged by SCP-575 via Broadcast messages.")]
         public bool EnableKeterBroadcast { get; private set; } = true;
 

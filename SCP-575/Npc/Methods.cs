@@ -5,6 +5,7 @@ namespace SCP_575.Npc
     using Shared;
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
 
     public class Methods
@@ -21,7 +22,7 @@ namespace SCP_575.Npc
         /// Public getter indicating whether the blackout effect is currently active.
         /// Returns true if blackoutStacks is greater than zero.
         /// </summary>
-        public static bool IsBlackoutActive => blackoutStacks > 0;
+        public bool IsBlackoutActive => blackoutStacks > 0;
 
         private enum CassieStatus
         {
@@ -46,6 +47,9 @@ namespace SCP_575.Npc
             Library_ExiledAPI.LogInfo("Init", "SCP-575 Npc methods initialized.");
             Exiled.Events.Handlers.Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
             Exiled.Events.Handlers.Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
+
+            LabApi.Events.Handlers.ServerEvents.GeneratorActivated += _plugin.Npc.EventHandlers.OnGeneratorActivated;
+            Exiled.Events.Handlers.Map.ExplodingGrenade += _plugin.Npc.EventHandlers.OnGrenadeExploding;
         }
 
         public void Disable()
@@ -54,11 +58,15 @@ namespace SCP_575.Npc
             Clean();
             Exiled.Events.Handlers.Server.RoundStarted -= _plugin.Npc.EventHandlers.OnRoundStart;
             Exiled.Events.Handlers.Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
+
+            LabApi.Events.Handlers.ServerEvents.GeneratorActivated -= _plugin.Npc.EventHandlers.OnGeneratorActivated;
+            Exiled.Events.Handlers.Map.ExplodingGrenade -= _plugin.Npc.EventHandlers.OnGrenadeExploding;
         }
 
         public void Clean()
         {
             Library_ExiledAPI.LogInfo("Clean", "SCP-575 Npc methods cleaned.");
+            AudioManager.StopGlobalAmbience();
             blackoutStacks = 0;
             triggeredZones.Clear();
             Timing.KillCoroutines("SCP575keter");
@@ -482,5 +490,49 @@ namespace SCP_575.Npc
                 }
             }
         }
+
+        public bool AreAllGeneratorsEngaged(int reqCountEngadedGens = 3)
+        {
+            var generators = LabApi.Features.Wrappers.Generator.List;
+            return generators.Count >= reqCountEngadedGens && generators.All(gen => gen.Engaged);
+        }
+
+        public void Reset575()
+        {
+            Library_ExiledAPI.LogDebug("Reset575", $"Reseting blackoutStacks: {blackoutStacks} to 0 and turning on all lights.");
+            blackoutStacks = 0;
+            // Turn on all lights
+            foreach (LabApi.Features.Wrappers.Room room in LabApi.Features.Wrappers.Room.List)
+            {
+                room.LightController.LightsEnabled = true;
+                room.LightController.FlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
+            }
+
+            triggeredZones.Clear();
+            ResetTeslaGates();
+
+
+        }
+
+        public void Kill575(bool withSound = true)
+        {
+            Library_ExiledAPI.LogDebug("Kill575", $"Killing SCP-575 NPC.");
+            if (withSound) DyingGlobalSound();
+            Clean();
+        }
+
+        public void AngryGlobalSound()
+        {
+            Library_ExiledAPI.LogDebug("AngryGlobalSound", $"Playing audio...");
+            AudioManager.PlayGlobalSound("scream-angry");
+        }
+
+        // TODO new audio file
+        public void DyingGlobalSound()
+        {
+            Library_ExiledAPI.LogDebug("DyingGlobalSound", $"Playing audio...");
+            AudioManager.PlayGlobalSound("scream-angry");
+        }
+
     }
 }
