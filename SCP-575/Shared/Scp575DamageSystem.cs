@@ -228,7 +228,7 @@
             var ragdollData = new RagdollData(
                 player.ReferenceHub,
                 customHandler,
-                player.Role,
+                RoleTypeId.Scp3114, // Temporary replace body to skeleton, for player.Role,
                 originalRagdoll.Position,
                 originalRagdoll.Rotation,
                 player.DisplayNickname,
