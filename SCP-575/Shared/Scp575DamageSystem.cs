@@ -336,7 +336,13 @@
         public static bool IsScp575Damage(DamageHandlerBase handler)
         {
             return handler is CustomReasonDamageHandler customHandler &&
-                   (customHandler.DeathScreenText == DeathScreenText || customHandler.RagdollInspectText == RagdollInspectText);
+                   (customHandler.DeathScreenText == DeathScreenText);
+        }
+
+        public static bool IsScp575BodyRagdoll(DamageHandlerBase handler)
+        {
+            return handler is CustomReasonDamageHandler customHandler &&
+                   (customHandler.RagdollInspectText == RagdollInspectText);
         }
 
         /// <summary>
