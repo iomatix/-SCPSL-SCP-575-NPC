@@ -119,6 +119,7 @@
         {
             { "scream", "SCP-575.Shared.Audio.scream.wav" },
             { "scream-angry", "SCP-575.Shared.Audio.scream-angry.wav" },
+            { "scream-dying", "SCP-575.Shared.Audio.scream-dying.wav" },
             { "ambience", "SCP-575.Shared.Audio.ambience.wav" },
         };
 

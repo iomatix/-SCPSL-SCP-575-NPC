@@ -64,23 +64,30 @@ namespace SCP_575.Npc
 
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
-                if(Library_LabAPI.NpcConfig.IsNpcKillable) _plugin.Npc.Methods.Kill575();
-                else _plugin.Npc.Methods.Reset575();
+                if (Library_LabAPI.NpcConfig.IsNpcKillable)
+                {
+                    _plugin.Npc.Methods.Kill575();
+                }
+                else
+                {
+                    _plugin.Npc.Methods.DyingGlobalSound();
+                    _plugin.Npc.Methods.Reset575();
+                }
             }
         }
 
-        public void OnGrenadeExploding(Exiled.Events.EventArgs.Map.ExplodingGrenadeEventArgs ev)
+        public void OnProjectileExploded(LabApi.Events.Arguments.ServerEvents.ProjectileExplodedEventArgs ev)
         {
-            if (ev.ExplosionType != ExplosionType.Grenade && ev.ExplosionType != ExplosionType.Disruptor) return;
-            
+            if (!_plugin.Npc.Methods.IsDangerousToScp575(ev.TimedGrenade)) return;
+
             Exiled.API.Features.Room room = Exiled.API.Features.Room.Get(ev.Position);
             if (room == null || !room.AreLightsOff || !_plugin.Npc.Methods.IsBlackoutActive) return;
-            
+
             Library_ExiledAPI.LogDebug("OnGrenadeExploded", $"Grenade or disruptor used in dark SCP-575 room: {room.Name}");
             room.RoomLightController.ServerFlickerLights(Library_LabAPI.NpcConfig.FlickerLightsDuration);
 
             _plugin.Npc.Methods.AngryGlobalSound();
-            foreach(Exiled.API.Features.Room r in room.NearestRooms)
+            foreach (Exiled.API.Features.Room r in room.NearestRooms)
             {
                 if (r.AreLightsOff)
                 {

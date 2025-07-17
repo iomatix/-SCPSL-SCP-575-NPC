@@ -49,7 +49,7 @@ namespace SCP_575.Npc
             Exiled.Events.Handlers.Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
 
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated += _plugin.Npc.EventHandlers.OnGeneratorActivated;
-            Exiled.Events.Handlers.Map.ExplodingGrenade += _plugin.Npc.EventHandlers.OnGrenadeExploding;
+            LabApi.Events.Handlers.ServerEvents.ProjectileExploded += _plugin.Npc.EventHandlers.OnProjectileExploded;
         }
 
         public void Disable()
@@ -60,7 +60,7 @@ namespace SCP_575.Npc
             Exiled.Events.Handlers.Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
 
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated -= _plugin.Npc.EventHandlers.OnGeneratorActivated;
-            Exiled.Events.Handlers.Map.ExplodingGrenade -= _plugin.Npc.EventHandlers.OnGrenadeExploding;
+            LabApi.Events.Handlers.ServerEvents.ProjectileExploded -= _plugin.Npc.EventHandlers.OnProjectileExploded;
         }
 
         public void Clean()
@@ -283,7 +283,7 @@ namespace SCP_575.Npc
         private void HandleRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration)
         {
             if (!Library_ExiledAPI.IsRoomFreeOfEngagedGenerators(room)) return; // Darkness won't spawn within the engaged generator rooms
-            
+
             if (Config.DisableTeslas && room.Type.Equals(Exiled.API.Enums.RoomType.HczTesla))
             {
                 room.TeslaGate.CooldownTime = blackoutDuration + 0.5f;
@@ -517,6 +517,20 @@ namespace SCP_575.Npc
 
         }
 
+        public bool IsDangerousToScp575(LabApi.Features.Wrappers.TimedGrenadeProjectile projectile)
+        {
+            // Check the item type of the projectile  
+            return projectile.Type switch
+            {
+                ItemType.GrenadeHE => true,        // Hand grenades  
+                ItemType.GrenadeFlash => true,     // Flashbangs    
+                ItemType.SCP2176 => true,          // Disruptor-like effects  
+                ItemType.SCP018 => true,           // SCP-018 (Super Ball)  
+                ItemType.Jailbird => true,         // Jailbird (can explode) 
+                _ => false
+            };
+        }
+
         public void Kill575(bool withSound = true)
         {
             Library_ExiledAPI.LogDebug("Kill575", $"Killing SCP-575 NPC.");
@@ -530,11 +544,10 @@ namespace SCP_575.Npc
             AudioManager.PlayGlobalSound("scream-angry");
         }
 
-        // TODO new audio file
         public void DyingGlobalSound()
         {
             Library_ExiledAPI.LogDebug("DyingGlobalSound", $"Playing audio...");
-            AudioManager.PlayGlobalSound("scream-angry");
+            AudioManager.PlayGlobalSound("scream-dying");
         }
 
     }
