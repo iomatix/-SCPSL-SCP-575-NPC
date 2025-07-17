@@ -1,5 +1,6 @@
 namespace SCP_575.Npc
 {
+    using LabApi.Events.Arguments.ServerEvents;
     using MEC;
     using SCP_575.ConfigObjects;
     using Shared;
@@ -517,7 +518,7 @@ namespace SCP_575.Npc
 
         }
 
-        public bool IsDangerousToScp575(LabApi.Features.Wrappers.TimedGrenadeProjectile projectile)
+        public bool IsDangerousToScp575(LabApi.Features.Wrappers.Projectile projectile)
         {
             // Check the item type of the projectile  
             return projectile.Type switch
