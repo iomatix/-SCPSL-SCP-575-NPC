@@ -38,6 +38,9 @@ namespace SCP_575.ConfigObjects
         [Description("Specifies whether SCP-575 can be terminated when all generators are engaged. If set to false, generator activation only halts SCP-575's behavior and resets its event state without killing it.")]
         public bool IsNpcKillable { get; private set; } = false;
 
+        [Description("Determines how kills by SCP-575 handle ragdolls. If set to false, a skeleton ragdoll is spawned instead of the default one. If set to true, no ragdoll is created upon death.")]
+        public bool DisableRagdolls { get; private set; } = false;
+
         [Description("Whether or not to inform players about being damaged by SCP-575 via Broadcast messages.")]
         public bool EnableKeterBroadcast { get; private set; } = true;
 

@@ -105,18 +105,33 @@ namespace SCP_575
         // Use Exiled's ragdoll event instead  
         public void OnSpawnedRagdoll(Exiled.Events.EventArgs.Player.SpawnedRagdollEventArgs ev)
         {
-            Library_ExiledAPI.LogDebug("Catched Event", $"OnSpawnedRagdoll: {ev.Player.Nickname}");
+            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Caught Event for player: {ev.Player.Nickname}");
 
             if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandlerBase))
                 return;
 
-            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
+            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"Event caused by: {Scp575DamageSystem.IdentifierName}");
+            Library_ExiledAPI.LogDebug(
+                "OnSpawnedRagdoll",
+                $"Ragdoll '{ev.Ragdoll.Nickname}' spawned at {ev.Ragdoll.Position} from player {ev.Player.Nickname} at {ev.Player.Position}"
+            );
 
-
-
-            Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was called by {ev.Ragdoll.Nickname} Ragdoll at {ev.Ragdoll.Position}, From {ev.Player.Nickname} at {ev.Player.Position}");
-            Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
-
+            if (Library_LabAPI.NpcConfig.DisableRagdolls)
+            {
+                Library_ExiledAPI.LogDebug(
+                    "OnSpawnedRagdoll",
+                    "DisableRagdolls is TRUE — destroying ragdoll instead of spawning skeleton."
+                );
+                ev.Ragdoll.Destroy();
+            }
+            else
+            {
+                Library_ExiledAPI.LogDebug(
+                    "OnSpawnedRagdoll",
+                    "DisableRagdolls is FALSE — handing off to RagdollProcessor for skeleton spawn."
+                );
+                Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
+            }
         }
 
         public void OnPlayerDeath(LabApi.Events.Arguments.PlayerEvents.PlayerDeathEventArgs ev)
