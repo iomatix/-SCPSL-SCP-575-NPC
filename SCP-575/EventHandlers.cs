@@ -112,13 +112,10 @@ namespace SCP_575
 
             Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
 
-            // Convert Exiled ragdoll to LabAPI wrapper for your processing  
 
-            var labApiRagdoll = Library_LabAPI.GetRagdoll(ev.Ragdoll.Base);
-            var labApiPlayer = Library_LabAPI.GetPlayer(ev.Player.ReferenceHub);
 
             Library_ExiledAPI.LogDebug("OnSpawnedRagdoll", $"The event was called by {ev.Ragdoll.Nickname} Ragdoll at {ev.Ragdoll.Position}, From {ev.Player.Nickname} at {ev.Player.Position}");
-            Scp575DamageSystem.ReplaceRagdollWithPhysics(labApiPlayer, labApiRagdoll);
+            Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
 
         }
 

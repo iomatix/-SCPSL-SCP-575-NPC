@@ -9,6 +9,7 @@
     using PlayerStatsSystem;
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
 
     public static class Scp575DamageSystem
@@ -195,15 +196,50 @@
         /// </summary>
         /// <param name="ragdoll">The LabAPI ragdoll wrapper to process.</param>
         /// <exception cref="ArgumentNullException">Thrown when ragdoll or handler is null.</exception>
-        public static void RagdollProcessor(LabApi.Features.Wrappers.Ragdoll ragdoll)
+        public static void RagdollProcessor(Exiled.API.Features.Player player, Exiled.API.Features.Ragdoll ragdoll)
         {
             if (ragdoll == null)
                 throw new ArgumentNullException(nameof(ragdoll));
 
             Library_ExiledAPI.LogDebug("RagdollProcess", $"Processing SCP-575 ragdoll at position: {ragdoll.Position}");
-
-            Library_ExiledAPI.LogDebug("RagdollProcess", $"SCP-575 ragdoll processing completed successfully");
+            try
+            {
+                Exiled.API.Features.Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll);
+                ApplyStandardRagdollPhysics(newRagdoll);
+                ConvertToBones(newRagdoll);
+                Library_ExiledAPI.LogDebug("RagdollProcess", $"SCP-575 ragdoll processing completed successfully");
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("RagdollProcess", $"Failed to process exiled ragdoll: {ex.Message}");
+            }
         }
+
+        public static Exiled.API.Features.Ragdoll ReplaceRagdoll(Exiled.API.Features.Player player, Exiled.API.Features.Ragdoll originalRagdoll)
+        {
+            if (player == null || originalRagdoll == null)
+                return null;
+
+            Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
+                $"Replacing ragdoll for {player.Nickname} at position: {originalRagdoll.Position}");
+
+            // Prepare RagdollData
+            var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
+            var ragdollData = new RagdollData(
+                player.ReferenceHub,
+                customHandler,
+                player.Role,
+                originalRagdoll.Position,
+                originalRagdoll.Rotation,
+                player.DisplayNickname,
+                UnityEngine.Time.time);
+
+            originalRagdoll.Destroy();
+
+            // Spawn Exiled ragdoll
+            return Exiled.API.Features.Ragdoll.CreateAndSpawn(ragdollData);
+        }
+
 
         /// <summary>    
         /// Applies physics forces to standard ragdoll for dynamic movement effects.    
@@ -212,102 +248,96 @@
         /// <param name="ragdoll">The Exiled ragdoll wrapper to apply physics to.</param>    
         public static void ApplyStandardRagdollPhysics(Exiled.API.Features.Ragdoll ragdoll)
         {
+
+            Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on Exiled ragdoll at {ragdoll.Position}");
+
+            Vector3 upwardForce = Vector3.up * CalculateForcePush(3.8f);
+            Vector3 randomForce = GetRandomUnitSphereVelocity(2.8f);
+            foreach (Rigidbody rb in ragdoll.SpecialRigidbodies)
+            {
+                if (ragdoll.SpecialRigidbodies == null || ragdoll.SpecialRigidbodies.Count() == 0)
+                {
+                    Library_ExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbodies found on ragdoll.");
+                    return;
+                }
+
+                try
+                {
+                    rb.linearVelocity = upwardForce + randomForce;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6f;
+                    Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Applying forces to {rb.name} - Upward: {upwardForce}, Random: {randomForce}");
+                }
+                catch (Exception ex)
+                {
+                    Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply Exiled ragdoll physics: {ex.Message}");
+                }
+            }
+
+        }
+
+        public static void ConvertToBones(Exiled.API.Features.Ragdoll ragdoll)
+        {
             try
             {
-                Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on Exiled ragdoll at {ragdoll.Position}");
-
-                if (ragdoll.Base.TryGetComponent<Rigidbody>(out var mainRigidbody))
+                // Convert to bones
+                if (ragdoll.Base.TryGetComponent<DynamicRagdoll>(out var dr))
                 {
-                    Vector3 upwardForce = Vector3.up * CalculateForcePush(3.8f);
-                    Vector3 randomForce = GetRandomUnitSphereVelocity(2.8f);
-
-                    Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Applying forces - Upward: {upwardForce}, Random: {randomForce}");
-
-                    // Use direct velocity assignment instead of AddForce for more reliable results  
-                    mainRigidbody.linearVelocity = upwardForce + randomForce;
-                    mainRigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * 6f;
-
-                    Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", "Physics forces applied successfully to Exiled ragdoll");
-                }
-                else
-                {
-                    Library_ExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbody found on Exiled ragdoll");
+                    Scp3114RagdollToBonesConverter.ConvertExisting(dr);
                 }
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply Exiled ragdoll physics: {ex.Message}");
+                Library_ExiledAPI.LogError("ConvertToBones", $"Failed to convert Exiled ragdoll to bones: {ex.Message}");
             }
-        }
-
-        public static void ReplaceRagdollWithPhysics(LabApi.Features.Wrappers.Player player, LabApi.Features.Wrappers.Ragdoll originalRagdoll)
-        {
-            if (player == null || originalRagdoll == null)
-                return;
-
-            Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
-                $"Replacing ragdoll for {player.Nickname} at position: {originalRagdoll.Position}");
-
-            // Calculate physics before destroying original
-            Vector3 upwardVelocity = Vector3.up * CalculateForcePush(2.5f);
-            Vector3 randomVelocity = GetRandomUnitSphereVelocity(2.5f);
-            Vector3 combinedVelocity = upwardVelocity + randomVelocity;
-
-            // Store original ragdoll transform
-            Vector3 ragdollPosition = originalRagdoll.Position;
-            Quaternion ragdollRotation = originalRagdoll.Rotation;
-
-            // Prepare RagdollData
-            var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
-            var ragdollData = new RagdollData(
-                player.ReferenceHub,
-                customHandler,
-                player.Role,
-                ragdollPosition,
-                ragdollRotation,
-                player.DisplayName,
-                UnityEngine.Time.time);
-
-            originalRagdoll.Destroy();
-
-            // Spawn Exiled ragdoll
-            var newExiledRagdoll = Exiled.API.Features.Ragdoll.CreateAndSpawn(ragdollData);
-
-            // Delay force application one frame for best results
-            Timing.CallDelayed(0.01f, () =>
-            {
-                if (newExiledRagdoll?.Base?.TryGetComponent<Rigidbody>(out var mainRb) == true)
-                {
-                    // Core body force
-                    mainRb.isKinematic = false;
-                    mainRb.AddForce(combinedVelocity, ForceMode.Impulse);
-                    mainRb.AddTorque(UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier, ForceMode.Impulse);
-
-                    Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
-                        $"Applied physics to main Rigidbody - Force: {combinedVelocity}");
-                }
-
-                // Limb forces
-                foreach (var limbRb in newExiledRagdoll.SpecialRigidbodies)
-                {
-                    limbRb.isKinematic = false;
-                    limbRb.AddForce(combinedVelocity, ForceMode.Impulse);
-                    limbRb.AddTorque(UnityEngine.Random.insideUnitSphere * 8f, ForceMode.Impulse);
-
-                    Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
-                        $"Applied physics to limb {limbRb.name} - Force: {combinedVelocity}");
-                }
-
-                // Convert to bones
-                if (newExiledRagdoll.Base.TryGetComponent<DynamicRagdoll>(out var dr))
-                    Scp3114RagdollToBonesConverter.ConvertExisting(dr);
-
-            });
         }
 
         #endregion
 
         #region Utility Methods  
+
+        public static IEnumerator<float> DropAndPushItems(
+            LabApi.Features.Wrappers.Player player
+        )
+        {
+            Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
+            List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
+
+            yield return Timing.WaitForOneFrame;  // let engine spawn pickups
+
+            foreach (var pickup in droppedPickups)
+            {
+                if (pickup?.Rigidbody == null)
+                {
+                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
+                    continue;
+                }
+
+                var rb = pickup.Rigidbody;
+                var dir = GetRandomUnitSphereVelocity();
+                var mag = CalculateForcePush();
+
+                yield return Timing.WaitForOneFrame; // ensure physics engine is ready
+
+                try
+                {
+                    rb.linearVelocity = dir * mag;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier;
+                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
+                }
+                catch (Exception ex)
+                {
+                    Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex}");
+                }
+
+                yield return Timing.WaitForOneFrame;  // stagger pushes
+            }
+        }
+
+        public static bool IsScp575Damage(DamageHandlerBase handler)
+        {
+            return handler is CustomReasonDamageHandler customHandler &&
+                   (customHandler.DeathScreenText == DeathScreenText || customHandler.RagdollInspectText == RagdollInspectText);
+        }
 
         /// <summary>
         /// Calculates a randomized force push multiplier within configured bounds.
@@ -357,50 +387,6 @@
                            CalculateForcePush(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier);
 
             return randomDirection * modifier;
-        }
-
-        public static IEnumerator<float> DropAndPushItems(
-            LabApi.Features.Wrappers.Player player
-        )
-        {
-            Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
-            List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
-
-            yield return Timing.WaitForOneFrame;  // let engine spawn pickups
-
-            foreach (var pickup in droppedPickups)
-            {
-                if (pickup?.Rigidbody == null)
-                {
-                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
-                    continue;
-                }
-
-                var rb = pickup.Rigidbody;
-                var dir = GetRandomUnitSphereVelocity();
-                var mag = CalculateForcePush();
-
-                yield return Timing.WaitForOneFrame; // ensure physics engine is ready
-
-                try
-                {
-                    rb.linearVelocity = dir * mag;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier;
-                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
-                }
-                catch (Exception ex)
-                {
-                    Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex}");
-                }
-
-                yield return Timing.WaitForOneFrame;  // stagger pushes
-            }
-        }
-
-        public static bool IsScp575Damage(DamageHandlerBase handler)
-        {
-            return handler is CustomReasonDamageHandler customHandler &&
-                   (customHandler.DeathScreenText == DeathScreenText || customHandler.RagdollInspectText == RagdollInspectText);
         }
 
         #endregion
