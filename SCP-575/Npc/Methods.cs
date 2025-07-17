@@ -21,7 +21,7 @@ namespace SCP_575.Npc
         /// Public getter indicating whether the blackout effect is currently active.
         /// Returns true if blackoutStacks is greater than zero.
         /// </summary>
-        public bool IsBlackoutActive => blackoutStacks > 0;
+        public static bool IsBlackoutActive => blackoutStacks > 0;
 
         private enum CassieStatus
         {
