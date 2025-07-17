@@ -533,7 +533,7 @@ namespace SCP_575.Npc
                 _ => false
             };
         }
-
+        
         public void Kill575(bool withSound = true)
         {
             Library_ExiledAPI.LogDebug("Kill575", $"Killing SCP-575 NPC.");

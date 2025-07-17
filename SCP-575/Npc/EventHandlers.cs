@@ -94,5 +94,6 @@ namespace SCP_575.Npc
             _plugin.Npc.Methods.AngryGlobalSound();
 
         }
+        
     }
 }
