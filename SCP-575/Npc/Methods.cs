@@ -332,7 +332,7 @@ namespace SCP_575.Npc
                     TriggerCassieMessage(Config.CassieKeter);
                 }
 
-                if (Config.KeterAmbient && !AudioManager.IsLoopingGlobalAmbience)
+                if (Config.KeterAmbient)
                 {
                     AudioManager.PlayGlobalAmbience();
                 }

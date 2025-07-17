@@ -589,6 +589,12 @@
                 return false;
             }
 
+            if (controllerId == GLOBAL_AMBIENCE_ID && IsLoopingGlobalAmbience && audioKey != "ambience")
+            {
+                Library_ExiledAPI.LogWarn("PlayAudioCore", "Cannot override global ambience with a different sound");
+                return false;
+            }
+
             var startTime = DateTime.UtcNow;
             lock (lockObject)
             {
@@ -794,7 +800,7 @@
         /// Plays a sound globally for all valid players.
         /// </summary>
         /// <param name="audioKey">The key of the audio clip to play.</param>
-        /// <param name="customVolume">Optional volume level as a float. Default is 0.85f.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.9f.</param>
         /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
         /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
         /// <param name="centralPosition">Optional central position for the sound. If <c>null</c>, uses the origin (0,0,0).</param>
@@ -803,9 +809,23 @@
         /// <param name="controllerId">Optional specific controller ID to use. If <c>null</c>, allocates a new ID or uses <see cref="GLOBAL_AMBIENCE_ID"/>.</param>
         /// <returns><c>true</c> if the sound was successfully played; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="audioKey"/> is <c>null</c>.</exception>
-        public static bool PlayGlobalSound(string audioKey, float customVolume = 0.85f, float customMinDistance = 0.85f, float customMaxDistance = 1500.0f, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
+        public static bool PlayGlobalSound(string audioKey, float customVolume = 0.9f, float customMinDistance = 0.85f, float customMaxDistance = 1500.0f, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
         {
-            byte actualControllerId = controllerId ?? AllocateControllerId() ?? GLOBAL_AMBIENCE_ID;
+            byte actualControllerId;
+            if (controllerId.HasValue)
+            {
+                actualControllerId = controllerId.Value;
+            }
+            else
+            {
+                byte? allocatedId = AllocateControllerId();
+                if (allocatedId == null)
+                {
+                    Library_ExiledAPI.LogWarn("PlayGlobalSound", "No available controller IDs for global sound");
+                    return false;
+                }
+                actualControllerId = allocatedId.Value;
+            }
             bool success = PlayAudioCore(
                 audioKey,
                 actualControllerId,
@@ -837,6 +857,7 @@
                 Library_ExiledAPI.LogWarn("PlayGlobalAmbience", "Global ambience already playing");
                 return false;
             }
+
             bool success = PlayAudioCore(
                 "ambience",
                 GLOBAL_AMBIENCE_ID,
