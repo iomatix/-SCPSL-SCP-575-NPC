@@ -16,11 +16,30 @@ namespace SCP_575.Npc
 
         private static readonly object BlackoutLock = new();
         private static int blackoutStacks = 0;
+
         /// <summary>
         /// Public getter indicating whether the blackout effect is currently active.
         /// Returns true if blackoutStacks is greater than zero.
         /// </summary>
         public bool IsBlackoutActive => blackoutStacks > 0;
+
+        private enum CassieStatus
+        {
+            Idle,
+            Playing,
+            Cooldown
+        }
+
+        private IEnumerator<float> CassieCooldownRoutine()
+        {
+            yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndStart + 0.5f);
+            _cassieState = CassieStatus.Cooldown;
+            yield return Timing.WaitForSeconds(1f); // additional delay to prevent echo or spam
+            _cassieState = CassieStatus.Idle;
+        }
+
+        private CassieStatus _cassieState = CassieStatus.Idle;
+        private CoroutineHandle _cassieCooldownCoroutine;
 
         public void Init()
         {
@@ -65,6 +84,7 @@ namespace SCP_575.Npc
                 Library_ExiledAPI.LogDebug("ExecuteBlackoutEvent", "Starting blackout event...");
                 TriggerCassieMessage(Config.CassieMessageStart, true);
 
+
                 if (Config.FlickerLights)
                 {
                     FlickerAllZoneLights(Config.FlickerLightsDuration);
@@ -73,6 +93,7 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(Config.TimeBetweenSentenceAndStart);
 
                 TriggerCassieMessage(Config.CassiePostMessage);
+
             }
 
             float blackoutDuration = Config.RandomEvents
@@ -347,16 +368,30 @@ namespace SCP_575.Npc
 
         private void TriggerCassieMessage(string message, bool isGlitchy = false)
         {
-            if (string.IsNullOrEmpty(message)) return;
+            if (string.IsNullOrWhiteSpace(message)) return;
+
+            if (_cassieState != CassieStatus.Idle)
+            {
+                Library_ExiledAPI.LogDebug("TriggerCassieMessage", $"Cassie busy ({_cassieState}), skipping message: {message}");
+                return;
+            }
+
+            _cassieState = CassieStatus.Playing;
             Library_ExiledAPI.LogDebug("TriggerCassieMessage", $"Triggering CASSIE message: {message}");
+
+            if (Config.CassieMessageClearBeforeImportant)
+                Library_ExiledAPI.Cassie_Clear();
+
             if (isGlitchy)
-            {
                 Library_ExiledAPI.Cassie_GlitchyMessage(message);
-            }
             else
-            {
                 Library_ExiledAPI.Cassie_Message(message);
-            }
+
+            // Start cooldown to avoid rapid-fire calls
+            if (_cassieCooldownCoroutine.IsRunning)
+                Timing.KillCoroutines(_cassieCooldownCoroutine);
+
+            _cassieCooldownCoroutine = Timing.RunCoroutine(CassieCooldownRoutine());
         }
 
         private void IncrementBlackoutStack()
