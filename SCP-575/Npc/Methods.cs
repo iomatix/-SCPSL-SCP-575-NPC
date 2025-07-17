@@ -206,6 +206,7 @@ namespace SCP_575.Npc
 
         private bool AttemptRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration)
         {
+            if (!Library_ExiledAPI.IsRoomFreeOfEngagedGenerators(room)) return false; // Darkness won't spawn within the engaged generator rooms
 
             switch (room.Zone)
             {
@@ -281,7 +282,8 @@ namespace SCP_575.Npc
 
         private void HandleRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration)
         {
-
+            if (!Library_ExiledAPI.IsRoomFreeOfEngagedGenerators(room)) return; // Darkness won't spawn within the engaged generator rooms
+            
             if (Config.DisableTeslas && room.Type.Equals(Exiled.API.Enums.RoomType.HczTesla))
             {
                 room.TeslaGate.CooldownTime = blackoutDuration + 0.5f;
@@ -302,6 +304,7 @@ namespace SCP_575.Npc
         {
             foreach (Exiled.API.Features.Room room in Library_ExiledAPI.Rooms)
             {
+                if (!Library_ExiledAPI.IsRoomFreeOfEngagedGenerators(room)) return; // Darkness won't spawn within the engaged generator rooms
                 room.TurnOffLights(blackoutDuration);
                 Library_ExiledAPI.LogDebug("DisableFacilitySystems", $"Turning off lights in room {room.Name} for {blackoutDuration} seconds.");
             }

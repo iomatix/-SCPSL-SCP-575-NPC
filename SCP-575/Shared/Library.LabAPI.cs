@@ -40,6 +40,11 @@
             return !room.LightController.LightsEnabled;
         }
 
+        public static bool IsRoomFreeOfEngagedGenerators(Room room)
+        {
+            return Generator.List.Any(gen => gen.Room == room && gen.Engaged);
+        }
+
         #endregion
 
         #region Cassie methods

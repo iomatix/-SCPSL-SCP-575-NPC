@@ -1,9 +1,10 @@
 ﻿namespace SCP_575.Shared
 {
-    using System.Collections.Generic;
     using Exiled.API.Features;
     using Exiled.Loader;
     using SCP_575.ConfigObjects;
+    using System.Collections.Generic;
+    using System.Linq;
 
     public static class Library_ExiledAPI
     {
@@ -37,6 +38,15 @@
         public static void Cassie_GlitchyMessage(string message) => Cassie.GlitchyMessage(message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
 
         public static void Cassie_Message(string message) => Cassie.Message(message, false, false, false);
+        #endregion
+
+        #region Utilities
+
+        public static bool IsRoomFreeOfEngagedGenerators(Room room)
+        {
+            return Generator.List.Any(gen => gen.Room == room && gen.IsEngaged);
+        }
+
         #endregion
 
         #region Logging methods
