@@ -1,6 +1,5 @@
 ﻿namespace SCP_575.Shared
 {
-    using Exiled.API.Features.Roles;
     using InventorySystem.Items.Armor;
     using MEC;
     using PlayerRoles;
