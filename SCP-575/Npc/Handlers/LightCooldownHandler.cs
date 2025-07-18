@@ -252,7 +252,8 @@ namespace SCP_575.Npc
             }
             if (_cooldownUntil.TryGetValue(player.UserId, out var until) && DateTime.Now < until)
             {
-                isAllowed = newState = false;
+                isAllowed = true;
+                newState = false;
                 Library_ExiledAPI.LogDebug("LightBlock", $"Blocked toggle for {player.Nickname} due to cooldown ({(until - DateTime.Now).TotalSeconds:F1}s left).");
                 if (Library_LabAPI.NpcConfig?.EnableLightEmitterCooldownHint ?? false)
                     player.SendHint(cooldownMessage, 1.75f);
