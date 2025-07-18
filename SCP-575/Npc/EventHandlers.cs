@@ -130,7 +130,7 @@ namespace SCP_575.Npc
                 return;
             }
 
-            Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Grenade or disruptor used in dark SCP-575 room: {room.Name}");
+            Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Grenade, Flash or disruptor used in dark SCP-575 room: {room.Name}");
             Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
             AudioManager.PlayGlobalAngrySound();
         }
