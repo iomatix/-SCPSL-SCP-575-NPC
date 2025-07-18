@@ -1,13 +1,12 @@
 namespace SCP_575.Npc
 {
-    using LabApi.Events.Arguments.ServerEvents;
-    using LabApi.Events.CustomHandlers;
-    using MEC;
-    using SCP_575.ConfigObjects;
     using Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using LabApi.Events.CustomHandlers;
+    using MEC;
+    using SCP_575.ConfigObjects;
     using UnityEngine;
 
     /// <summary>
