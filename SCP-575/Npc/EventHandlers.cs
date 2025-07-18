@@ -64,7 +64,7 @@ namespace SCP_575.Npc
             Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(exiledRoom);
 
             // 4) Creepy audio cue
-            AudioManager.PlayGlobalSound("scream-angry");
+            AudioManager.PlayGlobalAngrySound();
 
             // 5) If all generators are up, trigger your SCP-575 behavior
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
