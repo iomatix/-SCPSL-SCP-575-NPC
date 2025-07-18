@@ -1,10 +1,10 @@
 namespace SCP_575.Npc
 {
+    using System;
+    using System.Collections.Generic;
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
-    using System;
-    using System.Collections.Generic;
 
     /// <summary>
     /// Handles server events related to SCP-575 NPC behavior, managing coroutines and interactions with game mechanics.

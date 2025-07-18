@@ -1,15 +1,15 @@
 namespace SCP_575.Npc
 {
-    using InventorySystem.Items.ToggleableLights;
-    using LabApi.Events.Arguments.PlayerEvents;
-    using LabApi.Events.CustomHandlers;
-    using LabApi.Features.Wrappers;
-    using SCP_575.Shared;
     using System;
     using System.Collections.Generic;
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
+    using InventorySystem.Items.ToggleableLights;
+    using LabApi.Events.Arguments.PlayerEvents;
+    using LabApi.Events.CustomHandlers;
+    using LabApi.Features.Wrappers;
+    using SCP_575.Shared;
     using Utils.Networking;
 
     /// <summary>
