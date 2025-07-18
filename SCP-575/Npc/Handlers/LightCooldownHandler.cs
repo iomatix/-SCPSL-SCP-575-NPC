@@ -255,7 +255,7 @@ namespace SCP_575.Npc
         {
             while (true)
             {
-                yield return Timing.WaitForSeconds(60f);
+                yield return Timing.WaitForSeconds(160f);
                 var cutoff = DateTime.Now - CooldownDuration;
                 foreach (var kvp in _cooldownUntil.Where(k => k.Value < cutoff).ToList())
                     _cooldownUntil.TryRemove(kvp.Key, out _);
