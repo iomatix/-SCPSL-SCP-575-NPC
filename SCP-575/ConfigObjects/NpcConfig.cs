@@ -146,8 +146,6 @@ namespace SCP_575.ConfigObjects
         [Description("Hint message shown when a player tries to use light source while disabled by SCP-575 event.")]
         public string LightEmitterDisabledHint { get; set; } = "Your light source has been disabled!";
 
-
-
         [Description("Whether or not SCP-575's sound effect should happen on the client damaged by the entity.")]
         public bool EnableScreamSound { get; private set; } = true;
 
@@ -235,6 +233,12 @@ namespace SCP_575.ConfigObjects
 
         [Description("Change this to true if want to use per room probability settings instead of per zone settings. The script will check all rooms in the specified zone with its probability.")]
         public bool UsePerRoomChances { get; set; } = false;
+        //endregion
+
+        //region Misc and Utils
+        [Description("Per how many seconds automatic cleanups of event handlers are called.")]
+        public float HandlerCleanupInterval { get; set; } = 90f;
+        
         //endregion
     }
 }
