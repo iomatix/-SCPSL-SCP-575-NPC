@@ -97,6 +97,11 @@
             }
         }
 
+        public static bool IsInDarkRoom(Player player)
+        {
+            return player.CurrentRoom?.AreLightsOff ?? false;
+        }
+
         #endregion
 
         #region Logging

@@ -478,15 +478,20 @@ namespace SCP_575.Npc
                             yield return Timing.WaitForOneFrame;
                             Scp575DamageSystem.DamagePlayer(player, clampedDamage);
 
-                            if (_config.EnableKeterBroadcast)
+                            Timing.CallDelayed(3f, () =>
                             {
-                                bool shouldClearPrevious = _config.CassieMessageClearBeforeImportant;
-                                player.SendBroadcast(_config.KeterBroadcast, 3, type: Broadcast.BroadcastFlags.Normal, shouldClearPrevious: shouldClearPrevious);
+                                AudioManager.PlayWhispersMixedAutoManaged(player);
+                            });
+                            _lightCooldownHandler.OnScp575AttacksPlayer(player);
+
+                            if (_config.EnableKeterHint)
+                            {
+                                player.SendHint(_config.KeterHint);
                             }
                         }
-                        else if (player.IsHuman)
+                        else if (player.IsHuman && IsInDarkRoom(player))
                         {
-                            AudioManager.PlayWhispersBangAutoManaged(player);
+                            AudioManager.PlayWhispersAutoManaged(player);
                             _lightCooldownHandler.OnScp575AttacksPlayer(player);
                         }
                     }

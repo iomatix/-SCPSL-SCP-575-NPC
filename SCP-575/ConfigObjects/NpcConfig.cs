@@ -131,11 +131,22 @@ namespace SCP_575.ConfigObjects
         //endregion
 
         //region Notifications and Sounds
-        [Description("Whether or not to inform players about being damaged by SCP-575 via Broadcast messages.")]
-        public bool EnableKeterBroadcast { get; private set; } = true;
+        [Description("Whether or not to inform players about being damaged by SCP-575 via Hint messages.")]
+        public bool EnableKeterHint { get; private set; } = true;
 
-        [Description("Broadcast message shown when a player is damaged by SCP-575 if EnableKeterBroadcast is set to true.")]
-        public string KeterBroadcast { get; set; } = "You were damaged by SCP-575! Equip a flashlight!";
+        [Description("Hint message shown when a player is damaged by SCP-575 if EnableKeterHint is set to true.")]
+        public string KeterHint { get; set; } = "You were damaged by SCP-575! Equip a flashlight!";
+        
+        [Description("Whether or not to inform players about cooldown of the light emitter like flashlight or weapon module.")]
+        public bool EnableLightEmitterCooldownHint { get; private set; } = true;
+
+        [Description("Hint message shown when a player tries to use light source while on cooldown.")]
+        public string LightEmitterCooldownHint { get; set; } = "Your light source is on cooldown!";
+
+        [Description("Hint message shown when a player tries to use light source while disabled by SCP-575 event.")]
+        public string LightEmitterDisabledHint { get; set; } = "Your light source has been disabled!";
+
+
 
         [Description("Whether or not SCP-575's sound effect should happen on the client damaged by the entity.")]
         public bool EnableScreamSound { get; private set; } = true;
