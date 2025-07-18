@@ -1,5 +1,15 @@
 namespace SCP_575.Npc
 {
+    using InventorySystem.Items;
+    using InventorySystem.Items.Firearms;
+    using InventorySystem.Items.Firearms.Attachments;
+    using InventorySystem.Items.Firearms.Attachments.Components;
+    using InventorySystem.Items.ToggleableLights;
+    using LabApi.Events.Arguments.PlayerEvents;
+    using LabApi.Events.CustomHandlers;
+    using LabApi.Features.Wrappers;
+    using MEC;
+    using SCP_575.Shared;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -7,13 +17,6 @@ namespace SCP_575.Npc
     using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
-    using MEC;
-    using InventorySystem.Items.Firearms;
-    using InventorySystem.Items.ToggleableLights;
-    using LabApi.Events.Arguments.PlayerEvents;
-    using LabApi.Events.CustomHandlers;
-    using LabApi.Features.Wrappers;
-    using SCP_575.Shared;
     using Utils.Networking;
 
     /// <summary>
@@ -28,9 +31,10 @@ namespace SCP_575.Npc
         private readonly Random _random = new();
         private CoroutineHandle _cleanupCoroutine;
         private bool _weaponFlashlightDisabled;
+        private static readonly FieldInfo? _attachmentsField = InitializeAttachmentsField();
 
         /// <summary>
-        /// Gets the cleanup interval, configurable via NpcConfig or defaulting to 60 seconds.
+        /// Gets the cleanup interval, configurable via NpcConfig or defaulting to 160 seconds.
         /// </summary>
         private float CleanupInterval => Library_LabAPI.NpcConfig?.HandlerCleanupInterval ?? 160f;
 
@@ -47,7 +51,9 @@ namespace SCP_575.Npc
         {
             if (Library_LabAPI.NpcConfig == null)
                 throw new InvalidOperationException("NpcConfig is not initialized.");
-            _weaponFlashlightDisabled = !InitializeWeaponFlashlightSupport();
+            _weaponFlashlightDisabled = _attachmentsField == null;
+            if (_weaponFlashlightDisabled)
+                Library_ExiledAPI.LogWarn(nameof(LightCooldownHandler), "Weapon flashlight support disabled due to missing attachments field.");
             _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
         }
 
@@ -154,50 +160,61 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Initializes weapon flashlight support by checking for a flashlight module.
+        /// Initializes weapon flashlight support by checking for the attachments field.
         /// </summary>
         /// <returns>True if flashlight support is available, false otherwise.</returns>
-        private bool InitializeWeaponFlashlightSupport()
+        private static FieldInfo? InitializeAttachmentsField()
         {
-            try
+            var field = typeof(Firearm).GetField("_attachments", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null || field.FieldType != typeof(Attachment[]))
             {
-                var firearmType = typeof(Firearm);
-                var flashlightModuleField = firearmType.GetField("_flashlightModule", BindingFlags.Instance | BindingFlags.NonPublic);
-                if (flashlightModuleField == null)
-                {
-                    Library_ExiledAPI.LogWarn(nameof(InitializeWeaponFlashlightSupport), "No flashlight module found on Firearm. Dumping fields:");
-                    foreach (var field in firearmType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
-                        Library_ExiledAPI.LogDebug(nameof(InitializeWeaponFlashlightSupport), $"Field: {field.Name}, Type: {field.FieldType}");
-                    return false;
-                }
-                return true;
+                Library_ExiledAPI.LogWarn(nameof(InitializeAttachmentsField), "Failed to find _attachments field on Firearm. Dumping fields:");
+                foreach (var f in typeof(Firearm).GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+                    Library_ExiledAPI.LogDebug(nameof(InitializeAttachmentsField), $"Field: {f.Name}, Type: {f.FieldType}");
+                return null;
             }
-            catch (Exception ex)
-            {
-                Library_ExiledAPI.LogWarn(nameof(InitializeWeaponFlashlightSupport), $"Failed to initialize weapon flashlight support: {ex.Message}");
-                return false;
-            }
+            return field;
         }
 
         /// <summary>
-        /// Gets the state of a weapon's flashlight using its flashlight module.
+        /// Gets the state of a weapon's flashlight by checking its attachments.
         /// </summary>
         /// <param name="firearm">The firearm item.</param>
-        /// <returns>True if the flashlight is enabled, false otherwise.</returns>
+        /// <returns>True if the flashlight is emitting light, false otherwise.</returns>
         private bool GetWeaponFlashlightState(FirearmItem firearm)
         {
             if (firearm?.Base == null || _weaponFlashlightDisabled) return false;
             try
             {
-                var flashlightModule = firearm.Base.GetType().GetField("_flashlightModule", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(firearm.Base);
-                if (flashlightModule == null)
+                var attachments = _attachmentsField?.GetValue(firearm.Base) as Attachment[];
+                if (attachments == null)
                 {
-                    Library_ExiledAPI.LogWarn(nameof(GetWeaponFlashlightState), $"Flashlight module not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    Library_ExiledAPI.LogWarn(nameof(GetWeaponFlashlightState), $"Attachments array not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
                     _weaponFlashlightDisabled = true;
                     return false;
                 }
-                var enabledProp = flashlightModule.GetType().GetProperty("Enabled", BindingFlags.Instance | BindingFlags.Public);
-                return enabledProp?.GetValue(flashlightModule) is bool enabled && enabled;
+
+                var flashlightAttachment = attachments.FirstOrDefault(a => a.Name == AttachmentName.Flashlight);
+                if (flashlightAttachment == null)
+                {
+                    Library_ExiledAPI.LogWarn(nameof(GetWeaponFlashlightState), $"Flashlight attachment not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    _weaponFlashlightDisabled = true;
+                    return false;
+                }
+
+                var enabledProp = flashlightAttachment.GetType().GetProperty("IsEnabled", BindingFlags.Instance | BindingFlags.Public);
+                if (enabledProp == null || enabledProp.PropertyType != typeof(bool))
+                {
+                    Library_ExiledAPI.LogWarn(nameof(GetWeaponFlashlightState), $"IsEnabled property not found or invalid for flashlight attachment on {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    _weaponFlashlightDisabled = true;
+                    return false;
+                }
+                if (!(enabledProp.GetValue(flashlightAttachment) is bool isEnabled && isEnabled))
+                    return false;
+
+                // Check emission state via IsEmittingLight property
+                var emissionProp = firearm.Base.GetType().GetProperty("IsEmittingLight", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                return emissionProp?.GetValue(firearm.Base) is bool isEmitting && isEmitting;
             }
             catch (Exception ex)
             {
@@ -249,11 +266,11 @@ namespace SCP_575.Npc
 
             try
             {
-                int flickerCount = _random.Next(3, 6);
+                int flickerCount = _random.Next(3, 9);
                 for (int i = 0; i < flickerCount && !cts.Token.IsCancellationRequested; i++)
                 {
                     setState(!getState());
-                    await Task.Delay(_random.Next(100, 250), cts.Token);
+                    await Task.Delay(_random.Next(100, 425), cts.Token);
                 }
                 setState(false);
             }
@@ -269,7 +286,7 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Toggles a weapon's flashlight state using its flashlight module and sends a network update.
+        /// Toggles a weapon's flashlight state using its attachments and sends a network update.
         /// </summary>
         /// <param name="firearm">The firearm item to toggle.</param>
         /// <param name="enabled">The desired flashlight state.</param>
@@ -279,24 +296,38 @@ namespace SCP_575.Npc
             if (firearm?.Base == null || _weaponFlashlightDisabled) return;
             try
             {
-                var flashlightModule = firearm.Base.GetType().GetField("_flashlightModule", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(firearm.Base);
-                if (flashlightModule == null)
+                var attachments = _attachmentsField?.GetValue(firearm.Base) as Attachment[];
+                if (attachments == null)
                 {
-                    Library_ExiledAPI.LogWarn(context, $"Flashlight module not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    Library_ExiledAPI.LogWarn(context, $"Attachments array not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
                     _weaponFlashlightDisabled = true;
                     return;
                 }
-                var enabledProp = flashlightModule.GetType().GetProperty("Enabled", BindingFlags.Instance | BindingFlags.Public);
-                if (enabledProp?.CanWrite == true && enabledProp.PropertyType == typeof(bool))
+
+                var flashlightAttachment = attachments.FirstOrDefault(a => a.Name == AttachmentName.Flashlight);
+                if (flashlightAttachment == null)
                 {
-                    enabledProp.SetValue(flashlightModule, enabled);
-                    new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-                }
-                else
-                {
-                    Library_ExiledAPI.LogWarn(context, $"Cannot set Enabled property on flashlight module for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    Library_ExiledAPI.LogWarn(context, $"Flashlight attachment not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
                     _weaponFlashlightDisabled = true;
+                    return;
                 }
+
+                var enabledProp = flashlightAttachment.GetType().GetProperty("IsEnabled", BindingFlags.Instance | BindingFlags.Public);
+                if (enabledProp == null || !enabledProp.CanWrite || enabledProp.PropertyType != typeof(bool))
+                {
+                    Library_ExiledAPI.LogWarn(context, $"Cannot access IsEnabled property on flashlight attachment for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    _weaponFlashlightDisabled = true;
+                    return;
+                }
+                if (!(enabledProp.GetValue(flashlightAttachment) is bool isEnabled && isEnabled))
+                {
+                    enabledProp.SetValue(flashlightAttachment, true);
+                    Library_ExiledAPI.LogDebug(context, $"Enabled flashlight attachment for {firearm.Base.GetType().Name}.");
+                }
+
+                // Toggle emission state via network message
+                new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
+                Library_ExiledAPI.LogDebug(context, $"Toggled flashlight emission state to {enabled} for {firearm.Base.GetType().Name}.");
             }
             catch (Exception ex)
             {
