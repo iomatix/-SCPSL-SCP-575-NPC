@@ -517,7 +517,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>True if the audio was successfully played; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static bool PlayAudio(AudioKey audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, byte controllerId = 1, bool loop = false, bool hearableForAllPlayers = false)
+        public static bool PlayAudio(AudioKey audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, byte controllerId = 1, bool loop = false, bool hearableForAllPlayers = false)
         {
             if (player == null) throw new ArgumentNullException(nameof(player), "Player cannot be null.");
 
@@ -545,7 +545,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static byte? PlayAngryScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        public static byte? PlayAngryScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             return PlayAudioAutoManaged(AudioKey.ScreamAngry, player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
         }
@@ -562,7 +562,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static byte? PlayDyingScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        public static byte? PlayDyingScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             return PlayAudioAutoManaged(AudioKey.ScreamDying, player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
         }
@@ -579,7 +579,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static byte? PlayWhispersAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        public static byte? PlayWhispersAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             return PlayAudioAutoManaged(AudioKey.Whispers, player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
         }
@@ -596,7 +596,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static byte? PlayWhispersBangAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        public static byte? PlayWhispersBangAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             return PlayAudioAutoManaged(AudioKey.WhispersBang, player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
         }
@@ -613,7 +613,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static byte? PlayWhispersMixedAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        public static byte? PlayWhispersMixedAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             return PlayAudioAutoManaged(AudioKey.WhispersMixed, player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
         }
@@ -630,7 +630,7 @@
         /// <param name="customLifespan">The custom lifespan for the speaker in seconds. Optional.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="targetPlayer"/> is null.</exception>
-        public static byte? PlayDamagedScream(Player targetPlayer, bool isKill, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null)
+        public static byte? PlayDamagedScream(Player targetPlayer, bool isKill, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, float? customLifespan = null)
         {
             if (isDisposed)
             {
@@ -754,7 +754,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static byte? PlayAudioAutoManaged(AudioKey audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, bool loop = false, float? customLifespan = null, bool hearableForAllPlayers = false)
+        public static byte? PlayAudioAutoManaged(AudioKey audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, bool loop = false, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             if (isDisposed)
             {
@@ -807,7 +807,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static byte? PlayAmbienceAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, bool loop = true, float? customLifespan = null, bool hearableForAllPlayers = false)
+        public static byte? PlayAmbienceAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, bool loop = true, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             return PlayAudioAutoManaged(AudioKey.Ambience, player, customVolume, customMinDistance, customMaxDistance, position, loop, customLifespan, hearableForAllPlayers);
         }
@@ -824,7 +824,7 @@
         /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range. Defaults to false.</param>
         /// <returns>The controller ID of the speaker used, or null if playback failed.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static byte? PlayScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        public static byte? PlayScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
         {
             return PlayAudioAutoManaged(AudioKey.Scream, player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
         }
@@ -842,7 +842,7 @@
         /// <param name="loop">Whether to loop the audio. Defaults to false.</param>
         /// <returns>True if the audio was successfully played; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null.</exception>
-        public static bool PlayAudio(AudioKey audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, byte controllerId = 1, bool loop = false)
+        public static bool PlayAudio(AudioKey audioKey, Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 17.75f, Vector3? position = null, byte controllerId = 1, bool loop = false)
         {
             return PlayAudio(audioKey, player, customVolume, customMinDistance, customMaxDistance, position, controllerId, loop, false);
         }
