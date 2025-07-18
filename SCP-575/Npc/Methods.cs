@@ -11,11 +11,17 @@ namespace SCP_575.Npc
     {
         private readonly Plugin _plugin;
         private NpcConfig Config => _plugin.Config.NpcConfig;
+        
         public Methods(Plugin plugin) => _plugin = plugin;
         private readonly HashSet<Exiled.API.Enums.ZoneType> triggeredZones = new HashSet<Exiled.API.Enums.ZoneType>();
 
         private static readonly object BlackoutLock = new();
         private static int blackoutStacks = 0;
+
+
+
+        private readonly LightCooldownHandler lightCooldownHandler = new LightCooldownHandler();
+
         /// <summary>
         /// Public getter indicating whether the blackout effect is currently active.
         /// Returns true if blackoutStacks is greater than zero.
@@ -24,9 +30,13 @@ namespace SCP_575.Npc
 
         public void Init()
         {
+
             Library_ExiledAPI.LogInfo("Init", "SCP-575 Npc methods initialized.");
             Exiled.Events.Handlers.Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
             Exiled.Events.Handlers.Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
+            
+            // todo if config
+            CustomHandlersManager.RegisterEventsHandler(handler); 
         }
 
         public void Disable()
@@ -35,6 +45,9 @@ namespace SCP_575.Npc
             Clean();
             Exiled.Events.Handlers.Server.RoundStarted -= _plugin.Npc.EventHandlers.OnRoundStart;
             Exiled.Events.Handlers.Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
+
+            // todo if config
+            CustomHandlersManager.UnregisterEventsHandler(handler);
         }
 
         public void Clean()
