@@ -22,7 +22,6 @@ namespace SCP_575.Npc
     /// </summary>
     public class LightCooldownHandler : CustomEventsHandler, IDisposable
     {
-        private static readonly PropertyInfo? _weaponEmitterProp = InitializeWeaponEmitterProperty();
         private readonly ConcurrentDictionary<string, DateTime> _cooldownUntil = new();
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _flickerTokens = new();
         private readonly HashSet<string> _flickeringPlayers = new();
@@ -33,7 +32,7 @@ namespace SCP_575.Npc
         /// <summary>
         /// Gets the cleanup interval, configurable via NpcConfig or defaulting to 60 seconds.
         /// </summary>
-        private float CleanupInterval => Library_LabAPI.NpcConfig?.HandlerCleanupInterval ?? 160f;
+        private float CleanupInterval => Library_LabAPI.NpcConfig?.CleanupInterval ?? 160f;
 
         /// <summary>
         /// Gets the cooldown duration from configuration, defaulting to 1 second if invalid.
@@ -48,6 +47,7 @@ namespace SCP_575.Npc
         {
             if (Library_LabAPI.NpcConfig == null)
                 throw new InvalidOperationException("NpcConfig is not initialized.");
+            _weaponFlashlightDisabled = !InitializeWeaponFlashlightSupport();
             _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
         }
 
@@ -66,7 +66,7 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Blocks weapon flashlight toggling if the player is on cooldown or a flicker is active.
+        /// Blocks weapon flashlight toggling if the player is on cooldown, a flicker is active, or weapon flashlight support is disabled.
         /// </summary>
         /// <param name="ev">Event arguments containing player and toggle state.</param>
         public override void OnPlayerTogglingWeaponFlashlight(PlayerTogglingWeaponFlashlightEventArgs ev)
@@ -90,14 +90,13 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Triggers a flicker effect for a weapon flashlight when toggled on in a dark room.
+        /// Triggers a flicker effect for a weapon flashlight when toggled on in a dark room, if supported.
         /// </summary>
         /// <param name="ev">Event arguments containing player and firearm item.</param>
         public override void OnPlayerToggledWeaponFlashlight(PlayerToggledWeaponFlashlightEventArgs ev)
         {
             if (ev?.Player == null || string.IsNullOrEmpty(ev.Player.UserId) || !ev.NewState || !Library_LabAPI.IsPlayerInDarkRoom(ev.Player) || _weaponFlashlightDisabled) return;
-            _ = StartFlickerEffectAsync(ev.Player.UserId, "WeaponFlashlight", () => (bool)(_weaponEmitterProp?.GetValue(ev.FirearmItem.Base) ?? false),
-                state => ToggleWeaponFlashlight(ev.FirearmItem, state, nameof(OnPlayerToggledWeaponFlashlight)));
+            _ = StartFlickerEffectAsync(ev.Player.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(ev.FirearmItem), state => ToggleWeaponFlashlight(ev.FirearmItem, state, nameof(OnPlayerToggledWeaponFlashlight)));
         }
 
         /// <summary>
@@ -121,8 +120,7 @@ namespace SCP_575.Npc
                 case FirearmItem firearm when !_weaponFlashlightDisabled:
                     ToggleWeaponFlashlight(firearm, false, nameof(OnScp575AttacksPlayer));
                     Library_ExiledAPI.LogDebug("LightForceOff", $"Forced off weapon flashlight for {target.Nickname}");
-                    _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => (bool)(_weaponEmitterProp?.GetValue(firearm.Base) ?? false),
-                        state => ToggleWeaponFlashlight(firearm, state, nameof(OnScp575AttacksPlayer)));
+                    _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(OnScp575AttacksPlayer)));
                     break;
             }
 
@@ -156,21 +154,57 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Initializes the reflection property for accessing a firearm's flashlight state, with diagnostics.
+        /// Initializes weapon flashlight support by checking for a flashlight module.
         /// </summary>
-        /// <returns>The PropertyInfo for IsEmittingLight, or null if invalid.</returns>
-        private static PropertyInfo? InitializeWeaponEmitterProperty()
+        /// <returns>True if flashlight support is available, false otherwise.</returns>
+        private bool InitializeWeaponFlashlightSupport()
         {
-            var prop = typeof(Firearm).GetProperty("IsEmittingLight", BindingFlags.Instance | BindingFlags.NonPublic)
-                       ?? typeof(Firearm).GetProperty("FlashlightEnabled", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (prop == null || !prop.CanWrite || prop.PropertyType != typeof(bool))
+            try
             {
-                Library_ExiledAPI.LogWarn(nameof(InitializeWeaponEmitterProperty), "Failed to initialize flashlight property. Dumping available properties:");
-                foreach (var p in typeof(Firearm).GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
-                    Library_ExiledAPI.LogDebug(nameof(InitializeWeaponEmitterProperty), $"Property: {p.Name}, Type: {p.PropertyType}, CanWrite: {p.CanWrite}");
-                return null;
+                var firearmType = typeof(Firearm);
+                var flashlightModuleField = firearmType.GetField("_flashlightModule", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (flashlightModuleField == null)
+                {
+                    Library_ExiledAPI.LogWarn(nameof(InitializeWeaponFlashlightSupport), "No flashlight module found on Firearm. Dumping fields:");
+                    foreach (var field in firearmType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+                        Library_ExiledAPI.LogDebug(nameof(InitializeWeaponFlashlightSupport), $"Field: {field.Name}, Type: {field.FieldType}");
+                    return false;
+                }
+                return true;
             }
-            return prop;
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogWarn(nameof(InitializeWeaponFlashlightSupport), $"Failed to initialize weapon flashlight support: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the state of a weapon's flashlight using its flashlight module.
+        /// </summary>
+        /// <param name="firearm">The firearm item.</param>
+        /// <returns>True if the flashlight is enabled, false otherwise.</returns>
+        private bool GetWeaponFlashlightState(FirearmItem firearm)
+        {
+            if (firearm?.Base == null || _weaponFlashlightDisabled) return false;
+            try
+            {
+                var flashlightModule = firearm.Base.GetType().GetField("_flashlightModule", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(firearm.Base);
+                if (flashlightModule == null)
+                {
+                    Library_ExiledAPI.LogWarn(nameof(GetWeaponFlashlightState), $"Flashlight module not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    _weaponFlashlightDisabled = true;
+                    return false;
+                }
+                var enabledProp = flashlightModule.GetType().GetProperty("Enabled", BindingFlags.Instance | BindingFlags.Public);
+                return enabledProp?.GetValue(flashlightModule) is bool enabled && enabled;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogWarn(nameof(GetWeaponFlashlightState), $"Error getting flashlight state for {firearm.Base.GetType().Name}: {ex.Message}. Disabling weapon flashlight functionality.");
+                _weaponFlashlightDisabled = true;
+                return false;
+            }
         }
 
         /// <summary>
@@ -235,7 +269,7 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Toggles a weapon's flashlight state using reflection and sends a network update.
+        /// Toggles a weapon's flashlight state using its flashlight module and sends a network update.
         /// </summary>
         /// <param name="firearm">The firearm item to toggle.</param>
         /// <param name="enabled">The desired flashlight state.</param>
@@ -245,20 +279,28 @@ namespace SCP_575.Npc
             if (firearm?.Base == null || _weaponFlashlightDisabled) return;
             try
             {
-                if (_weaponEmitterProp?.CanWrite == true && _weaponEmitterProp.PropertyType == typeof(bool))
+                var flashlightModule = firearm.Base.GetType().GetField("_flashlightModule", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(firearm.Base);
+                if (flashlightModule == null)
                 {
-                    _weaponEmitterProp.SetValue(firearm.Base, enabled);
+                    Library_ExiledAPI.LogWarn(context, $"Flashlight module not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    _weaponFlashlightDisabled = true;
+                    return;
+                }
+                var enabledProp = flashlightModule.GetType().GetProperty("Enabled", BindingFlags.Instance | BindingFlags.Public);
+                if (enabledProp?.CanWrite == true && enabledProp.PropertyType == typeof(bool))
+                {
+                    enabledProp.SetValue(flashlightModule, enabled);
                     new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
                 }
                 else
                 {
-                    Library_ExiledAPI.LogWarn(context, $"IsEmittingLight reflection failed for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
+                    Library_ExiledAPI.LogWarn(context, $"Cannot set Enabled property on flashlight module for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
                     _weaponFlashlightDisabled = true;
                 }
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogWarn(context, $"Reflection error for {firearm.Base.GetType().Name}: {ex.Message}. Disabling weapon flashlight functionality.");
+                Library_ExiledAPI.LogWarn(context, $"Error toggling flashlight for {firearm.Base.GetType().Name}: {ex.Message}. Disabling weapon flashlight functionality.");
                 _weaponFlashlightDisabled = true;
             }
         }
@@ -272,8 +314,8 @@ namespace SCP_575.Npc
             while (true)
             {
                 yield return Timing.WaitForSeconds(CleanupInterval);
-                var cutoff = DateTime.Now - CooldownDuration; // Correctly define 'cutoff' here
-                foreach (var kvp in _cooldownUntil.Where(k => k.Value < cutoff).ToList()) // Use 'cutoff' instead of '_cutoff'
+                var cutoff = DateTime.Now - CooldownDuration;
+                foreach (var kvp in _cooldownUntil.Where(k => k.Value < cutoff).ToList())
                     _cooldownUntil.TryRemove(kvp.Key, out _);
                 foreach (var kvp in _flickerTokens.Where(k => !Player.List.Any(p => p.UserId == k.Key)).ToList())
                     if (_flickerTokens.TryRemove(kvp.Key, out var cts)) { cts.Cancel(); cts.Dispose(); }
