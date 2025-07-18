@@ -30,10 +30,11 @@
   <ItemGroup>
     <EmbeddedResource Include="Shared\Audio\ambience.wav" />
     <EmbeddedResource Include="Shared\Audio\scream-angry.wav" />
-		<EmbeddedResource Include="Shared\Audio\scream-dying.wav" />
+    <EmbeddedResource Include="Shared\Audio\scream-dying.wav" />
     <EmbeddedResource Include="Shared\Audio\scream.wav" />
     <EmbeddedResource Include="Shared\Audio\whispers-bang.wav" />
     <EmbeddedResource Include="Shared\Audio\whispers-mixed.wav" />
+	<EmbeddedResource Include="Shared\Audio\whispers.wav" />
   </ItemGroup>
 
   <ItemGroup>
@@ -45,10 +46,6 @@
     </PackageReference>
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
     <PackageReference Include="Lib.Harmony" Version="2.3.6" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Shared\Audio\whispers.wav" />
   </ItemGroup>
 
   <ItemGroup>
