@@ -478,7 +478,7 @@ namespace SCP_575.Npc
                             yield return Timing.WaitForOneFrame;
                             Scp575DamageSystem.DamagePlayer(player, clampedDamage);
 
-                            Timing.CallDelayed(3f, () =>
+                            Timing.CallDelayed(3.75f, () =>
                             {
                                 AudioManager.PlayWhispersMixedAutoManaged(player);
                             });
