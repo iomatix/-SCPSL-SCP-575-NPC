@@ -13,7 +13,8 @@ namespace SCP_575.Npc
     using Utils.Networking;
 
     /// <summary>
-    /// Handles flashlight and weapon light cooldowns, flickering effects, and disabling light sources when SCP-575 attacks.
+    /// Handles flashlight and weapon light toggling restrictions for players affected by SCP-575.
+    /// Applies cooldowns, flickering effects, and forced light disables upon attack events.
     /// </summary>
     public class LightCooldownHandler : CustomEventsHandler
     {
@@ -24,6 +25,7 @@ namespace SCP_575.Npc
 
         private readonly TimeSpan _cooldownDuration = TimeSpan.FromSeconds(Library_LabAPI.NpcConfig.KeterLightsourceCooldown);
 
+        /// <inheritdoc/>
         public override void OnPlayerTogglingFlashlight(PlayerTogglingFlashlightEventArgs ev)
         {
             bool isAllowed = ev.IsAllowed;
@@ -31,6 +33,7 @@ namespace SCP_575.Npc
             ev.IsAllowed = isAllowed;
         }
 
+        /// <inheritdoc/>
         public override void OnPlayerTogglingWeaponFlashlight(PlayerTogglingWeaponFlashlightEventArgs ev)
         {
             bool isAllowed = ev.IsAllowed;
@@ -38,18 +41,26 @@ namespace SCP_575.Npc
             ev.IsAllowed = isAllowed;
         }
 
+        /// <inheritdoc/>
         public override void OnPlayerToggledFlashlight(PlayerToggledFlashlightEventArgs ev)
         {
             if (ev.NewState)
                 _ = StartFlickerEffectAsync(ev.LightItem, ev.Player.UserId);
         }
 
+        /// <inheritdoc/>
         public override void OnPlayerToggledWeaponFlashlight(PlayerToggledWeaponFlashlightEventArgs ev)
         {
             if (ev.NewState)
                 _ = StartWeaponFlickerEffectAsync(ev.FirearmItem, ev.Player.UserId);
         }
 
+        /// <summary>
+        /// Prevents flashlight toggling if the cooldown is still active.
+        /// </summary>
+        /// <param name="player">The player toggling the light.</param>
+        /// <param name="isAllowed">Whether the action is allowed.</param>
+        /// <param name="cooldownMessage">Message to display if the action is denied.</param>
         private void HandleLightToggling(Player player, ref bool isAllowed, string cooldownMessage)
         {
             if (_playerCooldowns.TryGetValue(player.UserId, out DateTime lastUse) &&
@@ -63,6 +74,11 @@ namespace SCP_575.Npc
             _playerCooldowns[player.UserId] = DateTime.Now;
         }
 
+        /// <summary>
+        /// Triggers a flickering light effect for held flashlight items.
+        /// </summary>
+        /// <param name="lightItem">The flashlight item to manipulate.</param>
+        /// <param name="userId">The user ID associated with the item.</param>
         private async Task StartFlickerEffectAsync(LightItem lightItem, string userId)
         {
             if (_flickerTokens.TryGetValue(userId, out var existingCts))
@@ -87,7 +103,7 @@ namespace SCP_575.Npc
             catch (TaskCanceledException) { }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogWarn(nameof(StartFlickerEffectAsync), $"Error in light emitter flicker effect: {ex.Message}");
+                Library_ExiledAPI.LogWarn(nameof(StartFlickerEffectAsync), $"Error during flashlight flicker: {ex.Message}");
             }
             finally
             {
@@ -95,6 +111,11 @@ namespace SCP_575.Npc
             }
         }
 
+        /// <summary>
+        /// Triggers a flickering light effect for weapon flashlights using reflection.
+        /// </summary>
+        /// <param name="firearmItem">The firearm item containing the flashlight.</param>
+        /// <param name="userId">The user ID associated with the weapon.</param>
         private async Task StartWeaponFlickerEffectAsync(FirearmItem firearmItem, string userId)
         {
             if (firearmItem?.Base == null || string.IsNullOrWhiteSpace(userId))
@@ -121,10 +142,7 @@ namespace SCP_575.Npc
                     var prop = firearmItem.Base.GetType().GetProperty("IsEmittingLight", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (prop?.CanWrite == true)
                     {
-                        // Set the property via reflection  
                         prop.SetValue(firearmItem.Base, state);
-
-                        // Send network message to sync with all clients
                         new FlashlightNetworkHandler.FlashlightMessage(firearmItem.Serial, state).SendToAuthenticated();
                     }
 
@@ -134,7 +152,7 @@ namespace SCP_575.Npc
             catch (TaskCanceledException) { }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogWarn(nameof(StartWeaponFlickerEffectAsync), $"Error in weapon flicker effect: {ex.Message}");
+                Library_ExiledAPI.LogWarn(nameof(StartWeaponFlickerEffectAsync), $"Error during weapon flashlight flicker: {ex.Message}");
             }
             finally
             {
@@ -144,34 +162,37 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Called when SCP-575 attacks a player. Disables their light source and enforces cooldown.
+        /// Called when SCP-575 attacks a player.
+        /// Disables light sources and applies cooldown logic.
         /// </summary>
         /// <param name="target">The player being attacked.</param>
         public void OnScp575AttacksPlayer(Player target)
         {
-            if (target.CurrentItem is LightItem lightItem)
+            switch (target.CurrentItem)
             {
-                lightItem.IsEmitting = false;
-                _ = StartFlickerEffectAsync(lightItem, target.UserId);
-            }
+                case LightItem lightItem:
+                    lightItem.IsEmitting = false;
+                    _ = StartFlickerEffectAsync(lightItem, target.UserId);
+                    break;
 
-            else if (target.CurrentItem is FirearmItem weapon)
-            {
-                var prop = weapon.Base.GetType().GetProperty("IsEmittingLight", BindingFlags.NonPublic | BindingFlags.Instance);
-                if (prop?.CanWrite == true)
-                {
-                    prop.SetValue(weapon.Base, false);
-                    new FlashlightNetworkHandler.FlashlightMessage(weapon.Serial, false).SendToAuthenticated();
-                }
-                _ = StartWeaponFlickerEffectAsync(weapon, target.UserId);
+                case FirearmItem firearm:
+                    var prop = firearm.Base.GetType().GetProperty("IsEmittingLight", BindingFlags.NonPublic | BindingFlags.Instance);
+                    if (prop?.CanWrite == true)
+                    {
+                        prop.SetValue(firearm.Base, false);
+                        new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, false).SendToAuthenticated();
+                    }
+                    _ = StartWeaponFlickerEffectAsync(firearm, target.UserId);
+                    break;
             }
 
             ForceCooldown(target);
         }
 
         /// <summary>
-        /// Forces cooldown on a player's flashlight/weapon.
+        /// Immediately triggers the cooldown on the given player's light source.
         /// </summary>
+        /// <param name="player">The affected player.</param>
         public void ForceCooldown(Player player)
         {
             _playerCooldowns[player.UserId] = DateTime.Now;
@@ -179,7 +200,8 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Cleans up expired cooldowns to avoid memory leaks.
+        /// Periodically removes expired cooldowns to reduce memory usage.
+        /// Should be invoked in a scheduled maintenance task or tick loop.
         /// </summary>
         public void CleanupOldCooldowns()
         {
