@@ -32,7 +32,7 @@ namespace SCP_575.Npc
         /// <summary>
         /// Gets the cleanup interval, configurable via NpcConfig or defaulting to 60 seconds.
         /// </summary>
-        private float CleanupInterval => Library_LabAPI.NpcConfig?.CleanupInterval ?? 160f;
+        private float CleanupInterval => Library_LabAPI.NpcConfig?.HandlerCleanupInterval ?? 160f;
 
         /// <summary>
         /// Gets the cooldown duration from configuration, defaulting to 1 second if invalid.
