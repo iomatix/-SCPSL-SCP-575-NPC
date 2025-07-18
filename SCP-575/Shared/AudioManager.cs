@@ -120,6 +120,9 @@
             { "scream", "SCP-575.Shared.Audio.scream.wav" },
             { "scream-angry", "SCP-575.Shared.Audio.scream-angry.wav" },
             { "scream-dying", "SCP-575.Shared.Audio.scream-dying.wav" },
+            { "whispers", "SCP-575.Shared.Audio.whispers.wav" },
+            { "whispers-bang", "SCP-575.Shared.Audio.whispers-bang.wav" },
+            { "whispers-mixed", "SCP-575.Shared.Audio.whispers-mixed.wav" },
             { "ambience", "SCP-575.Shared.Audio.ambience.wav" },
         };
 
@@ -514,6 +517,91 @@
         }
 
         /// <summary>
+        /// Plays the angry scream audio for a specific player with automatic speaker management.
+        /// </summary>
+        /// <param name="player">The player to play the angry scream for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
+        /// <param name="position">Optional position to play the angry scream from. If <c>null</c>, uses the player's position.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
+        /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is <c>null</c>.</exception>
+        public static byte? PlayAngryScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        {
+            return PlayAudioAutoManaged("scream-angry", player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
+        }
+
+        /// <summary>
+        /// Plays the dying scream audio for a specific player with automatic speaker management.
+        /// </summary>
+        /// <param name="player">The player to play the dying scream for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
+        /// <param name="position">Optional position to play the dying scream from. If <c>null</c>, uses the player's position.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
+        /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is <c>null</c>.</exception>
+        public static byte? PlayDyingScreamAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        {
+            return PlayAudioAutoManaged("scream-dying", player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
+        }
+
+        /// <summary>
+        /// Plays the whispers audio for a specific player with automatic speaker management.
+        /// </summary>
+        /// <param name="player">The player to play the whispers for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
+        /// <param name="position">Optional position to play the whispers from. If <c>null</c>, uses the player's position.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
+        /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is <c>null</c>.</exception>
+        public static byte? PlayWhispersAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        {
+            return PlayAudioAutoManaged("whispers", player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
+        }
+
+        /// <summary>
+        /// Plays the whispers-bang audio for a specific player with automatic speaker management.
+        /// </summary>
+        /// <param name="player">The player to play the whispers-bang for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
+        /// <param name="position">Optional position to play the whispers-bang from. If <c>null</c>, uses the player's position.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
+        /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is <c>null</c>.</exception>
+        public static byte? PlayWhispersBangAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        {
+            return PlayAudioAutoManaged("whispers-bang", player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
+        }
+
+        /// <summary>
+        /// Plays the mixed whispers audio for a specific player with automatic speaker management.
+        /// </summary>
+        /// <param name="player">The player to play the mixed whispers for.</param>
+        /// <param name="customVolume">Optional volume level as a float. Default is 1.0f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible.</param>
+        /// <param name="position">Optional position to play the mixed whispers from. If <c>null</c>, uses the player's position.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="hearableForAllPlayers">Whether the sound is audible to all players within range (based on MaxDistance).</param>
+        /// <returns>The controller ID of the speaker used, or <c>null</c> if playback failed.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is <c>null</c>.</exception>
+        public static byte? PlayWhispersMixedAutoManaged(Player player, float customVolume = 1.0f, float customMinDistance = 0.5f, float customMaxDistance = 15.5f, Vector3? position = null, float? customLifespan = null, bool hearableForAllPlayers = false)
+        {
+            return PlayAudioAutoManaged("whispers-mixed", player, customVolume, customMinDistance, customMaxDistance, position, false, customLifespan, hearableForAllPlayers);
+        }
+
+        /// <summary>
         /// Plays a scream audio when an SCP damages or kills a player, either locally or globally based on the event type.
         /// </summary>
         /// <param name="targetPlayer">The player who was damaged or killed.</param>
@@ -841,6 +929,91 @@
         }
 
         /// <summary>
+        /// Plays the angry scream audio globally for all valid players.
+        /// </summary>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.9f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard. Default is 0.85f.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible. Default is 1500.0f.</param>
+        /// <param name="centralPosition">Optional central position for the sound. If <c>null</c>, uses the origin (0,0,0).</param>
+        /// <param name="loop">Whether to loop the sound. Default is <c>false</c>.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="controllerId">Optional specific controller ID to use. If <c>null</c>, allocates a new ID.</param>
+        /// <returns><c>true</c> if the angry scream sound was successfully played; otherwise, <c>false</c>.</returns>
+        public static bool PlayGlobalAngrySound(float customVolume = 0.9f, float customMinDistance = 0.85f, float customMaxDistance = 1500.0f, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
+        {
+            Library_ExiledAPI.LogDebug("PlayGlobalAngrySound", "Playing global angry scream audio...");
+            return PlayGlobalSound("scream-angry", customVolume, customMinDistance, customMaxDistance, centralPosition, loop, customLifespan, controllerId);
+        }
+
+        /// <summary>
+        /// Plays the dying scream audio globally for all valid players.
+        /// </summary>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.9f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard. Default is 0.85f.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible. Default is 1500.0f.</param>
+        /// <param name="centralPosition">Optional central position for the sound. If <c>null</c>, uses the origin (0,0,0).</param>
+        /// <param name="loop">Whether to loop the sound. Default is <c>false</c>.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="controllerId">Optional specific controller ID to use. If <c>null</c>, allocates a new ID.</param>
+        /// <returns><c>true</c> if the dying scream sound was successfully played; otherwise, <c>false</c>.</returns>
+        public static bool PlayGlobalDyingSound(float customVolume = 0.9f, float customMinDistance = 0.85f, float customMaxDistance = 1500.0f, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
+        {
+            Library_ExiledAPI.LogDebug("PlayGlobalDyingSound", "Playing global dying scream audio...");
+            return PlayGlobalSound("scream-dying", customVolume, customMinDistance, customMaxDistance, centralPosition, loop, customLifespan, controllerId);
+        }
+
+        /// <summary>
+        /// Plays the whispers audio globally for all valid players.
+        /// </summary>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.9f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard. Default is 0.85f.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible. Default is 1500.0f.</param>
+        /// <param name="centralPosition">Optional central position for the sound. If <c>null</c>, uses the origin (0,0,0).</param>
+        /// <param name="loop">Whether to loop the sound. Default is <c>false</c>.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="controllerId">Optional specific controller ID to use. If <c>null</c>, allocates a new ID.</param>
+        /// <returns><c>true</c> if the whispers sound was successfully played; otherwise, <c>false</c>.</returns>
+        public static bool PlayGlobalWhispers(float customVolume = 0.9f, float customMinDistance = 0.85f, float customMaxDistance = 1500.0f, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
+        {
+            Library_ExiledAPI.LogDebug("PlayGlobalWhispers", "Playing global whispers audio...");
+            return PlayGlobalSound("whispers", customVolume, customMinDistance, customMaxDistance, centralPosition, loop, customLifespan, controllerId);
+        }
+
+        /// <summary>
+        /// Plays the whispers-bang audio globally for all valid players.
+        /// </summary>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.9f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard. Default is 0.85f.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible. Default is 1500.0f.</param>
+        /// <param name="centralPosition">Optional central position for the sound. If <c>null</c>, uses the origin (0,0,0).</param>
+        /// <param name="loop">Whether to loop the sound. Default is <c>false</c>.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="controllerId">Optional specific controller ID to use. If <c>null</c>, allocates a new ID.</param>
+        /// <returns><c>true</c> if the whispers-bang sound was successfully played; otherwise, <c>false</c>.</returns>
+        public static bool PlayGlobalWhispersBang(float customVolume = 0.9f, float customMinDistance = 0.85f, float customMaxDistance = 1500.0f, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
+        {
+            Library_ExiledAPI.LogDebug("PlayGlobalWhispersBang", "Playing global whispers-bang audio...");
+            return PlayGlobalSound("whispers-bang", customVolume, customMinDistance, customMaxDistance, centralPosition, loop, customLifespan, controllerId);
+        }
+
+        /// <summary>
+        /// Plays the mixed whispers audio globally for all valid players.
+        /// </summary>
+        /// <param name="customVolume">Optional volume level as a float. Default is 0.9f.</param>
+        /// <param name="customMinDistance">Optional minimum distance at which the sound can be heard. Default is 0.85f.</param>
+        /// <param name="customMaxDistance">Optional maximum distance at which the sound remains audible. Default is 1500.0f.</param>
+        /// <param name="centralPosition">Optional central position for the sound. If <c>null</c>, uses the origin (0,0,0).</param>
+        /// <param name="loop">Whether to loop the sound. Default is <c>false</c>.</param>
+        /// <param name="customLifespan">Optional custom lifespan for the speaker in seconds.</param>
+        /// <param name="controllerId">Optional specific controller ID to use. If <c>null</c>, allocates a new ID.</param>
+        /// <returns><c>true</c> if the mixed whispers sound was successfully played; otherwise, <c>false</c>.</returns>
+        public static bool PlayGlobalWhispersMixed(float customVolume = 0.9f, float customMinDistance = 0.85f, float customMaxDistance = 1500.0f, Vector3? centralPosition = null, bool loop = false, float? customLifespan = null, byte? controllerId = null)
+        {
+            Library_ExiledAPI.LogDebug("PlayGlobalWhispersMixed", "Playing global mixed whispers audio...");
+            return PlayGlobalSound("whispers-mixed", customVolume, customMinDistance, customMaxDistance, centralPosition, loop, customLifespan, controllerId);
+        }
+
+        /// <summary>
         /// Plays the ambience sound globally for all valid players.
         /// </summary>
         /// <param name="customVolume">Optional volume level as a float. Default is 0.65f.</param>
@@ -863,7 +1036,7 @@
                 GLOBAL_AMBIENCE_ID,
                 centralPosition ?? Vector3.zero,
                 loop,
-                customLifespan, 
+                customLifespan,
                 p => IsPlayerValidForAudio(p) && Library_LabAPI.IsPlayerInDarkRoom(Library_LabAPI.GetPlayer(p.ReferenceHub)), // Real time detect if is in the dark room to play/stop creepy ambient sounds
                 speaker => ConfigureSpeaker(speaker, false, customVolume, customMinDistance, customMaxDistance)
             );

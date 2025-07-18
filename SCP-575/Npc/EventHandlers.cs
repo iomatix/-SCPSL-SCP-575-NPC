@@ -69,13 +69,13 @@ namespace SCP_575.Npc
             // 5) If all generators are up, trigger your SCP-575 behavior
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
+                AudioManager.PlayGlobalDyingSound();
                 if (Library_LabAPI.NpcConfig.IsNpcKillable)
                 {
                     _plugin.Npc.Methods.Kill575();
                 }
                 else
                 {
-                    _plugin.Npc.Methods.DyingGlobalSound();
                     _plugin.Npc.Methods.Reset575();
                 }
             }
@@ -91,7 +91,7 @@ namespace SCP_575.Npc
             Library_ExiledAPI.LogDebug("OnGrenadeExploded", $"Grenade or disruptor used in dark SCP-575 room: {room.Name}");
             Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
 
-            _plugin.Npc.Methods.AngryGlobalSound();
+            AudioManager.PlayGlobalAngrySound();
 
         }
         

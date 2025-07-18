@@ -5,14 +5,9 @@ namespace SCP_575.ConfigObjects
 
     public class NpcConfig
     {
+        //region General Settings
         [Description("Whether or not randomly timed events should occur. If false, all events will be at the same interval apart.")]
         public bool RandomEvents { get; private set; } = true;
-
-        [Description("Whether or not tesla gates should be disabled during blackouts.")]
-        public bool DisableTeslas { get; private set; } = true;
-
-        [Description("Whether or not nuke detonation should be cancelled during blackouts.")]
-        public bool DisableNuke { get; private set; } = true;
 
         [Description("The delay before the first event of each round, in seconds.")]
         public float InitialDelay { get; private set; } = 300f;
@@ -29,9 +24,25 @@ namespace SCP_575.ConfigObjects
         [Description("The maximum amount of seconds between each event. If RandomEvents is disabled, this will be the delay between every event.")]
         public int DelayMax { get; private set; } = 500;
 
-        [Description("The percentage change that SCP-575 events will occur in any particular round.")]
+        [Description("The percentage chance that SCP-575 events will occur in any particular round.")]
         public int SpawnChance { get; private set; } = 45;
+        //endregion
 
+        //region Facility Effects
+        [Description("Whether or not tesla gates should be disabled during blackouts.")]
+        public bool DisableTeslas { get; private set; } = true;
+
+        [Description("Whether or not nuke detonation should be cancelled during blackouts.")]
+        public bool DisableNuke { get; private set; } = true;
+
+        [Description("Flicker lights when the event starts.")]
+        public bool FlickerLights { get; private set; } = true;
+
+        [Description("The number of seconds a first flickering lasts.")]
+        public float FlickerLightsDuration { get; private set; } = 1.5f;
+        //endregion
+
+        //region SCP-575 Behavior
         [Description("Whether or not people in dark rooms should take damage if they have no light source in their hand.")]
         public bool EnableKeter { get; private set; } = true;
 
@@ -41,12 +52,32 @@ namespace SCP_575.ConfigObjects
         [Description("Determines how kills by SCP-575 handle ragdolls. If set to false, a skeleton ragdoll is spawned instead of the default one. If set to true, no ragdoll is created upon death.")]
         public bool DisableRagdolls { get; private set; } = false;
 
-        [Description("Whether or not to inform players about being damaged by SCP-575 via Broadcast messages.")]
-        public bool EnableKeterBroadcast { get; private set; } = true;
+        [Description("Base damage per each stack of delay. The damage is inflicted if EnableKeter is set to true.")]
+        public float KeterDamage { get; private set; } = 10f;
 
-        [Description("Broadcast message shown when a player is damaged by SCP-575 if EnableKeterBroadcast is set to true.")]
-        public string KeterBroadcast { get; set; } = "You were damaged by SCP-575! Equip a flashlight!";
+        [Description("Penetration modifier same as in FirearmsDamageHandler.")]
+        public float KeterDamagePenetration { get; internal set; } = 0.75f;
 
+        [Description("The delay of receiving damage.")]
+        public float KeterDamageDelay { get; private set; } = 7.85f;
+
+        [Description("Wheter or not to enable cooldown on the light source triggered on hit by SCP-575.")]
+        public bool EnableKeterLightsourceCooldown { get; private set; } = true;
+
+        [Description("Cooldown on the light source triggered on hit by SCP-575.")]
+        public float KeterLightsourceCooldown { get; private set; } = 7.25f;
+
+        [Description("The minimum modifier applied to ragdolls when they were damaged by SCP-575.")]
+        public float KeterForceMinModifier { get; set; } = 0.75f;
+
+        [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
+        public float KeterForceMaxModifier { get; set; } = 2.35f;
+
+        [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
+        public float KeterDamageVelocityModifier { get; set; } = 1.25f;
+        //endregion
+
+        //region Player Effects
         [Description("Whether or not to enable effects triggered by SCP-575 on player hurt.")]
         public bool EnableKeterOnDealDamageEffects { get; private set; } = true;
 
@@ -97,33 +128,20 @@ namespace SCP_575.ConfigObjects
 
         [Description("Enable 'Traumatized' effect when damaged by SCP-575.")]
         public bool EnableEffectTraumatized { get; private set; } = true;
+        //endregion
+
+        //region Notifications and Sounds
+        [Description("Whether or not to inform players about being damaged by SCP-575 via Broadcast messages.")]
+        public bool EnableKeterBroadcast { get; private set; } = true;
+
+        [Description("Broadcast message shown when a player is damaged by SCP-575 if EnableKeterBroadcast is set to true.")]
+        public string KeterBroadcast { get; set; } = "You were damaged by SCP-575! Equip a flashlight!";
 
         [Description("Whether or not SCP-575's sound effect should happen on the client damaged by the entity.")]
         public bool EnableScreamSound { get; private set; } = true;
 
-        [Description("Flicker lights when the event starts.")]
-        public bool FlickerLights { get; private set; } = true;
-
-        [Description("The number of seconds a first flickering lasts.")]
-        public float FlickerLightsDuration { get; private set; } = 1.5f;
-
-        [Description("Base damage per each stack of delay. Tha damage is inflicted if EnableKeter is set to true.")]
-        public float KeterDamage { get; private set; } = 10f;
-
-        [Description("Penetration modifier same as in FirearmsDamageHandler.")]
-        public float KeterDamagePenetration { get; internal set; } = 0.75f;
-
-        [Description("The delay of receiving damage.")]
-        public float KeterDamageDelay { get; private set; } = 8f;
-
-        [Description("The minimum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMinModifier { get; set; } = 0.75f;
-
-        [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMaxModifier { get; set; } = 2.35f;
-
-        [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
-        public float KeterDamageVelocityModifier { get; set; } = 1.25f;
+        [Description("Play horror ambient sound on blackout.")]
+        public bool KeterAmbient { get; set; } = true;
 
         [Description("Name displayed in player's death information.")]
         public string KilledBy { get; set; } = "SCP-575";
@@ -133,8 +151,9 @@ namespace SCP_575.ConfigObjects
 
         [Description("Ragdoll death information.")]
         public string RagdollInspectText { get; set; } = "Flesh stripped by shadow tendrils, leaving a shadowy skeleton.";
+        //endregion
 
-        // MESSAGES
+        //region CASSIE Messages
         [Description("Glitch chance during message per word in CASSIE sentence.")]
         public float GlitchChance { get; private set; } = 10f;
 
@@ -153,7 +172,7 @@ namespace SCP_575.ConfigObjects
         [Description("Message said by Cassie just after the blackout.")]
         public string CassiePostMessage { get; set; } = "facility power system malfunction has been detected at .";
 
-        [Description("The time between the sentence and the blockout end.")]
+        [Description("The time between the sentence of the blockout end.")]
         public float TimeBetweenSentenceAndEnd { get; set; } = 7.0f;
 
         [Description("Message said by Cassie after CassiePostMessage if outage gonna occure at whole site.")]
@@ -177,23 +196,21 @@ namespace SCP_575.ConfigObjects
         [Description("The sound CASSIE will make during a blackout.")]
         public string CassieKeter { get; set; } = "pitch_0.15 .g7";
 
-        [Description("Play horror ambient sound on blackout.")]
-        public bool KeterAmbient { get; set; } = true;
-
         [Description("The message CASSIE will say when a blackout ends.")]
         public string CassieMessageEnd { get; set; } = "facility power system now operational";
 
         [Description("Should cassie clear the messeage and broadcast cue before important message to prevent spam?")]
         public bool CassieMessageClearBeforeImportant { get; set; } = true;
+        //endregion
 
-        // Probability 
+        //region Zone Probabilities
         [Description("A blackout in the whole facility will occur if none of the zones is selected randomly and EnableFacilityBlackout is set to true.")]
         public bool EnableFacilityBlackout { get; private set; } = true;
 
         [Description("Percentage chance of an outage at the Heavy Containment Zone during the blackout.")]
         public int ChanceHeavy { get; set; } = 99;
 
-        [Description("Percentage chance of an outage at the Heavy Containment Zone during the blackout.")]
+        [Description("Percentage chance of an outage at the Light Containment Zone during the blackout.")]
         public int ChanceLight { get; set; } = 45;
 
         [Description("Percentage chance of an outage at the Entrance Zone during the blackout.")]
@@ -205,7 +222,8 @@ namespace SCP_575.ConfigObjects
         [Description("Percentage chance of an outage at an unknown and unspecified type of zone during the blackout.")]
         public int ChanceOther { get; set; } = 0;
 
-        [Description("Change this to true if want to use per room probability settings isntead of per zone settings. The script will check all rooms in the specified zone with its probability.")]
+        [Description("Change this to true if want to use per room probability settings instead of per zone settings. The script will check all rooms in the specified zone with its probability.")]
         public bool UsePerRoomChances { get; set; } = false;
+        //endregion
     }
 }

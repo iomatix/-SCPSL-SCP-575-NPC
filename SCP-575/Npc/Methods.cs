@@ -1,6 +1,7 @@
 namespace SCP_575.Npc
 {
     using LabApi.Events.Arguments.ServerEvents;
+    using LabApi.Events.CustomHandlers;
     using MEC;
     using SCP_575.ConfigObjects;
     using Shared;
@@ -13,7 +14,7 @@ namespace SCP_575.Npc
     {
         private readonly Plugin _plugin;
         private NpcConfig Config => _plugin.Config.NpcConfig;
-        
+
         public Methods(Plugin plugin) => _plugin = plugin;
         private readonly HashSet<Exiled.API.Enums.ZoneType> triggeredZones = new HashSet<Exiled.API.Enums.ZoneType>();
 
@@ -55,9 +56,9 @@ namespace SCP_575.Npc
 
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated += _plugin.Npc.EventHandlers.OnGeneratorActivated;
             LabApi.Events.Handlers.ServerEvents.ProjectileExploded += _plugin.Npc.EventHandlers.OnProjectileExploded;
-            
+
             // todo if config
-            CustomHandlersManager.RegisterEventsHandler(handler); 
+            if (Library_LabAPI.NpcConfig.EnableKeterLightsourceCooldown) CustomHandlersManager.RegisterEventsHandler(lightCooldownHandler);
         }
 
         public void Disable()
@@ -71,7 +72,7 @@ namespace SCP_575.Npc
             LabApi.Events.Handlers.ServerEvents.ProjectileExploded -= _plugin.Npc.EventHandlers.OnProjectileExploded;
 
             // todo if config
-            CustomHandlersManager.UnregisterEventsHandler(handler);
+            if (Library_LabAPI.NpcConfig.EnableKeterLightsourceCooldown) CustomHandlersManager.UnregisterEventsHandler(lightCooldownHandler);
         }
 
         public void Clean()
@@ -498,6 +499,7 @@ namespace SCP_575.Npc
                         }
                         else if (player.IsHuman)
                         {
+                            lightCooldownHandler.OnScp575AttacksPlayer(player);
                             Library_ExiledAPI.LogDebug("KeterDamage", $"Player {player.Nickname} has a light source in hand or lights are on in their current room, no damage applied.");
                         }
                     }
@@ -543,24 +545,11 @@ namespace SCP_575.Npc
                 _ => false
             };
         }
-        
-        public void Kill575(bool withSound = true)
+
+        public void Kill575()
         {
             Library_ExiledAPI.LogDebug("Kill575", $"Killing SCP-575 NPC.");
-            if (withSound) DyingGlobalSound();
             Clean();
-        }
-
-        public void AngryGlobalSound()
-        {
-            Library_ExiledAPI.LogDebug("AngryGlobalSound", $"Playing audio...");
-            AudioManager.PlayGlobalSound("scream-angry");
-        }
-
-        public void DyingGlobalSound()
-        {
-            Library_ExiledAPI.LogDebug("DyingGlobalSound", $"Playing audio...");
-            AudioManager.PlayGlobalSound("scream-dying");
         }
 
     }
