@@ -35,6 +35,12 @@ namespace SCP_575.ConfigObjects
         [Description("Whether or not people in dark rooms should take damage if they have no light source in their hand.")]
         public bool EnableKeter { get; private set; } = true;
 
+        [Description("Specifies whether SCP-575 can be terminated when all generators are engaged. If set to false, generator activation only halts SCP-575's behavior and resets its event state without killing it.")]
+        public bool IsNpcKillable { get; private set; } = false;
+
+        [Description("Determines how kills by SCP-575 handle ragdolls. If set to false, a skeleton ragdoll is spawned instead of the default one. If set to true, no ragdoll is created upon death.")]
+        public bool DisableRagdolls { get; private set; } = false;
+
         [Description("Whether or not to inform players about being damaged by SCP-575 via Broadcast messages.")]
         public bool EnableKeterBroadcast { get; private set; } = true;
 
@@ -114,7 +120,7 @@ namespace SCP_575.ConfigObjects
         public float KeterForceMinModifier { get; set; } = 0.75f;
 
         [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMaxModifier { get; set; } = 2.5f;
+        public float KeterForceMaxModifier { get; set; } = 2.35f;
 
         [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
         public float KeterDamageVelocityModifier { get; set; } = 1.25f;
