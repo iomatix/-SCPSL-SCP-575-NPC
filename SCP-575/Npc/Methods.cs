@@ -486,6 +486,7 @@ namespace SCP_575.Npc
                         }
                         else if (player.IsHuman)
                         {
+                            AudioManager.PlayWhispersBangAutoManaged(player);
                             _lightCooldownHandler.OnScp575AttacksPlayer(player);
                         }
                     }
