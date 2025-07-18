@@ -32,6 +32,7 @@ namespace SCP_575.Npc
         private CoroutineHandle _cleanupCoroutine;
         private bool _weaponFlashlightDisabled;
         private static readonly FieldInfo? _attachmentsField = InitializeAttachmentsField();
+        private static bool _attachmentPropertiesDumped;
 
         /// <summary>
         /// Gets the cleanup interval, configurable via NpcConfig or defaulting to 160 seconds.
@@ -202,6 +203,17 @@ namespace SCP_575.Npc
                     return false;
                 }
 
+                if (!_attachmentPropertiesDumped)
+                {
+                    var attachmentType = flashlightAttachment.GetType();
+                    Library_ExiledAPI.LogDebug(nameof(GetWeaponFlashlightState), $"Flashlight attachment type: {attachmentType.FullName}");
+                    foreach (var prop in attachmentType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                    {
+                        Library_ExiledAPI.LogDebug(nameof(GetWeaponFlashlightState), $"Property: {prop.Name}, Type: {prop.PropertyType}, CanRead: {prop.CanRead}, CanWrite: {prop.CanWrite}");
+                    }
+                    _attachmentPropertiesDumped = true;
+                }
+
                 var enabledProp = flashlightAttachment.GetType().GetProperty("IsEnabled", BindingFlags.Instance | BindingFlags.Public);
                 if (enabledProp == null || enabledProp.PropertyType != typeof(bool))
                 {
@@ -310,6 +322,17 @@ namespace SCP_575.Npc
                     Library_ExiledAPI.LogWarn(context, $"Flashlight attachment not found for {firearm.Base.GetType().Name}. Disabling weapon flashlight functionality.");
                     _weaponFlashlightDisabled = true;
                     return;
+                }
+
+                if (!_attachmentPropertiesDumped)
+                {
+                    var attachmentType = flashlightAttachment.GetType();
+                    Library_ExiledAPI.LogDebug(context, $"Flashlight attachment type: {attachmentType.FullName}");
+                    foreach (var prop in attachmentType.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                    {
+                        Library_ExiledAPI.LogDebug(context, $"Property: {prop.Name}, Type: {prop.PropertyType}, CanRead: {prop.CanRead}, CanWrite: {prop.CanWrite}");
+                    }
+                    _attachmentPropertiesDumped = true;
                 }
 
                 var enabledProp = flashlightAttachment.GetType().GetProperty("IsEnabled", BindingFlags.Instance | BindingFlags.Public);
