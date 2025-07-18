@@ -480,7 +480,7 @@ namespace SCP_575.Npc
 
                             Timing.CallDelayed(3.75f, () =>
                             {
-                                AudioManager.PlayWhispersMixedAutoManaged(player);
+                                AudioManager.PlayWhispersMixedAutoManaged(player, hearableForAllPlayers: true);
                             });
                             _lightCooldownHandler.OnScp575AttacksPlayer(player);
 
@@ -491,7 +491,7 @@ namespace SCP_575.Npc
                         }
                         else if (player.IsHuman && IsInDarkRoom(player))
                         {
-                            AudioManager.PlayWhispersAutoManaged(player);
+                            AudioManager.PlayWhispersAutoManaged(player, hearableForAllPlayers: true);
                             _lightCooldownHandler.OnScp575AttacksPlayer(player);
                         }
                     }
