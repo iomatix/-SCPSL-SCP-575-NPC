@@ -561,6 +561,25 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
+        /// Determines if a projectile is dangerous to SCP-575.
+        /// </summary>
+        /// <param name="projectile">The projectile to check.</param>
+        /// <returns>True if dangerous; otherwise, false.</returns>
+        public bool IsDangerousToScp575(LabApi.Features.Wrappers.Projectile projectile)
+        {
+            if (projectile == null) return false;
+            return projectile.Type switch
+            {
+                ItemType.GrenadeHE => true,
+                ItemType.GrenadeFlash => true,
+                ItemType.SCP018 => true,
+                ItemType.Jailbird => true,
+                ItemType.ParticleDisruptor => true,
+                _ => false
+            };
+        }
+
+        /// <summary>
         /// Terminates SCP-575 by cleaning up its state.
         /// </summary>
         public void Kill575()

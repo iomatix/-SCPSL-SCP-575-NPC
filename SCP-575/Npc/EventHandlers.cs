@@ -137,5 +137,28 @@ namespace SCP_575.Npc
             Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
             AudioManager.PlayGlobalAngrySound();
         }
+
+        /// <summary>
+        /// Handles the projectile explosion event, enabling lights and playing a global sound if a dangerous
+        /// projectile explodes in a dark room during an active blackout.
+        /// </summary>
+        /// <param name="ev">The event arguments for the projectile explosion event.</param>
+        public void OnProjectileExploded(LabApi.Events.Arguments.ServerEvents.ProjectileExplodedEventArgs ev)
+        {
+            if (!_plugin.Npc.Methods.IsDangerousToScp575(ev.TimedGrenade))
+            {
+                return;
+            }
+
+            Exiled.API.Features.Room room = Exiled.API.Features.Room.Get(ev.Position);
+            if (room == null || !room.AreLightsOff || !_plugin.Npc.Methods.IsBlackoutActive)
+            {
+                return;
+            }
+
+            Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Grenade, Flash or disruptor used in dark SCP-575 room: {room.Name}");
+            Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
+            AudioManager.PlayGlobalAngrySound();
+        }
     }
 }
