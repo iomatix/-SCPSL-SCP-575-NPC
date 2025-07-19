@@ -122,19 +122,32 @@ namespace SCP_575.Npc
         /// <param name="ev">The event arguments for the explosion spawned event.</param>
         public void OnExplosionSpawned(LabApi.Events.Arguments.ServerEvents.ExplosionSpawnedEventArgs ev)
         {
+            Exiled.API.Features.Room room = Library_ExiledAPI.GetRoomAtPosition(ev.Position);
+            if (room == null)
+            {
+                Library_ExiledAPI.LogDebug("OnExplosionSpawned", "Explosion event had no room data.");
+                return;
+            }
+
             if (ev.ExplosionType == null)
             {
-                Library_ExiledAPI.LogDebug("OnExplosionSpawned", "Explosion event had no explosion type data.");
+                Library_ExiledAPI.LogWarn("OnExplosionSpawned", "Explosion event had no explosion type data.");
                 return;
             }
 
             Scp575Helpers.Scp575ImpactType impactType = Scp575Helpers.ClassifyExplosionImpact(ev.ExplosionType);
             if (impactType != Scp575Helpers.Scp575ImpactType.Dangerous)
+            {
+                Library_ExiledAPI.LogDebug("OnExplosionSpawned", $"Explosion event had not dangerous impact type. Type: {impactType}");
                 return;
+            }
 
-            Exiled.API.Features.Room room = Library_ExiledAPI.GetRoomAtPosition(ev.Position);
-            if (room == null || !room.AreLightsOff || !_plugin.Npc.Methods.IsBlackoutActive)
+            bool isScp575Present = _plugin.Npc.Methods.IsBlackoutActive;
+            if (!room.AreLightsOff || !isScp575Present)
+            {
+                Library_ExiledAPI.LogDebug("OnExplosionSpawned", $"Dangerous explosion had event in safe room. LightsOff: {room.AreLightsOff}, [SCP-575 Presence] IsBlackoutActive: {isScp575Present}");
                 return;
+            }
 
             Library_ExiledAPI.LogDebug("OnExplosionSpawned", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
             Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
@@ -148,6 +161,13 @@ namespace SCP_575.Npc
         /// <param name="ev">The event arguments for the projectile explosion event.</param>
         public void OnProjectileExploded(LabApi.Events.Arguments.ServerEvents.ProjectileExplodedEventArgs ev)
         {
+            Exiled.API.Features.Room room = Library_ExiledAPI.GetRoomAtPosition(ev.Position);
+            if (room == null)
+            {
+                Library_ExiledAPI.LogDebug("OnProjectileExploded", "Explosion event had no room data.");
+                return;
+            }
+
             if (ev.TimedGrenade == null)
             {
                 Library_ExiledAPI.LogDebug("OnProjectileExploded", "Explosion event had no grenade data.");
@@ -156,22 +176,22 @@ namespace SCP_575.Npc
 
             var impact = Scp575Helpers.ClassifyProjectileImpact(ev.TimedGrenade);
 
-            Exiled.API.Features.Room room = Library_ExiledAPI.GetRoomAtPosition(ev.Position);
-            if (room == null)
-                return;
-
             switch (impact)
             {
                 case Scp575Helpers.Scp575ImpactType.Helpful:
-                    Library_ExiledAPI.LogDebug("OnProjectileExploded", $"SCP2176 used in room: {room.Name}");
+                    Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Helpful SCP (e.g. SCP-2176) used in room: {room.Name}");
                     Library_ExiledAPI.DisableAndFlickerRoomAndNeighborLights(room);
                     return;
 
                 case Scp575Helpers.Scp575ImpactType.Dangerous:
-                    if (!room.AreLightsOff || !_plugin.Npc.Methods.IsBlackoutActive)
+                    bool isScp575Present = _plugin.Npc.Methods.IsBlackoutActive;
+                    if (!room.AreLightsOff || !isScp575Present)
+                    {
+                        Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Dangerous explosion had event in safe room. LightsOff: {room.AreLightsOff}, [SCP-575 Presence] IsBlackoutActive: {isScp575Present}");
                         return;
+                    }
 
-                    Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Dangerous grenade used in dark SCP-575 room: {room.Name}");
+                    Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
                     Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
                     AudioManager.PlayGlobalAngrySound();
                     return;
