@@ -90,6 +90,7 @@ namespace SCP_575.Npc
             Exiled.Events.Handlers.Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated += _plugin.Npc.EventHandlers.OnGeneratorActivated;
             LabApi.Events.Handlers.ServerEvents.ExplosionSpawned += _plugin.Npc.EventHandlers.OnExplosionSpawned;
+            LabApi.Events.Handlers.ServerEvents.ProjectileExploded += _plugin.Npc.EventHandlers.OnProjectileExploded;
 
             if (_config.EnableKeterLightsourceCooldown)
             {
@@ -103,6 +104,7 @@ namespace SCP_575.Npc
             Exiled.Events.Handlers.Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated -= _plugin.Npc.EventHandlers.OnGeneratorActivated;
             LabApi.Events.Handlers.ServerEvents.ExplosionSpawned -= _plugin.Npc.EventHandlers.OnExplosionSpawned;
+            LabApi.Events.Handlers.ServerEvents.ProjectileExploded -= _plugin.Npc.EventHandlers.OnProjectileExploded;
 
             if (_config.EnableKeterLightsourceCooldown)
             {
