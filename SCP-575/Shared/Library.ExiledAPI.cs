@@ -104,7 +104,7 @@
                 LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
 
                 neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
-                room.RoomLightController.LightsEnabled = true;
+                neighbor.AreLightsOff = false;
             }
 
 
@@ -128,9 +128,7 @@
             foreach (Room neighbor in room.NearestRooms)
             {
                 LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
-
                 neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
-                room.RoomLightController.LightsEnabled = false;
                 float blackoutDuration = blackoutDurationBase + ((NpcConfig.DurationMin + NpcConfig.DurationMax) / 2f);
 
                 if (Methods.AttemptRoomBlackout(neighbor, blackoutDuration, isCassieSilent: true, isForced: true))
