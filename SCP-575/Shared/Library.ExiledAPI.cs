@@ -99,12 +99,15 @@
                 return;
             }
 
-            foreach (Room neighbor in room.NearestRooms)
-            {
-                LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
+            HashSet<Room> roomSet = new HashSet<Room>(room.NearestRooms);
+            roomSet.Add(room);
 
-                neighbor.AreLightsOff = false;
-                neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
+            foreach (Room r in roomSet)
+            {
+                LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
+
+                r.AreLightsOff = false;
+                r.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
             }
 
 
@@ -123,14 +126,17 @@
                 return;
             }
 
+            HashSet<Room> roomSet = new HashSet<Room>(room.NearestRooms);
+            roomSet.Add(room);
+
             bool attemptFirstSucces = false;
-            foreach (Room neighbor in room.NearestRooms)
+            foreach (Room r in roomSet)
             {
-                LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
+                LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
                 float blackoutDuration = blackoutDurationBase + ((NpcConfig.DurationMin + NpcConfig.DurationMax) / 2f);
 
-                bool attemptResult = Methods.AttemptRoomBlackout(neighbor, blackoutDuration, isCassieSilent: true, isForced: true);
+                bool attemptResult = Methods.AttemptRoomBlackout(r, blackoutDuration, isCassieSilent: true, isForced: true);
                 if (attemptResult)
                 {
                     if (!attemptFirstSucces)
