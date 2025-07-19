@@ -2,7 +2,9 @@
 {
     using Exiled.API.Features;
     using Exiled.Loader;
+    using MEC;
     using SCP_575.ConfigObjects;
+    using SCP_575.Npc;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -19,6 +21,9 @@
         /// <summary>Gets the singleton instance of the SCP-575 plugin.</summary>
         public static Plugin Plugin => Plugin.Singleton;
 
+        /// <summary>Gets the NPC Methods section of the plugin.</summary>
+        public static Methods Methods => Plugin.Npc.Methods;
+
         /// <summary>Gets the NPC configuration section of the plugin.</summary>
         public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
 
@@ -33,6 +38,9 @@
 
         /// <summary>Gets the list of all Tesla gates.</summary>
         public static IReadOnlyCollection<Exiled.API.Features.TeslaGate> TeslaGates => Exiled.API.Features.TeslaGate.List;
+
+        /// <summary>Gets the room at the specified position.</summary>
+        public static Room GetRoomAtPosition(Vector3 pos) => Room.Get(pos);
 
         #endregion
 
@@ -85,15 +93,47 @@
         public static void EnableAndFlickerRoomAndNeighborLights(Room room)
         {
             if (room == null) return;
+            HashSet<Room> allRooms = new HashSet<Room>(room.NearestRooms);
+            allRooms.Add(room);
 
-            room.RoomLightController.LightsEnabled = true;
-            room.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
-
-            foreach (var neighbor in room.NearestRooms)
+            foreach (Room neighbor in allRooms)
             {
-                LogDebug("EnableAndFlickerRoomLights", $"Also flickering lights in neighbor room: {neighbor.Name}");
-                neighbor.RoomLightController.LightsEnabled = true;
+                LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
+
                 neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
+            }
+
+
+        }
+
+        /// <summary>
+        /// Flickers lights in a room and its neighboring rooms,
+        /// then attempts a blackout event and increments blackout stacks by 1 if successful.
+        /// </summary>
+        /// <param name="room">The Exiled room to light up and flicker.</param>
+        /// <param name="blackoutDurationBase"> Minimum time in seconds that the blackout occure.</param> 
+        public static IEnumerator<float> DisableAndFlickerRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
+        {
+            if (room == null) yield break;
+
+            HashSet<Room> allRooms = new HashSet<Room>(room.NearestRooms);
+            allRooms.Add(room);
+
+            foreach (Room neighbor in allRooms)
+            {
+                LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
+
+                neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
+                yield return Timing.WaitForSeconds(Library_LabAPI.NpcConfig.FlickerLightsDuration + 0.25f);
+
+                float blackoutDuration = blackoutDurationBase + ((NpcConfig.DurationMin + NpcConfig.DurationMax) / 2f);
+                if (Methods.AttemptRoomBlackout(neighbor, blackoutDuration, isCassieSilent: true, isForced: true))
+                {
+                    Methods.IncrementBlackoutStack();
+                    AudioManager.PlayGlobalWhispersBang();
+                    yield return Timing.WaitForSeconds(blackoutDuration);
+                    Methods.DecrementBlackoutStack();
+                }
             }
         }
 

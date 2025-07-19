@@ -243,9 +243,8 @@ namespace SCP_575.Npc
             return blackoutTriggered;
         }
 
-        private bool AttemptRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration)
+        public bool AttemptRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration, bool isForced = false, bool isCassieSilent = false)
         {
-            if (!Library_ExiledAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return false;
 
             float chance;
             string cassieMessage;
@@ -275,12 +274,12 @@ namespace SCP_575.Npc
                     break;
             }
 
-            if (Library_ExiledAPI.Loader_Random_NextDouble() * 100 < chance)
+            if (isForced || (Library_ExiledAPI.Loader_Random_NextDouble() * 100) < chance)
             {
                 HandleRoomBlackout(room, blackoutDuration);
                 if (!_triggeredZones.Contains(zone))
                 {
-                    if (!IsBlackoutActive) TriggerCassieMessage(cassieMessage);
+                    if (!IsBlackoutActive && !isCassieSilent) TriggerCassieMessage(cassieMessage);
                     _triggeredZones.Add(zone);
                 }
                 return true;
@@ -334,10 +333,8 @@ namespace SCP_575.Npc
             {
                 IncrementBlackoutStack();
                 Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout triggered. Stacks: {_blackoutStacks}, Duration: {blackoutDuration}");
-                if (_config.EnableScreamSound)
-                {
-                    TriggerCassieMessage(_config.CassieKeter);
-                }
+                TriggerCassieMessage(_config.CassieKeter);
+
 
                 if (_config.KeterAmbient)
                 {
@@ -497,18 +494,17 @@ namespace SCP_575.Npc
                 }
             }
         }
-
         #endregion
 
         #region Utility Methods
 
-        private void IncrementBlackoutStack()
+        public void IncrementBlackoutStack()
         {
             lock (BlackoutLock)
                 _blackoutStacks++;
         }
 
-        private void DecrementBlackoutStack()
+        public void DecrementBlackoutStack()
         {
             lock (BlackoutLock)
                 _blackoutStacks = Math.Max(0, _blackoutStacks - 1);
@@ -542,7 +538,7 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Determines if a explosion is dangerous to SCP-575.
+        /// Determines if a explosion is dangerous to SCP-575. This method works for damagable explosions like those done by disruptor, he granades, and SCP-018.
         /// </summary>
         /// <param name="explosionType">The explosion to check.</param>
         /// <returns>True if dangerous; otherwise, false.</returns>
@@ -555,25 +551,6 @@ namespace SCP_575.Npc
                 ExplosionType.SCP018 => true,
                 ExplosionType.Jailbird => true,
                 ExplosionType.Disruptor => true,
-                _ => false
-            };
-        }
-
-        /// <summary>
-        /// Determines if a projectile is dangerous to SCP-575.
-        /// </summary>
-        /// <param name="projectile">The projectile to check.</param>
-        /// <returns>True if dangerous; otherwise, false.</returns>
-        public bool IsDangerousToScp575(LabApi.Features.Wrappers.Projectile projectile)
-        {
-            if (projectile == null) return false;
-            return projectile.Type switch
-            {
-                ItemType.GrenadeHE => true,
-                ItemType.GrenadeFlash => true,
-                ItemType.SCP018 => true,
-                ItemType.Jailbird => true,
-                ItemType.ParticleDisruptor => true,
                 _ => false
             };
         }

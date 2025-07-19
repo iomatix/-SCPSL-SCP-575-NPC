@@ -1,19 +1,50 @@
 ﻿namespace SCP_575.Shared
 {
-    using MEC;
-    using Mirror;
-    using PlayerRoles.PlayableScps.Scp3114;
-    using PlayerRoles.Ragdolls;
-    using ProgressiveCulling;
     using System;
-    using System.Linq;
     using UnityEngine;
-    using LabApi.Features.Wrappers;
-    using LabApi.Events.Handlers;
-    using LabApi.Events.Arguments.PlayerEvents;
 
     public static class Scp575Helpers
     {
+        public enum Scp575ImpactType
+        {
+            Helpful,
+            Dangerous,
+            Neutral,
+            Unknown
+        }
+
+        public static Scp575ImpactType ClassifyProjectileImpact(LabApi.Features.Wrappers.TimedGrenadeProjectile projectile)
+        {
+            if (projectile == null)
+                return Scp575ImpactType.Unknown;
+
+            return projectile.Type switch
+            {
+                // ToDo: Blocked for now. Its workaround from this known issue (https://github.com/northwood-studios/LabAPI/issues/219#issuecomment-3091106438)
+                ItemType.SCP2176 => Scp575ImpactType.Helpful,
+                ItemType.GrenadeFlash => Scp575ImpactType.Dangerous,
+                //ItemType.GrenadeHE => Scp575ImpactType.Dangerous,
+                //ItemType.SCP018 => Scp575ImpactType.Dangerous,
+                //ItemType.ParticleDisruptor => Scp575ImpactType.Dangerous,
+                _ => Scp575ImpactType.Neutral
+            };
+        }
+
+        public static Scp575ImpactType ClassifyExplosionImpact(ExplosionType type)
+        {
+            if (type == null)
+                return Scp575ImpactType.Unknown;
+
+            return type switch
+            {
+                ExplosionType.Grenade => Scp575ImpactType.Dangerous,
+                ExplosionType.Disruptor => Scp575ImpactType.Dangerous,
+                ExplosionType.SCP018 => Scp575ImpactType.Dangerous,
+                _ => Scp575ImpactType.Neutral
+            };
+        }
+
+
 
         /// <summary>
         /// Calculates Euclidean distance between two Vector3 points.

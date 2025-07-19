@@ -146,9 +146,6 @@ namespace SCP_575.ConfigObjects
         [Description("Hint message shown when a player tries to use light source while disabled by SCP-575 event.")]
         public string LightEmitterDisabledHint { get; set; } = "Your light source has been disabled!";
 
-        [Description("Whether or not SCP-575's sound effect should happen on the client damaged by the entity.")]
-        public bool EnableScreamSound { get; private set; } = true;
-
         [Description("Play horror ambient sound on blackout.")]
         public bool KeterAmbient { get; set; } = true;
 

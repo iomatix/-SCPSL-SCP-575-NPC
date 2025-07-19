@@ -116,50 +116,70 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Handles the projectile explosion event, enabling lights and playing a global sound if a dangerous
-        /// projectile explodes in a dark room during an active blackout.
+        /// Handles the explosion spawned event, enabling lights and playing a global sound 
+        /// if a dangerous projectile explodes in a dark room during an active blackout.
         /// </summary>
-        /// <param name="ev">The event arguments for the projectile explosion event.</param>
+        /// <param name="ev">The event arguments for the explosion spawned event.</param>
         public void OnExplosionSpawned(LabApi.Events.Arguments.ServerEvents.ExplosionSpawnedEventArgs ev)
         {
-            
-            if (!_plugin.Npc.Methods.IsDangerousToScp575(ev.ExplosionType))
+            if (ev.ExplosionType == null)
             {
+                Library_ExiledAPI.LogDebug("OnExplosionSpawned", "Explosion event had no explosion type data.");
                 return;
             }
 
-            Exiled.API.Features.Room room = Exiled.API.Features.Room.Get(ev.Position);
+            Scp575Helpers.Scp575ImpactType impactType = Scp575Helpers.ClassifyExplosionImpact(ev.ExplosionType);
+            if (impactType != Scp575Helpers.Scp575ImpactType.Dangerous)
+                return;
+
+            Exiled.API.Features.Room room = Library_ExiledAPI.GetRoomAtPosition(ev.Position);
             if (room == null || !room.AreLightsOff || !_plugin.Npc.Methods.IsBlackoutActive)
-            {
                 return;
-            }
 
-            Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Grenade, Flash or disruptor used in dark SCP-575 room: {room.Name}");
+            Library_ExiledAPI.LogDebug("OnExplosionSpawned", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
             Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
             AudioManager.PlayGlobalAngrySound();
         }
 
         /// <summary>
-        /// Handles the projectile explosion event, enabling lights and playing a global sound if a dangerous
-        /// projectile explodes in a dark room during an active blackout.
+        /// Handles the projectile explosion event, disabling or enabling lights 
+        /// depending on the grenade type during a blackout.
         /// </summary>
         /// <param name="ev">The event arguments for the projectile explosion event.</param>
         public void OnProjectileExploded(LabApi.Events.Arguments.ServerEvents.ProjectileExplodedEventArgs ev)
         {
-            if (!_plugin.Npc.Methods.IsDangerousToScp575(ev.TimedGrenade))
+            if (ev.TimedGrenade == null)
             {
+                Library_ExiledAPI.LogDebug("OnProjectileExploded", "Explosion event had no grenade data.");
                 return;
             }
 
-            Exiled.API.Features.Room room = Exiled.API.Features.Room.Get(ev.Position);
-            if (room == null || !room.AreLightsOff || !_plugin.Npc.Methods.IsBlackoutActive)
-            {
-                return;
-            }
+            var impact = Scp575Helpers.ClassifyProjectileImpact(ev.TimedGrenade);
 
-            Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Grenade, Flash or disruptor used in dark SCP-575 room: {room.Name}");
-            Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
-            AudioManager.PlayGlobalAngrySound();
+            Exiled.API.Features.Room room = Library_ExiledAPI.GetRoomAtPosition(ev.Position);
+            if (room == null)
+                return;
+
+            switch (impact)
+            {
+                case Scp575Helpers.Scp575ImpactType.Helpful:
+                    Library_ExiledAPI.LogDebug("OnProjectileExploded", $"SCP2176 used in room: {room.Name}");
+                    Library_ExiledAPI.DisableAndFlickerRoomAndNeighborLights(room);
+                    return;
+
+                case Scp575Helpers.Scp575ImpactType.Dangerous:
+                    if (!room.AreLightsOff || !_plugin.Npc.Methods.IsBlackoutActive)
+                        return;
+
+                    Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Dangerous grenade used in dark SCP-575 room: {room.Name}");
+                    Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
+                    AudioManager.PlayGlobalAngrySound();
+                    return;
+
+                case Scp575Helpers.Scp575ImpactType.Neutral:
+                case Scp575Helpers.Scp575ImpactType.Unknown:
+                    return;
+            }
         }
     }
 }
