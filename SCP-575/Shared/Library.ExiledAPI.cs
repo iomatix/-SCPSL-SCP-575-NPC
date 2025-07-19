@@ -8,6 +8,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Unity.Profiling;
     using UnityEngine;
 
     /// <summary>
@@ -97,18 +98,8 @@
                 Library_ExiledAPI.LogWarn("EnableAndFlickerRoomAndNeighborLights", "Room instance is null");
                 return;
             }
-            HashSet<Room> allRooms = new HashSet<Room>(room.NearestRooms);
-            allRooms.Add(room);
 
-
-            // TODO: REMOVE DEBUG
-            Library_ExiledAPI.LogDebug("EnableAndFlickerRoomAndNeighborLights", $"Affected rooms count: {allRooms.Count}");
-            foreach (var r in allRooms)
-            {
-                Library_ExiledAPI.LogDebug("EnableAndFlickerRoomAndNeighborLights", $"→ Room: {r.Name}");
-            }
-
-            foreach (Room neighbor in allRooms)
+            foreach (Room neighbor in room.NearestRooms)
             {
                 LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
 
@@ -124,39 +115,33 @@
         /// </summary>
         /// <param name="room">The Exiled room to light up and flicker.</param>
         /// <param name="blackoutDurationBase"> Minimum time in seconds that the blackout occure.</param> 
-        public static IEnumerator<float> DisableAndFlickerRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
+        public static void DisableAndFlickerRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
         {
             if (room == null)
             {
                 Library_ExiledAPI.LogWarn("EnableAndFlickerRoomAndNeighborLights", "Room instance is null");
-                yield break;
+                return;
             }
 
-            HashSet<Room> allRooms = new HashSet<Room>(room.NearestRooms);
-            allRooms.Add(room);
-
-            // TODO: REMOVE DEBUG
-            Library_ExiledAPI.LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Affected rooms count: {allRooms.Count}");
-            foreach (var r in allRooms)
-            {
-                Library_ExiledAPI.LogDebug("DisableAndFlickerRoomAndNeighborLights", $"→ Room: {r.Name}");
-            }
-
-            foreach (Room neighbor in allRooms)
+            bool attemptSucces = false;
+            foreach (Room neighbor in room.NearestRooms)
             {
                 LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
 
                 neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
-                yield return Timing.WaitForSeconds(Library_LabAPI.NpcConfig.FlickerLightsDuration + 0.25f);
-
                 float blackoutDuration = blackoutDurationBase + ((NpcConfig.DurationMin + NpcConfig.DurationMax) / 2f);
+
                 if (Methods.AttemptRoomBlackout(neighbor, blackoutDuration, isCassieSilent: true, isForced: true))
                 {
-                    Methods.IncrementBlackoutStack();
-                    AudioManager.PlayGlobalWhispersBang();
-                    yield return Timing.WaitForSeconds(blackoutDuration);
-                    Methods.DecrementBlackoutStack();
+                    if (!attemptSucces)
+                    {
+                        Methods.IncrementBlackoutStack();
+                        AudioManager.PlayGlobalWhispersBang();
+                        Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
+                        attemptSucces = true;
+                    }
                 }
+
             }
         }
 

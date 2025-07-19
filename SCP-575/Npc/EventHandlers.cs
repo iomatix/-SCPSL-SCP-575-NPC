@@ -183,7 +183,7 @@ namespace SCP_575.Npc
             {
                 case Scp575Helpers.ProjectileImpactType.Helpful:
                     Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Helpful impact type used in room: {room.Name}");
-                    Coroutines.Add(Timing.RunCoroutine(Library_ExiledAPI.DisableAndFlickerRoomAndNeighborLights(room)));
+                    Library_ExiledAPI.DisableAndFlickerRoomAndNeighborLights(room);
                     return;
 
                 case Scp575Helpers.ProjectileImpactType.Dangerous:
