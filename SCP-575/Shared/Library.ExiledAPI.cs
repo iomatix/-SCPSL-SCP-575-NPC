@@ -142,7 +142,6 @@
                     if (!attemptFirstSucces)
                     {
                         Methods.IncrementBlackoutStack();
-                        AudioManager.PlayGlobalWhispersBang();
                         Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
                         attemptFirstSucces = true;
                     }
@@ -184,7 +183,7 @@
         {
             if (labApiRoom == null) return null;
 
-            return Room.List.FirstOrDefault(r => Scp575Helpers.Distance(r.Position, labApiRoom.Position) < 0.5f);
+            return Room.List.FirstOrDefault(r => Helpers.Distance(r.Position, labApiRoom.Position) < 0.5f);
         }
 
         #endregion

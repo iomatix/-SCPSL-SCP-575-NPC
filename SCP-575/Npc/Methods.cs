@@ -26,13 +26,14 @@ namespace SCP_575.Npc
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _config = plugin.Config.NpcConfig;
+            _lightCooldownHandler = new LightCooldownHandler(plugin);
         }
 
         private readonly HashSet<Exiled.API.Enums.ZoneType> _triggeredZones = new HashSet<Exiled.API.Enums.ZoneType>();
         private static readonly object BlackoutLock = new();
         private static int _blackoutStacks = 0;
 
-        private readonly LightCooldownHandler _lightCooldownHandler = new LightCooldownHandler();
+        private readonly LightCooldownHandler _lightCooldownHandler;
 
         /// <summary>
         /// Gets a value indicating whether a blackout is currently active.
@@ -57,7 +58,7 @@ namespace SCP_575.Npc
         public void Init()
         {
             Library_ExiledAPI.LogInfo("Init", "SCP-575 NPC methods initialized.");
-            RegisterEventHandlers();
+            RegisterEventHandler();
         }
 
         /// <summary>
@@ -67,7 +68,7 @@ namespace SCP_575.Npc
         {
             Library_ExiledAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
             Clean();
-            UnregisterEventHandlers();
+            UnregisterEventHandler();
 
         }
 
@@ -84,13 +85,13 @@ namespace SCP_575.Npc
             ResetTeslaGates();
         }
 
-        private void RegisterEventHandlers()
+        private void RegisterEventHandler()
         {
-            Exiled.Events.Handlers.Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
-            Exiled.Events.Handlers.Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
-            LabApi.Events.Handlers.ServerEvents.GeneratorActivated += _plugin.Npc.EventHandlers.OnGeneratorActivated;
-            LabApi.Events.Handlers.ServerEvents.ExplosionSpawned += _plugin.Npc.EventHandlers.OnExplosionSpawned;
-            LabApi.Events.Handlers.ServerEvents.ProjectileExploded += _plugin.Npc.EventHandlers.OnProjectileExploded;
+            LabApi.Events.Handlers.ServerEvents.RoundStarted += _plugin.Npc.EventHandler.OnRoundStart;
+            LabApi.Events.Handlers.ServerEvents.RoundEnded += _plugin.Npc.EventHandler.OnRoundEnd;
+            LabApi.Events.Handlers.ServerEvents.GeneratorActivated += _plugin.Npc.EventHandler.OnGeneratorActivated;
+            LabApi.Events.Handlers.ServerEvents.ExplosionSpawned += _plugin.Npc.EventHandler.OnExplosionSpawned;
+            LabApi.Events.Handlers.ServerEvents.ProjectileExploded += _plugin.Npc.EventHandler.OnProjectileExploded;
 
             if (_config.EnableKeterLightsourceCooldown)
             {
@@ -98,13 +99,13 @@ namespace SCP_575.Npc
             }
         }
 
-        private void UnregisterEventHandlers()
+        private void UnregisterEventHandler()
         {
-            Exiled.Events.Handlers.Server.RoundStarted -= _plugin.Npc.EventHandlers.OnRoundStart;
-            Exiled.Events.Handlers.Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
-            LabApi.Events.Handlers.ServerEvents.GeneratorActivated -= _plugin.Npc.EventHandlers.OnGeneratorActivated;
-            LabApi.Events.Handlers.ServerEvents.ExplosionSpawned -= _plugin.Npc.EventHandlers.OnExplosionSpawned;
-            LabApi.Events.Handlers.ServerEvents.ProjectileExploded -= _plugin.Npc.EventHandlers.OnProjectileExploded;
+            LabApi.Events.Handlers.ServerEvents.RoundStarted -= _plugin.Npc.EventHandler.OnRoundStart;
+            LabApi.Events.Handlers.ServerEvents.RoundEnded -= _plugin.Npc.EventHandler.OnRoundEnd;
+            LabApi.Events.Handlers.ServerEvents.GeneratorActivated -= _plugin.Npc.EventHandler.OnGeneratorActivated;
+            LabApi.Events.Handlers.ServerEvents.ExplosionSpawned -= _plugin.Npc.EventHandler.OnExplosionSpawned;
+            LabApi.Events.Handlers.ServerEvents.ProjectileExploded -= _plugin.Npc.EventHandler.OnProjectileExploded;
 
             if (_config.EnableKeterLightsourceCooldown)
             {
@@ -130,7 +131,7 @@ namespace SCP_575.Npc
                     ? Library_ExiledAPI.Loader_Random_Next(_config.DelayMin, _config.DelayMax)
                     : _config.InitialDelay;
                 yield return Timing.WaitForSeconds(delay);
-                _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent(), "575BlackoutExec"));
+                _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent(), "575BlackoutExec"));
             }
         }
 
@@ -159,7 +160,7 @@ namespace SCP_575.Npc
                 ? HandleRoomSpecificBlackout(blackoutDuration)
                 : HandleZoneSpecificBlackout(blackoutDuration);
 
-            _plugin.Npc.EventHandlers.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration), "575BlackoutFinalize"));
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration), "575BlackoutFinalize"));
         }
 
         private void FlickerAllZoneLights(float duration)
@@ -510,6 +511,8 @@ namespace SCP_575.Npc
         {
             lock (BlackoutLock)
                 _blackoutStacks = Math.Max(0, _blackoutStacks - 1);
+
+            if (!IsBlackoutActive) Reset575();
         }
 
         /// <summary>

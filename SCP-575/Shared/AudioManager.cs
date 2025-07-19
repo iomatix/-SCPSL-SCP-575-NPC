@@ -9,6 +9,7 @@
     using LabApi.Features.Audio;
     using LabApi.Features.Wrappers;
     using MEC;
+    using SCP_575.Npc;
     using UnityEngine;
 
     /// <summary>
@@ -1032,7 +1033,7 @@
         /// <param name="loop">Whether to loop the ambience. Defaults to true.</param>
         /// <param name="customLifespan">The custom lifespan for the speaker in seconds. Optional.</param>
         /// <returns>True if the ambience was successfully played; otherwise, false.</returns>
-        public static bool PlayGlobalAmbience(float customVolume = 0.65f, float customMinDistance = 1.0f, float customMaxDistance = 1500.5f, Vector3? centralPosition = null, bool loop = true, float? customLifespan = null)
+        public static bool PlayGlobalAmbience(bool isBlackoutActive = true, float customVolume = 0.65f, float customMinDistance = 1.0f, float customMaxDistance = 1500.5f, Vector3? centralPosition = null, bool loop = true, float? customLifespan = null)
         {
             if (IsLoopingGlobalAmbience)
             {
@@ -1046,7 +1047,7 @@
                 centralPosition ?? Vector3.zero,
                 loop,
                 customLifespan,
-                p => IsPlayerValidForAudio(p) && Library_LabAPI.IsPlayerInDarkRoom(Library_LabAPI.GetPlayer(p.ReferenceHub)),
+                p => isBlackoutActive && IsPlayerValidForAudio(p) && Library_LabAPI.IsPlayerInDarkRoom(Library_LabAPI.GetPlayer(p.ReferenceHub)),
                 speaker => ConfigureSpeaker(speaker, false, customVolume, customMinDistance, customMaxDistance)
             );
 

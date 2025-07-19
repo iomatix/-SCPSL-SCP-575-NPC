@@ -109,7 +109,7 @@
         {
             if (exiledRoom == null) return null;
 
-            return Room.List.FirstOrDefault(r => Scp575Helpers.Distance(r.Position, exiledRoom.Position) < 0.5f);
+            return Room.List.FirstOrDefault(r => Helpers.Distance(r.Position, exiledRoom.Position) < 0.5f);
         }
 
         #endregion

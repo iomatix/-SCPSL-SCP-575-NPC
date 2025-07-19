@@ -4,68 +4,139 @@ namespace SCP_575
     using SCP_575.Shared;
     using System;
 
+    /// <summary>
+    /// The main plugin class for the SCP-575 NPC, responsible for managing event handlers and NPC behaviors.
+    /// </summary>
     public class Plugin : Exiled.API.Features.Plugin<Config>
     {
-        public static Plugin Singleton;
+        private EventHandler _eventHandler;
+        private NestingObjects.Npc _npc;
 
-        public override string Author { get; } = "iomatix";
-        public override string Name { get; } = "SCP-575 NPC";
-        public override string Prefix { get; } = "SCP575";
+        /// <summary>
+        /// Gets the singleton instance of the SCP-575 plugin.
+        /// </summary>
+        public static Plugin Singleton { get; private set; }
 
+        /// <summary>
+        /// Gets the event handler instance for managing server and player events.
+        /// </summary>
+        public EventHandler EventHandler => _eventHandler;
 
-        public override Version Version { get; } = new(7, 9, 1);
-        public override Version RequiredExiledVersion { get; } = new(9, 6, 0);
+        /// <summary>
+        /// Gets the NPC instance for managing SCP-575 behaviors.
+        /// </summary>
+        public NestingObjects.Npc Npc => _npc;
 
-        public EventHandlers EventHandlers { get; private set; }
+        /// <summary>
+        /// Gets the author of the plugin.
+        /// </summary>
+        public override string Author => "iomatix";
 
+        /// <summary>
+        /// Gets the name of the plugin.
+        /// </summary>
+        public override string Name => "SCP-575 NPC";
 
-        public NestingObjects.Npc Npc { get; private set; }
+        /// <summary>
+        /// Gets the prefix used for configuration and logging.
+        /// </summary>
+        public override string Prefix => "SCP575";
 
+        /// <summary>
+        /// Gets the version of the plugin.
+        /// </summary>
+        public override Version Version => new(7, 9, 3);
+
+        /// <summary>
+        /// Gets the minimum required Exiled version for compatibility.
+        /// </summary>
+        public override Version RequiredExiledVersion => new(9, 6, 0);
+
+        /// <summary>
+        /// Called when the plugin is enabled, initializing components and registering event handlers.
+        /// </summary>
         public override void OnEnabled()
         {
+            try
+            {
+                Singleton = this;
+                _eventHandler = new EventHandler(this);
+                _npc = new NestingObjects.Npc(this);
 
-            Singleton = this;
-            
-            EventHandlers = new EventHandlers(this);
-            Npc = new NestingObjects.Npc(this);
-
-            LabApi.Events.Handlers.ServerEvents.RoundStarted += EventHandlers.OnRoundStarted;
-            LabApi.Events.Handlers.ServerEvents.RoundEnded += EventHandlers.OnRoundEnded;
-            LabApi.Events.Handlers.ServerEvents.WaitingForPlayers += EventHandlers.OnWaitingForPlayers;
-
-            LabApi.Events.Handlers.PlayerEvents.Hurting += EventHandlers.OnPlayerHurting;
-            LabApi.Events.Handlers.PlayerEvents.Hurt += EventHandlers.OnPlayerHurt;
-            LabApi.Events.Handlers.PlayerEvents.Dying += EventHandlers.OnPlayerDying;
-            LabApi.Events.Handlers.PlayerEvents.Death += EventHandlers.OnPlayerDeath;
-
-            Exiled.Events.Handlers.Player.SpawnedRagdoll += EventHandlers.OnSpawnedRagdoll;
-
-            AudioManager.Enable();
-            base.OnEnabled();
+                RegisterEvents();
+                AudioManager.Enable();
+                Library_ExiledAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
+                base.OnEnabled();
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("Plugin.OnEnabled", $"Failed to enable SCP-575 plugin: {ex.Message}");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Called when the plugin is disabled, unregistering event handlers and cleaning up resources.
+        /// </summary>
         public override void OnDisabled()
         {
-            foreach (CoroutineHandle handle in EventHandlers.Coroutines) Timing.KillCoroutines(handle);
-            EventHandlers.Coroutines.Clear();
+            try
+            {
+                foreach (CoroutineHandle handle in _eventHandler.Coroutines)
+                {
+                    Timing.KillCoroutines(handle);
+                }
+                _eventHandler.Coroutines.Clear();
 
-            LabApi.Events.Handlers.ServerEvents.RoundStarted -= EventHandlers.OnRoundStarted;
-            LabApi.Events.Handlers.ServerEvents.RoundEnded -= EventHandlers.OnRoundEnded;
-            LabApi.Events.Handlers.ServerEvents.WaitingForPlayers -= EventHandlers.OnWaitingForPlayers;
+                UnregisterEvents();
+                AudioManager.Disable();
+                Singleton = null;
+                _eventHandler = null;
+                _npc = null;
 
-            LabApi.Events.Handlers.PlayerEvents.Hurting -= EventHandlers.OnPlayerHurting;
-            LabApi.Events.Handlers.PlayerEvents.Hurt -= EventHandlers.OnPlayerHurt;
-            LabApi.Events.Handlers.PlayerEvents.Dying -= EventHandlers.OnPlayerDying;
-            LabApi.Events.Handlers.PlayerEvents.Death -= EventHandlers.OnPlayerDeath;
+                Library_ExiledAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");
+                base.OnDisabled();
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("Plugin.OnDisabled", $"Failed to disable SCP-575 plugin: {ex.Message}");
+                throw;
+            }
+        }
 
-            Exiled.Events.Handlers.Player.SpawnedRagdoll -= EventHandlers.OnSpawnedRagdoll;
+        /// <summary>
+        /// Registers event handlers for server and player-related events.
+        /// </summary>
+        private void RegisterEvents()
+        {
+            LabApi.Events.Handlers.ServerEvents.RoundStarted += _eventHandler.OnRoundStarted;
+            LabApi.Events.Handlers.ServerEvents.RoundEnded += _eventHandler.OnRoundEnded;
+            LabApi.Events.Handlers.ServerEvents.WaitingForPlayers += _eventHandler.OnWaitingForPlayers;
+            LabApi.Events.Handlers.PlayerEvents.Hurting += _eventHandler.OnPlayerHurting;
+            LabApi.Events.Handlers.PlayerEvents.Hurt += _eventHandler.OnPlayerHurt;
+            LabApi.Events.Handlers.PlayerEvents.Dying += _eventHandler.OnPlayerDying;
+            LabApi.Events.Handlers.PlayerEvents.Death += _eventHandler.OnPlayerDeath;
+            Exiled.Events.Handlers.Player.SpawnedRagdoll += _eventHandler.OnSpawnedRagdoll;
+            Library_ExiledAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
+        }
 
-            AudioManager.Disable();
-
-            EventHandlers = null;
-            Npc = null;
-
-            base.OnDisabled();
+        /// <summary>
+        /// Unregisters event handlers to clean up resources.
+        /// </summary>
+        private void UnregisterEvents()
+        {
+            if (_eventHandler != null)
+            {
+                LabApi.Events.Handlers.ServerEvents.RoundStarted -= _eventHandler.OnRoundStarted;
+                LabApi.Events.Handlers.ServerEvents.RoundEnded -= _eventHandler.OnRoundEnded;
+                LabApi.Events.Handlers.ServerEvents.WaitingForPlayers -= _eventHandler.OnWaitingForPlayers;
+                LabApi.Events.Handlers.PlayerEvents.Hurting -= _eventHandler.OnPlayerHurting;
+                LabApi.Events.Handlers.PlayerEvents.Hurt -= _eventHandler.OnPlayerHurt;
+                LabApi.Events.Handlers.PlayerEvents.Dying -= _eventHandler.OnPlayerDying;
+                LabApi.Events.Handlers.PlayerEvents.Death -= _eventHandler.OnPlayerDeath;
+                Exiled.Events.Handlers.Player.SpawnedRagdoll -= _eventHandler.OnSpawnedRagdoll;
+                Library_ExiledAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
+            }
         }
     }
 }
