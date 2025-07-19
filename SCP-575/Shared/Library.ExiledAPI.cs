@@ -92,9 +92,21 @@
         /// <param name="room">The Exiled room to light up and flicker.</param>
         public static void EnableAndFlickerRoomAndNeighborLights(Room room)
         {
-            if (room == null) return;
+            if (room == null)
+            {
+                Library_ExiledAPI.LogWarn("EnableAndFlickerRoomAndNeighborLights", "Room instance is null");
+                return;
+            }
             HashSet<Room> allRooms = new HashSet<Room>(room.NearestRooms);
             allRooms.Add(room);
+
+
+            // TODO: REMOVE DEBUG
+            Library_ExiledAPI.LogDebug("EnableAndFlickerRoomAndNeighborLights", $"Affected rooms count: {allRooms.Count}");
+            foreach (var r in allRooms)
+            {
+                Library_ExiledAPI.LogDebug("EnableAndFlickerRoomAndNeighborLights", $"→ Room: {r.Name}");
+            }
 
             foreach (Room neighbor in allRooms)
             {
@@ -114,10 +126,21 @@
         /// <param name="blackoutDurationBase"> Minimum time in seconds that the blackout occure.</param> 
         public static IEnumerator<float> DisableAndFlickerRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
         {
-            if (room == null) yield break;
+            if (room == null)
+            {
+                Library_ExiledAPI.LogWarn("EnableAndFlickerRoomAndNeighborLights", "Room instance is null");
+                yield break;
+            }
 
             HashSet<Room> allRooms = new HashSet<Room>(room.NearestRooms);
             allRooms.Add(room);
+
+            // TODO: REMOVE DEBUG
+            Library_ExiledAPI.LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Affected rooms count: {allRooms.Count}");
+            foreach (var r in allRooms)
+            {
+                Library_ExiledAPI.LogDebug("DisableAndFlickerRoomAndNeighborLights", $"→ Room: {r.Name}");
+            }
 
             foreach (Room neighbor in allRooms)
             {

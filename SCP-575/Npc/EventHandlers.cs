@@ -140,7 +140,7 @@ namespace SCP_575.Npc
 
             if (impactType != Scp575Helpers.ProjectileImpactType.Dangerous)
             {
-                Library_ExiledAPI.LogDebug("OnExplosionSpawned", $"Explosion event had not dangerous impact type. Type: {impactType}");
+                Library_ExiledAPI.LogDebug("OnExplosionSpawned", $"Explosion event had not dangerous impact type. Type: {impactType} (int={(int)impactType})");
                 return;
             }
 
@@ -177,12 +177,12 @@ namespace SCP_575.Npc
             }
 
             Scp575Helpers.ProjectileImpactType impactType = Scp575Helpers.ClassifyProjectileImpact(ev.TimedGrenade);
-            Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Impact type: {impactType}");
+            Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Impact type: {impactType} (int={(int)impactType})");
 
             switch (impactType)
             {
                 case Scp575Helpers.ProjectileImpactType.Helpful:
-                    Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Helpful SCP (e.g. SCP-2176) used in room: {room.Name}");
+                    Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Helpful impact type used in room: {room.Name}");
                     Library_ExiledAPI.DisableAndFlickerRoomAndNeighborLights(room);
                     return;
 
@@ -202,6 +202,12 @@ namespace SCP_575.Npc
                 case Scp575Helpers.ProjectileImpactType.Neutral:
                 case Scp575Helpers.ProjectileImpactType.Unknown:
                     return;
+                default:
+                    Library_ExiledAPI.LogWarn(
+                        "OnProjectileExploded", $"Switch default: unhandled impactType={impactType} (int={(int)impactType})"
+                    );
+                    return;
+
             }
         }
     }
