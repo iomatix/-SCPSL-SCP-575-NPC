@@ -1,14 +1,11 @@
 namespace SCP_575
 {
     using MEC;
-    using PlayerStatsSystem;
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
     using Shared;
     using System;
     using System.Collections.Generic;
-    using UnityEngine;
-    using static PlayerStatsSystem.DamageHandlerBase;
 
     public class EventHandlers
     {
@@ -29,10 +26,6 @@ namespace SCP_575
             if (_plugin.Config.SpawnType == InstanceType.Npc || (_plugin.Config.SpawnType == InstanceType.Random && Library_ExiledAPI.Loader_Random_Next(100) > 55))
             {
                 _plugin.Npc.Methods.Init();
-            }
-            else
-            {
-                //_plugin.Playable.Methods.Init();
             }
 
 
@@ -96,7 +89,8 @@ namespace SCP_575
 
             // Effects
             AudioManager.PlayDamagedScream(player, isKill: true, customLifespan: 15f);
-            Timing.RunCoroutine(Scp575DamageSystem.DropAndPushItems(player));
+
+            Coroutines.Add(Timing.RunCoroutine(Scp575DamageSystem.DropAndPushItems(player)));
 
 
         }
@@ -142,7 +136,6 @@ namespace SCP_575
 
             Library_ExiledAPI.LogDebug("OnPlayerDeath", $"The event was caused by {Scp575DamageSystem.IdentifierName}");
 
-            
         }
 
     }
