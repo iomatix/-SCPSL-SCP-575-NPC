@@ -89,7 +89,7 @@ namespace SCP_575.Npc
             Exiled.Events.Handlers.Server.RoundStarted += _plugin.Npc.EventHandlers.OnRoundStart;
             Exiled.Events.Handlers.Server.RoundEnded += _plugin.Npc.EventHandlers.OnRoundEnd;
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated += _plugin.Npc.EventHandlers.OnGeneratorActivated;
-            LabApi.Events.Handlers.ServerEvents.ProjectileExploded += _plugin.Npc.EventHandlers.OnProjectileExploded;
+            LabApi.Events.Handlers.ServerEvents.ExplosionSpawned += _plugin.Npc.EventHandlers.OnExplosionSpawned;
 
             if (_config.EnableKeterLightsourceCooldown)
             {
@@ -102,7 +102,7 @@ namespace SCP_575.Npc
             Exiled.Events.Handlers.Server.RoundStarted -= _plugin.Npc.EventHandlers.OnRoundStart;
             Exiled.Events.Handlers.Server.RoundEnded -= _plugin.Npc.EventHandlers.OnRoundEnd;
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated -= _plugin.Npc.EventHandlers.OnGeneratorActivated;
-            LabApi.Events.Handlers.ServerEvents.ProjectileExploded -= _plugin.Npc.EventHandlers.OnProjectileExploded;
+            LabApi.Events.Handlers.ServerEvents.ExplosionSpawned -= _plugin.Npc.EventHandlers.OnExplosionSpawned;
 
             if (_config.EnableKeterLightsourceCooldown)
             {
@@ -542,20 +542,19 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Determines if a projectile is dangerous to SCP-575.
+        /// Determines if a explosion is dangerous to SCP-575.
         /// </summary>
-        /// <param name="projectile">The projectile to check.</param>
+        /// <param name="explosionType">The explosion to check.</param>
         /// <returns>True if dangerous; otherwise, false.</returns>
-        public bool IsDangerousToScp575(LabApi.Features.Wrappers.Projectile projectile)
+        public bool IsDangerousToScp575(ExplosionType explosionType)
         {
-            if (projectile == null) return false;
-            return projectile.Type switch
+            if (explosionType == null) return false;
+            return explosionType switch
             {
-                ItemType.GrenadeHE => true,
-                ItemType.GrenadeFlash => true,
-                ItemType.SCP018 => true,
-                ItemType.Jailbird => true,
-                ItemType.ParticleDisruptor => true,
+                ExplosionType.Grenade => true,
+                ExplosionType.SCP018 => true,
+                ExplosionType.Jailbird => true,
+                ExplosionType.Disruptor => true,
                 _ => false
             };
         }
