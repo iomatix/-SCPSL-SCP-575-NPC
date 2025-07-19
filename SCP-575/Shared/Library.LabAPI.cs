@@ -4,7 +4,6 @@
     using SCP_575.ConfigObjects;
     using System.Collections.Generic;
     using System.Linq;
-    using UnityEngine;
 
     /// <summary>
     /// Utility and adapter class for interacting with LabAPI within the SCP-575 context.

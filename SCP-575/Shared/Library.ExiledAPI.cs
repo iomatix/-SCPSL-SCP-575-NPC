@@ -103,20 +103,19 @@
             {
                 LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
 
-                neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
                 neighbor.AreLightsOff = false;
+                neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
             }
 
 
         }
 
         /// <summary>
-        /// Flickers lights in a room and its neighboring rooms,
-        /// then attempts a blackout event and increments blackout stacks by 1 if successful.
+        /// Attempts a blackout event and increments blackout stacks by 1 if successful.
         /// </summary>
         /// <param name="room">The Exiled room to light up and flicker.</param>
         /// <param name="blackoutDurationBase"> Minimum time in seconds that the blackout occure.</param> 
-        public static void DisableAndFlickerRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
+        public static void DisableRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
         {
             if (room == null)
             {
@@ -124,23 +123,25 @@
                 return;
             }
 
-            bool attemptSucces = false;
+            bool attemptFirstSucces = false;
             foreach (Room neighbor in room.NearestRooms)
             {
                 LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Flickering lights in {(neighbor == room ? "the room" : "neighbor room")}: {neighbor.Name}");
-                neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
+
                 float blackoutDuration = blackoutDurationBase + ((NpcConfig.DurationMin + NpcConfig.DurationMax) / 2f);
 
-                if (Methods.AttemptRoomBlackout(neighbor, blackoutDuration, isCassieSilent: true, isForced: true))
+                bool attemptResult = Methods.AttemptRoomBlackout(neighbor, blackoutDuration, isCassieSilent: true, isForced: true);
+                if (attemptResult)
                 {
-                    if (!attemptSucces)
+                    if (!attemptFirstSucces)
                     {
                         Methods.IncrementBlackoutStack();
                         AudioManager.PlayGlobalWhispersBang();
                         Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
-                        attemptSucces = true;
+                        attemptFirstSucces = true;
                     }
                 }
+
             }
         }
 
