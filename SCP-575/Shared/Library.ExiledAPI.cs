@@ -111,7 +111,7 @@
         }
 
         /// <summary>
-        /// Attempts a blackout event and increments blackout stacks by 1 if successful.
+        /// Attempts a blackout event in a room and all its neighboring rooms. Increments blackout stacks by 1 if successful.
         /// </summary>
         /// <param name="room">The Exiled room to light up and flicker.</param>
         /// <param name="blackoutDurationBase"> Minimum time in seconds that the blackout occure.</param> 
