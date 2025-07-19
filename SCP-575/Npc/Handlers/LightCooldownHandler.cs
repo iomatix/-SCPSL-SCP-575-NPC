@@ -1,6 +1,13 @@
 namespace SCP_575.Npc
 {
-    using InventorySystem.Items;
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Utils.Networking;
     using InventorySystem.Items.Firearms;
     using InventorySystem.Items.Firearms.Attachments;
     using InventorySystem.Items.Firearms.Attachments.Components;
@@ -10,14 +17,6 @@ namespace SCP_575.Npc
     using LabApi.Features.Wrappers;
     using MEC;
     using SCP_575.Shared;
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Utils.Networking;
 
     /// <summary>
     /// Manages flashlight and weapon light restrictions for players affected by SCP-575.
