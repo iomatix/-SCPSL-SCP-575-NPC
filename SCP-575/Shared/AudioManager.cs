@@ -228,7 +228,7 @@
         /// </summary>
         static AudioManager()
         {
-            Initialize();
+            isInitialized = Initialize();
         }
 
         #region Initialization and Disposal
@@ -249,8 +249,9 @@
                     Library_ExiledAPI.LogWarn("AudioManager.Enable", "AudioManager is already enabled or disposed");
                     return;
                 }
-                Initialize();
-                isInitialized = true;
+
+                if (!isInitialized) isInitialized = Initialize();
+
                 Library_ExiledAPI.LogInfo("AudioManager.Enable", "AudioManager enabled successfully");
             }
         }
@@ -284,9 +285,9 @@
         /// This method is called by <see cref="Enable"/> and the static constructor.
         /// It should not be called directly.
         /// </remarks>
-        private static void Initialize()
+        private static bool Initialize()
         {
-            if (isDisposed) return;
+            if (isDisposed) return false;
 
             for (byte i = MIN_CONTROLLER_ID; i <= MAX_CONTROLLER_ID; i++)
             {
@@ -301,6 +302,8 @@
             LoadAudioResources();
             healthCheckCoroutine = Timing.RunCoroutine(HealthCheckCoroutine(), Segment.Update);
             Library_ExiledAPI.LogInfo("AudioManager", "Initialized with automatic management and monitoring");
+
+            return true;
         }
 
         /// <summary>
