@@ -135,8 +135,10 @@ namespace SCP_575.Npc
                 return;
             }
 
-            Scp575Helpers.Scp575ImpactType impactType = Scp575Helpers.ClassifyExplosionImpact(ev.ExplosionType);
-            if (impactType != Scp575Helpers.Scp575ImpactType.Dangerous)
+            Scp575Helpers.ProjectileImpactType impactType = Scp575Helpers.ClassifyExplosionImpact(ev.ExplosionType);
+            Library_ExiledAPI.LogDebug("OnExplosionSpawned", $"Impact type: {impactType}");
+
+            if (impactType != Scp575Helpers.ProjectileImpactType.Dangerous)
             {
                 Library_ExiledAPI.LogDebug("OnExplosionSpawned", $"Explosion event had not dangerous impact type. Type: {impactType}");
                 return;
@@ -174,16 +176,17 @@ namespace SCP_575.Npc
                 return;
             }
 
-            var impact = Scp575Helpers.ClassifyProjectileImpact(ev.TimedGrenade);
+            Scp575Helpers.ProjectileImpactType impactType = Scp575Helpers.ClassifyProjectileImpact(ev.TimedGrenade);
+            Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Impact type: {impactType}");
 
-            switch (impact)
+            switch (impactType)
             {
-                case Scp575Helpers.Scp575ImpactType.Helpful:
+                case Scp575Helpers.ProjectileImpactType.Helpful:
                     Library_ExiledAPI.LogDebug("OnProjectileExploded", $"Helpful SCP (e.g. SCP-2176) used in room: {room.Name}");
                     Library_ExiledAPI.DisableAndFlickerRoomAndNeighborLights(room);
                     return;
 
-                case Scp575Helpers.Scp575ImpactType.Dangerous:
+                case Scp575Helpers.ProjectileImpactType.Dangerous:
                     bool isScp575Present = _plugin.Npc.Methods.IsBlackoutActive;
                     if (!room.AreLightsOff || !isScp575Present)
                     {
@@ -196,8 +199,8 @@ namespace SCP_575.Npc
                     AudioManager.PlayGlobalAngrySound();
                     return;
 
-                case Scp575Helpers.Scp575ImpactType.Neutral:
-                case Scp575Helpers.Scp575ImpactType.Unknown:
+                case Scp575Helpers.ProjectileImpactType.Neutral:
+                case Scp575Helpers.ProjectileImpactType.Unknown:
                     return;
             }
         }
