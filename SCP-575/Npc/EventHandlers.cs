@@ -120,9 +120,10 @@ namespace SCP_575.Npc
         /// projectile explodes in a dark room during an active blackout.
         /// </summary>
         /// <param name="ev">The event arguments for the projectile explosion event.</param>
-        public void OnProjectileExploded(LabApi.Events.Arguments.ServerEvents.ProjectileExplodedEventArgs ev)
+        public void OnExplosionSpawned(LabApi.Events.Arguments.ServerEvents.ExplosionSpawnedEventArgs ev)
         {
-            if (!_plugin.Npc.Methods.IsDangerousToScp575(ev.TimedGrenade))
+            
+            if (!_plugin.Npc.Methods.IsDangerousToScp575(ev.ExplosionType))
             {
                 return;
             }
