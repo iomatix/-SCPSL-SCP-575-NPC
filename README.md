@@ -1,5 +1,6 @@
-## SCP-575
-![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/iomatix/-SCPSL-SCP-575/latest/total?sort=date&style=for-the-badge)
+## SCP-575 NPC
+[![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/iomatix/-SCPSL-SCP-575-NPC/releases/latest)
+[![GitHub Downloads](https://img.shields.io/github/downloads/iomatix/-SCPSL-SCP-575-NPC/latest/total?sort=date&style=for-the-badge)](https://github.com/iomatix/-SCPSL-SCP-575-NPC/releases/latest)
 
 ## Supporting Development
 
@@ -10,9 +11,23 @@ If you appreciate my work, you can support me by [buying me a coffee](https://bu
 
 ## Contributors
 
-<a href="https://github.com/iomatix/-SCPSL-SCP-575/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=iomatix/-SCPSL-SCP-575" />
+<a href="https://github.com/iomatix/-SCPSL-SCP-575-NPC/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=iomatix/-SCPSL-SCP-575-NPC" />
 </a>
+
+## Release – SCP-575 NPC for Exiled Mod
+
+This is the very first official build of the SCP-575 NPC mod, hosted in its own independent repo to fully decouple from the original fork.
+
+**What we did**
+- Mirrored our entire commit history into a fresh repository named `-SCPSL-SCP-575-NPC`
+- Detached from the upstream `eDexiam/SCP-575` fork to remove “ahead/behind” noise
+- Retained all feature branches and tags for continuity
+
+**Why we did it**
+- Avoid merge-conflicts and dependency drift with the main fork - our code has diverged completely
+- Enable a clean slate for NPC-specific gameplay (blackout events, flicker logic, helper utilities, etc.)
+- Simplify future maintenance and community contributions
 
 ### Example Config
 ```
