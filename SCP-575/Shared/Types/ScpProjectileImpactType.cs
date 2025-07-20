@@ -30,7 +30,12 @@
             /// <summary>
             /// The projectile or explosion type is unknown or invalid.
             /// </summary>
-            Unknown
+            Unknown,
+
+            /// <summary>
+            /// The projectile or explosion type is disabled for this event.
+            /// </summary>
+            Disabled,
         }
 
         /// <summary>
@@ -87,6 +92,11 @@
                 {
                     ItemType.SCP2176 => ProjectileImpactType.Helpful,
                     ItemType.GrenadeFlash => ProjectileImpactType.Dangerous,
+                    // Disable to avoid duplication
+                    ItemType.GrenadeHE => ProjectileImpactType.Disabled, 
+                    ItemType.ParticleDisruptor => ProjectileImpactType.Disabled,
+                    ItemType.Jailbird => ProjectileImpactType.Disabled,
+                    ItemType.SCP018 => ProjectileImpactType.Disabled,
                     _ => ProjectileImpactType.Neutral
                 };
             }
