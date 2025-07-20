@@ -65,11 +65,11 @@
 
         /// <summary>Sends a glitched Cassie message with configured glitch and jam chances.</summary>
         public static void Cassie_GlitchyMessage(string message) =>
-            Cassie.GlitchyMessage(message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
+            Cassie.GlitchyMessage("pitch_1.15 " + message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
 
         /// <summary>Sends a clean Cassie message with no noise or subtitles.</summary>
         public static void Cassie_Message(string message) =>
-            Cassie.Message(message, isNoisy: false, isSubtitles: false, isHeld: false);
+            Cassie.Message("pitch_0.95 " + message, isNoisy: false, isSubtitles: false, isHeld: false);
 
         #endregion
 

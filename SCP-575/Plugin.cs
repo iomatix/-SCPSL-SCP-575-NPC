@@ -45,7 +45,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override Version Version => new(7, 9, 3);
+        public override Version Version => new(7, 9, 4);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.

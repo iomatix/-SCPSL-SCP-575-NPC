@@ -79,16 +79,16 @@
 
         #region Cassie Methods
 
-        /// <summary>Clears all queued Cassie messages.</summary>
+        /// <summary>Clears all currently queued Cassie messages.</summary>
         public static void Cassie_Clear() => Cassie.Clear();
 
-        /// <summary>Sends a glitched Cassie message using NPC config glitch/jam chances.</summary>
+        /// <summary>Sends a glitched Cassie message with configured glitch and jam chances.</summary>
         public static void Cassie_GlitchyMessage(string message) =>
-            Cassie.GlitchyMessage(message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
+            Cassie.GlitchyMessage("pitch_1.15 " + message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
 
-        /// <summary>Sends a clean Cassie message (no noise, no subtitles).</summary>
+        /// <summary>Sends a clean Cassie message with no noise or subtitles.</summary>
         public static void Cassie_Message(string message) =>
-            Cassie.Message(message, isNoisy: false, isSubtitles: false);
+            Cassie.Message("pitch_0.95 " + message, isNoisy: false, isSubtitles: false, isHeld: false);
 
         #endregion
 
