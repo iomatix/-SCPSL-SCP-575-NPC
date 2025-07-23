@@ -2,6 +2,8 @@ namespace SCP_575.Npc
 {
     using MEC;
     using SCP_575.Shared;
+    using SCP_575.Shared.Audio;
+    using SCP_575.Shared.Audio.Enums;
     using SCP_575.Shared.Types;
     using System;
     using System.Collections.Generic;
@@ -115,14 +117,14 @@ namespace SCP_575.Npc
                 Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
 
                 // Play a global angry sound as a creepy audio cue
-                AudioManager.PlayGlobalAngrySound();
+                Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
 
                 // Check if all generators are engaged to trigger SCP-575 behavior
                 if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
                 {
                     Timing.CallDelayed(3.75f, () =>
                     {
-                        AudioManager.PlayGlobalDyingSound();
+                        Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamDying, lifespan: 25f);
                     });
                     if (Library_LabAPI.NpcConfig.IsNpcKillable)
                     {
@@ -225,8 +227,8 @@ namespace SCP_575.Npc
                     case ScpProjectileImpactType.ProjectileImpactType.Helpful:
                         Library_ExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Helpful impact type used in room: {room.Name}");
                         Library_ExiledAPI.DisableRoomAndNeighborLights(room);
-                        AudioManager.PlayGlobalWhispersBang();
-                        AudioManager.PlayGlobalAmbience();
+                        Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.WhispersBang, lifespan: 25f);
+                        Plugin.Singleton.AudioManager.PlayAmbience();
                         break;
 
                     case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
@@ -237,13 +239,13 @@ namespace SCP_575.Npc
                         }
                         Library_ExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
                         Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
-                        AudioManager.PlayGlobalAngrySound();
+                        Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
                         break;
 
                     case ScpProjectileImpactType.ProjectileImpactType.Neutral:
                     case ScpProjectileImpactType.ProjectileImpactType.Unknown:
                         Library_ExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Non-dangerous or unknown impact type: {impactType}");
-                        AudioManager.PlayGlobalWhispers();
+                        Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Whispers, lifespan: 25f);
                         break;
 
                     default:

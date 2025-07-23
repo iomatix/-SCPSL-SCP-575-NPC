@@ -8,6 +8,7 @@ namespace SCP_575.Npc
     using MEC;
     using SCP_575.ConfigObjects;
     using UnityEngine;
+    using SCP_575.Shared.Audio.Enums;
 
     /// <summary>
     /// Manages SCP-575 NPC behaviors including blackout events, CASSIE announcements, and damage mechanics.
@@ -78,7 +79,7 @@ namespace SCP_575.Npc
         public void Clean()
         {
             Library_ExiledAPI.LogInfo("Clean", "SCP-575 NPC methods cleaned.");
-            AudioManager.StopGlobalAmbience();
+            Plugin.Singleton.AudioManager.StopAmbience();
             _blackoutStacks = 0;
             _triggeredZones.Clear();
             Timing.KillCoroutines("SCP575keter");
@@ -341,7 +342,7 @@ namespace SCP_575.Npc
 
                 if (_config.KeterAmbient)
                 {
-                    AudioManager.PlayGlobalAmbience();
+                    Plugin.Singleton.AudioManager.PlayAmbience();
                 }
 
                 yield return Timing.WaitForSeconds(blackoutDuration);
@@ -354,7 +355,7 @@ namespace SCP_575.Npc
                     yield return Timing.WaitForSeconds(_config.TimeBetweenSentenceAndEnd);
                     ResetTeslaGates();
                     _triggeredZones.Clear();
-                    AudioManager.StopGlobalAmbience();
+                    Plugin.Singleton.AudioManager.StopAmbience();
                     Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", "Blackout completed. Systems reset.");
                 }
             }
@@ -479,7 +480,19 @@ namespace SCP_575.Npc
 
                             Timing.CallDelayed(3.75f, () =>
                             {
-                                AudioManager.PlayWhispersMixedAutoManaged(player, hearableForAllPlayers: true);
+                                var audioOptions = new AudioKey[]
+                                {
+                                    AudioKey.WhispersMixed,
+                                    AudioKey.Scream,
+                                    AudioKey.ScreamAngry,
+                                    AudioKey.WhispersBang
+                                };
+
+                                var randomIndex = UnityEngine.Random.Range(0, audioOptions.Length);
+                                var selectedClip = audioOptions[randomIndex];
+
+                                Plugin.Singleton.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 25f);
+
                             });
                             _lightCooldownHandler.OnScp575AttacksPlayer(player);
 
@@ -490,7 +503,8 @@ namespace SCP_575.Npc
                         }
                         else if (player.IsHuman && IsInDarkRoom(player))
                         {
-                            AudioManager.PlayWhispersAutoManaged(player, hearableForAllPlayers: true);
+
+                            Plugin.Singleton.AudioManager.PlayAudioAutoManaged(player, AudioKey.Whispers, hearableForAllPlayers: true, lifespan: 25f);
                             _lightCooldownHandler.OnScp575AttacksPlayer(player);
                         }
                     }

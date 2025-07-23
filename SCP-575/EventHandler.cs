@@ -94,7 +94,8 @@ namespace SCP_575
         {
             try
             {
-                AudioManager.CleanupAllSpeakers();
+
+                Plugin.Singleton.AudioManager.CleanupAllSpeakers();
                 foreach (CoroutineHandle handle in Coroutines)
                 {
                     Timing.KillCoroutines(handle);
@@ -165,7 +166,6 @@ namespace SCP_575
                 }
 
                 Library_ExiledAPI.LogDebug("OnPlayerHurt", $"Damage confirmed from {Scp575DamageSystem.IdentifierName}.");
-                AudioManager.PlayDamagedScream(ev.Player, isKill: false, customLifespan: 15f);
             }
             catch (Exception ex)
             {
@@ -196,7 +196,6 @@ namespace SCP_575
                 }
 
                 Library_ExiledAPI.LogDebug("OnPlayerDying", $"Death confirmed from {Scp575DamageSystem.IdentifierName}.");
-                AudioManager.PlayDamagedScream(ev.Player, isKill: true, customLifespan: 15f);
                 Coroutines.Add(Timing.RunCoroutine(Scp575DamageSystem.DropAndPushItems(ev.Player)));
             }
             catch (Exception ex)

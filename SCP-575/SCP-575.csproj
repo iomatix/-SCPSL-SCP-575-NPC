@@ -28,17 +28,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Shared\Audio\ambience.wav" />
-    <EmbeddedResource Include="Shared\Audio\scream-angry.wav" />
-    <EmbeddedResource Include="Shared\Audio\scream-dying.wav" />
-    <EmbeddedResource Include="Shared\Audio\scream.wav" />
-    <EmbeddedResource Include="Shared\Audio\whispers-bang.wav" />
-    <EmbeddedResource Include="Shared\Audio\whispers-mixed.wav" />
-	<EmbeddedResource Include="Shared\Audio\whispers.wav" />
+    <EmbeddedResource Include="Shared\Audio\Files\ambience.wav" />
+    <EmbeddedResource Include="Shared\Audio\Files\scream-angry.wav" />
+    <EmbeddedResource Include="Shared\Audio\Files\scream-dying.wav" />
+    <EmbeddedResource Include="Shared\Audio\Files\scream.wav" />
+    <EmbeddedResource Include="Shared\Audio\Files\whispers-bang.wav" />
+    <EmbeddedResource Include="Shared\Audio\Files\whispers-mixed.wav" />
+	<EmbeddedResource Include="Shared\Audio\Files\whispers.wav" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="ExMod.Exiled" Version="9.6.3" />
+    <PackageReference Include="Northwood.LabAPI" Version="1.1.0" />
+    <PackageReference Include="SCPSL-AudioManagerAPI" Version="1.3.0" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" IncludeAssets="All" PrivateAssets="All" />
     <PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556">
       <PrivateAssets>all</PrivateAssets>
