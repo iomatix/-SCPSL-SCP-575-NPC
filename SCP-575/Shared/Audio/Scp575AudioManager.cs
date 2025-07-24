@@ -298,7 +298,7 @@
             var assembly = Assembly.GetExecutingAssembly();
             foreach (var pair in audioConfig)
             {
-                string resourceName = $"SCP-575.Shared.Audio.{pair.Value.key}.wav";
+                string resourceName = $"SCP-575.Shared.Audio.Files.{pair.Value.key}.wav";
                 sharedAudioManager.RegisterAudio(pair.Value.key, () =>
                 {
                     var stream = assembly.GetManifestResourceStream(resourceName);
