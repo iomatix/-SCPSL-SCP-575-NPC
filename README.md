@@ -2,6 +2,10 @@
 [![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge)](https://github.com/iomatix/-SCPSL-SCP-575-NPC/releases/latest)
 [![GitHub Downloads](https://img.shields.io/github/downloads/iomatix/-SCPSL-SCP-575-NPC/latest/total?sort=date&style=for-the-badge)](https://github.com/iomatix/-SCPSL-SCP-575-NPC/releases/latest)
 
+## Dependencies:
+
+- **SCPSL-AudioManagerAPI**: `https://github.com/iomatix/-SCPSL-AudioManagerAPI/releases`
+
 ## Supporting Development
 
 My mods are **always free to use**.
