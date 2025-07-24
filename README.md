@@ -15,6 +15,10 @@ If you appreciate my work, you can support me by [buying me a coffee](https://bu
   <img src="https://contrib.rocks/image?repo=iomatix/-SCPSL-SCP-575-NPC" />
 </a>
 
+## Dependencies:
+
+- **SCPSL-AudioManagerAPI**: `https://github.com/iomatix/-SCPSL-AudioManagerAPI/releases/tag/1.3.0`
+
 ## Release – SCP-575 NPC for Exiled Mod
 
 This is the very first official build of the SCP-575 NPC mod, hosted in its own independent repo to fully decouple from the original fork.
