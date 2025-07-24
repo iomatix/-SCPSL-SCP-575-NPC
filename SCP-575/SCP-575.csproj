@@ -28,13 +28,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Shared\Audio\Files\ambience.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\scream-angry.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\scream-dying.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\scream.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\whispers-bang.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\whispers-mixed.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\whispers.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\scp575.ambience.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\scp575.scream-angry.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\scp575.scream-dying.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\scp575.scream.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\scp575.whispers-bang.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\scp575.whispers-mixed.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\scp575.whispers.wav" />
 	</ItemGroup>
 
 	<ItemGroup>
