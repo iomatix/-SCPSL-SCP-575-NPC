@@ -33,7 +33,7 @@
             { AudioKey.Whispers, ("scp575.whispers", 0.5f, 3f, 30f, true, AudioPriority.Medium, 2f) },
             { AudioKey.WhispersBang, ("scp575.whispers-bang", 0.6f, 3f, 30f, true, AudioPriority.Medium, 2f) },
             { AudioKey.WhispersMixed, ("scp575.whispers-mixed", 0.5f, 3f, 30f, true, AudioPriority.Medium, 2f) },
-            { AudioKey.Ambience, ("scp575.ambience", 0.4f, 0f, 999.99f, false, AudioPriority.Low, 0f) }
+            { AudioKey.Ambience, ("scp575.ambience", 0.4f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
         };
 
         /// <summary>

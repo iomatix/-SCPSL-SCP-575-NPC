@@ -111,6 +111,12 @@ namespace SCP_575.Npc
                     return;
                 }
 
+                if (!Plugin.Singleton.Npc.Methods.IsBlackoutActive)
+                {
+                    Library_ExiledAPI.LogDebug("OnPlayerTogglingFlashlight", "SCP-575 is not active. Skipping.");
+                    return;
+                }
+
                 bool isAllowed = ev.IsAllowed;
                 bool newState = ev.NewState;
                 HandleLightToggling(ev.Player, ref isAllowed, ref newState, _plugin.Config.NpcConfig?.LightEmitterCooldownHint ?? "Cooldown active.");
@@ -135,6 +141,12 @@ namespace SCP_575.Npc
                 if (ev?.Player == null || string.IsNullOrEmpty(ev.Player.UserId) || _weaponFlashlightDisabled)
                 {
                     Library_ExiledAPI.LogDebug("OnPlayerTogglingWeaponFlashlight", $"Skipping: Player={ev?.Player?.Nickname ?? "null"}, UserId={(ev?.Player != null ? ev.Player.UserId : "null")}, WeaponFlashlightDisabled={_weaponFlashlightDisabled}");
+                    return;
+                }
+
+                if (!Plugin.Singleton.Npc.Methods.IsBlackoutActive)
+                {
+                    Library_ExiledAPI.LogDebug("OnPlayerTogglingFlashlight", "SCP-575 is not active. Skipping.");
                     return;
                 }
 
