@@ -1,18 +1,21 @@
-﻿namespace Shared.Audio.Speakers
+﻿namespace SCP_575.Shared.Audio.Speakers
 {
     using AudioManagerAPI.Defaults;
-    using AudioManagerAPI.Features.Speakers;
     using LabApi.Features.Wrappers;
     using SCP_575.Shared;
     using System;
+    using System.Collections.Generic;
     using UnityEngine;
+
+
 
     /// <summary>
     /// Implements a LabAPI-specific speaker for SCP-575 audio playback using <see cref="SpeakerToy"/>.
     /// </summary>
-    public class LabApiSpeaker : DefaultSpeakerToyAdapter
+    public partial class LabApiSpeaker : DefaultSpeakerToyAdapter
     {
         private readonly SpeakerToy speakerToy;
+        private static readonly Dictionary<byte, LabApiSpeaker> speakerRegistry = new Dictionary<byte, LabApiSpeaker>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LabApiSpeaker"/> class.
@@ -22,8 +25,76 @@
         public LabApiSpeaker(SpeakerToy speakerToy) : base(speakerToy)
         {
             this.speakerToy = speakerToy ?? throw new ArgumentNullException(nameof(speakerToy));
+            // Register the speaker instance
+            if (!speakerRegistry.ContainsKey(speakerToy.ControllerId))
+            {
+                speakerRegistry[speakerToy.ControllerId] = this;
+            }
         }
 
+        /// <summary>
+        /// Gets a <see cref="LabApiSpeaker"/> instance by its controller ID.
+        /// </summary>
+        /// <param name="controllerId">The controller ID of the speaker.</param>
+        /// <returns>The <see cref="LabApiSpeaker"/> instance, or null if not found or unable to create.</returns>
+        public static LabApiSpeaker GetSpeaker(byte controllerId)
+        {
+            // Check if speaker is already in the registry
+            if (speakerRegistry.TryGetValue(controllerId, out LabApiSpeaker speaker))
+            {
+                return speaker;
+            }
+
+            // Attempt to get an existing SpeakerToy with the matching controllerId
+            SpeakerToy speakerToy = null;
+            foreach (var toy in SpeakerToy.List)
+            {
+                if (toy.ControllerId == controllerId)
+                {
+                    speakerToy = toy;
+                    break;
+                }
+            }
+
+            // If no SpeakerToy is found, create a new one
+            if (speakerToy == null)
+            {
+                // Create with default position, rotation, and scale, no parent, and network spawn enabled
+                speakerToy = SpeakerToy.Create(Vector3.zero, Quaternion.identity, Vector3.one, null, true);
+                if (speakerToy == null)
+                {
+                    Library_ExiledAPI.LogWarn("GetSpeaker", $"Failed to create SpeakerToy for controller ID {controllerId}.");
+                    return null;
+                }
+                speakerToy.ControllerId = controllerId; // Set the controllerId for the new SpeakerToy
+            }
+
+            // Verify the transmitter exists to ensure the controllerId is valid
+            var transmitter = SpeakerToy.GetTransmitter(controllerId);
+            if (transmitter == null)
+            {
+                Library_ExiledAPI.LogWarn("GetSpeaker", $"No transmitter found for controller ID {controllerId}.");
+                return null;
+            }
+
+            // Create and register the new LabApiSpeaker
+            speaker = new LabApiSpeaker(speakerToy);
+            speakerRegistry[controllerId] = speaker;
+            Library_ExiledAPI.LogDebug("GetSpeaker", $"Created and registered new LabApiSpeaker for controller ID {controllerId}.");
+            return speaker;
+        }
+
+        /// <summary>
+        /// Removes a speaker from the registry, typically called when destroying the speaker.
+        /// </summary>
+        /// <param name="controllerId">The controller ID of the speaker to remove.</param>
+        public static void RemoveSpeaker(byte controllerId)
+        {
+            if (speakerRegistry.Remove(controllerId))
+            {
+                Library_ExiledAPI.LogDebug("RemoveSpeaker", $"Removed LabApiSpeaker for controller ID {controllerId} from registry.");
+            }
+        }
 
         /// <summary>
         /// Plays the provided audio samples with an option to loop.
@@ -39,7 +110,6 @@
             }
             else
             {
-                // Assuming Exiled's Log class for SCP:SL
                 Library_ExiledAPI.LogWarn("Play", $"Failed to get transmitter for controller ID {speakerToy.ControllerId}.");
             }
         }
@@ -56,7 +126,6 @@
             }
             else
             {
-                // Assuming Exiled's Log class for SCP:SL
                 Library_ExiledAPI.LogWarn("Stop", $"Failed to get transmitter for controller ID {speakerToy.ControllerId}.");
             }
         }
@@ -70,7 +139,7 @@
         }
 
         /// <summary>
-        /// Configures which players can hear the audio.
+        /// Configures which players can hear the audio using a custom filter.
         /// </summary>
         /// <param name="playerFilter">A function that determines which players can hear the audio.</param>
         public void SetValidPlayers(Func<Player, bool> playerFilter)
@@ -78,12 +147,31 @@
             var transmitter = SpeakerToy.GetTransmitter(speakerToy.ControllerId);
             if (transmitter != null)
             {
-                transmitter.ValidPlayers = playerFilter;
+                transmitter.ValidPlayers = playerFilter ?? (player => true); // Default to all players if filter is null
+                Library_ExiledAPI.LogDebug("SetValidPlayers", $"Player filter updated for controller ID {speakerToy.ControllerId}.");
             }
             else
             {
-                Library_ExiledAPI.LogDebug("SetValidPlayers", $"Cannot set valid players for controller ID {speakerToy.ControllerId}: Transmitter not found.");
+                Library_ExiledAPI.LogWarn("SetValidPlayers", $"Cannot set valid players for controller ID {speakerToy.ControllerId}: Transmitter not found.");
             }
+        }
+
+        /// <summary>
+        /// Configures which players can hear the audio using a combination of predefined filters.
+        /// </summary>
+        /// <param name="filters">A collection of filter functions to apply. A player must pass all filters to hear the audio.</param>
+        public void SetValidPlayers(IEnumerable<Func<Player, bool>> filters)
+        {
+            Func<Player, bool> combinedFilter = player =>
+            {
+                if (player == null) return false;
+                foreach (var filter in filters)
+                {
+                    if (!filter(player)) return false;
+                }
+                return true;
+            };
+            SetValidPlayers(combinedFilter);
         }
 
         /// <summary>

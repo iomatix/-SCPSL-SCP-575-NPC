@@ -1,10 +1,9 @@
-﻿using SCP_575.Shared;
-
-namespace Shared.Audio.Speakers
+﻿namespace SCP_575.Shared.Audio.Speakers
 {
     using UnityEngine;
     using AudioManagerAPI.Features.Speakers;
     using LabApi.Features.Wrappers;
+    using SCP_575.Shared;
 
     /// <summary>
     /// Creates LabAPI-compatible speakers for SCP-575 audio playback.

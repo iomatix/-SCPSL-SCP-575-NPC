@@ -3,16 +3,19 @@
     using System;
     using System.Collections.Generic;
     using System.Reflection;
+    using UnityEngine;
+    using MEC;
     using AudioManagerAPI.Defaults;
     using AudioManagerAPI.Features.Enums;
     using AudioManagerAPI.Features.Management;
     using AudioManagerAPI.Features.Speakers;
     using LabApi.Features.Wrappers;
-    using MEC;
     using SCP_575.Shared.Audio.Enums;
-    using UnityEngine;
+
 
     using Log = LabApi.Features.Console.Logger;
+    using SCP_575.Shared.Audio.Speakers;
+    using SCP_575.Shared.Audio.Filters;
 
     /// <summary>
     /// Manages audio playback for SCP-575, including screams, whispers, and ambience.
@@ -204,6 +207,9 @@
             // Play new ambience
             byte controllerId = sharedAudioManager.PlayGlobalAudio(
                 config.key, loop, config.volume, config.priority, queue: queue, fadeInDuration: fadeInDuration, persistent: true);
+
+            // Play Ambience only for players covered by darkness and if SCP-575 is active.
+            LabApiSpeaker.GetSpeaker(controllerId).SetValidPlayers(AudioFilters.InDarkRoomAliveAndCondition(Plugin.Singleton.Npc.Methods.IsBlackoutActive));
 
             if (controllerId != 0)
             {
