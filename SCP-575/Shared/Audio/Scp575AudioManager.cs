@@ -209,7 +209,7 @@
                 config.key, loop, config.volume, config.priority, queue: queue, fadeInDuration: fadeInDuration, persistent: true);
 
             // Play Ambience only for players covered by darkness and if SCP-575 is active.
-            LabApiSpeaker.GetSpeaker(controllerId).SetValidPlayers(AudioFilters.InDarkRoomAliveAndCondition(Plugin.Singleton.Npc.Methods.IsBlackoutActive));
+            LabApiSpeaker.GetSpeaker(controllerId).ValidPlayers = AudioFilters.InDarkRoomAliveAndCondition(Plugin.Singleton.Npc.Methods.IsBlackoutActive);
 
             if (controllerId != 0)
             {
