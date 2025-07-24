@@ -97,6 +97,7 @@ namespace SCP_575
                 Singleton = null;
                 _eventHandler = null;
                 _npc = null;
+                _audioManager.CleanupAllSpeakers();
                 _audioManager = null;
 
                 Library_ExiledAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");

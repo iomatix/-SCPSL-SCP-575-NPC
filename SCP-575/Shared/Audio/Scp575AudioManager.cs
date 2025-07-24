@@ -4,18 +4,18 @@
     using System.Collections.Generic;
     using System.Reflection;
     using UnityEngine;
-    using MEC;
     using AudioManagerAPI.Defaults;
     using AudioManagerAPI.Features.Enums;
     using AudioManagerAPI.Features.Management;
     using AudioManagerAPI.Features.Speakers;
+    using AudioManagerAPI.Features.Static;
     using LabApi.Features.Wrappers;
-    using SCP_575.Shared.Audio.Enums;
+    using MEC;
 
+    using SCP_575.Shared.Audio.Enums;
+    using SCP_575.Shared.Audio.Filters;
 
     using Log = LabApi.Features.Console.Logger;
-    using SCP_575.Shared.Audio.Speakers;
-    using SCP_575.Shared.Audio.Filters;
 
     /// <summary>
     /// Manages audio playback for SCP-575, including screams, whispers, and ambience.
@@ -30,12 +30,12 @@
 
         private readonly Dictionary<AudioKey, (string key, float volume, float minDistance, float maxDistance, bool isSpatial, AudioPriority priority, float defaultLifespan)> audioConfig = new()
         {
-            { AudioKey.Scream, ("scp575.scream", 0.8f, 5f, 50f, true, AudioPriority.High, 3f) },
-            { AudioKey.ScreamAngry, ("scp575.scream-angry", 0.9f, 5f, 50f, true, AudioPriority.High, 3f) },
-            { AudioKey.ScreamDying, ("scp575.scream-dying", 1.0f, 60f, 60f, true, AudioPriority.High, 4f) },
-            { AudioKey.Whispers, ("scp575.whispers", 0.5f, 3f, 30f, true, AudioPriority.Medium, 2f) },
-            { AudioKey.WhispersBang, ("scp575.whispers-bang", 0.6f, 3f, 30f, true, AudioPriority.Medium, 2f) },
-            { AudioKey.WhispersMixed, ("scp575.whispers-mixed", 0.5f, 3f, 30f, true, AudioPriority.Medium, 2f) },
+            { AudioKey.Scream, ("scp575.scream", 0.8f, 5f, 50f, true, AudioPriority.High, 15f) },
+            { AudioKey.ScreamAngry, ("scp575.scream-angry", 0.9f, 5f, 50f, true, AudioPriority.High, 15f) },
+            { AudioKey.ScreamDying, ("scp575.scream-dying", 1.0f, 60f, 60f, true, AudioPriority.High, 15f) },
+            { AudioKey.Whispers, ("scp575.whispers", 0.5f, 3f, 30f, true, AudioPriority.Medium, 15f) },
+            { AudioKey.WhispersBang, ("scp575.whispers-bang", 0.6f, 3f, 30f, true, AudioPriority.Medium, 15f) },
+            { AudioKey.WhispersMixed, ("scp575.whispers-mixed", 0.5f, 3f, 30f, true, AudioPriority.Medium, 15f) },
             { AudioKey.Ambience, ("scp575.ambience", 0.4f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
         };
 
@@ -208,8 +208,22 @@
             byte controllerId = sharedAudioManager.PlayGlobalAudio(
                 config.key, loop, config.volume, config.priority, queue: queue, fadeInDuration: fadeInDuration, persistent: true);
 
+            // Try get speaker
+            var speaker = StaticSpeakerFactory.GetSpeaker(controllerId);
+            if (speaker == null) {
+                Log.Warn($"[PlayAmbience] Speaker was not created correctly, received null.");
+                return 0;
+            }
+
             // Play Ambience only for players covered by darkness and if SCP-575 is active.
-            LabApiSpeaker.GetSpeaker(controllerId).ValidPlayers = AudioFilters.InDarkRoomAliveAndCondition(Plugin.Singleton.Npc.Methods.IsBlackoutActive);
+            if (speaker is ISpeakerWithPlayerFilter filterSpeaker)
+            {
+                filterSpeaker.ValidPlayers = AudioFilters.InDarkRoomAliveAndCondition(Plugin.Singleton.Npc.Methods.IsBlackoutActive);
+            }
+            else
+            {
+                Log.Warn($"[PlayAmbience] Speaker does not implement ISpeakerWithPlayerFilter. Filterring will not apply.");
+            }
 
             if (controllerId != 0)
             {
@@ -219,7 +233,7 @@
                 {
                     if (lifespan.Value <= 0)
                     {
-                        Log.Warn($"[AudioManagerAPI] Invalid lifespan: {lifespan.Value}. Must be positive.");
+                        Log.Warn($"[PlayAmbience] Invalid lifespan: {lifespan.Value}. Must be positive.");
                         StopAmbience();
                         return 0;
                     }
@@ -231,11 +245,11 @@
                     });
                 }
 
-                Log.Debug($"[AudioManagerAPI] Started ambience with ID {controllerId} (loop: {loop}, queue: {queue}).");
+                Log.Debug($"[PlayAmbience] Started ambience with ID {controllerId} (loop: {loop}, queue: {queue}).");
             }
             else
             {
-                Log.Warn($"[AudioManagerAPI] Failed to play ambience. Possible reasons: audio file missing, speaker creation failed, or ID allocation queued.");
+                Log.Warn($"[PlayAmbience] Failed to play ambience. Possible reasons: audio file missing, speaker creation failed, or ID allocation queued.");
             }
 
             return controllerId;
@@ -249,21 +263,21 @@
         {
             if (_ambienceAudioControllerId == 0)
             {
-                Log.Debug($"[AudioManagerAPI] No ambience is currently playing.");
+                Log.Debug($"[StopAmbience] No ambience is currently playing.");
                 return false;
             }
 
             var speaker = sharedAudioManager.GetSpeaker(_ambienceAudioControllerId);
             if (speaker == null)
             {
-                Log.Warn($"[AudioManagerAPI] No speaker found for ambience controller ID {_ambienceAudioControllerId}. Clearing invalid ID.");
+                Log.Warn($"[StopAmbience] No speaker found for ambience controller ID {_ambienceAudioControllerId}. Clearing invalid ID.");
                 _ambienceAudioControllerId = 0;
                 return false;
             }
 
             sharedAudioManager.FadeOutAudio(_ambienceAudioControllerId, DEFAULT_FADE_DURATION);
             sharedAudioManager.DestroySpeaker(_ambienceAudioControllerId);
-            Log.Debug($"[AudioManagerAPI] Stopped and destroyed ambience with controller ID {_ambienceAudioControllerId}.");
+            Log.Debug($"[StopAmbience] Stopped and destroyed ambience with controller ID {_ambienceAudioControllerId}.");
             _ambienceAudioControllerId = 0;
 
             return true;
@@ -278,12 +292,12 @@
         {
             if (controllerId == 0)
             {
-                Log.Warn($"[AudioManagerAPI] Invalid controller ID 0 for skipping audio.");
+                Log.Warn($"[SkipAudio] Invalid controller ID 0 for skipping audio.");
                 return;
             }
 
             sharedAudioManager.SkipAudio(controllerId, count);
-            Log.Debug($"[AudioManagerAPI] Skipped {count} audio clips for controller ID {controllerId}.");
+            Log.Debug($"[SkipAudio] Skipped {count} audio clips for controller ID {controllerId}.");
         }
 
         /// <summary>
@@ -293,7 +307,7 @@
         {
             sharedAudioManager.CleanupAllSpeakers();
             _ambienceAudioControllerId = 0;
-            Log.Debug($"[AudioManagerAPI] Cleaned up all SCP-575 audio speakers.");
+            Log.Debug($"[CleanupAllSpeakers] Cleaned up all SCP-575 audio speakers.");
         }
 
         /// <summary>
@@ -310,11 +324,11 @@
                     var stream = assembly.GetManifestResourceStream(resourceName);
                     if (stream == null)
                     {
-                        Log.Error($"[AudioManagerAPI] Failed to load audio resource: {resourceName}");
+                        Log.Error($"[RegisterAudioResources] Failed to load audio resource: {resourceName}");
                     }
                     return stream;
                 });
-                Log.Debug($"[AudioManagerAPI] Registered audio resource: {pair.Value.key}");
+                Log.Debug($"[RegisterAudioResources] Registered audio resource: {pair.Value.key}");
             }
         }
     }
