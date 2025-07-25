@@ -1,4 +1,4 @@
-namespace SCP_575.Npc
+namespace SCP_575.Handlers
 {
     using System;
     using System.Collections.Concurrent;
@@ -17,6 +17,7 @@ namespace SCP_575.Npc
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
     using SCP_575.Shared;
+    using SCP_575;
 
     // TODO: Refactor Weapon flashlight handling to same logic like flashlight when LabAPI has it ready: https://github.com/northwood-studios/LabAPI/issues/220?notification_referrer_id=NT_kwDOAMgLkbQxNzY3OTc2MTM2ODoxMzExMDE2MQ#issuecomment-3092327154
 
@@ -24,7 +25,7 @@ namespace SCP_575.Npc
     /// Manages flashlight and weapon light restrictions for players affected by SCP-575, applying cooldowns,
     /// randomized flickering effects, and forced disables on attack events.
     /// </summary>
-    public class LightCooldownHandler : CustomEventsHandler, IDisposable
+    public class PlayerLightsourceHandler : CustomEventsHandler, IDisposable
     {
         private readonly Plugin _plugin;
         private readonly ConcurrentDictionary<string, DateTime> _cooldownUntil = new();
@@ -33,19 +34,19 @@ namespace SCP_575.Npc
         private readonly Random _random = new();
         private readonly CoroutineHandle _cleanupCoroutine;
         private bool _weaponFlashlightDisabled;
-        private static readonly FieldInfo? _attachmentsField = InitializeAttachmentsField();
+        private static readonly FieldInfo _attachmentsField = InitializeAttachmentsField();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LightCooldownHandler"/> class.
+        /// Initializes a new instance of the <see cref="PlayerLightsourceHandler"/> class.
         /// </summary>
         /// <param name="plugin">The plugin instance providing access to configuration.</param>
         /// <exception cref="ArgumentNullException">Thrown if the plugin instance is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown if NpcConfig is null.</exception>
-        public LightCooldownHandler(Plugin plugin)
+        public PlayerLightsourceHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
-            if (_plugin.Config.NpcConfig == null)
-                throw new InvalidOperationException("NpcConfig is not initialized.");
+            if (_plugin.Config == null)
+                throw new InvalidOperationException("Config is not initialized.");
 
             if (!Plugin.Singleton.Config.NpcConfig.EnableKeterLightsourceCooldown)
             {
@@ -76,12 +77,12 @@ namespace SCP_575.Npc
         /// Handles the PlayerChangedItem event, turning the flashlight OFF by default to prevent cheating SCP-575 mechanics.
         /// </summary>
         /// <param name="ev">The event arguments for the item changed event.</param>
-        public override void OnPlayerChangedItem(LabApi.Events.Arguments.PlayerEvents.PlayerChangedItemEventArgs ev)
+        public override void OnPlayerChangedItem(PlayerChangedItemEventArgs ev)
         {
             try
             {
                 // Check if the newly equipped item is a flashlight
-                if (ev.NewItem is LabApi.Features.Wrappers.LightItem lightItem)
+                if (ev.NewItem is LightItem lightItem)
                 {
                     Library_ExiledAPI.LogInfo("OnPlayerChangedItem", $"Player {ev?.Player?.Nickname ?? "unknown"} equipped a flashlight (Item ID: {lightItem.Base.ItemId})");
 
@@ -107,7 +108,7 @@ namespace SCP_575.Npc
         /// Blocks flashlight toggling if the player is on cooldown or a flicker is active.
         /// </summary>
         /// <param name="ev">The event arguments containing player and toggle state.</param>
-        public override void OnPlayerTogglingFlashlight(LabApi.Events.Arguments.PlayerEvents.PlayerTogglingFlashlightEventArgs ev)
+        public override void OnPlayerTogglingFlashlight(PlayerTogglingFlashlightEventArgs ev)
         {
             try
             {
@@ -287,7 +288,7 @@ namespace SCP_575.Npc
         /// Clears cooldowns for a specific player or all players if null.
         /// </summary>
         /// <param name="player">The player to clear the cooldown for, or null to clear all.</param>
-        public void ClearCooldown(Player? player = null)
+        public void ClearCooldown(Player player = null)
         {
             try
             {
@@ -340,7 +341,7 @@ namespace SCP_575.Npc
         /// Initializes weapon flashlight support by checking for the attachments field.
         /// </summary>
         /// <returns>The attachments field info if found, otherwise null.</returns>
-        private static FieldInfo? InitializeAttachmentsField()
+        private static FieldInfo InitializeAttachmentsField()
         {
             try
             {

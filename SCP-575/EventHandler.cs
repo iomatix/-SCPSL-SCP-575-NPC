@@ -1,10 +1,11 @@
-namespace SCP_575
+﻿namespace SCP_575
 {
     using System;
     using System.Collections.Generic;
     using MEC;
     using SCP_575.Npc;
     using SCP_575.Shared;
+    using Systems;
 
     /// <summary>
     /// Handles server and player events for the SCP-575 plugin, managing blackout-related behaviors and damage interactions.

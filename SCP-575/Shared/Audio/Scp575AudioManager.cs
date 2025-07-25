@@ -13,7 +13,6 @@
     using MEC;
 
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Shared.Audio.Filters;
 
     using Log = LabApi.Features.Console.Logger;
 
@@ -210,7 +209,8 @@
 
             // Try get speaker
             var speaker = StaticSpeakerFactory.GetSpeaker(controllerId);
-            if (speaker == null) {
+            if (speaker == null)
+            {
                 Log.Warn($"[PlayAmbience] Speaker was not created correctly, received null.");
                 return 0;
             }
@@ -218,7 +218,7 @@
             // Play Ambience only for players covered by darkness and if SCP-575 is active.
             if (speaker is ISpeakerWithPlayerFilter filterSpeaker)
             {
-                filterSpeaker.ValidPlayers = AudioFilters.InDarkRoomAliveAndCondition(Plugin.Singleton.Npc.Methods.IsBlackoutActive);
+                if (Plugin.Singleton.Npc.Methods.IsBlackoutActive) filterSpeaker.ValidPlayers = AudioManagerAPI.Features.Filters.AudioFilters.IsInRoomWhereLightsAre(false);
             }
             else
             {

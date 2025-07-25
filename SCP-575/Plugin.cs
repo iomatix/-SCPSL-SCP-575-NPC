@@ -1,10 +1,12 @@
 namespace SCP_575
 {
-    using System;
+    using LabApi.Events.CustomHandlers;
     using MEC;
+    using SCP_575.ConfigObjects;
+    using SCP_575.Handlers;
+    using SCP_575.Npc;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio;
-
 
     /// <summary>
     /// The main plugin class for the SCP-575 NPC, responsible for managing event handlers and NPC behaviors.
@@ -25,6 +27,11 @@ namespace SCP_575
         /// Gets the event handler instance for managing server and player events.
         /// </summary>
         public EventHandler EventHandler => _eventHandler;
+
+        public PlayerSanityHandler _sanityHandler;
+
+        public PlayerLightsourceHandler _lightsourceHandler;
+
 
         /// <summary>
         /// Gets the NPC instance for managing SCP-575 behaviors.
@@ -51,12 +58,12 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override Version Version => new(8,1,0);
+        public override System.Version Version => new(8,1,0);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.
         /// </summary>
-        public override Version RequiredExiledVersion => new(9, 6, 0);
+        public override System.Version RequiredExiledVersion => new(9, 6, 0);
 
         /// <summary>
         /// Called when the plugin is enabled, initializing components and registering event handlers.
@@ -76,7 +83,7 @@ namespace SCP_575
                 Library_ExiledAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
                 base.OnEnabled();
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Library_ExiledAPI.LogError("Plugin.OnEnabled", $"Failed to enable SCP-575 plugin: {ex.Message}");
                 throw;
@@ -107,7 +114,7 @@ namespace SCP_575
                 Library_ExiledAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");
                 base.OnDisabled();
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 Library_ExiledAPI.LogError("Plugin.OnDisabled", $"Failed to disable SCP-575 plugin: {ex.Message}");
                 throw;
@@ -127,6 +134,8 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.Dying += _eventHandler.OnPlayerDying;
             LabApi.Events.Handlers.PlayerEvents.Death += _eventHandler.OnPlayerDeath;
             Exiled.Events.Handlers.Player.SpawnedRagdoll += _eventHandler.OnSpawnedRagdoll;
+            CustomHandlersManager.RegisterEventsHandler(_lightsourceHandler);
+            CustomHandlersManager.RegisterEventsHandler(_sanityHandler);
             Library_ExiledAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
         }
 
@@ -145,6 +154,8 @@ namespace SCP_575
                 LabApi.Events.Handlers.PlayerEvents.Dying -= _eventHandler.OnPlayerDying;
                 LabApi.Events.Handlers.PlayerEvents.Death -= _eventHandler.OnPlayerDeath;
                 Exiled.Events.Handlers.Player.SpawnedRagdoll -= _eventHandler.OnSpawnedRagdoll;
+                CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
+                CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
                 Library_ExiledAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
             }
         }

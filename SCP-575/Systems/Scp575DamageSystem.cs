@@ -1,14 +1,16 @@
-﻿namespace SCP_575.Shared
+﻿namespace SCP_575.Systems
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using InventorySystem.Items.Armor;
     using MEC;
     using PlayerRoles;
     using PlayerRoles.PlayableScps.Scp3114;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
+    using SCP_575.Shared;
+
     using UnityEngine;
 
     public static class Scp575DamageSystem
@@ -98,11 +100,6 @@
 
             if (succeeded)
             {
-                if (target.IsAlive && Library_LabAPI.NpcConfig.EnableKeterOnDealDamageEffects)
-                {
-                    Scp575DamageSystem_LabAPI.ApplyDamageEffects(target);
-                }
-
                 Library_ExiledAPI.LogDebug("DamagePlayer",
                     target.IsAlive ? "Damage applied successfully - player survived" : "Damage applied successfully - player died");
             }
@@ -231,7 +228,7 @@
                 originalRagdoll.Position,
                 originalRagdoll.Rotation,
                 player.DisplayNickname,
-                UnityEngine.Time.time);
+                Time.time);
 
             originalRagdoll.Destroy();
 
@@ -335,13 +332,13 @@
         public static bool IsScp575Damage(DamageHandlerBase handler)
         {
             return handler is CustomReasonDamageHandler customHandler &&
-                   (customHandler.DeathScreenText == DeathScreenText);
+                   customHandler.DeathScreenText == DeathScreenText;
         }
 
         public static bool IsScp575BodyRagdoll(DamageHandlerBase handler)
         {
             return handler is CustomReasonDamageHandler customHandler &&
-                   (customHandler.RagdollInspectText == RagdollInspectText);
+                   customHandler.RagdollInspectText == RagdollInspectText;
         }
 
         /// <summary>
@@ -388,7 +385,7 @@
 
             // Apply logarithmic scaling based on damage for realistic force distribution  
             float modifier = baseValue *
-                           Mathf.Log((Library_LabAPI.NpcConfig.KeterDamageVelocityModifier * Library_LabAPI.NpcConfig.KeterDamage) + 1) *
+                           Mathf.Log(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier * Library_LabAPI.NpcConfig.KeterDamage + 1) *
                            CalculateForcePush(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier);
 
             return randomDirection * modifier;

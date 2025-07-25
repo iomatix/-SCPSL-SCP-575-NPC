@@ -1,5 +1,6 @@
-﻿namespace SCP_575.Shared.Types
+﻿namespace SCP_575.Types
 {
+    using SCP_575.Shared;
     using System;
 
     /// <summary>

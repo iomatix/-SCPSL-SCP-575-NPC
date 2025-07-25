@@ -1,5 +1,6 @@
-﻿namespace SCP_575.Npc.Handlers
+﻿namespace SCP_575.Handlers
 {
+    using Hints;
     using InventorySystem.Items;
     using LabApi.Events.Arguments.PlayerEvents;
     using LabApi.Events.CustomHandlers;
@@ -16,20 +17,20 @@
     public class PlayerSanityHandler : CustomEventsHandler, IDisposable
     {
         private readonly Plugin _plugin;
+        private readonly PlayerSanityConfig _sanityConfig;
+
         private readonly Dictionary<string, float> _sanityCache = new();
-        private readonly Dictionary<string, float> _sanityRecoveryItemCooldowns = new();
+        private readonly CoroutineHandle _sanityDecayCoroutine;
 
         public PlayerSanityHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
-            if (_plugin.Config.NpcConfig == null)
-                throw new InvalidOperationException("NpcConfig is not initialized.");
+            if (_plugin.Config == null)
+                throw new InvalidOperationException("Config is not initialized.");
 
-            if (!Plugin.Singleton.Config.NpcConfig.EnableKeterLightsourceCooldown)
-            {
-                Library_ExiledAPI.LogInfo("PlayerSanityHandler.Constructor", "EnableKeterLightsourceCooldown is disabled in config.");
-                return;
-            }
+            _sanityConfig = Plugin.Singleton.Config.SanityConfig;
+
+            _sanityDecayCoroutine = Timing.RunCoroutine(HandleSanityDecay());
         }
 
         /// <summary>
@@ -42,7 +43,7 @@
         /// Sets the sanity value for the specified player.  
         /// Overwrites existing value or adds a new entry.
         /// </summary>
-        public void SetSanityForPlayer(LabApi.Features.Wrappers.Player player, float sanity)
+        public void SetSanityForPlayer(Player player, float sanity)
         {
             _sanityCache[player.UserId] = Mathf.Clamp(sanity, 0f, 100f);
         }
@@ -58,7 +59,7 @@
                 Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", "Player or UserId is null. Skipping.");
                 return;
             }
-            _sanityCache[ev.Player.UserId] = Plugin.Singleton.Config.NpcConfig.SanityConfig.InitialSanity;
+            _sanityCache[ev.Player.UserId] = Plugin.Singleton.Config.SanityConfig.InitialSanity;
 
         }
 
@@ -84,28 +85,16 @@
                 ItemType itemType = ev.UsableItem.Type;
                 string userId = player.UserId;
 
-                // Check cooldown
-                if (_sanityRecoveryItemCooldowns.TryGetValue(userId, out float lastUseTime))
-                {
-                    float timeSinceUse = Time.time - lastUseTime;
-                    // Todo move sanity config to main config ? its not part of the NPC tho
-                    if (timeSinceUse < Plugin.Singleton.Config.NpcConfig.SanityConfig.RegenCooldown)
-                    {
-                        Library_ExiledAPI.LogDebug("SanitySystem", $"Sanity recovery item on cooldown for {userId}. Sanity has not been recovered.");
-                        return;
-                    }
-                }
-
                 float restoreAmount = 0f;
-                var config = Plugin.Singleton.Config.NpcConfig.SanityConfig;
+                var _sanityConfig = Plugin.Singleton.Config.SanityConfig;
                 switch (itemType)
                 {
                     case ItemType.SCP500:
-                        restoreAmount = UnityEngine.Random.Range(config.SCP500RestoreMin, config.SCP500RestoreMax);
+                        restoreAmount = UnityEngine.Random.Range(_sanityConfig.SCP500RestoreMin, _sanityConfig.SCP500RestoreMax);
                         break;
 
                     case ItemType.Painkillers:
-                        restoreAmount = UnityEngine.Random.Range(config.PillsRestoreMin, config.PillsRestoreMax);
+                        restoreAmount = UnityEngine.Random.Range(_sanityConfig.PillsRestoreMin, _sanityConfig.PillsRestoreMax);
                         break;
 
                     default:
@@ -113,10 +102,14 @@
                 }
 
                 // Apply sanity restoration
-                ChangeSanityValue(player, restoreAmount);
-                _sanityRecoveryItemCooldowns[userId] = Time.time;
+                float newValue = ChangeSanityValue(player, restoreAmount);
+                if (Plugin.Singleton.Config.HintsConfig.IsEnabledSanityHint)
+                {
+                    player.SendHint(Plugin.Singleton.Config.HintsConfig.SanityIncreasedHint,
+                        new[] { new FloatHintParameter(newValue, "F1") });
+                }
 
-                Library_ExiledAPI.LogDebug("SanitySystem", $"Restored {restoreAmount}% sanity to {userId} with {itemType}");
+                Library_ExiledAPI.LogDebug("SanitySystem", $"Restored {restoreAmount} sanity to {userId} with {itemType}");
 
 
             }
@@ -134,14 +127,14 @@
             return _sanityCache.TryGetValue(player.UserId, out float sanity) ? sanity : 100f;
         }
 
-        public SanityStage GetCurrentSanityStage(Player player)
+        public PlayerSanityStageConfig GetCurrentSanityStage(Player player)
         {
             float sanity = GetCurrentSanityOfPlayer(player);
             return Plugin.Singleton.Config.NpcConfig.SanityConfig.SanityStages.FirstOrDefault(stage =>
                 sanity <= stage.MaxThreshold && sanity > stage.MinThreshold);
         }
 
-        public SanityStage GetCurrentSanityStage(float sanity)
+        public PlayerSanityStageConfig GetCurrentSanityStage(float sanity)
         {
             return Plugin.Singleton.Config.NpcConfig.SanityConfig.SanityStages.FirstOrDefault(stage =>
                 sanity <= stage.MaxThreshold && sanity > stage.MinThreshold);
@@ -160,61 +153,64 @@
         // TODO
         public IEnumerator<float> HandleSanityDecay()
         {
-            var _config = Plugin.Singleton.Config.NpcConfig.SanityConfig;
             while (true)
             {
                 yield return Timing.WaitForSeconds(1f);
 
                 foreach (Player player in Player.List.Where(p => p.IsAlive))
                 {
-                    float decayRate = _config.DecayRateBase;
+                    float decayRate = _sanityConfig.DecayRateBase;
 
-                    if (Plugin.Singleton.Npc.Methods.IsBlackoutActive)
-                        decayRate *= _config.DecayMultiplierBlackout;
-
-                    if (!player) // TODO reusable utility method if player has flashlight turned on/off inc weapon module 
-                        decayRate *= _config.DecayMultiplierDarkness;
-                    // TODO send hint to the player config
-                    ChangeSanityValue(player, -1 * decayRate);
+                    if (Plugin.Singleton.Npc.Methods.IsBlackoutActive) decayRate *= _sanityConfig.DecayMultiplierBlackout;
+                    if (Library_LabAPI.IsPlayerInDarkRoom(player)) decayRate *= _sanityConfig.DecayMultiplierDarkness;
+                    float newValue = ChangeSanityValue(player, -1 * decayRate);
+                    if (Plugin.Singleton.Config.HintsConfig.IsEnabledSanityHint)
+                    {
+                        player.SendHint(Plugin.Singleton.Config.HintsConfig.SanityDecreasedHint,
+                            new[] { new FloatHintParameter(newValue, "F1") });
+                    }
                 }
             }
         }
 
-        /// <summary>
-        /// Applies the configured sanity stage effects to the specified player.
-        /// </summary>
-        /// <param name="player">The player to apply effects to.</param>
-        /// <param name="stage">The sanity stage defining the effects.</param>
-        public void ApplyStageEffects(Player player, SanityStage stage)
+        /// <summary>  
+        /// Applies the configured sanity stage effects to the specified player.  
+        /// </summary>  
+        /// <param name="player">The player to apply effects to.</param>  
+        public void ApplyStageEffects(Player player)
         {
-            if (player == null || stage == null)
-                return;
+            PlayerSanityStageConfig stage = GetCurrentSanityStage(player);
+            if (player == null || stage == null) return;
 
-            var effects = new List<(bool Enabled, Action Apply)>
-    {
-        (stage.EnableWhispers,           () => Plugin.Singleton.AudioManager.PlayAudioAutoManaged(player, AudioKey.Whispers, true, 10f)),
-        (stage.EnableScreenShake,        () => player.EnableEffect<Ensnared>(duration: 0.2f)), // Simulate shake with movement restrict
-        (stage.EnableAudioDistortion,    () => player.EnableEffect<Deafened>(duration: 1.5f)),
-        (stage.EnableHallucinations,     () => player.EnableEffect<AmnesiaVision>(duration: 2.5f)),
-        (stage.EnableCameraDistortion,   () => player.EnableEffect<Concussed>(duration: 1.75f)),
-        (stage.EnableMovementLag,        () => player.EnableEffect<Exhausted>(duration: 2f)),
-        (stage.EnablePanicFlash,         () => player.EnableEffect<Flashed>(duration: 0.2f))
-    };
+            // Get the EnableEffect method with the correct signature  
+            var enableEffectMethod = typeof(Player).GetMethod("EnableEffect", new[] { typeof(byte), typeof(float), typeof(bool) });
 
-            foreach (var (enabled, apply) in effects)
+            foreach (var effectConfig in stage.Effects)
             {
-                if (enabled)
-                    apply();
+                try
+                {
+                    // Make the method generic with the effect type  
+                    var genericMethod = enableEffectMethod.MakeGenericMethod(effectConfig.EffectType);
+
+                    // Invoke with the configuration values  
+                    genericMethod.Invoke(player, new object[] {
+                    effectConfig.Intensity,
+                    effectConfig.Duration,
+                    false 
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Failed to apply effect {effectConfig.EffectType.Name}: {ex.Message}");
+                }
             }
         }
-
-
 
         #endregion
 
         #region Private Methods
 
-        private bool IsPlayerValidForSanitySystem(LabApi.Features.Wrappers.Player player)
+        private bool IsPlayerValidForSanitySystem(Player player)
         {
             if (player == null || string.IsNullOrEmpty(player.UserId))
             {
@@ -250,7 +246,7 @@
             try
             {
                 CleanAllocatedResources();
-                Timing.KillCoroutines(_cleanupCoroutine);
+                Timing.KillCoroutines(_sanityDecayCoroutine);
 
                 Library_ExiledAPI.LogInfo("LightCooldownHandler.Dispose", "Disposed light cooldown handler and cleaned up resources.");
             }

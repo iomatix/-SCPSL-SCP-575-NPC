@@ -4,9 +4,9 @@ namespace SCP_575.Npc
     using SCP_575.Shared;
     using SCP_575.Shared.Audio;
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Shared.Types;
     using System;
     using System.Collections.Generic;
+    using Types;
     using UnityEngine;
 
     // Todo Revork Event Handling to LabAPIs CustomHandlers
@@ -40,18 +40,15 @@ namespace SCP_575.Npc
             try
             {
                 float roll = Library_ExiledAPI.Loader_Random_Next(100);
-                Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}, EnableKeter = {Library_LabAPI.NpcConfig.EnableKeter}");
+                Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}");
 
                 if (roll <= Library_LabAPI.NpcConfig.SpawnChance)
                 {
                     Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "OnRoundStart: SCP-575 NPC spawning due to roll being within spawn chance.");
                     Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.RunBlackoutTimer()));
 
-                    if (Library_LabAPI.NpcConfig.EnableKeter)
-                    {
-                        Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "OnRoundStart: Keter mode enabled, starting Keter damage coroutine.");
-                        Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.KeterDamage(), tag: "SCP575keter"));
-                    }
+                    Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "OnRoundStart: Keter mode enabled, starting Keter NPC coroutine.");
+                    Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.KeterAction(), tag: "SCP575keter"));
                 }
             }
             catch (Exception ex)
