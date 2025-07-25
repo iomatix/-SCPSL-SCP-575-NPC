@@ -4,6 +4,7 @@ namespace SCP_575.Npc
     using LabApi.Events.CustomHandlers;
     using MEC;
     using SCP_575.ConfigObjects;
+    using SCP_575.Npc.Handlers;
     using SCP_575.Shared.Audio.Enums;
     using Shared;
     using System;
@@ -27,6 +28,7 @@ namespace SCP_575.Npc
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _lightCooldownHandler = new LightCooldownHandler(plugin);
+            _sanityHandler = new PlayerSanityHandler(plugin);
         }
 
         private readonly HashSet<Exiled.API.Enums.ZoneType> _triggeredZones = new HashSet<Exiled.API.Enums.ZoneType>();
@@ -69,7 +71,6 @@ namespace SCP_575.Npc
         {
             Library_ExiledAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
             Clean();
-            _sanityCache.Clear(); // Clear cache only on disable.
             UnregisterEventHandler();
 
         }
@@ -477,12 +478,14 @@ namespace SCP_575.Npc
                     SanityStage stage = GetCurrentStage(sanity); // Find matching config
 
                     if (stage == null) continue;
-
-                    ApplyStageEffects(player, stage);
-
+                    // Todo move damaging via sanity handler
+                    Plugin.Singleton.Npc.Methods._sanityHandler.ApplyStageEffects(player, stage);
                     if (IsBlackoutActive && stage.DamageOnStrike > 0)
                     {
-                        player.Hurt(stage.DamageOnStrike, DamageTypes.Scp575);
+
+                        float rawDamage = stage.DamageOnStrike * _blackoutStacks;
+                        float clampedDamage = Mathf.Max(rawDamage, 1f);
+                        Scp575DamageSystem.DamagePlayer(player, clampedDamage);
                     }
                 }
             }
