@@ -1,8 +1,8 @@
 namespace SCP_575
 {
+    using System.ComponentModel;
     using Exiled.API.Interfaces;
     using SCP_575.ConfigObjects;
-    using System.ComponentModel;
 
     /// <summary>
     /// Defines the type of SCP-575 instance to spawn.

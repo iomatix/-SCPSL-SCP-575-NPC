@@ -1,9 +1,10 @@
 namespace SCP_575
 {
+    using System;
     using MEC;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio;
-    using System;
+
 
     /// <summary>
     /// The main plugin class for the SCP-575 NPC, responsible for managing event handlers and NPC behaviors.

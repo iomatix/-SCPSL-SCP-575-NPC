@@ -1,4 +1,4 @@
-﻿namespace SCP_575.Shared
+﻿namespace SCP_575.Shared.Audio
 {
     using System;
     using System.Collections.Generic;
