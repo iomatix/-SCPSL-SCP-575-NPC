@@ -1,14 +1,15 @@
 namespace SCP_575.Npc
 {
+    using Exiled.API.Enums;
+    using LabApi.Events.CustomHandlers;
+    using MEC;
+    using SCP_575.ConfigObjects;
+    using SCP_575.Shared.Audio.Enums;
     using Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using LabApi.Events.CustomHandlers;
-    using MEC;
-    using SCP_575.ConfigObjects;
     using UnityEngine;
-    using SCP_575.Shared.Audio.Enums;
 
     /// <summary>
     /// Manages SCP-575 NPC behaviors including blackout events, CASSIE announcements, and damage mechanics.
@@ -16,7 +17,6 @@ namespace SCP_575.Npc
     public class Methods
     {
         private readonly Plugin _plugin;
-        private readonly NpcConfig _config;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Methods"/> class.
@@ -26,7 +26,6 @@ namespace SCP_575.Npc
         public Methods(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
-            _config = plugin.Config.NpcConfig;
             _lightCooldownHandler = new LightCooldownHandler(plugin);
         }
 
@@ -35,6 +34,7 @@ namespace SCP_575.Npc
         private static int _blackoutStacks = 0;
 
         private readonly LightCooldownHandler _lightCooldownHandler;
+        private readonly PlayerSanityHandler _sanityHandler;
 
         /// <summary>
         /// Gets a value indicating whether a blackout is currently active.
@@ -69,6 +69,7 @@ namespace SCP_575.Npc
         {
             Library_ExiledAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
             Clean();
+            _sanityCache.Clear(); // Clear cache only on disable.
             UnregisterEventHandler();
 
         }
@@ -98,6 +99,10 @@ namespace SCP_575.Npc
             {
                 CustomHandlersManager.RegisterEventsHandler(_lightCooldownHandler);
             }
+            if (_config.Sanity.IsEnabled)
+            {
+                CustomHandlersManager.RegisterEventsHandler(_SanityHandler);
+            }
         }
 
         private void UnregisterEventHandler()
@@ -111,6 +116,10 @@ namespace SCP_575.Npc
             if (_config.EnableKeterLightsourceCooldown)
             {
                 CustomHandlersManager.UnregisterEventsHandler(_lightCooldownHandler);
+            }
+            if (_config.Sanity.IsEnabled)
+            {
+                CustomHandlersManager.UnregisterEventsHandler(_SanityHandler);
             }
         }
 
@@ -452,6 +461,33 @@ namespace SCP_575.Npc
             return player.CurrentRoom?.AreLightsOff ?? false;
         }
 
+        // TODO: KeterDamage -> Sanity System, checks if in the dark room -> sanity goes down
+        // -> less sanity eq more negative effects and damage while SCP 575 strikes
+        // Sanity regens only with pills (configurable random e.g. 2-10%) and SCP-500 (configrable default 100%)
+        // E.g.
+        public IEnumerator<float> ApplyKeterEffects()
+        {
+            while (true)
+            {
+                yield return Timing.WaitForSeconds(_config.KeterEffectsDelay);
+
+                foreach (Player player in Player.ReadyList.Where(p => p.IsAlive))
+                {
+                    float sanity = _sanity[player];
+                    SanityStage stage = GetCurrentStage(sanity); // Find matching config
+
+                    if (stage == null) continue;
+
+                    ApplyStageEffects(player, stage);
+
+                    if (IsBlackoutActive && stage.DamageOnStrike > 0)
+                    {
+                        player.Hurt(stage.DamageOnStrike, DamageTypes.Scp575);
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Applies damage to players during blackouts if conditions are met.
         /// </summary>
@@ -580,7 +616,8 @@ namespace SCP_575.Npc
         public void Kill575()
         {
             Library_ExiledAPI.LogDebug("Kill575", "Killing SCP-575 NPC.");
-            Clean();
+            Clean(); 
+            
         }
 
         #endregion

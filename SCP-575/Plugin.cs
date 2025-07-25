@@ -14,6 +14,7 @@ namespace SCP_575
         private EventHandler _eventHandler;
         private NestingObjects.Npc _npc;
         private Scp575AudioManager _audioManager;
+        private Config _config;
 
         /// <summary>
         /// Gets the singleton instance of the SCP-575 plugin.
@@ -50,7 +51,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override Version Version => new(8,0,0);
+        public override Version Version => new(8,1,0);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.
@@ -68,6 +69,7 @@ namespace SCP_575
                 _eventHandler = new EventHandler(this);
                 _audioManager = new Scp575AudioManager();
                 _npc = new NestingObjects.Npc(this);
+                _config = new Config();
 
                 RegisterEvents();
 
@@ -100,6 +102,7 @@ namespace SCP_575
                 _npc = null;
                 _audioManager.CleanupAllSpeakers();
                 _audioManager = null;
+                _config = null;
 
                 Library_ExiledAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");
                 base.OnDisabled();

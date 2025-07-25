@@ -7,6 +7,7 @@
     using System.Collections.Generic;
 
 
+    // TODO is no more part of the Damage System -> its now Keter Effects System and the damage is part of this
     /// <summary>
     /// Provides Lab API–based utility methods for handling visual and debug feedback 
     /// during SCP-575 damage processing.

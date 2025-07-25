@@ -47,6 +47,12 @@ namespace SCP_575.Npc
             if (_plugin.Config.NpcConfig == null)
                 throw new InvalidOperationException("NpcConfig is not initialized.");
 
+            if (!Plugin.Singleton.Config.NpcConfig.EnableKeterLightsourceCooldown)
+            {
+                Library_ExiledAPI.LogInfo("LightCooldownHandler.Constructor", "EnableKeterLightsourceCooldown is disabled in config.");
+                return;
+            }
+
             _weaponFlashlightDisabled = _attachmentsField == null;
             if (_weaponFlashlightDisabled)
                 Library_ExiledAPI.LogWarn("LightCooldownHandler.Constructor", "Weapon flashlight support disabled due to missing attachments field.");

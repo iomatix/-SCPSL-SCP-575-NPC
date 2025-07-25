@@ -224,6 +224,10 @@ namespace SCP_575.ConfigObjects
 
         #region Player Effects
 
+        // TODO: Summary
+        [Description("Sanity system configuration.")]
+        public SanityConfig SanityConfig { get; set; } = new SanityConfig();
+
         /// <summary>
         /// Gets or sets a value indicating whether effects are applied to players when damaged by SCP-575.
         /// </summary>

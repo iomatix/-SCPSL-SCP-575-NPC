@@ -9,6 +9,8 @@ namespace SCP_575.Npc
     using System.Collections.Generic;
     using UnityEngine;
 
+    // Todo Revork Event Handling to LabAPIs CustomHandlers
+
     /// <summary>
     /// Handles events for the SCP-575 plugin, including explosion and projectile events during blackouts.
     /// </summary>
