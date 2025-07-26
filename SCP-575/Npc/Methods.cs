@@ -442,19 +442,13 @@ namespace SCP_575.Npc
             {
                 yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
 
-                foreach (var player in LabApi.Features.Wrappers.Player.ReadyList.Where(p => p.IsAlive && p.IsHuman))
+                foreach (var player in LabApi.Features.Wrappers.Player.ReadyList)
                 {
                     if (!ShouldApplyBlackoutDamage(player)) continue;
-
-                    var stage = _sanityHandler.GetCurrentSanityStage(player);
-                    if (stage == null || stage.DamageOnStrike <= 0 || !IsBlackoutActive) continue;
-
                     Timing.CallDelayed(1.75f, () => PlayRandomAudioEffect(player));
                     _sanityHandler.ApplyStageEffects(player);
-
-                    float damage = Mathf.Max(stage.DamageOnStrike * _blackoutStacks, 1f);
-                    Scp575DamageSystem.DamagePlayer(player, damage);
                     _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
+
                 }
             }
         }

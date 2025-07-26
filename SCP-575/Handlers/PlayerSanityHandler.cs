@@ -1,8 +1,5 @@
 ﻿namespace SCP_575.Handlers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Hints;
     using LabApi.Events.Arguments.PlayerEvents;
     using LabApi.Events.CustomHandlers;
@@ -10,6 +7,10 @@
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
+    using SCP_575.Systems;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
 
     /// <summary>
@@ -199,6 +200,7 @@
                 try
                 {
                     ApplyEffect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
+                    if (stage.DamageOnStrike > 0) Scp575DamageSystem.DamagePlayer(player, stage.DamageOnStrike);
                 }
                 catch (Exception ex)
                 {
