@@ -343,8 +343,7 @@ namespace SCP_575.Handlers
 
         private void ToggleWeaponFlashlight(FirearmItem firearm, bool enabled, string context)
         {
-            if (!HasFlashlight(firearm))
-                return;
+            if (!HasFlashlight(firearm))return;
 
             _weaponFlashlightStates[firearm.Serial] = (enabled, DateTime.UtcNow);
             new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();

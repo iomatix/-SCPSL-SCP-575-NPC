@@ -53,7 +53,7 @@
         {
             if (_isDisposed) return;
 
-            if(!_sanityDecayCoroutine.IsRunning) _sanityDecayCoroutine = Timing.RunCoroutine(HandleSanityDecay());
+            if (!_sanityDecayCoroutine.IsRunning) _sanityDecayCoroutine = Timing.RunCoroutine(HandleSanityDecay());
             Library_ExiledAPI.LogInfo("PlayerSanityHandler.Initialize", "Sanity decay coroutine started.");
         }
 
@@ -82,7 +82,8 @@
         /// </summary>
         /// <param name="ev">Event arguments containing the player reference.</param>
         public override void OnPlayerSpawned(PlayerSpawnedEventArgs ev)
-        {;
+        {
+            ;
             if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player)) return;
 
@@ -119,7 +120,10 @@
         /// <returns>The player's sanity value, or 100f if not cached.</returns>
         public float GetCurrentSanity(Player player)
         {
-            return IsValidPlayer(player) && _sanityCache.TryGetValue(player.UserId, out float sanity) ? sanity : 100f;
+            if (!IsValidPlayer(player))
+                throw new ArgumentNullException(nameof(player), "Player or UserId cannot be null.");
+
+            return _sanityCache.TryGetValue(player.UserId, out float sanity) ? sanity : 100f;
         }
 
         /// <summary>
@@ -171,8 +175,13 @@
         /// <returns>The matching <see cref="PlayerSanityStageConfig"/> or null if none found.</returns>
         public PlayerSanityStageConfig GetCurrentSanityStage(float sanity)
         {
-            return _sanityConfig.SanityStages?.FirstOrDefault(stage =>
-                sanity <= stage.MaxThreshold && sanity > stage.MinThreshold);
+            if (_sanityConfig.SanityStages == null || !_sanityConfig.SanityStages.Any())
+            {
+                Library_ExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", "SanityStages is null or empty.");
+                return null;
+            }
+            return _sanityConfig.SanityStages.FirstOrDefault(stage =>
+                sanity <= stage.MaxThreshold && (sanity > stage.MinThreshold || (sanity == 0 && stage.MinThreshold == 0)));
         }
 
         /// <summary>
@@ -195,13 +204,12 @@
 
             var stage = GetCurrentSanityStage(player);
             if (stage?.Effects == null) return;
-
+            if (stage.DamageOnStrike > 0) Scp575DamageSystem.DamagePlayer(player, stage.DamageOnStrike);
             foreach (var effectConfig in stage.Effects)
             {
                 try
                 {
                     ApplyEffect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
-                    if (stage.DamageOnStrike > 0) Scp575DamageSystem.DamagePlayer(player, stage.DamageOnStrike);
                 }
                 catch (Exception ex)
                 {
@@ -331,7 +339,6 @@
                 default: throw new ArgumentException($"Unknown effect type: {effectType}");
             }
         }
-
         #endregion
     }
 }
