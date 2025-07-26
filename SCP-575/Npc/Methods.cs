@@ -512,7 +512,7 @@ namespace SCP_575.Npc
                         }
                         Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Calling ApplyStageEffects for {player.UserId} ({nickname})");
                         _sanityHandler.ApplyStageEffects(player);
-                        Timing.CallDelayed(1.75f, () => PlayRandomAudioEffect(player));
+                        PlayRandomAudioEffect(player);
                         _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
                     }
                     catch (Exception ex)
