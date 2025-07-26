@@ -200,12 +200,17 @@
                 foreach (Player player in Player.List.Where(p => p?.IsAlive == true))
                 {
                     if (!IsPlayerValidForSanitySystem(player)) continue;
+                    // Check if player should have sanity decay at all  
+                    bool isInDarkRoom = Library_LabAPI.IsPlayerInDarkRoom(player);
+                    bool isBlackoutActive = _plugin.Npc?.Methods?.IsBlackoutActive == true;
+
+                    // Only apply decay if player is in darkness
+                    if (!isInDarkRoom) continue;
+
 
                     float decayRate = _sanityConfig.DecayRateBase;
-                    if (_plugin.Npc?.Methods?.IsBlackoutActive == true)
-                        decayRate *= _sanityConfig.DecayMultiplierBlackout;
-                    if (Library_LabAPI.IsPlayerInDarkRoom(player))
-                        decayRate *= _sanityConfig.DecayMultiplierDarkness;
+                    if (isBlackoutActive) decayRate *= _sanityConfig.DecayMultiplierBlackout;
+                    if (isInDarkRoom) decayRate *= _sanityConfig.DecayMultiplierDarkness;
 
                     float newValue = ChangeSanityValue(player, -decayRate);
 
@@ -220,6 +225,7 @@
                 }
             }
         }
+
         private bool ShouldSendHint(string userId)
         {
             return !_lastHintTime.TryGetValue(userId, out DateTime lastTime) ||
