@@ -1,6 +1,7 @@
 ﻿namespace SCP_575.Shared
 {
     using LabApi.Features.Wrappers;
+    using MapGeneration;
     using SCP_575.ConfigObjects;
     using System.Collections.Generic;
     using System.Linq;
@@ -107,6 +108,18 @@
             if (exiledRoom == null) return null;
 
             return Room.List.FirstOrDefault(r => Helpers.Distance(r.Position, exiledRoom.Position) < 0.5f);
+        }
+
+        public static FacilityZone? ConvertToLabApiZone(Exiled.API.Enums.ZoneType exiledZone)
+        {
+            return exiledZone switch
+            {
+                Exiled.API.Enums.ZoneType.LightContainment => FacilityZone.LightContainment,
+                Exiled.API.Enums.ZoneType.HeavyContainment => FacilityZone.HeavyContainment,
+                Exiled.API.Enums.ZoneType.Entrance => FacilityZone.Entrance,
+                Exiled.API.Enums.ZoneType.Surface => FacilityZone.Surface,
+                _ => null
+            };
         }
 
         #endregion

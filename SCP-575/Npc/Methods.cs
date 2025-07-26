@@ -2,32 +2,40 @@ namespace SCP_575.Npc
 {
     using Handlers;
     using LabApi.Events.CustomHandlers;
+    using MapGeneration;
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared.Audio.Enums;
+    using SCP_575.Systems;
     using Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Systems;
+    using System.Threading.Tasks;
     using UnityEngine;
-    using static UnityEngine.GraphicsBuffer;
 
     /// <summary>
-    /// Manages SCP-575 NPC behaviors including blackout events, CASSIE announcements, and damage mechanics.
+    /// Manages SCP-575 NPC behaviors, including blackout events, CASSIE announcements, and damage mechanics.
     /// </summary>
     public class Methods
     {
         private readonly Plugin _plugin;
         private readonly Config _config;
         private readonly NpcConfig _npcConfig;
-
-        private readonly HashSet<Exiled.API.Enums.ZoneType> _triggeredZones = new HashSet<Exiled.API.Enums.ZoneType>();
-        private static readonly object BlackoutLock = new();
-        private static int _blackoutStacks = 0;
-
         private readonly PlayerLightsourceHandler _lightCooldownHandler;
         private readonly PlayerSanityHandler _sanityHandler;
+        private readonly HashSet<Exiled.API.Enums.ZoneType> _triggeredZones = new();
+        private static readonly object BlackoutLock = new();
+        private static int _blackoutStacks = 0;
+        private CassieStatus _cassieState = CassieStatus.Idle;
+        private CoroutineHandle _cassieCooldownCoroutine;
+
+        private enum CassieStatus
+        {
+            Idle,
+            Playing,
+            Cooldown
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Methods"/> class.
@@ -37,10 +45,8 @@ namespace SCP_575.Npc
         public Methods(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
-
             _config = Plugin.Singleton.Config;
             _npcConfig = _config.NpcConfig;
-
             _lightCooldownHandler = new PlayerLightsourceHandler(plugin);
             _sanityHandler = new PlayerSanityHandler(plugin);
         }
@@ -50,17 +56,7 @@ namespace SCP_575.Npc
         /// </summary>
         public bool IsBlackoutActive => _blackoutStacks > 0;
 
-        private enum CassieStatus
-        {
-            Idle,
-            Playing,
-            Cooldown
-        }
-
-        private CassieStatus _cassieState = CassieStatus.Idle;
-        private CoroutineHandle _cassieCooldownCoroutine;
-
-        #region Initialization and Cleanup
+        #region Lifecycle Management
 
         /// <summary>
         /// Initializes event handlers and prepares the NPC for operation.
@@ -68,7 +64,7 @@ namespace SCP_575.Npc
         public void Init()
         {
             Library_ExiledAPI.LogInfo("Init", "SCP-575 NPC methods initialized.");
-            RegisterEventHandler();
+            RegisterEventHandlers();
         }
 
         /// <summary>
@@ -78,8 +74,7 @@ namespace SCP_575.Npc
         {
             Library_ExiledAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
             Clean();
-            UnregisterEventHandler();
-
+            UnregisterEventHandlers();
         }
 
         /// <summary>
@@ -95,29 +90,27 @@ namespace SCP_575.Npc
             ResetTeslaGates();
         }
 
-        private void RegisterEventHandler()
+        private void RegisterEventHandlers()
         {
             LabApi.Events.Handlers.ServerEvents.RoundStarted += _plugin.Npc.EventHandler.OnRoundStart;
             LabApi.Events.Handlers.ServerEvents.RoundEnded += _plugin.Npc.EventHandler.OnRoundEnd;
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated += _plugin.Npc.EventHandler.OnGeneratorActivated;
             LabApi.Events.Handlers.ServerEvents.ExplosionSpawned += _plugin.Npc.EventHandler.OnExplosionSpawned;
             LabApi.Events.Handlers.ServerEvents.ProjectileExploded += _plugin.Npc.EventHandler.OnProjectileExploded;
-
         }
 
-        private void UnregisterEventHandler()
+        private void UnregisterEventHandlers()
         {
             LabApi.Events.Handlers.ServerEvents.RoundStarted -= _plugin.Npc.EventHandler.OnRoundStart;
             LabApi.Events.Handlers.ServerEvents.RoundEnded -= _plugin.Npc.EventHandler.OnRoundEnd;
             LabApi.Events.Handlers.ServerEvents.GeneratorActivated -= _plugin.Npc.EventHandler.OnGeneratorActivated;
             LabApi.Events.Handlers.ServerEvents.ExplosionSpawned -= _plugin.Npc.EventHandler.OnExplosionSpawned;
             LabApi.Events.Handlers.ServerEvents.ProjectileExploded -= _plugin.Npc.EventHandler.OnProjectileExploded;
-
         }
 
         #endregion
 
-        #region Blackout Logic
+        #region Blackout Management
 
         /// <summary>
         /// Runs the blackout timer, triggering blackout events at intervals.
@@ -127,6 +120,7 @@ namespace SCP_575.Npc
         {
             yield return Timing.WaitForSeconds(_config.BlackoutConfig.InitialDelay);
             Library_ExiledAPI.LogDebug("RunBlackoutTimer", "SCP-575 NPC blackout timer started.");
+
             while (true)
             {
                 float delay = _config.BlackoutConfig.RandomEvents
@@ -139,20 +133,19 @@ namespace SCP_575.Npc
 
         private IEnumerator<float> ExecuteBlackoutEvent()
         {
-            if (!IsBlackoutActive)
-            {
-                if (_config.CassieConfig.CassieMessageClearBeforeImportant) Library_ExiledAPI.Cassie_Clear();
-                Library_ExiledAPI.LogDebug("ExecuteBlackoutEvent", "Starting blackout event...");
-                TriggerCassieMessage(_config.CassieConfig.CassieMessageStart, true);
+            if (IsBlackoutActive) yield break;
 
-                if (_config.BlackoutConfig.FlickerLights)
-                {
-                    FlickerAllZoneLights(_config.BlackoutConfig.FlickerDuration);
-                }
-                yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndStart);
+            if (_config.CassieConfig.CassieMessageClearBeforeImportant)
+                Library_ExiledAPI.Cassie_Clear();
 
-                TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
-            }
+            Library_ExiledAPI.LogDebug("ExecuteBlackoutEvent", "Starting blackout event...");
+            TriggerCassieMessage(_config.CassieConfig.CassieMessageStart, true);
+
+            if (_config.BlackoutConfig.FlickerLights)
+                FlickerAffectedZones(_config.BlackoutConfig.FlickerDuration);
+
+            yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndStart);
+            TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
 
             float blackoutDuration = _config.BlackoutConfig.RandomEvents
                 ? GetRandomBlackoutDuration()
@@ -165,13 +158,58 @@ namespace SCP_575.Npc
             _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration), "575BlackoutFinalize"));
         }
 
-        private void FlickerAllZoneLights(float duration)
+        private async void FlickerAffectedZones(float blackoutDuration)
         {
-            Library_ExiledAPI.LogDebug("FlickerAllZoneLights", $"Flickering all lights for {duration} seconds.");
-            foreach (Exiled.API.Enums.ZoneType zone in Enum.GetValues(typeof(Exiled.API.Enums.ZoneType)))
+            if (!_config.BlackoutConfig.FlickerLights) return;
+
+            Library_ExiledAPI.LogDebug("FlickerAffectedZones", "Starting smart zone flickering based on blackout configuration.");
+
+            var zonesToFlicker = GetZonesToFlicker();
+            var flickerTasks = zonesToFlicker.Select((zone, index) => Task.Run(async () =>
             {
-                Exiled.API.Features.Map.TurnOffAllLights(duration, zone);
+                await Task.Delay(index * 200);
+                await FlickerZoneLightsAsync(zone);
+            })).ToList();
+
+            await Task.WhenAll(flickerTasks);
+            Library_ExiledAPI.LogDebug("FlickerAffectedZones", "Completed smart zone flickering sequence.");
+        }
+
+        private List<FacilityZone> GetZonesToFlicker()
+        {
+            var zones = new List<FacilityZone>();
+            if (_config.BlackoutConfig.UsePerRoomChances || _config.BlackoutConfig.EnableFacilityBlackout)
+            {
+                zones.AddRange(Enum.GetValues(typeof(FacilityZone)).Cast<FacilityZone>());
             }
+            else
+            {
+                if (_config.BlackoutConfig.ChanceLight > 0) zones.Add(FacilityZone.LightContainment);
+                if (_config.BlackoutConfig.ChanceHeavy > 0) zones.Add(FacilityZone.HeavyContainment);
+                if (_config.BlackoutConfig.ChanceEntrance > 0) zones.Add(FacilityZone.Entrance);
+                if (_config.BlackoutConfig.ChanceSurface > 0) zones.Add(FacilityZone.Surface);
+            }
+            return zones;
+        }
+
+        private async Task FlickerZoneLightsAsync(FacilityZone targetZone)
+        {
+            var blackoutColor = new UnityEngine.Color(_config.BlackoutConfig.LightsColorR, _config.BlackoutConfig.LightsColorG, _config.BlackoutConfig.LightsColorB, 1f);
+            float flickerInterval = 1f / _config.BlackoutConfig.FlickerFrequency;
+            int totalFlickers = Mathf.RoundToInt(_config.BlackoutConfig.FlickerDuration / flickerInterval);
+
+            LabApi.Features.Wrappers.Map.SetColorOfLights(blackoutColor, targetZone);
+
+            for (int i = 0; i < totalFlickers; i++)
+            {
+                LabApi.Features.Wrappers.Map.TurnOffLights(flickerInterval * 0.5f, targetZone);
+                await Task.Delay(Mathf.RoundToInt(flickerInterval * 500));
+                LabApi.Features.Wrappers.Map.TurnOnLights(targetZone);
+                LabApi.Features.Wrappers.Map.SetColorOfLights(blackoutColor, targetZone);
+                await Task.Delay(Mathf.RoundToInt(flickerInterval * 500));
+            }
+
+            LabApi.Features.Wrappers.Map.TurnOffLights(targetZone);
         }
 
         private float GetRandomBlackoutDuration()
@@ -182,37 +220,34 @@ namespace SCP_575.Npc
         private bool HandleZoneSpecificBlackout(float blackoutDuration)
         {
             bool isBlackoutTriggered = false;
-
             isBlackoutTriggered |= AttemptZoneBlackout(Exiled.API.Enums.ZoneType.LightContainment, _config.BlackoutConfig.ChanceLight, _config.CassieConfig.CassieMessageLight, blackoutDuration);
             isBlackoutTriggered |= AttemptZoneBlackout(Exiled.API.Enums.ZoneType.HeavyContainment, _config.BlackoutConfig.ChanceHeavy, _config.CassieConfig.CassieMessageHeavy, blackoutDuration);
             isBlackoutTriggered |= AttemptZoneBlackout(Exiled.API.Enums.ZoneType.Entrance, _config.BlackoutConfig.ChanceEntrance, _config.CassieConfig.CassieMessageEntrance, blackoutDuration);
             isBlackoutTriggered |= AttemptZoneBlackout(Exiled.API.Enums.ZoneType.Surface, _config.BlackoutConfig.ChanceSurface, _config.CassieConfig.CassieMessageSurface, blackoutDuration);
 
-            if (!IsBlackoutActive && !isBlackoutTriggered && _config.BlackoutConfig.EnableFacilityBlackout)
+            if (!isBlackoutTriggered && _config.BlackoutConfig.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
                 Library_ExiledAPI.LogDebug("HandleZoneSpecificBlackout", "Facility-wide blackout triggered.");
-                isBlackoutTriggered = true;
+                return true;
             }
-
             return isBlackoutTriggered;
         }
 
         private bool AttemptZoneBlackout(Exiled.API.Enums.ZoneType zone, float chance, string cassieMessage, float blackoutDuration, bool disableSystems = false)
         {
-            if (Library_ExiledAPI.Loader_Random_NextDouble() * 100 < chance)
-            {
-                Exiled.API.Features.Map.TurnOffAllLights(blackoutDuration, zone);
-                Library_ExiledAPI.LogDebug("AttemptZoneBlackout", $"Blackout triggered in zone {zone} for {blackoutDuration} seconds.");
-                if (!IsBlackoutActive) TriggerCassieMessage(cassieMessage, true);
+            if (Library_ExiledAPI.Loader_Random_NextDouble() * 100 >= chance) return false;
 
-                if (disableSystems)
-                {
-                    DisableFacilitySystems(blackoutDuration);
-                }
-                return true;
-            }
-            return false;
+            var labApiZone = Library_LabAPI.ConvertToLabApiZone(zone);
+            if (_config.BlackoutConfig.FlickerLights && labApiZone.HasValue)
+                FlickerZoneLightsAsync(labApiZone.Value).GetAwaiter().GetResult();
+
+            Exiled.API.Features.Map.TurnOffAllLights(blackoutDuration, zone);
+            Library_ExiledAPI.LogDebug("AttemptZoneBlackout", $"Blackout triggered in zone {zone} for {blackoutDuration} seconds.");
+
+            if (!IsBlackoutActive) TriggerCassieMessage(cassieMessage, true);
+            if (disableSystems) DisableFacilitySystems(blackoutDuration);
+            return true;
         }
 
         private void TriggerFacilityWideBlackout(float blackoutDuration)
@@ -229,7 +264,6 @@ namespace SCP_575.Npc
         private bool HandleRoomSpecificBlackout(float blackoutDuration)
         {
             bool blackoutTriggered = false;
-
             foreach (Exiled.API.Features.Room room in Library_ExiledAPI.Rooms)
             {
                 if (AttemptRoomBlackout(room, blackoutDuration))
@@ -248,48 +282,38 @@ namespace SCP_575.Npc
             return blackoutTriggered;
         }
 
+        /// <summary>
+        /// Attempts to trigger a blackout in a specific room based on zone-specific chances.
+        /// </summary>
+        /// <param name="room">The room to attempt blackout in.</param>
+        /// <param name="blackoutDuration">Duration of the blackout.</param>
+        /// <param name="isForced">If true, forces the blackout regardless of chance.</param>
+        /// <param name="isCassieSilent">If true, suppresses CASSIE messages.</param>
+        /// <returns>True if blackout was triggered; otherwise, false.</returns>
         public bool AttemptRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration, bool isForced = false, bool isCassieSilent = false)
         {
+            var (chance, cassieMessage) = GetRoomBlackoutParams(room.Zone);
+            if (!isForced && Library_ExiledAPI.Loader_Random_NextDouble() * 100 >= chance) return false;
 
-            float chance;
-            string cassieMessage;
-            Exiled.API.Enums.ZoneType zone = room.Zone;
-
-            switch (zone)
+            HandleRoomBlackout(room, blackoutDuration);
+            if (!_triggeredZones.Contains(room.Zone) && !isCassieSilent)
             {
-                case Exiled.API.Enums.ZoneType.HeavyContainment:
-                    chance = _config.BlackoutConfig.ChanceHeavy;
-                    cassieMessage = _config.CassieConfig.CassieMessageHeavy;
-                    break;
-                case Exiled.API.Enums.ZoneType.LightContainment:
-                    chance = _config.BlackoutConfig.ChanceLight;
-                    cassieMessage = _config.CassieConfig.CassieMessageLight;
-                    break;
-                case Exiled.API.Enums.ZoneType.Entrance:
-                    chance = _config.BlackoutConfig.ChanceEntrance;
-                    cassieMessage = _config.CassieConfig.CassieMessageEntrance;
-                    break;
-                case Exiled.API.Enums.ZoneType.Surface:
-                    chance = _config.BlackoutConfig.ChanceSurface;
-                    cassieMessage = _config.CassieConfig.CassieMessageSurface;
-                    break;
-                default:
-                    chance = _config.BlackoutConfig.ChanceOther;
-                    cassieMessage = _config.CassieConfig.CassieMessageOther;
-                    break;
+                if (!IsBlackoutActive) TriggerCassieMessage(cassieMessage);
+                _triggeredZones.Add(room.Zone);
             }
+            return true;
+        }
 
-            if (isForced || (Library_ExiledAPI.Loader_Random_NextDouble() * 100) < chance)
+        private (float Chance, string CassieMessage) GetRoomBlackoutParams(Exiled.API.Enums.ZoneType zone)
+        {
+            return zone switch
             {
-                HandleRoomBlackout(room, blackoutDuration);
-                if (!_triggeredZones.Contains(zone))
-                {
-                    if (!IsBlackoutActive && !isCassieSilent) TriggerCassieMessage(cassieMessage);
-                    _triggeredZones.Add(zone);
-                }
-                return true;
-            }
-            return false;
+                Exiled.API.Enums.ZoneType.HeavyContainment => (_config.BlackoutConfig.ChanceHeavy, _config.CassieConfig.CassieMessageHeavy),
+                Exiled.API.Enums.ZoneType.LightContainment => (_config.BlackoutConfig.ChanceLight, _config.CassieConfig.CassieMessageLight),
+                Exiled.API.Enums.ZoneType.Entrance => (_config.BlackoutConfig.ChanceEntrance, _config.CassieConfig.CassieMessageEntrance),
+                Exiled.API.Enums.ZoneType.Surface => (_config.BlackoutConfig.ChanceSurface, _config.CassieConfig.CassieMessageSurface),
+                _ => (_config.BlackoutConfig.ChanceOther, _config.CassieConfig.CassieMessageOther)
+            };
         }
 
         private void HandleRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration)
@@ -314,13 +338,10 @@ namespace SCP_575.Npc
 
         private void DisableFacilitySystems(float blackoutDuration)
         {
-            foreach (Exiled.API.Features.Room room in Library_ExiledAPI.Rooms)
+            foreach (Exiled.API.Features.Room room in Library_ExiledAPI.Rooms.Where(Library_ExiledAPI.IsRoomAndNeighborsFreeOfEngagedGenerators))
             {
-                if (Library_ExiledAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room))
-                {
-                    room.TurnOffLights(blackoutDuration);
-                    Library_ExiledAPI.LogDebug("DisableFacilitySystems", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
-                }
+                room.TurnOffLights(blackoutDuration);
+                Library_ExiledAPI.LogDebug("DisableFacilitySystems", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
             }
 
             ResetTeslaGates();
@@ -334,50 +355,40 @@ namespace SCP_575.Npc
 
         private IEnumerator<float> FinalizeBlackoutEvent(bool blackoutOccurred, float blackoutDuration)
         {
-            if (blackoutOccurred)
+            if (!blackoutOccurred)
             {
-                IncrementBlackoutStack();
-                Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout triggered. Stacks: {_blackoutStacks}, Duration: {blackoutDuration}");
-                TriggerCassieMessage(_config.CassieConfig.CassieKeter);
-
-
-                Plugin.Singleton.AudioManager.PlayAmbience();
-
-
-                yield return Timing.WaitForSeconds(blackoutDuration);
-                DecrementBlackoutStack();
-                Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout finalized. Stacks: {_blackoutStacks}");
-
-                if (!IsBlackoutActive)
-                {
-                    TriggerCassieMessage(_config.CassieConfig.CassieMessageEnd);
-                    yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndEnd);
-                    ResetTeslaGates();
-                    _triggeredZones.Clear();
-                    Plugin.Singleton.AudioManager.StopAmbience();
-                    Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", "Blackout completed. Systems reset.");
-                }
+                if (!IsBlackoutActive) TriggerCassieMessage(_config.CassieConfig.CassieMessageWrong);
+                yield break;
             }
-            else if (!IsBlackoutActive)
+
+            IncrementBlackoutStack();
+            Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout triggered. Stacks: {_blackoutStacks}, Duration: {blackoutDuration}");
+            TriggerCassieMessage(_config.CassieConfig.CassieKeter);
+            Plugin.Singleton.AudioManager.PlayAmbience();
+
+            yield return Timing.WaitForSeconds(blackoutDuration);
+            DecrementBlackoutStack();
+            Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout finalized. Stacks: {_blackoutStacks}");
+
+            if (!IsBlackoutActive)
             {
-                TriggerCassieMessage(_config.CassieConfig.CassieMessageWrong);
+                TriggerCassieMessage(_config.CassieConfig.CassieMessageEnd);
+                yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndEnd);
+                ResetTeslaGates();
+                _triggeredZones.Clear();
+                Plugin.Singleton.AudioManager.StopAmbience();
+                Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", "Blackout completed. Systems reset.");
             }
         }
 
         private void ResetTeslaGates()
         {
-            foreach (Exiled.API.Features.TeslaGate teslaGate in Library_ExiledAPI.TeslaGates)
+            foreach (var teslaGate in Library_ExiledAPI.TeslaGates)
             {
-                ResetTeslaGate(teslaGate);
-                Library_ExiledAPI.LogDebug("ResetTeslaGates", $"Reset TeslaGate {teslaGate}.");
+                teslaGate.ForceTrigger();
+                teslaGate.CooldownTime = 5f;
+                Library_ExiledAPI.LogDebug("ResetTeslaGate", $"TeslaGate {teslaGate} reset. Cooldown: {teslaGate.CooldownTime}");
             }
-        }
-
-        private void ResetTeslaGate(Exiled.API.Features.TeslaGate gate)
-        {
-            gate.ForceTrigger();
-            gate.CooldownTime = 5f;
-            Library_ExiledAPI.LogDebug("ResetTeslaGate", $"TeslaGate {gate} reset. Cooldown: {gate.CooldownTime}");
         }
 
         #endregion
@@ -386,9 +397,7 @@ namespace SCP_575.Npc
 
         private void TriggerCassieMessage(string message, bool isGlitchy = false)
         {
-            if (string.IsNullOrWhiteSpace(message)) return;
-
-            if (_cassieState != CassieStatus.Idle)
+            if (string.IsNullOrWhiteSpace(message) || _cassieState != CassieStatus.Idle)
             {
                 Library_ExiledAPI.LogDebug("TriggerCassieMessage", $"Cassie busy ({_cassieState}), skipping: {message}");
                 return;
@@ -423,110 +432,88 @@ namespace SCP_575.Npc
 
         #region Damage Logic
 
-        private bool ShouldApplyBlackoutDamage(Exiled.API.Features.Player player)
-        {
-            if (!player?.IsAlive ?? true)
-            {
-                Library_ExiledAPI.LogDebug("ShouldApplyBlackoutDamage", $"Player {player?.Nickname ?? "null"} is not alive or null.");
-                return false;
-            }
-
-            Library_ExiledAPI.LogDebug("ShouldApplyBlackoutDamage", $"Checking damage for {player.Nickname}.");
-            return IsHumanWithoutLight(player) && IsInDarkRoom(player);
-        }
-
-        private bool IsHumanWithoutLight(Exiled.API.Features.Player player)
-        {
-            if (!player.IsHuman || player.HasFlashlightModuleEnabled) return false;
-
-            if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
-            {
-                return !lightItem.IsEmittingLight;
-            }
-            return true;
-        }
-
-        private bool IsInDarkRoom(Exiled.API.Features.Player player)
-        {
-            return player.CurrentRoom?.AreLightsOff ?? false;
-        }
-
-        /// <summary>  
-        /// Executes the primary SCP-575 attack sequence, applying sanity-based damage and effects to players.  
-        /// This coroutine runs continuously during blackout events, targeting players based on their current  
-        /// sanity levels and applying progressive damage scaling with blackout intensity.  
-        /// </summary>  
-        /// <returns>An enumerator for the coroutine execution.</returns>  
-        /// <remarks>  
-        /// The method performs the following operations:  
-        /// - Evaluates each alive human player's current sanity stage  
-        /// - Applies sanity-appropriate status effects (blurred vision, deafness, etc.)  
-        /// - Calculates damage based on sanity stage and blackout stack multiplier  
-        /// - Triggers immersive audio effects with randomized selection  
-        /// - Integrates with the lightsource handler for attack-based light disruption  
-        /// </remarks>  
+        /// <summary>
+        /// Executes the primary SCP-575 attack sequence, applying sanity-based damage and effects.
+        /// </summary>
+        /// <returns>An enumerator for the coroutine execution.</returns>
         public IEnumerator<float> KeterAction()
         {
             while (true)
             {
                 yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
 
-                foreach (LabApi.Features.Wrappers.Player player in LabApi.Features.Wrappers.Player.ReadyList.Where(p => (p.IsAlive && p.IsHuman)))
+                foreach (var player in LabApi.Features.Wrappers.Player.ReadyList.Where(p => p.IsAlive && p.IsHuman))
                 {
-                    PlayerSanityStageConfig stage = _sanityHandler.GetCurrentSanityStage(player);
-                    if (stage == null) continue;
+                    if (!ShouldApplyBlackoutDamage(player)) continue;
 
-                    if (IsBlackoutActive && stage.DamageOnStrike > 0)
-                    {
-                        if (player.IsAlive)
-                        {
-                            // Trigger immersive audio effects with delay for atmospheric buildup  
-                            Timing.CallDelayed(1.75f, () =>
-                            {
-                                var audioOptions = new AudioKey[]
-                                {
-                                    AudioKey.WhispersMixed,
-                                    AudioKey.Scream,
-                                    AudioKey.ScreamAngry,
-                                    AudioKey.WhispersBang
-                                };
+                    var stage = _sanityHandler.GetCurrentSanityStage(player);
+                    if (stage == null || stage.DamageOnStrike <= 0 || !IsBlackoutActive) continue;
 
-                                var randomIndex = UnityEngine.Random.Range(0, audioOptions.Length);
-                                var selectedClip = audioOptions[randomIndex];
+                    Timing.CallDelayed(1.75f, () => PlayRandomAudioEffect(player));
+                    _sanityHandler.ApplyStageEffects(player);
 
-                                _plugin.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 25f);
-                            });
-
-                            // Apply sanity-based status effects  
-                            _sanityHandler.ApplyStageEffects(player);
-
-                            // Calculate progressive damage based on sanity stage and blackout intensity  
-                            float rawDamage = stage.DamageOnStrike * _blackoutStacks;
-                            float clampedDamage = Mathf.Max(rawDamage, 1f);
-
-                            // Execute damage and trigger lightsource disruption  
-                            Scp575DamageSystem.DamagePlayer(player, clampedDamage);
-                            _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
-                        }
-                    }
+                    float damage = Mathf.Max(stage.DamageOnStrike * _blackoutStacks, 1f);
+                    Scp575DamageSystem.DamagePlayer(player, damage);
+                    _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
                 }
             }
         }
+
+        private bool ShouldApplyBlackoutDamage(LabApi.Features.Wrappers.Player player)
+        {
+            if (!player.IsAlive)
+            {
+                Library_ExiledAPI.LogDebug("ShouldApplyBlackoutDamage", $"Player {player.Nickname ?? "null"} is not alive.");
+                return false;
+            }
+
+            return IsHumanWithoutLight(player) && IsInDarkRoom(player);
+        }
+
+        private bool IsHumanWithoutLight(LabApi.Features.Wrappers.Player player)
+        {
+            var exiledPlayer = Library_ExiledAPI.ToExiledPlayer(player);
+            if (!player.IsHuman || exiledPlayer.HasFlashlightModuleEnabled) return false;
+
+            if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
+                return !lightItem.IsEmittingLight;
+
+            return true;
+        }
+
+        private bool IsInDarkRoom(LabApi.Features.Wrappers.Player player)
+        {
+            var room = player.Room;
+            if (room?.LightController == null) return false;
+
+            return !room.LightController.LightsEnabled;
+        }
+
+        private void PlayRandomAudioEffect(LabApi.Features.Wrappers.Player player)
+        {
+            var audioOptions = new[] { AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.WhispersBang };
+            var selectedClip = audioOptions[UnityEngine.Random.Range(0, audioOptions.Length)];
+            _plugin.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 25f);
+        }
+
         #endregion
 
         #region Utility Methods
 
+        /// <summary>
+        /// Increments the blackout stack count in a thread-safe manner.
+        /// </summary>
         public void IncrementBlackoutStack()
         {
-            lock (BlackoutLock)
-                _blackoutStacks++;
+            lock (BlackoutLock) _blackoutStacks++;
         }
 
+        /// <summary>
+        /// Decrements the blackout stack count in a thread-safe manner and resets if no stacks remain.
+        /// </summary>
         public void DecrementBlackoutStack()
         {
-            lock (BlackoutLock)
-                _blackoutStacks = Math.Max(0, _blackoutStacks - 1);
-
+            lock (BlackoutLock) _blackoutStacks = Math.Max(0, _blackoutStacks - 1);
             if (!IsBlackoutActive) Reset575();
         }
 
@@ -548,7 +535,7 @@ namespace SCP_575.Npc
         {
             Library_ExiledAPI.LogDebug("Reset575", "Resetting SCP-575 state.");
             _blackoutStacks = 0;
-            foreach (LabApi.Features.Wrappers.Room room in LabApi.Features.Wrappers.Room.List)
+            foreach (var room in LabApi.Features.Wrappers.Room.List)
             {
                 room.LightController.LightsEnabled = true;
                 room.LightController.FlickerLights(_config.BlackoutConfig.FlickerDuration);
@@ -558,13 +545,12 @@ namespace SCP_575.Npc
         }
 
         /// <summary>
-        /// Determines if a explosion is dangerous to SCP-575. This method works for damagable explosions like those done by disruptor, he granades, and SCP-018.
+        /// Determines if an explosion is dangerous to SCP-575.
         /// </summary>
         /// <param name="explosionType">The explosion to check.</param>
         /// <returns>True if dangerous; otherwise, false.</returns>
         public bool IsDangerousToScp575(ExplosionType explosionType)
         {
-            if (explosionType == null) return false;
             return explosionType switch
             {
                 ExplosionType.Grenade => true,
@@ -582,7 +568,6 @@ namespace SCP_575.Npc
         {
             Library_ExiledAPI.LogDebug("Kill575", "Killing SCP-575 NPC.");
             Clean();
-
         }
 
         #endregion
