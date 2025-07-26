@@ -118,6 +118,7 @@
         /// <param name="ev">The event arguments for the player hurting event.</param>
         public void OnPlayerHurting(LabApi.Events.Arguments.PlayerEvents.PlayerHurtingEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             try
             {
                 if (ev?.Player == null || ev.DamageHandler == null)
@@ -148,6 +149,7 @@
         /// <param name="ev">The event arguments for the player hurt event.</param>
         public void OnPlayerHurt(LabApi.Events.Arguments.PlayerEvents.PlayerHurtEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             try
             {
                 if (ev?.Player == null || ev.DamageHandler == null)
@@ -178,6 +180,7 @@
         /// <param name="ev">The event arguments for the player dying event.</param>
         public void OnPlayerDying(LabApi.Events.Arguments.PlayerEvents.PlayerDyingEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             try
             {
                 if (ev?.Player == null || ev.DamageHandler == null)
@@ -209,6 +212,7 @@
         /// <param name="ev">The event arguments for the player death event.</param>
         public void OnPlayerDeath(LabApi.Events.Arguments.PlayerEvents.PlayerDeathEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             try
             {
                 if (ev?.Player == null || ev.DamageHandler == null)
@@ -243,6 +247,7 @@
         /// <param name="ev">The event arguments for the ragdoll spawn event.</param>
         public void OnSpawnedRagdoll(Exiled.Events.EventArgs.Player.SpawnedRagdollEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             try
             {
                 if (ev?.Player == null || ev.Ragdoll == null || ev.DamageHandlerBase == null)

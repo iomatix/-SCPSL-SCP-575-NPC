@@ -93,6 +93,7 @@ namespace SCP_575.Npc
         /// <param name="ev">The event arguments for the generator activated event.</param>
         public void OnGeneratorActivated(LabApi.Events.Arguments.ServerEvents.GeneratorActivatedEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             try
             {
                 if (ev?.Generator == null)
@@ -152,6 +153,7 @@ namespace SCP_575.Npc
         /// <param name="ev">The event arguments for the explosion spawned event.</param>
         public void OnExplosionSpawned(LabApi.Events.Arguments.ServerEvents.ExplosionSpawnedEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             HandleExplosionEvent(ev, null);
         }
 
@@ -161,6 +163,7 @@ namespace SCP_575.Npc
         /// <param name="ev">The event arguments for the projectile explosion event.</param>
         public void OnProjectileExploded(LabApi.Events.Arguments.ServerEvents.ProjectileExplodedEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             HandleExplosionEvent(null, ev);
         }
 
