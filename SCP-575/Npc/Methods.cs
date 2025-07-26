@@ -126,19 +126,22 @@
             yield return Timing.WaitForSeconds(_config.BlackoutConfig.InitialDelay);
             Library_ExiledAPI.LogDebug("RunBlackoutTimer", "SCP-575 NPC blackout timer started.");
 
-            while (_plugin.IsEventActive)
+            while (true)
             {
-                if (!_plugin.IsEventActive) break;
+                if (!_plugin.IsEventActive)
+                {
+                    Library_ExiledAPI.LogDebug("RunBlackoutTimer", "Event is inactive, waiting for reactivation.");
+                    yield return Timing.WaitForSeconds(1f); // Poll for reactivation
+                    continue;
+                }
 
                 float delay = _config.BlackoutConfig.RandomEvents
                     ? Library_ExiledAPI.Loader_Random_Next(_config.BlackoutConfig.DelayMin, _config.BlackoutConfig.DelayMax)
                     : _config.BlackoutConfig.InitialDelay;
                 yield return Timing.WaitForSeconds(delay);
-                if (!_plugin.IsEventActive) break;
 
                 _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent(), "575BlackoutExec"));
             }
-            Library_ExiledAPI.LogInfo("RunBlackoutTimer", "Blackout timer coroutine stopped.");
         }
 
         private IEnumerator<float> ExecuteBlackoutEvent()
@@ -464,10 +467,17 @@
         /// <returns>An enumerator for the coroutine execution.</returns>
         public IEnumerator<float> KeterAction()
         {
-            while (_plugin.IsEventActive)
+            while (true)
             {
+                if (!_plugin.IsEventActive)
+                {
+                    Library_ExiledAPI.LogDebug("KeterAction", "Event is inactive, waiting for reactivation.");
+                    yield return Timing.WaitForSeconds(1f); // Poll for reactivation
+                    continue;
+                }
+
                 yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
-                if (!_plugin.IsEventActive) break;
+                if (!_plugin.IsEventActive) continue;
 
                 var players = LabApi.Features.Wrappers.Player.ReadyList.ToList();
                 foreach (LabApi.Features.Wrappers.Player player in players)
@@ -550,7 +560,9 @@
                     }
                 }
             }
+
         }
+
 
         /// <summary>
         /// Plays a random audio effect for a player during an SCP-575 attack.

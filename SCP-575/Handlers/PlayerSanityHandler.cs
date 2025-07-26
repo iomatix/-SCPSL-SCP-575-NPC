@@ -29,6 +29,12 @@
         private readonly object _cacheLock = new();
         private readonly int _instanceId;
 
+        public CoroutineHandle SanityDecayCoroutine
+        {
+            get => _sanityDecayCoroutine;
+            set => _sanityDecayCoroutine = value;
+        }
+
         /// <summary>
         /// Gets the internal sanity cache mapping UserId to current sanity values.
         /// </summary>
@@ -67,9 +73,6 @@
         public void Initialize()
         {
             if (_isDisposed) return;
-
-            if (!_sanityDecayCoroutine.IsRunning) _sanityDecayCoroutine = Timing.RunCoroutine(HandleSanityDecay());
-            Library_ExiledAPI.LogInfo("PlayerSanityHandler.Initialize", $"Instance ID={_instanceId}, Sanity decay coroutine started.");
         }
 
         public void Clean()
@@ -82,7 +85,6 @@
                 _sanityCache.Clear();
                 _lastHintTime.Clear();
             }
-
         }
 
         /// <summary>
@@ -125,15 +127,7 @@
             string userId = NormalizeUserId(ev.Player.UserId);
             lock (_cacheLock)
             {
-                if (!_sanityCache.ContainsKey(userId))
-                {
-                    _sanityCache[userId] = _sanityConfig.InitialSanity;
-                    Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Instance ID={_instanceId}, Initialized sanity for {userId} ({ev.Player.Nickname}) to {_sanityConfig.InitialSanity}.");
-                }
-                else
-                {
-                    Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Instance ID={_instanceId}, Sanity already initialized for {userId} ({ev.Player.Nickname}), current value: {_sanityCache[userId]}.");
-                }
+                _sanityCache[userId] = _sanityConfig.InitialSanity;
             }
         }
 
@@ -149,15 +143,7 @@
             string userId = NormalizeUserId(ev.Player.UserId);
             lock (_cacheLock)
             {
-                if (!_sanityCache.ContainsKey(userId))
-                {
-                    _sanityCache[userId] = _sanityConfig.InitialSanity;
-                    Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Instance ID={_instanceId}, Initialized sanity for {userId} ({ev.Player.Nickname}) to {_sanityConfig.InitialSanity}.");
-                }
-                else
-                {
-                    Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Instance ID={_instanceId}, Sanity already initialized for {userId} ({ev.Player.Nickname}), current value: {_sanityCache[userId]}.");
-                }
+                _sanityCache[userId] = _sanityConfig.InitialSanity;
             }
         }
 
@@ -400,13 +386,17 @@
         /// Periodically reduces sanity for eligible players based on game conditions (e.g., darkness, blackout).
         /// </summary>
         /// <returns>An enumerator for the MEC coroutine system.</returns>
-        private IEnumerator<float> HandleSanityDecay()
+        public IEnumerator<float> HandleSanityDecay()
         {
-            while (!_isDisposed && _plugin.IsEventActive)
+            while (true)
             {
-                yield return Timing.WaitForSeconds(1f);
-                if (_isDisposed || !_plugin.IsEventActive) break;
+                if (!_plugin.IsEventActive)
+                {
+                    yield return Timing.WaitForSeconds(1f);
+                    continue;
+                }
 
+                yield return Timing.WaitForSeconds(1f);
                 foreach (var player in Player.ReadyList.Where(p => IsPlayerValidForSanitySystem(p)))
                 {
                     if (!Library_LabAPI.IsPlayerInDarkRoom(player)) continue;
@@ -428,7 +418,6 @@
                     }
                 }
             }
-            Library_ExiledAPI.LogInfo("PlayerSanityHandler.HandleSanityDecay", $"Instance ID={_instanceId}, Sanity decay coroutine stopped.");
         }
 
         /// <summary>

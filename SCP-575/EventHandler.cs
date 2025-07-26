@@ -78,7 +78,7 @@
             try
             {
                 Library_ExiledAPI.LogDebug("OnRoundStarted", "Round started. No specific actions defined for SCP-575.");
-                // Placeholder for future functionality, as per original implementation
+                
             }
             catch (Exception ex)
             {
