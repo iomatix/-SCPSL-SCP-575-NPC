@@ -97,11 +97,9 @@ namespace SCP_575
                 _npc = new NestingObjects.Npc(this);
                 _config = new Config();
 
-                // Initialize the custom handlers BEFORE registering events  
+                // Initialize the custom handlers BEFORE registering events
                 _sanityHandler = new PlayerSanityHandler(this);
                 _lightsourceHandler = new PlayerLightsourceHandler(this);
-
-                // Call Initialize() if you implemented it as suggested earlier  
                 _sanityHandler?.Initialize();
                 _lightsourceHandler?.Initialize();
 
