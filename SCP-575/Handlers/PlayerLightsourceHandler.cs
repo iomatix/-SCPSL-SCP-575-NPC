@@ -183,12 +183,12 @@ namespace SCP_575.Handlers
                 case LightItem lightItem:
                     lightItem.IsEmitting = false;
                     Library_ExiledAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off flashlight for {target.Nickname}");
-                    _ = StartFlickerEffectAsync(target.UserId, "Flashlight", () => lightItem.IsEmitting, state => lightItem.IsEmitting = state);
+                    _ = StartFlickerEffectAsync(target.UserId, "Flashlight", () => lightItem.IsEmitting, state => lightItem.IsEmitting = state, forceOff: true);
                     break;
                 case FirearmItem firearm when HasFlashlight(firearm):
                     ToggleWeaponFlashlight(firearm, false, nameof(OnScp575AttacksPlayer));
                     Library_ExiledAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off weapon flashlight for {target.Nickname}");
-                    _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(OnScp575AttacksPlayer)));
+                    _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(OnScp575AttacksPlayer)), forceOff: true);
                     break;
             }
         }
@@ -282,7 +282,7 @@ namespace SCP_575.Handlers
             return (isAllowed, newState);
         }
 
-        private async Task StartFlickerEffectAsync(string userId, string lightType, Func<bool> getState, Action<bool> setState)
+        private async Task StartFlickerEffectAsync(string userId, string lightType, Func<bool> getState, Action<bool> setState, bool forceOff = false)
         {
             if (!_flickeringPlayers.Add(userId))
             {
@@ -302,11 +302,11 @@ namespace SCP_575.Handlers
                     setState(!getState());
                     await Task.Delay(_random.Next(100, 450), cts.Token);
                 }
-                setState(false);
+                if(forceOff) setState(false);
             }
             catch (TaskCanceledException)
             {
-                setState(false);
+                if(forceOff) setState(false);
                 Library_ExiledAPI.LogDebug("StartFlickerEffectAsync", $"Flicker cancelled for {userId}.");
             }
             finally
