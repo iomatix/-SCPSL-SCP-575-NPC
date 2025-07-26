@@ -51,11 +51,6 @@
         /// </summary>
         public void Initialize()
         {
-            if (!_plugin.IsEventActive)
-            {
-                this.Dispose();
-                return;
-            }
             if (_isDisposed) return;
 
             if(!_sanityDecayCoroutine.IsRunning) _sanityDecayCoroutine = Timing.RunCoroutine(HandleSanityDecay());
@@ -88,6 +83,7 @@
         /// <param name="ev">Event arguments containing the player reference.</param>
         public override void OnPlayerSpawned(PlayerSpawnedEventArgs ev)
         {;
+            if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player)) return;
 
             _sanityCache[ev.Player.UserId] = _sanityConfig.InitialSanity;
@@ -100,6 +96,7 @@
         /// <param name="ev">Event arguments containing item and player information.</param>
         public override void OnPlayerUsedItem(PlayerUsedItemEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player) || !IsPlayerValidForSanitySystem(ev.Player) || ev.UsableItem?.Type == null) return;
 
             float restoreAmount = GetItemRestoreAmount(ev.UsableItem.Type);

@@ -54,11 +54,6 @@ namespace SCP_575.Handlers
         /// </summary>
         public void Initialize()
         {
-            if (!_plugin.IsEventActive)
-            {
-                this.Dispose();
-                return;
-            }
             if (_isDisposed) return;
 
             if (!_cleanupCoroutine.IsRunning) _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
