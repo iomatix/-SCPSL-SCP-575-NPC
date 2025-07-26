@@ -78,17 +78,6 @@ namespace SCP_575.ConfigObjects
         }
         private int _delayMax = 500;
 
-        /// <summary>
-        /// Chance (%) that blackout events occur each round.
-        /// </summary>
-        [Description("Chance (%) that blackout events occur each round.")]
-        public int SpawnChance
-        {
-            get => _spawnChance;
-            private set => _spawnChance = value < 0 ? 0 : value > 100 ? 100 : value;
-        }
-        private int _spawnChance = 45;
-
         #endregion
 
         #region Zone Probabilities
