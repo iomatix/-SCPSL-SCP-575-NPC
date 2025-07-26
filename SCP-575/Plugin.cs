@@ -5,6 +5,7 @@ namespace SCP_575
     using SCP_575.Handlers;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio;
+    using System.Collections.Generic;
 
     /// <summary>
     /// The main plugin class for the SCP-575 NPC, responsible for managing event handlers and NPC behaviors.
@@ -86,6 +87,14 @@ namespace SCP_575
                 _npc = new NestingObjects.Npc(this);
                 _config = new Config();
 
+                // Initialize the custom handlers BEFORE registering events  
+                _sanityHandler = new PlayerSanityHandler(this);
+                _lightsourceHandler = new PlayerLightsourceHandler(this);
+
+                // Call Initialize() if you implemented it as suggested earlier  
+                _sanityHandler?.Initialize();
+                _lightsourceHandler?.Initialize();
+
                 RegisterEvents();
 
                 Library_ExiledAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
@@ -105,17 +114,24 @@ namespace SCP_575
         {
             try
             {
-                foreach (CoroutineHandle handle in _eventHandler.Coroutines)
+                foreach (CoroutineHandle handle in _eventHandler?.Coroutines ?? new List<CoroutineHandle>())
                 {
                     Timing.KillCoroutines(handle);
                 }
-                _eventHandler.Coroutines.Clear();
+                _eventHandler?.Coroutines.Clear();
 
                 UnregisterEvents();
+
+                // Dispose handlers properly  
+                _sanityHandler?.Dispose();
+                _lightsourceHandler?.Dispose();
+
                 Singleton = null;
                 _eventHandler = null;
+                _sanityHandler = null;
+                _lightsourceHandler = null;
                 _npc = null;
-                _audioManager.CleanupAllSpeakers();
+                _audioManager?.CleanupAllSpeakers();
                 _audioManager = null;
                 _config = null;
 

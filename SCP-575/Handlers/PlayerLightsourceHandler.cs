@@ -34,7 +34,7 @@ namespace SCP_575.Handlers
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _flickerTokens = new();
         private readonly HashSet<string> _flickeringPlayers = new();
         private readonly Random _random = new();
-        private readonly CoroutineHandle _cleanupCoroutine;
+        private CoroutineHandle _cleanupCoroutine;
         private bool _weaponFlashlightDisabled;
         private static readonly FieldInfo _attachmentsField = InitializeAttachmentsField();
 
@@ -53,9 +53,20 @@ namespace SCP_575.Handlers
             _lightsourceConfig = _plugin.Config.LightsourceConfig;
             _weaponFlashlightDisabled = _attachmentsField == null;
             if (_weaponFlashlightDisabled)
-                Library_ExiledAPI.LogWarn("LightCooldownHandler.Constructor", "Weapon flashlight support disabled due to missing attachments field.");
-            _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
-            Library_ExiledAPI.LogInfo("LightCooldownHandler.Constructor", "Initialized light cooldown handler and started cleanup coroutine.");
+                Library_ExiledAPI.LogWarn("PlayerLightsourceHandler.Constructor", "Weapon flashlight support disabled due to missing attachments field.");
+        }
+
+        /// <summary>  
+        /// Initializes the handler and starts the cleanup coroutine.  
+        /// Call this after the handler is properly registered.  
+        /// </summary>  
+        public void Initialize()
+        {
+            if (!_cleanupCoroutine.IsRunning)
+            {
+                _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
+                Library_ExiledAPI.LogInfo("PlayerLightsourceHandler.Initialize", "Initialized light cooldown handler and started cleanup coroutine.");
+            }
         }
 
         /// <summary>
