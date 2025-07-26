@@ -441,27 +441,14 @@ namespace SCP_575.Npc
             while (true)
             {
                 yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
-
                 foreach (var player in LabApi.Features.Wrappers.Player.ReadyList)
                 {
-                    if (!ShouldApplyBlackoutDamage(player)) continue;
+                    if (!IsInDarkRoom(player) || !IsBlackoutActive) continue;
+                    if (IsHumanWithoutLight(player)) _sanityHandler.ApplyStageEffects(player);
                     Timing.CallDelayed(1.75f, () => PlayRandomAudioEffect(player));
-                    _sanityHandler.ApplyStageEffects(player);
                     _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
-
                 }
             }
-        }
-
-        private bool ShouldApplyBlackoutDamage(LabApi.Features.Wrappers.Player player)
-        {
-            if (!player.IsAlive)
-            {
-                Library_ExiledAPI.LogDebug("ShouldApplyBlackoutDamage", $"Player {player.Nickname ?? "null"} is not alive.");
-                return false;
-            }
-
-            return IsHumanWithoutLight(player) && IsInDarkRoom(player);
         }
 
         private bool IsHumanWithoutLight(LabApi.Features.Wrappers.Player player)
