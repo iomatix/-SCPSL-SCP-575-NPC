@@ -77,7 +77,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override System.Version Version => new(8,1,12);
+        public override System.Version Version => new(8,2,0);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.
@@ -94,7 +94,6 @@ namespace SCP_575
                 Singleton = this;
                 _eventHandler = new EventHandler(this);
                 _audioManager = new Scp575AudioManager(this);
-                _npc = new NestingObjects.Npc(this);
                 _config = new Config();
 
                 // Initialize the custom handlers BEFORE registering events
@@ -102,6 +101,9 @@ namespace SCP_575
                 _lightsourceHandler = new PlayerLightsourceHandler(this);
                 _sanityHandler?.Initialize();
                 _lightsourceHandler?.Initialize();
+
+                // Nexting Objects
+                _npc = new NestingObjects.Npc(this);
 
                 RegisterEvents();
 

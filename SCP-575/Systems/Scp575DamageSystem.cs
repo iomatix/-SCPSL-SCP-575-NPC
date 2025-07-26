@@ -1,8 +1,5 @@
 ﻿namespace SCP_575.Systems
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using InventorySystem.Items.Armor;
     using MEC;
     using PlayerRoles;
@@ -10,7 +7,9 @@
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
     using SCP_575.Shared;
-
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
 
     public static class Scp575DamageSystem
@@ -50,7 +49,7 @@
         #region Properties  
 
         /// <summary>  
-        /// Gets the DamagePenetration factor for futher damage processing.
+        /// Gets the DamagePenetration factor for further damage processing.
         /// </summary>  
         public static float DamagePenetration => Plugin.Singleton.Config.NpcConfig.KeterDamagePenetration;
 
@@ -91,24 +90,39 @@
             if (damage < 0f)
                 throw new ArgumentOutOfRangeException(nameof(damage), "Damage cannot be negative.");
 
-            Library_ExiledAPI.LogDebug("DamagePlayer",
-                $"Processing damage for {target.Nickname} with Hitbox: {hitbox} and Damage: {damage:F1}");
-
-            float processedDamage = DamageProcessor(target, damage, hitbox);
-
-            bool succeeded = target.Damage(processedDamage, DeathScreenText);
-
-            if (succeeded)
+            try
             {
+                if (target.ReferenceHub == null)
+                {
+                    Library_ExiledAPI.LogWarn("DamagePlayer", $"ReferenceHub is null for player {target.UserId} ({target.Nickname ?? "null"})");
+                    return false;
+                }
+
                 Library_ExiledAPI.LogDebug("DamagePlayer",
-                    target.IsAlive ? "Damage applied successfully - player survived" : "Damage applied successfully - player died");
-            }
-            else
-            {
-                Library_ExiledAPI.LogDebug("DamagePlayer", "Failed to apply damage");
-            }
+                    $"Processing damage for {target.Nickname ?? "null"} with Hitbox: {hitbox} and Damage: {damage:F1}");
 
-            return succeeded;
+                float processedDamage = DamageProcessor(target, damage, hitbox);
+
+                bool succeeded = target.Damage(processedDamage, DeathScreenText);
+
+                if (succeeded)
+                {
+                    Library_ExiledAPI.LogDebug("DamagePlayer",
+                        target.IsAlive ? "Damage applied successfully - player survived" : "Damage applied successfully - player died");
+                }
+                else
+                {
+                    Library_ExiledAPI.LogDebug("DamagePlayer", "Failed to apply damage");
+                }
+
+                return succeeded;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("DamagePlayer",
+                    $"Failed to process damage for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                return false;
+            }
         }
 
         /// <summary>  
@@ -123,23 +137,32 @@
             if (damage <= 0f)
                 return damage;
 
-            Library_ExiledAPI.LogDebug("DamageProcessor",
-                $"Processing damage for {target.Nickname} with Hitbox: {hitbox} and Damage: {damage:F1}");
-
-            float processedDamage = damage; // Initialize with base damage  
-
-            // Apply hitbox-specific damage multipliers    
-            if (HitboxDamageMultipliers.TryGetValue(hitbox, out var damageMul))
+            try
             {
-                processedDamage *= damageMul;
                 Library_ExiledAPI.LogDebug("DamageProcessor",
-                    $"Applied hitbox multiplier {damageMul:F2} for {hitbox}. Damage: {damage:F1} -> {processedDamage:F1}");
+                    $"Processing damage for {target.Nickname ?? "null"} with Hitbox: {hitbox} and Damage: {damage:F1}");
+
+                float processedDamage = damage; // Initialize with base damage  
+
+                // Apply hitbox-specific damage multipliers    
+                if (HitboxDamageMultipliers.TryGetValue(hitbox, out var damageMul))
+                {
+                    processedDamage *= damageMul;
+                    Library_ExiledAPI.LogDebug("DamageProcessor",
+                        $"Applied hitbox multiplier {damageMul:F2} for {hitbox}. Damage: {damage:F1} -> {processedDamage:F1}");
+                }
+
+                // Handle armor interactions for armored roles - use the multiplied damage  
+                processedDamage = ProcessArmorInteraction(target, processedDamage, hitbox);
+
+                return processedDamage;
             }
-
-            // Handle armor interactions for armored roles - use the multiplied damage  
-            processedDamage = ProcessArmorInteraction(target, processedDamage, hitbox);
-
-            return processedDamage;
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("DamageProcessor",
+                    $"Failed to process damage for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                return damage;
+            }
         }
 
         /// <summary>  
@@ -152,35 +175,58 @@
         /// <returns>The final damage amount after armor processing.</returns>  
         private static float ProcessArmorInteraction(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
         {
-            if (damage <= 0f || target.RoleBase is not IArmoredRole armoredRole)
+            if (damage <= 0f)
                 return damage;
 
-            Library_ExiledAPI.LogDebug("ProcessArmorInteraction",
-                $"Player {target.Nickname} has armor role: {armoredRole.GetType().Name}");
+            try
+            {
+                if (target.RoleBase is not IArmoredRole armoredRole)
+                {
+                    Library_ExiledAPI.LogDebug("ProcessArmorInteraction",
+                        $"Player {target.Nickname ?? "null"} has no armored role, returning damage: {damage:F1}");
+                    return damage;
+                }
 
-            int armorEfficacy = armoredRole.GetArmorEfficacy(hitbox);
-            int penetrationPercent = Mathf.RoundToInt(DamagePenetration * 100f);
+                if (target.ReferenceHub == null)
+                {
+                    Library_ExiledAPI.LogWarn("ProcessArmorInteraction",
+                        $"ReferenceHub is null for player {target.UserId} ({target.Nickname ?? "null"})");
+                    return damage;
+                }
 
-            // Calculate Hume Shield absorption  
-            float humeShield = target.ReferenceHub.playerStats.GetModule<HumeShieldStat>().CurValue;
-            float shieldDamage = Mathf.Clamp(humeShield, 0f, damage);
+                Library_ExiledAPI.LogDebug("ProcessArmorInteraction",
+                    $"Player {target.Nickname ?? "null"} has armor role: {armoredRole.GetType().Name}");
 
-            // Calculate damage that goes through to armor  
-            float armorDamage = Mathf.Max(0f, damage - shieldDamage);
+                int armorEfficacy = armoredRole.GetArmorEfficacy(hitbox);
+                int penetrationPercent = Mathf.RoundToInt(DamagePenetration * 100f);
 
-            // Apply armor penetration calculation  
-            float postArmorDamage = BodyArmorUtils.ProcessDamage(armorEfficacy, armorDamage, penetrationPercent);
+                // Calculate Hume Shield absorption  
+                float humeShield = target.ReferenceHub.playerStats.GetModule<HumeShieldStat>().CurValue;
+                float shieldDamage = Mathf.Clamp(humeShield, 0f, damage);
 
-            // Final damage is shield damage (always full) plus penetrated armor damage  
-            float finalDamage = shieldDamage + postArmorDamage;
+                // Calculate damage that goes through to armor  
+                float armorDamage = Mathf.Max(0f, damage - shieldDamage);
 
-            Library_ExiledAPI.LogDebug("ProcessArmorInteraction",
-                $"Armor calculation for {target.Nickname}: " +
-                $"Efficacy={armorEfficacy}, Penetration={penetrationPercent}%, " +
-                $"Shield={shieldDamage:F1}, Armor={armorDamage:F1}->{postArmorDamage:F1}, " +
-                $"Final={finalDamage:F1}");
+                // Apply armor penetration calculation  
+                float postArmorDamage = BodyArmorUtils.ProcessDamage(armorEfficacy, armorDamage, penetrationPercent);
 
-            return finalDamage;
+                // Final damage is shield damage (always full) plus penetrated armor damage  
+                float finalDamage = shieldDamage + postArmorDamage;
+
+                Library_ExiledAPI.LogDebug("ProcessArmorInteraction",
+                    $"Armor calculation for {target.Nickname ?? "null"}: " +
+                    $"Efficacy={armorEfficacy}, Penetration={penetrationPercent}%, " +
+                    $"Shield={shieldDamage:F1}, Armor={armorDamage:F1}->{postArmorDamage:F1}, " +
+                    $"Final={finalDamage:F1}");
+
+                return finalDamage;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("ProcessArmorInteraction",
+                    $"Failed to process armor for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                return damage;
+            }
         }
 
         #endregion
@@ -216,59 +262,67 @@
             if (player == null || originalRagdoll == null)
                 return null;
 
-            Library_ExiledAPI.LogDebug("ReplaceRagdollWithPhysics",
-                $"Replacing ragdoll for {player.Nickname} at position: {originalRagdoll.Position}");
+            try
+            {
+                Library_ExiledAPI.LogDebug("ReplaceRagdoll",
+                    $"Replacing ragdoll for {player.Nickname ?? "null"} at position: {originalRagdoll.Position}");
 
-            // Prepare RagdollData
-            var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
-            var ragdollData = new RagdollData(
-                player.ReferenceHub,
-                customHandler,
-                RoleTypeId.Scp3114, // Temporary replace body to skeleton, for player.Role,
-                originalRagdoll.Position,
-                originalRagdoll.Rotation,
-                player.DisplayNickname,
-                Time.time);
+                // Prepare RagdollData
+                var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
+                var ragdollData = new RagdollData(
+                    player.ReferenceHub,
+                    customHandler,
+                    RoleTypeId.Scp3114, // Temporary replace body to skeleton, for player.Role,
+                    originalRagdoll.Position,
+                    originalRagdoll.Rotation,
+                    player.DisplayNickname,
+                    Time.time);
 
-            originalRagdoll.Destroy();
+                originalRagdoll.Destroy();
 
-            // Spawn Exiled ragdoll
-            return Exiled.API.Features.Ragdoll.CreateAndSpawn(ragdollData);
+                // Spawn Exiled ragdoll
+                return Exiled.API.Features.Ragdoll.CreateAndSpawn(ragdollData);
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("ReplaceRagdoll",
+                    $"Failed to replace ragdoll for {player.UserId} ({player.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                return null;
+            }
         }
 
-
-        /// <summary>    
-        /// Applies physics forces to standard ragdoll for dynamic movement effects.    
-        /// Used with Exiled ragdoll wrappers for reliable physics application.  
-        /// </summary>    
-        /// <param name="ragdoll">The Exiled ragdoll wrapper to apply physics to.</param>    
         public static void ApplyStandardRagdollPhysics(Exiled.API.Features.Ragdoll ragdoll)
         {
-
-            Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on Exiled ragdoll at {ragdoll.Position}");
-
-            Vector3 upwardForce = Vector3.up * CalculateForcePush(3.8f);
-            Vector3 randomForce = GetRandomUnitSphereVelocity(2.8f);
-            foreach (Rigidbody rb in ragdoll.SpecialRigidbodies)
+            try
             {
-                if (ragdoll.SpecialRigidbodies == null || ragdoll.SpecialRigidbodies.Count() == 0)
-                {
-                    Library_ExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbodies found on ragdoll.");
-                    return;
-                }
+                Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on Exiled ragdoll at {ragdoll.Position}");
 
-                try
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(3.8f);
+                Vector3 randomForce = GetRandomUnitSphereVelocity(2.8f);
+                foreach (Rigidbody rb in ragdoll.SpecialRigidbodies)
                 {
-                    rb.linearVelocity = upwardForce + randomForce;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6f;
-                    Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Applying forces to {rb.name} - Upward: {upwardForce}, Random: {randomForce}");
-                }
-                catch (Exception ex)
-                {
-                    Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply Exiled ragdoll physics: {ex.Message}");
+                    if (ragdoll.SpecialRigidbodies == null || ragdoll.SpecialRigidbodies.Count() == 0)
+                    {
+                        Library_ExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbodies found on ragdoll.");
+                        return;
+                    }
+
+                    try
+                    {
+                        rb.linearVelocity = upwardForce + randomForce;
+                        rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6f;
+                        Library_ExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Applying forces to {rb.name} - Upward: {upwardForce}, Random: {randomForce}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply Exiled ragdoll physics: {ex.Message}");
+                    }
                 }
             }
-
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to process ragdoll physics: {ex.Message}, StackTrace: {ex.StackTrace}");
+            }
         }
 
         public static void ConvertToBones(Exiled.API.Features.Ragdoll ragdoll)
@@ -283,7 +337,7 @@
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("ConvertToBones", $"Failed to convert Exiled ragdoll to bones: {ex.Message}");
+                Library_ExiledAPI.LogError("ConvertToBones", $"Failed to convert Exiled ragdoll to bones: {ex.Message}, StackTrace: {ex.StackTrace}");
             }
         }
 
@@ -291,41 +345,42 @@
 
         #region Utility Methods  
 
-        public static IEnumerator<float> DropAndPushItems(
-            LabApi.Features.Wrappers.Player player
-        )
+        public static IEnumerator<float> DropAndPushItems(LabApi.Features.Wrappers.Player player)
         {
-            Library_ExiledAPI.LogDebug("DropAndPushItems", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
-            List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
-
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
-
-            foreach (var pickup in droppedPickups)
+            try
             {
-                if (pickup?.Rigidbody == null)
+                Library_ExiledAPI.LogDebug("DropAndPushItems", $"Dropping all items from {player.Nickname ?? "null"}'s inventory called by Server.");
+                List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
+
+
+                foreach (var pickup in droppedPickups)
                 {
-                    Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
-                    continue;
+                    if (pickup?.Rigidbody == null)
+                    {
+                        Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
+                        continue;
+                    }
+
+                    var rb = pickup.Rigidbody;
+                    var dir = GetRandomUnitSphereVelocity();
+                    var mag = CalculateForcePush();
+
+                    try
+                    {
+                        rb.linearVelocity = dir * mag;
+                        rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+                        Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex.Message}, StackTrace: {ex.StackTrace}");
+                    }
                 }
-
-                var rb = pickup.Rigidbody;
-                var dir = GetRandomUnitSphereVelocity();
-                var mag = CalculateForcePush();
-
-                yield return Timing.WaitForOneFrame; // ensure physics engine is ready
-
-                try
-                {
-                    rb.linearVelocity = dir * mag;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
-                    Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
-                }
-                catch (Exception ex)
-                {
-                    Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex}");
-                }
-
-                yield return Timing.WaitForOneFrame;  // stagger pushes
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("DropAndPushItems", $"Failed to drop and push items for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
             }
         }
 
@@ -378,8 +433,7 @@
             // If the vector points more than 45° downward, reflect it upward  
             if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f) // cos(45°) ≈ 0.707  
             {
-                Exiled.API.Features.Log.Debug(
-                    "[GetRandomUnitSphereVelocity] Vector pointing downward, reflecting upward.");
+                Library_ExiledAPI.LogDebug("GetRandomUnitSphereVelocity", "Vector pointing downward, reflecting upward.");
                 randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
             }
 
@@ -393,5 +447,4 @@
 
         #endregion
     }
-
 }

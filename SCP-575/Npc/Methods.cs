@@ -1,12 +1,10 @@
 namespace SCP_575.Npc
 {
     using Handlers;
-    using LabApi.Events.CustomHandlers;
     using MapGeneration;
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Systems;
     using Shared;
     using System;
     using System.Collections.Generic;
@@ -47,8 +45,9 @@ namespace SCP_575.Npc
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _config = Plugin.Singleton.Config;
             _npcConfig = _config.NpcConfig;
-            _lightCooldownHandler = new PlayerLightsourceHandler(plugin);
-            _sanityHandler = new PlayerSanityHandler(plugin);
+            _lightCooldownHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler is null.");
+            _sanityHandler = _plugin.SanityEventHandler ?? throw new InvalidOperationException("SanityEventHandler is null.");
+            Library_ExiledAPI.LogDebug("Methods.Constructor", $"Initialized Methods with PlayerSanityHandler instance ID={_sanityHandler.GetHashCode()}");
         }
 
         /// <summary>
@@ -441,21 +440,106 @@ namespace SCP_575.Npc
             while (true)
             {
                 yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
-                foreach (var player in LabApi.Features.Wrappers.Player.ReadyList)
+                var players = LabApi.Features.Wrappers.Player.ReadyList.ToList();
+                foreach (LabApi.Features.Wrappers.Player player in players)
                 {
-                    if (!Helpers.IsInDarkRoom(player) || !IsBlackoutActive) continue;
-                    _sanityHandler.ApplyStageEffects(player);
-                    Timing.CallDelayed(1.75f, () => PlayRandomAudioEffect(player));
-                    _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
+                    try
+                    {
+                        if (player == null || player.UserId == null)
+                        {
+                            Library_ExiledAPI.LogWarn("Methods.KeterAction", "Player or UserId is null.");
+                            continue;
+                        }
+                        string nickname = "Unknown";
+                        bool isAlive = false;
+                        bool isHuman = false;
+                        try
+                        {
+                            nickname = player.Nickname ?? "null";
+                            isAlive = player.IsAlive;
+                            isHuman = player.IsHuman;
+                        }
+                        catch (Exception ex)
+                        {
+                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Failed to access player properties for {player.UserId}: {ex.Message}");
+                            continue;
+                        }
+                        if (!isAlive || !isHuman || nickname == "null")
+                        {
+                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Invalid player state: {player.UserId} ({nickname}), IsAlive={isAlive}, IsHuman={isHuman}, Nickname={(nickname != null ? "non-null" : "null")}");
+                            continue;
+                        }
+                        if (!IsBlackoutActive)
+                        {
+                            Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Skipping player {player.UserId} ({nickname}): Blackout not active");
+                            continue;
+                        }
+                        bool isInDarkRoom = Helpers.IsInDarkRoom(player);
+                        if (!isInDarkRoom)
+                        {
+                            Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Skipping player {player.UserId} ({nickname}): Not in dark room");
+                            continue;
+                        }
+                        if (!_sanityHandler.IsValidPlayer(player))
+                        {
+                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Player {player.UserId} ({nickname}) became invalid before GetCurrentSanity");
+                            continue;
+                        }
+                        float sanity;
+                        try
+                        {
+                            sanity = _sanityHandler.GetCurrentSanity(player);
+                            Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Retrieved sanity {sanity} for {player.UserId} ({nickname})");
+                        }
+                        catch (Exception ex)
+                        {
+                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Failed to get sanity for {player.UserId} ({nickname}): {ex.Message}");
+                            continue;
+                        }
+                        try
+                        {
+                            Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Processing player {player.UserId} ({nickname}), Sanity: {sanity}, IsAlive: {isAlive}, IsHuman: {isHuman}, PlayerSanityHandler instance ID: {_sanityHandler.GetHashCode()}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Failed to log processing for {player.UserId} ({nickname}): {ex.Message}");
+                            continue;
+                        }
+                        if (!_sanityHandler.IsValidPlayer(player))
+                        {
+                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Player {player.UserId} ({nickname}) became invalid before ApplyStageEffects");
+                            continue;
+                        }
+                        Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Calling ApplyStageEffects for {player.UserId} ({nickname})");
+                        _sanityHandler.ApplyStageEffects(player);
+                        Timing.CallDelayed(1.75f, () => PlayRandomAudioEffect(player));
+                        _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
+                    }
+                    catch (Exception ex)
+                    {
+                        Library_ExiledAPI.LogError("Methods.KeterAction", $"Failed to process player {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                    }
                 }
             }
         }
 
+        /// <summary>
+        /// Plays a random audio effect for a player during an SCP-575 attack.
+        /// </summary>
+        /// <param name="player">The player to play the audio for.</param>
         private void PlayRandomAudioEffect(LabApi.Features.Wrappers.Player player)
         {
-            var audioOptions = new[] { AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.WhispersBang };
-            var selectedClip = audioOptions[UnityEngine.Random.Range(0, audioOptions.Length)];
-            _plugin.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 25f);
+            try
+            {
+                Library_ExiledAPI.LogDebug("Methods.PlayRandomAudioEffect", $"Playing audio for {player.UserId} ({player.Nickname ?? "null"})");
+                var audioOptions = new[] { AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.WhispersBang };
+                var selectedClip = audioOptions[UnityEngine.Random.Range(0, audioOptions.Length)];
+                _plugin.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 25f);
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("Methods.PlayRandomAudioEffect", $"Failed to play audio for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+            }
         }
 
         #endregion

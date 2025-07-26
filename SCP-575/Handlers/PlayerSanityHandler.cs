@@ -25,6 +25,8 @@
         private readonly float _hintCooldown;
         private CoroutineHandle _sanityDecayCoroutine;
         private bool _isDisposed;
+        private readonly object _cacheLock = new();
+        private readonly int _instanceId;
 
         /// <summary>
         /// Gets the internal sanity cache mapping UserId to current sanity values.
@@ -42,6 +44,18 @@
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _sanityConfig = plugin.Config?.SanityConfig ?? throw new InvalidOperationException("SanityConfig is not initialized.");
             _hintCooldown = _sanityConfig.DecayRateBase * 20f;
+            _instanceId = GetHashCode();
+            if (_sanityConfig.SanityStages == null || !_sanityConfig.SanityStages.Any())
+                throw new InvalidOperationException("SanityStages is null or empty.");
+            var stages = _sanityConfig.SanityStages.OrderBy(s => s.MinThreshold).ToList();
+            if (stages[0].MinThreshold > 0 || stages[stages.Count - 1].MaxThreshold < 100)
+                throw new InvalidOperationException("SanityStages do not cover the full range (0–100).");
+            for (int i = 0; i < stages.Count - 1; i++)
+            {
+                if (stages[i].MaxThreshold != stages[i + 1].MinThreshold)
+                    throw new InvalidOperationException("SanityStages have gaps or overlaps.");
+            }
+            Library_ExiledAPI.LogDebug("PlayerSanityHandler.Constructor", $"Instance ID={_instanceId}, Loaded {stages.Count} sanity stages: {string.Join(", ", stages.Select(s => $"[Min={s.MinThreshold}, Max={s.MaxThreshold}, Damage={s.DamageOnStrike}, Effects={s.Effects?.Count}]"))}");
         }
 
         #region Lifecycle Management
@@ -54,7 +68,7 @@
             if (_isDisposed) return;
 
             if (!_sanityDecayCoroutine.IsRunning) _sanityDecayCoroutine = Timing.RunCoroutine(HandleSanityDecay());
-            Library_ExiledAPI.LogInfo("PlayerSanityHandler.Initialize", "Sanity decay coroutine started.");
+            Library_ExiledAPI.LogInfo("PlayerSanityHandler.Initialize", $"Instance ID={_instanceId}, Sanity decay coroutine started.");
         }
 
         /// <summary>
@@ -68,9 +82,12 @@
             if (_sanityDecayCoroutine.IsRunning)
                 Timing.KillCoroutines(_sanityDecayCoroutine);
 
-            _sanityCache.Clear();
-            _lastHintTime.Clear();
-            Library_ExiledAPI.LogInfo("PlayerSanityHandler.Dispose", "Disposed PlayerSanityHandler and cleaned up resources.");
+            lock (_cacheLock)
+            {
+                _sanityCache.Clear();
+                _lastHintTime.Clear();
+            }
+            Library_ExiledAPI.LogInfo("PlayerSanityHandler.Dispose", $"Instance ID={_instanceId}, Disposed PlayerSanityHandler and cleaned up resources.");
         }
 
         #endregion
@@ -83,12 +100,22 @@
         /// <param name="ev">Event arguments containing the player reference.</param>
         public override void OnPlayerSpawned(PlayerSpawnedEventArgs ev)
         {
-            ;
             if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player)) return;
 
-            _sanityCache[ev.Player.UserId] = _sanityConfig.InitialSanity;
-            Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Initialized sanity for {ev.Player.UserId} to {_sanityConfig.InitialSanity}.");
+            string userId = NormalizeUserId(ev.Player.UserId);
+            lock (_cacheLock)
+            {
+                if (!_sanityCache.ContainsKey(userId))
+                {
+                    _sanityCache[userId] = _sanityConfig.InitialSanity;
+                    Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Instance ID={_instanceId}, Initialized sanity for {userId} ({ev.Player.Nickname}) to {_sanityConfig.InitialSanity}.");
+                }
+                else
+                {
+                    Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Instance ID={_instanceId}, Sanity already initialized for {userId} ({ev.Player.Nickname}), current value: {_sanityCache[userId]}.");
+                }
+            }
         }
 
         /// <summary>
@@ -106,7 +133,7 @@
             float newSanity = ChangeSanityValue(ev.Player, restoreAmount);
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint) SendSanityHint(ev.Player, _plugin.Config.HintsConfig.SanityIncreasedHint, newSanity);
 
-            Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerUsedItem", $"Restored {restoreAmount} sanity to {ev.Player.UserId} with {ev.UsableItem.Type}. New sanity: {newSanity}");
+            Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerUsedItem", $"Instance ID={_instanceId}, Restored {restoreAmount} sanity to {ev.Player.UserId} ({ev.Player.Nickname}) with {ev.UsableItem.Type}. New sanity: {newSanity}");
         }
 
         #endregion
@@ -117,13 +144,36 @@
         /// Gets the current sanity value for a player.
         /// </summary>
         /// <param name="player">The player to query.</param>
-        /// <returns>The player's sanity value, or 100f if not cached.</returns>
+        /// <returns>The player's sanity value, or the configured initial sanity if not cached.</returns>
         public float GetCurrentSanity(Player player)
         {
             if (!IsValidPlayer(player))
                 throw new ArgumentNullException(nameof(player), "Player or UserId cannot be null.");
-
-            return _sanityCache.TryGetValue(player.UserId, out float sanity) ? sanity : 100f;
+            string userId = NormalizeUserId(player.UserId);
+            lock (_cacheLock)
+            {
+                if (!_sanityCache.TryGetValue(userId, out float sanity))
+                {
+                    sanity = _sanityConfig.InitialSanity;
+                    _sanityCache[userId] = sanity;
+                    Library_ExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, No sanity value for {userId}, defaulting to {sanity} (InitialSanity from config), Cache count={_sanityCache.Count}");
+                }
+                string nickname = "Unknown";
+                bool isAlive = false;
+                bool isHuman = false;
+                try
+                {
+                    nickname = player.Nickname ?? "null";
+                    isAlive = player.IsAlive;
+                    isHuman = player.IsHuman;
+                }
+                catch (Exception ex)
+                {
+                    Library_ExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, Failed to access player properties for {userId}: {ex.Message}");
+                }
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, Cache state for {userId} ({nickname}): {sanity}, IsAlive={isAlive}, IsHuman={isHuman}, Cache count={_sanityCache.Count}");
+                return sanity;
+            }
         }
 
         /// <summary>
@@ -137,10 +187,22 @@
         {
             if (!IsValidPlayer(player))
                 throw new ArgumentNullException(nameof(player), "Player or UserId cannot be null.");
-
+            string userId = NormalizeUserId(player.UserId);
             float clampedSanity = Mathf.Clamp(sanity, 0f, 100f);
-            _sanityCache[player.UserId] = clampedSanity;
-            Library_ExiledAPI.LogDebug("PlayerSanityHandler.SetSanity", $"Set sanity for {player.UserId} to {clampedSanity}.");
+            lock (_cacheLock)
+            {
+                _sanityCache[userId] = clampedSanity;
+                string nickname = "Unknown";
+                try
+                {
+                    nickname = player.Nickname ?? "null";
+                }
+                catch (Exception ex)
+                {
+                    Library_ExiledAPI.LogWarn("PlayerSanityHandler.SetSanity", $"Instance ID={_instanceId}, Failed to access nickname for {userId}: {ex.Message}");
+                }
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.SetSanity", $"Instance ID={_instanceId}, Set sanity for {userId} ({nickname}) to {clampedSanity}, Cache count={_sanityCache.Count}");
+            }
             return clampedSanity;
         }
 
@@ -156,14 +218,15 @@
 
             try
             {
+                string userId = NormalizeUserId(player.UserId);
                 float currentSanity = GetCurrentSanity(player);
                 float newSanity = SetSanity(player, currentSanity + amount);
-                Library_ExiledAPI.LogDebug("PlayerSanityHandler.ChangeSanityValue", $"Changed sanity for {player.UserId} by {amount}. New value: {newSanity}");
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.ChangeSanityValue", $"Instance ID={_instanceId}, Changed sanity for {userId} ({player.Nickname ?? "null"}) by {amount}. New value: {newSanity}");
                 return newSanity;
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("PlayerSanityHandler.ChangeSanityValue", $"Failed to change sanity for {player?.UserId ?? "null"}: {ex.Message}");
+                Library_ExiledAPI.LogError("PlayerSanityHandler.ChangeSanityValue", $"Instance ID={_instanceId}, Failed to change sanity for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
                 return 0f;
             }
         }
@@ -177,11 +240,19 @@
         {
             if (_sanityConfig.SanityStages == null || !_sanityConfig.SanityStages.Any())
             {
-                Library_ExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", "SanityStages is null or empty.");
+                Library_ExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, SanityStages is null or empty");
                 return null;
             }
-            return _sanityConfig.SanityStages.FirstOrDefault(stage =>
-                sanity <= stage.MaxThreshold && (sanity > stage.MinThreshold || (sanity == 0 && stage.MinThreshold == 0)));
+            Library_ExiledAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, SanityStages: {string.Join(", ", _sanityConfig.SanityStages.Select(s => $"[Min={s.MinThreshold}, Max={s.MaxThreshold}, Damage={s.DamageOnStrike}, Effects={s.Effects?.Count}]"))}");
+            var orderedStages = _sanityConfig.SanityStages.OrderByDescending(s => s.MaxThreshold);
+            foreach (var s in orderedStages)
+            {
+                bool matches = sanity <= s.MaxThreshold && (sanity > s.MinThreshold || (sanity == 0 && s.MinThreshold == 0));
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Checking stage [Min={s.MinThreshold}, Max={s.MaxThreshold}]: sanity={sanity}, matches={matches}");
+                if (matches) return s;
+            }
+            Library_ExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, No stage found for sanity {sanity}");
+            return null;
         }
 
         /// <summary>
@@ -191,7 +262,15 @@
         /// <returns>The matching <see cref="PlayerSanityStageConfig"/> or null if none found.</returns>
         public PlayerSanityStageConfig GetCurrentSanityStage(Player player)
         {
-            return IsValidPlayer(player) ? GetCurrentSanityStage(GetCurrentSanity(player)) : null;
+            if (!IsValidPlayer(player))
+            {
+                Library_ExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Invalid player: {player?.UserId ?? "null"} ({player?.Nickname ?? "null"})");
+                return null;
+            }
+            string userId = NormalizeUserId(player.UserId);
+            float sanity = GetCurrentSanity(player);
+            Library_ExiledAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Player: {userId} ({player.Nickname ?? "null"}), Sanity: {sanity}");
+            return GetCurrentSanityStage(sanity);
         }
 
         /// <summary>
@@ -200,22 +279,71 @@
         /// <param name="player">The player to apply effects to.</param>
         public void ApplyStageEffects(Player player)
         {
-            if (!IsValidPlayer(player)) return;
-
-            var stage = GetCurrentSanityStage(player);
-            Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"{player.DisplayName} sanity stage is {stage} with {stage.DamageOnStrike} damage and {stage.Effects.Count} effects");
-            if (Helpers.IsHumanWithoutLight(player) && stage.DamageOnStrike > 0) Scp575DamageSystem.DamagePlayer(player, stage.DamageOnStrike);
-            if (stage?.Effects == null) return;
-            foreach (var effectConfig in stage.Effects)
+            if (!IsValidPlayer(player))
             {
-                try
+                Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Invalid player: {player?.UserId ?? "null"} ({player?.Nickname ?? "null"})");
+                return;
+            }
+            string userId = NormalizeUserId(player.UserId);
+            string nickname = "Unknown";
+            bool isAlive = false;
+            bool isHuman = false;
+            try
+            {
+                nickname = player.Nickname ?? "null";
+                isAlive = player.IsAlive;
+                isHuman = player.IsHuman;
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Starting ApplyStageEffects for {userId} ({nickname}), IsAlive={isAlive}, IsHuman={isHuman}");
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to access player properties for {userId}: {ex.Message}");
+                return;
+            }
+            try
+            {
+                float sanity = GetCurrentSanity(player);
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Retrieved sanity {sanity} for {userId} ({nickname})");
+                var stage = GetCurrentSanityStage(player);
+                if (stage == null)
                 {
-                    ApplyEffect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
+                    Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, No stage found for {userId} ({nickname}), sanity: {sanity}, StackTrace: {Environment.StackTrace}");
+                    return;
                 }
-                catch (Exception ex)
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applying stage for {userId} ({nickname}), Sanity: {sanity}, Stage: Min={stage.MinThreshold}, Max={stage.MaxThreshold}, Damage={stage.DamageOnStrike}, Effects={stage.Effects?.Count ?? 0}, StackTrace: {Environment.StackTrace}");
+
+                if (stage.DamageOnStrike > 0)
                 {
-                    Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Failed to apply effect {effectConfig.EffectType} to {player.UserId}: {ex.Message}");
+                    try
+                    {
+                        Scp575DamageSystem.DamagePlayer(player, stage.DamageOnStrike);
+                        Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied damage {stage.DamageOnStrike} to {userId} ({nickname})");
+                    }
+                    catch (Exception ex)
+                    {
+                        Library_ExiledAPI.LogError("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply damage to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                    }
                 }
+
+                if (stage.Effects != null)
+                {
+                    foreach (var effectConfig in stage.Effects)
+                    {
+                        try
+                        {
+                            ApplyEffect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
+                            Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied effect {effectConfig.EffectType} to {userId} ({nickname}) with intensity {effectConfig.Intensity}, duration {effectConfig.Duration}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply effect {effectConfig.EffectType} to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Unexpected error for {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
             }
         }
 
@@ -233,22 +361,34 @@
             {
                 yield return Timing.WaitForSeconds(1f);
 
-                foreach (var player in Player.List.Where(p => IsPlayerValidForSanitySystem(p)))
+                foreach (var player in Player.ReadyList.Where(p => IsPlayerValidForSanitySystem(p)))
                 {
                     if (!Library_LabAPI.IsPlayerInDarkRoom(player)) continue;
 
-                    float decayRate = CalculateDecayRate(player);
-                    float newSanity = ChangeSanityValue(player, -decayRate);
-
-                    if (_plugin.Config.HintsConfig.IsEnabledSanityHint && ShouldSendHint(player.UserId))
+                    try
                     {
-                        SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
-                        _lastHintTime[player.UserId] = DateTime.Now;
+                        float decayRate = CalculateDecayRate(player);
+                        float newSanity = ChangeSanityValue(player, -decayRate);
+
+                        if (_plugin.Config.HintsConfig.IsEnabledSanityHint && ShouldSendHint(player.UserId))
+                        {
+                            SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
+                            _lastHintTime[NormalizeUserId(player.UserId)] = DateTime.Now;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Library_ExiledAPI.LogError("PlayerSanityHandler.HandleSanityDecay", $"Instance ID={_instanceId}, Failed to process sanity decay for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Calculates the rate at which a player's sanity should decay based on conditions.
+        /// </summary>
+        /// <param name="player">The player to calculate the decay rate for.</param>
+        /// <returns>The calculated decay rate.</returns>
         private float CalculateDecayRate(Player player)
         {
             float decayRate = _sanityConfig.DecayRateBase;
@@ -263,21 +403,66 @@
 
         #region Helper Methods
 
-        private bool IsValidPlayer(Player player)
+        /// <summary>
+        /// Validates if a player is eligible for sanity mechanics.
+        /// </summary>
+        /// <param name="player">The player to validate.</param>
+        /// <returns>True if the player is valid, false otherwise.</returns>
+        public bool IsValidPlayer(Player player)
         {
-            if (player?.UserId == null)
+            if (player == null || player.UserId == null)
             {
-                Library_ExiledAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", "Player or UserId is null.");
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Player or UserId is null.");
                 return false;
             }
-            return true;
+            try
+            {
+                bool isValid = player.IsAlive && player.IsHuman && player.Nickname != null;
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Player: {player.UserId} ({player.Nickname}), IsAlive={player.IsAlive}, IsHuman={player.IsHuman}, Nickname={(player.Nickname != null ? "non-null" : "null")}, IsValid={isValid}");
+                return isValid;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogWarn("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Error validating player {player.UserId} ({player.Nickname ?? "null"}): {ex.Message}");
+                return false;
+            }
         }
 
+        /// <summary>
+        /// Checks if a player is valid for the sanity system (alive and human).
+        /// </summary>
+        /// <param name="player">The player to check.</param>
+        /// <returns>True if the player is valid for the sanity system, false otherwise.</returns>
         private bool IsPlayerValidForSanitySystem(Player player)
         {
-            return IsValidPlayer(player) && player.IsAlive && player.IsHuman;
+            return IsValidPlayer(player);
         }
 
+        /// <summary>
+        /// Normalizes the UserId to ensure consistent caching.
+        /// </summary>
+        /// <param name="userId">The UserId to normalize.</param>
+        /// <returns>The normalized UserId.</returns>
+        private string NormalizeUserId(string userId)
+        {
+            try
+            {
+                string normalized = userId?.ToLowerInvariant() ?? throw new ArgumentNullException(nameof(userId), "UserId cannot be null.");
+                Library_ExiledAPI.LogDebug("PlayerSanityHandler.NormalizeUserId", $"Instance ID={_instanceId}, Normalized UserId: {normalized}");
+                return normalized;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("PlayerSanityHandler.NormalizeUserId", $"Instance ID={_instanceId}, Failed to normalize UserId {userId ?? "null"}: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Determines the amount of sanity restored by using a specific item.
+        /// </summary>
+        /// <param name="itemType">The type of item used.</param>
+        /// <returns>The amount of sanity to restore.</returns>
         private float GetItemRestoreAmount(ItemType itemType)
         {
             return itemType switch
@@ -288,58 +473,93 @@
             };
         }
 
+        /// <summary>
+        /// Checks if a hint should be sent based on the cooldown.
+        /// </summary>
+        /// <param name="userId">The player's UserId.</param>
+        /// <returns>True if a hint can be sent, false otherwise.</returns>
         private bool ShouldSendHint(string userId)
         {
-            return !_lastHintTime.TryGetValue(userId, out var lastTime) ||
+            string normalizedUserId = NormalizeUserId(userId);
+            return !_lastHintTime.TryGetValue(normalizedUserId, out var lastTime) ||
                    (DateTime.Now - lastTime).TotalSeconds >= _hintCooldown;
         }
 
+        /// <summary>
+        /// Sends a hint to the player with their current sanity value.
+        /// </summary>
+        /// <param name="player">The player to send the hint to.</param>
+        /// <param name="hintMessage">The hint message to display.</param>
+        /// <param name="sanity">The current sanity value.</param>
         private void SendSanityHint(Player player, string hintMessage, float sanity)
         {
-            player.SendHint(hintMessage, new[] { new FloatHintParameter(sanity, "F1") });
-        }
-
-        private static void ApplyEffect(Player player, SanityEffectType effectType, byte intensity, float duration)
-        {
-            switch (effectType)
+            try
             {
-                case SanityEffectType.Blurred: player.EnableEffect<CustomPlayerEffects.Blurred>(intensity, duration); break;
-                case SanityEffectType.Blindness: player.EnableEffect<CustomPlayerEffects.Blindness>(intensity, duration); break;
-                case SanityEffectType.Flashed: player.EnableEffect<CustomPlayerEffects.Flashed>(intensity, duration); break;
-                case SanityEffectType.Deafened: player.EnableEffect<CustomPlayerEffects.Deafened>(intensity, duration); break;
-                case SanityEffectType.Slowness: player.EnableEffect<CustomPlayerEffects.Slowness>(intensity, duration); break;
-                case SanityEffectType.SilentWalk: player.EnableEffect<CustomPlayerEffects.SilentWalk>(intensity, duration); break;
-                case SanityEffectType.Exhausted: player.EnableEffect<CustomPlayerEffects.Exhausted>(intensity, duration); break;
-                case SanityEffectType.Disabled: player.EnableEffect<CustomPlayerEffects.Disabled>(intensity, duration); break;
-                case SanityEffectType.Bleeding: player.EnableEffect<CustomPlayerEffects.Bleeding>(intensity, duration); break;
-                case SanityEffectType.Poisoned: player.EnableEffect<CustomPlayerEffects.Poisoned>(intensity, duration); break;
-                case SanityEffectType.Burned: player.EnableEffect<CustomPlayerEffects.Burned>(intensity, duration); break;
-                case SanityEffectType.Corroding: player.EnableEffect<CustomPlayerEffects.Corroding>(intensity, duration); break;
-                case SanityEffectType.Concussed: player.EnableEffect<CustomPlayerEffects.Concussed>(intensity, duration); break;
-                case SanityEffectType.Traumatized: player.EnableEffect<CustomPlayerEffects.Traumatized>(intensity, duration); break;
-                case SanityEffectType.Invisible: player.EnableEffect<CustomPlayerEffects.Invisible>(intensity, duration); break;
-                case SanityEffectType.Scp207: player.EnableEffect<CustomPlayerEffects.Scp207>(intensity, duration); break;
-                case SanityEffectType.AntiScp207: player.EnableEffect<CustomPlayerEffects.AntiScp207>(intensity, duration); break;
-                case SanityEffectType.MovementBoost: player.EnableEffect<CustomPlayerEffects.MovementBoost>(intensity, duration); break;
-                case SanityEffectType.DamageReduction: player.EnableEffect<CustomPlayerEffects.DamageReduction>(intensity, duration); break;
-                case SanityEffectType.RainbowTaste: player.EnableEffect<CustomPlayerEffects.RainbowTaste>(intensity, duration); break;
-                case SanityEffectType.BodyshotReduction: player.EnableEffect<CustomPlayerEffects.BodyshotReduction>(intensity, duration); break;
-                case SanityEffectType.Scp1853: player.EnableEffect<CustomPlayerEffects.Scp1853>(intensity, duration); break;
-                case SanityEffectType.CardiacArrest: player.EnableEffect<CustomPlayerEffects.CardiacArrest>(intensity, duration); break;
-                case SanityEffectType.InsufficientLighting: player.EnableEffect<CustomPlayerEffects.InsufficientLighting>(intensity, duration); break;
-                case SanityEffectType.SoundtrackMute: player.EnableEffect<CustomPlayerEffects.SoundtrackMute>(intensity, duration); break;
-                case SanityEffectType.SpawnProtected: player.EnableEffect<CustomPlayerEffects.SpawnProtected>(intensity, duration); break;
-                case SanityEffectType.Ensnared: player.EnableEffect<CustomPlayerEffects.Ensnared>(intensity, duration); break;
-                case SanityEffectType.Ghostly: player.EnableEffect<CustomPlayerEffects.Ghostly>(intensity, duration); break;
-                case SanityEffectType.SeveredHands: player.EnableEffect<CustomPlayerEffects.SeveredHands>(intensity, duration); break;
-                case SanityEffectType.Stained: player.EnableEffect<CustomPlayerEffects.Stained>(intensity, duration); break;
-                case SanityEffectType.Vitality: player.EnableEffect<CustomPlayerEffects.Vitality>(intensity, duration); break;
-                case SanityEffectType.Asphyxiated: player.EnableEffect<CustomPlayerEffects.Asphyxiated>(intensity, duration); break;
-                case SanityEffectType.Decontaminating: player.EnableEffect<CustomPlayerEffects.Decontaminating>(intensity, duration); break;
-                case SanityEffectType.PocketCorroding: player.EnableEffect<CustomPlayerEffects.PocketCorroding>(intensity, duration); break;
-                default: throw new ArgumentException($"Unknown effect type: {effectType}");
+                player.SendHint(hintMessage, new[] { new FloatHintParameter(sanity, "F1") });
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogWarn("PlayerSanityHandler.SendSanityHint", $"Instance ID={_instanceId}, Failed to send hint to {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Applies a specific status effect to a player.
+        /// </summary>
+        /// <param name="player">The player to apply the effect to.</param>
+        /// <param name="effectType">The type of effect to apply.</param>
+        /// <param name="intensity">The intensity of the effect.</param>
+        /// <param name="duration">The duration of the effect.</param>
+        private static void ApplyEffect(Player player, SanityEffectType effectType, byte intensity, float duration)
+        {
+            try
+            {
+                switch (effectType)
+                {
+                    case SanityEffectType.Blurred: player.EnableEffect<CustomPlayerEffects.Blurred>(intensity, duration); break;
+                    case SanityEffectType.Blindness: player.EnableEffect<CustomPlayerEffects.Blindness>(intensity, duration); break;
+                    case SanityEffectType.Flashed: player.EnableEffect<CustomPlayerEffects.Flashed>(intensity, duration); break;
+                    case SanityEffectType.Deafened: player.EnableEffect<CustomPlayerEffects.Deafened>(intensity, duration); break;
+                    case SanityEffectType.Slowness: player.EnableEffect<CustomPlayerEffects.Slowness>(intensity, duration); break;
+                    case SanityEffectType.SilentWalk: player.EnableEffect<CustomPlayerEffects.SilentWalk>(intensity, duration); break;
+                    case SanityEffectType.Exhausted: player.EnableEffect<CustomPlayerEffects.Exhausted>(intensity, duration); break;
+                    case SanityEffectType.Disabled: player.EnableEffect<CustomPlayerEffects.Disabled>(intensity, duration); break;
+                    case SanityEffectType.Bleeding: player.EnableEffect<CustomPlayerEffects.Bleeding>(intensity, duration); break;
+                    case SanityEffectType.Poisoned: player.EnableEffect<CustomPlayerEffects.Poisoned>(intensity, duration); break;
+                    case SanityEffectType.Burned: player.EnableEffect<CustomPlayerEffects.Burned>(intensity, duration); break;
+                    case SanityEffectType.Corroding: player.EnableEffect<CustomPlayerEffects.Corroding>(intensity, duration); break;
+                    case SanityEffectType.Concussed: player.EnableEffect<CustomPlayerEffects.Concussed>(intensity, duration); break;
+                    case SanityEffectType.Traumatized: player.EnableEffect<CustomPlayerEffects.Traumatized>(intensity, duration); break;
+                    case SanityEffectType.Invisible: player.EnableEffect<CustomPlayerEffects.Invisible>(intensity, duration); break;
+                    case SanityEffectType.Scp207: player.EnableEffect<CustomPlayerEffects.Scp207>(intensity, duration); break;
+                    case SanityEffectType.AntiScp207: player.EnableEffect<CustomPlayerEffects.AntiScp207>(intensity, duration); break;
+                    case SanityEffectType.MovementBoost: player.EnableEffect<CustomPlayerEffects.MovementBoost>(intensity, duration); break;
+                    case SanityEffectType.DamageReduction: player.EnableEffect<CustomPlayerEffects.DamageReduction>(intensity, duration); break;
+                    case SanityEffectType.RainbowTaste: player.EnableEffect<CustomPlayerEffects.RainbowTaste>(intensity, duration); break;
+                    case SanityEffectType.BodyshotReduction: player.EnableEffect<CustomPlayerEffects.BodyshotReduction>(intensity, duration); break;
+                    case SanityEffectType.Scp1853: player.EnableEffect<CustomPlayerEffects.Scp1853>(intensity, duration); break;
+                    case SanityEffectType.CardiacArrest: player.EnableEffect<CustomPlayerEffects.CardiacArrest>(intensity, duration); break;
+                    case SanityEffectType.InsufficientLighting: player.EnableEffect<CustomPlayerEffects.InsufficientLighting>(intensity, duration); break;
+                    case SanityEffectType.SoundtrackMute: player.EnableEffect<CustomPlayerEffects.SoundtrackMute>(intensity, duration); break;
+                    case SanityEffectType.SpawnProtected: player.EnableEffect<CustomPlayerEffects.SpawnProtected>(intensity, duration); break;
+                    case SanityEffectType.Ensnared: player.EnableEffect<CustomPlayerEffects.Ensnared>(intensity, duration); break;
+                    case SanityEffectType.Ghostly: player.EnableEffect<CustomPlayerEffects.Ghostly>(intensity, duration); break;
+                    case SanityEffectType.SeveredHands: player.EnableEffect<CustomPlayerEffects.SeveredHands>(intensity, duration); break;
+                    case SanityEffectType.Stained: player.EnableEffect<CustomPlayerEffects.Stained>(intensity, duration); break;
+                    case SanityEffectType.Vitality: player.EnableEffect<CustomPlayerEffects.Vitality>(intensity, duration); break;
+                    case SanityEffectType.Asphyxiated: player.EnableEffect<CustomPlayerEffects.Asphyxiated>(intensity, duration); break;
+                    case SanityEffectType.Decontaminating: player.EnableEffect<CustomPlayerEffects.Decontaminating>(intensity, duration); break;
+                    case SanityEffectType.PocketCorroding: player.EnableEffect<CustomPlayerEffects.PocketCorroding>(intensity, duration); break;
+                    default: throw new ArgumentException($"Unknown effect type: {effectType}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("PlayerSanityHandler.ApplyEffect", $"Failed to apply effect {effectType} to {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                throw;
+            }
+        }
+
         #endregion
     }
 }

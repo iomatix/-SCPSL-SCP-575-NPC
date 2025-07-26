@@ -5,24 +5,60 @@
 
     public static class Helpers
     {
+        /// <summary>
+        /// Checks if a player is human and not holding an active light source.
+        /// </summary>
+        /// <param name="player">The player to check.</param>
+        /// <returns>True if the player is human without an active light source, false otherwise.</returns>
         public static bool IsHumanWithoutLight(LabApi.Features.Wrappers.Player player)
         {
-            var exiledPlayer = Library_ExiledAPI.ToExiledPlayer(player);
-            if (!player.IsHuman || exiledPlayer.HasFlashlightModuleEnabled) return false;
+            try
+            {
+                var exiledPlayer = Library_ExiledAPI.ToExiledPlayer(player);
+                if (!player.IsHuman || exiledPlayer.HasFlashlightModuleEnabled) return false;
 
-            if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
-                return !lightItem.IsEmittingLight;
+                if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
+                    return !lightItem.IsEmittingLight;
 
-            return true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogError("Helpers.IsHumanWithoutLight", $"Failed to check player {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
+                return false;
+            }
         }
 
-
+        /// <summary>
+        /// Checks if a player is in a dark room (lights disabled).
+        /// </summary>
+        /// <param name="player">The player to check.</param>
+        /// <returns>True if the player is in a dark room, false otherwise.</returns>
         public static bool IsInDarkRoom(LabApi.Features.Wrappers.Player player)
         {
-            var room = player.Room;
-            if (room?.LightController == null) return false;
-
-            return !room.LightController.LightsEnabled;
+            try
+            {
+                if (player == null)
+                {
+                    Library_ExiledAPI.LogDebug("Helpers.IsInDarkRoom", "Player is null.");
+                    return false;
+                }
+                var room = player.Room;
+                Library_ExiledAPI.LogDebug("Helpers.IsInDarkRoom", $"Player {player.UserId} ({player.Nickname ?? "unknown"}): Room is {(room != null ? "non-null" : "null")}");
+                if (room == null || room.LightController == null)
+                {
+                    Library_ExiledAPI.LogDebug("Helpers.IsInDarkRoom", $"Player {player.UserId} ({player.Nickname ?? "unknown"}): Room or LightController is null, returning false.");
+                    return false;
+                }
+                bool isDark = !room.LightController.LightsEnabled;
+                Library_ExiledAPI.LogDebug("Helpers.IsInDarkRoom", $"Player {player.UserId} ({player.Nickname ?? "unknown"}): LightsEnabled={room.LightController.LightsEnabled}, IsDark={isDark}");
+                return isDark;
+            }
+            catch (Exception ex)
+            {
+                Library_ExiledAPI.LogWarn("Helpers.IsInDarkRoom", $"Failed to check dark room for {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>
