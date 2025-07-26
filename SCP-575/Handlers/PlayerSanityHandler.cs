@@ -1,7 +1,6 @@
 ﻿namespace SCP_575.Handlers
 {
     using Hints;
-    using InventorySystem.Items;
     using LabApi.Events.Arguments.PlayerEvents;
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
@@ -12,7 +11,6 @@
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
-    using CustomPlayerEffects;
 
     /// <summary>
     /// Handles player sanity mechanics such as tracking sanity values, applying decay over time,
@@ -25,6 +23,8 @@
         private readonly Dictionary<string, float> _sanityCache = new();
         private CoroutineHandle _sanityDecayCoroutine;
         private bool _isDisposed = false;
+        private readonly Dictionary<string, DateTime> _lastHintTime = new();
+        private readonly float _hintCooldown;
 
         /// <summary>
         /// Gets the internal sanity cache mapping UserId to current sanity values.
@@ -44,6 +44,7 @@
                 throw new InvalidOperationException("SanityConfig is not initialized.");
 
             _sanityConfig = _plugin.Config.SanityConfig;
+            _hintCooldown = (_plugin.Config.SanityConfig.DecayRateBase * 20f);
         }
 
         /// <summary>
@@ -194,7 +195,6 @@
             while (!_isDisposed)
             {
                 yield return Timing.WaitForSeconds(1f);
-
                 if (_isDisposed) yield break;
 
                 foreach (Player player in Player.List.Where(p => p?.IsAlive == true))
@@ -202,7 +202,6 @@
                     if (!IsPlayerValidForSanitySystem(player)) continue;
 
                     float decayRate = _sanityConfig.DecayRateBase;
-
                     if (_plugin.Npc?.Methods?.IsBlackoutActive == true)
                         decayRate *= _sanityConfig.DecayMultiplierBlackout;
                     if (Library_LabAPI.IsPlayerInDarkRoom(player))
@@ -210,14 +209,23 @@
 
                     float newValue = ChangeSanityValue(player, -decayRate);
 
-                    if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
+                    // Only send hint if enough time has passed  
+                    if (_plugin.Config.HintsConfig.IsEnabledSanityHint &&
+                        ShouldSendHint(player.UserId))
                     {
                         player.SendHint(_plugin.Config.HintsConfig.SanityDecreasedHint,
                             new[] { new FloatHintParameter(newValue, "F1") });
+                        _lastHintTime[player.UserId] = DateTime.Now;
                     }
                 }
             }
         }
+        private bool ShouldSendHint(string userId)
+        {
+            return !_lastHintTime.TryGetValue(userId, out DateTime lastTime) ||
+                   (DateTime.Now - lastTime).TotalSeconds >= _hintCooldown;
+        }
+
 
         /// <summary>  
         /// Applies status effects to a player based on their current sanity stage.  
