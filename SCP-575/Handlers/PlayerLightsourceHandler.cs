@@ -4,7 +4,6 @@ namespace SCP_575.Handlers
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
     using InventorySystem.Items.Firearms;
@@ -32,7 +31,7 @@ namespace SCP_575.Handlers
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _flickerTokens = new();
         private readonly HashSet<string> _flickeringPlayers = new();
         private readonly Random _random = new();
-        private readonly HashSet<string> _playersWithActiveWeaponFlashlight = new();
+        private readonly ConcurrentDictionary<ushort, (bool State, DateTime LastUsed)> _weaponFlashlightStates = new();
         private CoroutineHandle _cleanupCoroutine;
 
         /// <summary>
@@ -40,7 +39,7 @@ namespace SCP_575.Handlers
         /// </summary>
         /// <param name="plugin">The plugin instance providing access to configuration.</param>
         /// <exception cref="ArgumentNullException">Thrown if the plugin instance is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown if configuration is null or properties are missing.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if configuration is null.</exception>
         public PlayerLightsourceHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
@@ -73,6 +72,7 @@ namespace SCP_575.Handlers
             _flickerTokens.Clear();
             _cooldownUntil.Clear();
             _flickeringPlayers.Clear();
+            _weaponFlashlightStates.Clear();
             Library_ExiledAPI.LogInfo("PlayerLightsourceHandler.Dispose", "Disposed lightsource handler.");
         }
 
@@ -108,12 +108,12 @@ namespace SCP_575.Handlers
         }
 
         /// <summary>
-        /// Restricts weapon flashlight toggling during a cooldowns period or active flickers. 
+        /// Restricts weapon flashlight toggling during cooldowns or active flickers.
         /// </summary>
-        /// <param name="ev"> The event arguments containing a player and toggle state. </param>
+        /// <param name="ev">The event arguments containing a player and toggle state.</param>
         public override void OnPlayerTogglingWeaponFlashlight(PlayerTogglingWeaponFlashlightEventArgs ev)
         {
-            if (!IsValidPlayer(ev?.Player) || !IsBlackout()) return;
+            if (!IsValidPlayer(ev?.Player) || !IsBlackout() || !HasFlashlight(ev.FirearmItem)) return;
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
             Library_ExiledAPI.LogDebug("OnPlayerTogglingWeaponFlashlight", $"Weapon flashlight toggle: {ev.Player.Nickname}: IsAllowed={ev.IsAllowed}, NewState={ev.NewState}");
@@ -122,7 +122,7 @@ namespace SCP_575.Handlers
         /// <summary>
         /// Triggers a flicker effect for a flashlight toggled on in a dark room during a blackout.
         /// </summary>
-        /// <param name="ev"> The event arguments containing a player and a flashlight item. </param>
+        /// <param name="ev">The event arguments containing a player and a flashlight item.</param>
         public override void OnPlayerToggledFlashlight(PlayerToggledFlashlightEventArgs ev)
         {
             if (!IsValidPlayer(ev?.Player) || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
@@ -133,20 +133,16 @@ namespace SCP_575.Handlers
         /// <summary>
         /// Triggers a flicker effect for a weapon flashlight toggled on in a dark room during a blackout, if supported.
         /// </summary>
-        /// <param name="ev"> The event arguments containing a player and a firearm item. </param>
+        /// <param name="ev">The event arguments containing a player and a firearm item.</param>
         public override void OnPlayerToggledWeaponFlashlight(PlayerToggledWeaponFlashlightEventArgs ev)
         {
-            // Track weapon flashlight state  
-            if (ev.NewState)
-                _playersWithActiveWeaponFlashlight.Add(ev.Player.UserId);
-            else
-                _playersWithActiveWeaponFlashlight.Remove(ev.Player.UserId);
+            if (!IsValidPlayer(ev?.Player) || !HasFlashlight(ev.FirearmItem)) return;
 
-            // Your existing flicker logic  
-            if (!IsValidPlayer(ev?.Player) || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
-            _ = StartFlickerEffectAsync(ev.Player.UserId, "WeaponFlashlight",
-                () => _playersWithActiveWeaponFlashlight.Contains(ev.Player.UserId),
-                state => ToggleWeaponFlashlightViaEvent(ev.FirearmItem, state));
+            _weaponFlashlightStates[ev.FirearmItem.Serial] = (ev.NewState, DateTime.UtcNow);
+
+            if (!ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
+
+            _ = StartFlickerEffectAsync(ev.Player.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(ev.FirearmItem), state => ToggleWeaponFlashlight(ev.FirearmItem, state, nameof(OnPlayerToggledWeaponFlashlight)));
         }
 
         #endregion
@@ -186,7 +182,7 @@ namespace SCP_575.Handlers
             if (!IsValidPlayer(player)) return;
 
             ApplyCooldown(player);
-            player.SendHint(_plugin.Config.HintsConfig.LightEmitterDisabledHint, 1.75f);
+            player.SendHint(_plugin.Config.HintsConfig.LightEmitterCooldownHint, 1.75f);
             Library_ExiledAPI.LogDebug("ForceCooldown", $"Forced cooldown on {player.Nickname}");
         }
 
@@ -235,6 +231,8 @@ namespace SCP_575.Handlers
         private float CleanupInterval => _plugin.Config?.HandlerCleanupInterval ?? 160f;
 
         private TimeSpan CooldownDuration => TimeSpan.FromSeconds(Math.Max(1, _config.KeterLightsourceCooldown));
+
+        private TimeSpan WeaponStateTimeout => TimeSpan.FromMinutes(5);
 
         private void ApplyCooldown(Player player)
         {
@@ -317,21 +315,10 @@ namespace SCP_575.Handlers
 
         private bool GetWeaponFlashlightState(FirearmItem firearm)
         {
-            // Simplified - just check if player has active weapon flashlight  
-            var player = Player.List.FirstOrDefault(p => p.CurrentItem == firearm);
-            return player != null && _playersWithActiveWeaponFlashlight.Contains(player.UserId);
-        }
+            if (!HasFlashlight(firearm))
+                return false;
 
-        private void ToggleWeaponFlashlightViaEvent(FirearmItem firearm, bool enabled)
-        {
-            // Use LabAPI's network message system directly  
-            new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-            Library_ExiledAPI.LogDebug("ToggleWeaponFlashlight", $"Toggled weapon flashlight to {enabled} via network message.");
-        }
-
-        public bool HasActiveWeaponFlashlight(string userId)
-        {
-            return _playersWithActiveWeaponFlashlight.Contains(userId);
+            return _weaponFlashlightStates.TryGetValue(firearm.Serial, out var state) && state.State;
         }
 
         private void ToggleWeaponFlashlight(FirearmItem firearm, bool enabled, string context)
@@ -339,11 +326,9 @@ namespace SCP_575.Handlers
             if (!HasFlashlight(firearm))
                 return;
 
-            var attachments = firearm.Base.Attachments;
-            var flashlightAttachment = attachments.First(a => a.Name == AttachmentName.Flashlight);
-
+            _weaponFlashlightStates[firearm.Serial] = (enabled, DateTime.UtcNow);
             new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-            Library_ExiledAPI.LogDebug("ToggleWeaponFlashlight", $"Toggled flashlight emission state to {enabled} for {firearm.Base.GetType().Name} in context {context}.");
+            Library_ExiledAPI.LogDebug("ToggleWeaponFlashlight", $"Toggled flashlight emission state to {enabled} for {firearm.Base.GetType().Name} (Serial: {firearm.Serial}) in context {context}.");
         }
 
         private IEnumerator<float> CleanupCoroutine()
@@ -362,7 +347,12 @@ namespace SCP_575.Handlers
                         cts.Dispose();
                     }
 
-                Library_ExiledAPI.LogDebug("CleanupCoroutine", "Completed cleanup of expired cooldowns and flicker tokens.");
+                // Clean up stale weapon flashlight states after timeout
+                var stateCutoff = DateTime.UtcNow - WeaponStateTimeout;
+                foreach (var kvp in _weaponFlashlightStates.Where(k => k.Value.LastUsed < stateCutoff).ToList())
+                    _weaponFlashlightStates.TryRemove(kvp.Key, out _);
+
+                Library_ExiledAPI.LogDebug("CleanupCoroutine", "Completed cleanup of expired cooldowns, flicker tokens, and weapon flashlight states.");
             }
         }
 
