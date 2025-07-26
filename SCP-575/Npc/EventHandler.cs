@@ -41,6 +41,7 @@ namespace SCP_575.Npc
         {
             try
             {
+                _plugin.IsEventActive = false;
                 float roll = Library_ExiledAPI.Loader_Random_Next(100);
                 Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}");
 

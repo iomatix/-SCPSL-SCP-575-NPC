@@ -124,6 +124,7 @@ namespace SCP_575
         {
             try
             {
+                _isEventActive = false;
                 foreach (CoroutineHandle handle in _eventHandler?.Coroutines ?? new List<CoroutineHandle>())
                 {
                     Timing.KillCoroutines(handle);
