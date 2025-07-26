@@ -203,8 +203,9 @@
             if (!IsValidPlayer(player)) return;
 
             var stage = GetCurrentSanityStage(player);
+            Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"{player.DisplayName} sanity stage is {stage} with {stage.DamageOnStrike} damage and {stage.Effects.Count} effects");
+            if (Helpers.IsHumanWithoutLight(player) && stage.DamageOnStrike > 0) Scp575DamageSystem.DamagePlayer(player, stage.DamageOnStrike);
             if (stage?.Effects == null) return;
-            if (stage.DamageOnStrike > 0) Scp575DamageSystem.DamagePlayer(player, stage.DamageOnStrike);
             foreach (var effectConfig in stage.Effects)
             {
                 try

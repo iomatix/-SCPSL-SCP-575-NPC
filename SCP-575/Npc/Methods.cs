@@ -443,31 +443,12 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
                 foreach (var player in LabApi.Features.Wrappers.Player.ReadyList)
                 {
-                    if (!IsInDarkRoom(player) || !IsBlackoutActive) continue;
-                    if (IsHumanWithoutLight(player)) _sanityHandler.ApplyStageEffects(player);
+                    if (!Helpers.IsInDarkRoom(player) || !IsBlackoutActive) continue;
+                    _sanityHandler.ApplyStageEffects(player);
                     Timing.CallDelayed(1.75f, () => PlayRandomAudioEffect(player));
                     _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
                 }
             }
-        }
-
-        private bool IsHumanWithoutLight(LabApi.Features.Wrappers.Player player)
-        {
-            var exiledPlayer = Library_ExiledAPI.ToExiledPlayer(player);
-            if (!player.IsHuman || exiledPlayer.HasFlashlightModuleEnabled) return false;
-
-            if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
-                return !lightItem.IsEmittingLight;
-
-            return true;
-        }
-
-        private bool IsInDarkRoom(LabApi.Features.Wrappers.Player player)
-        {
-            var room = player.Room;
-            if (room?.LightController == null) return false;
-
-            return !room.LightController.LightsEnabled;
         }
 
         private void PlayRandomAudioEffect(LabApi.Features.Wrappers.Player player)

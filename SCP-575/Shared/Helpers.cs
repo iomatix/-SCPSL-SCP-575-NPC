@@ -5,6 +5,25 @@
 
     public static class Helpers
     {
+        public static bool IsHumanWithoutLight(LabApi.Features.Wrappers.Player player)
+        {
+            var exiledPlayer = Library_ExiledAPI.ToExiledPlayer(player);
+            if (!player.IsHuman || exiledPlayer.HasFlashlightModuleEnabled) return false;
+
+            if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
+                return !lightItem.IsEmittingLight;
+
+            return true;
+        }
+
+
+        public static bool IsInDarkRoom(LabApi.Features.Wrappers.Player player)
+        {
+            var room = player.Room;
+            if (room?.LightController == null) return false;
+
+            return !room.LightController.LightsEnabled;
+        }
 
         /// <summary>
         /// Calculates the Euclidean distance between two 3D points.
