@@ -113,7 +113,12 @@ namespace SCP_575.Handlers
         /// <param name="ev">The event arguments containing a player and toggle state.</param>
         public override void OnPlayerTogglingWeaponFlashlight(PlayerTogglingWeaponFlashlightEventArgs ev)
         {
-            if (!IsValidPlayer(ev?.Player) || !IsBlackout() || !HasFlashlight(ev.FirearmItem)) return;
+            if (!IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !IsBlackout() || !HasFlashlight(ev.FirearmItem))
+            {
+                if (ev?.FirearmItem == null)
+                    Library_ExiledAPI.LogWarn("OnPlayerTogglingWeaponFlashlight", "FirearmItem is null.");
+                return;
+            }
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
             Library_ExiledAPI.LogDebug("OnPlayerTogglingWeaponFlashlight", $"Weapon flashlight toggle: {ev.Player.Nickname}: IsAllowed={ev.IsAllowed}, NewState={ev.NewState}");
@@ -136,7 +141,12 @@ namespace SCP_575.Handlers
         /// <param name="ev">The event arguments containing a player and a firearm item.</param>
         public override void OnPlayerToggledWeaponFlashlight(PlayerToggledWeaponFlashlightEventArgs ev)
         {
-            if (!IsValidPlayer(ev?.Player) || !HasFlashlight(ev.FirearmItem)) return;
+            if (!IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !HasFlashlight(ev.FirearmItem))
+            {
+                if (ev?.FirearmItem == null)
+                    Library_ExiledAPI.LogWarn("OnPlayerToggledWeaponFlashlight", "FirearmItem is null.");
+                return;
+            }
 
             _weaponFlashlightStates[ev.FirearmItem.Serial] = (ev.NewState, DateTime.UtcNow);
 
@@ -337,20 +347,28 @@ namespace SCP_575.Handlers
             {
                 yield return Timing.WaitForSeconds(CleanupInterval);
                 var cutoff = DateTime.UtcNow - CooldownDuration;
-                foreach (var kvp in _cooldownUntil.Where(k => k.Value < cutoff).ToList())
-                    _cooldownUntil.TryRemove(kvp.Key, out _);
+                foreach (var kvp in _cooldownUntil)
+                {
+                    if (kvp.Value < cutoff)
+                        _cooldownUntil.TryRemove(kvp.Key, out _);
+                }
 
-                foreach (var kvp in _flickerTokens.Where(k => !Player.List.Any(p => p.UserId == k.Key)).ToList())
-                    if (_flickerTokens.TryRemove(kvp.Key, out var cts))
+                foreach (var kvp in _flickerTokens)
+                {
+                    if (!Player.List.Any(p => p.UserId == kvp.Key) && _flickerTokens.TryRemove(kvp.Key, out var cts))
                     {
                         cts.Cancel();
                         cts.Dispose();
                     }
+                }
 
                 // Clean up stale weapon flashlight states after timeout
                 var stateCutoff = DateTime.UtcNow - WeaponStateTimeout;
-                foreach (var kvp in _weaponFlashlightStates.Where(k => k.Value.LastUsed < stateCutoff).ToList())
-                    _weaponFlashlightStates.TryRemove(kvp.Key, out _);
+                foreach (var kvp in _weaponFlashlightStates)
+                {
+                    if (kvp.Value.LastUsed < stateCutoff)
+                        _weaponFlashlightStates.TryRemove(kvp.Key, out _);
+                }
 
                 Library_ExiledAPI.LogDebug("CleanupCoroutine", "Completed cleanup of expired cooldowns, flicker tokens, and weapon flashlight states.");
             }
