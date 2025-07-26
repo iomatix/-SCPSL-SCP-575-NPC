@@ -130,13 +130,13 @@
         public PlayerSanityStageConfig GetCurrentSanityStage(Player player)
         {
             float sanity = GetCurrentSanityOfPlayer(player);
-            return Plugin.Singleton.Config.NpcConfig.SanityConfig.SanityStages.FirstOrDefault(stage =>
+            return Plugin.Singleton.Config.SanityConfig.SanityStages.FirstOrDefault(stage =>
                 sanity <= stage.MaxThreshold && sanity > stage.MinThreshold);
         }
 
         public PlayerSanityStageConfig GetCurrentSanityStage(float sanity)
         {
-            return Plugin.Singleton.Config.NpcConfig.SanityConfig.SanityStages.FirstOrDefault(stage =>
+            return Plugin.Singleton.Config.SanityConfig.SanityStages.FirstOrDefault(stage =>
                 sanity <= stage.MaxThreshold && sanity > stage.MinThreshold);
         }
 

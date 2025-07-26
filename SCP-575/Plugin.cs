@@ -2,9 +2,7 @@ namespace SCP_575
 {
     using LabApi.Events.CustomHandlers;
     using MEC;
-    using SCP_575.ConfigObjects;
     using SCP_575.Handlers;
-    using SCP_575.Npc;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio;
 
@@ -14,6 +12,8 @@ namespace SCP_575
     public class Plugin : Exiled.API.Features.Plugin<Config>
     {
         private EventHandler _eventHandler;
+        private PlayerSanityHandler _sanityHandler;
+        private PlayerLightsourceHandler _lightsourceHandler;
         private NestingObjects.Npc _npc;
         private Scp575AudioManager _audioManager;
         private Config _config;
@@ -28,9 +28,17 @@ namespace SCP_575
         /// </summary>
         public EventHandler EventHandler => _eventHandler;
 
-        public PlayerSanityHandler _sanityHandler;
+        /// <summary>
+        /// Gets the event handler of the player sanity mechanics.
+        /// </summary>
 
-        public PlayerLightsourceHandler _lightsourceHandler;
+        public PlayerSanityHandler SanityEventHandler => _sanityHandler;
+
+        /// <summary>
+        /// Gets the event handler of the player lightsource mechanics.
+        /// </summary>
+
+        public PlayerLightsourceHandler LightsourceHandler => _lightsourceHandler;
 
 
         /// <summary>

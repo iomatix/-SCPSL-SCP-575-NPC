@@ -52,17 +52,17 @@
         /// <summary>  
         /// Gets the DamagePenetration factor for futher damage processing.
         /// </summary>  
-        public static float DamagePenetration => Library_LabAPI.NpcConfig.KeterDamagePenetration;
+        public static float DamagePenetration => Plugin.Singleton.Config.NpcConfig.KeterDamagePenetration;
 
         /// <summary>  
         /// Gets the Reason text displayed on the player's death screen.
         /// </summary>  
-        public static string DeathScreenText => Library_LabAPI.NpcConfig.KilledByMessage;
+        public static string DeathScreenText => Plugin.Singleton.Config.HintsConfig.KilledByMessage;
 
         /// <summary>  
         /// Gets the text displayed when inspecting a ragdoll killed by this handler.
         /// </summary>  
-        public static string RagdollInspectText => Library_LabAPI.NpcConfig.RagdollInspectText;
+        public static string RagdollInspectText => Plugin.Singleton.Config.HintsConfig.RagdollInspectText;
 
         /// <summary>  
         /// Gets the CASSIE announcement for deaths caused by this handler.
@@ -295,7 +295,7 @@
             LabApi.Features.Wrappers.Player player
         )
         {
-            Library_ExiledAPI.LogDebug("OnPlayerDying", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
+            Library_ExiledAPI.LogDebug("DropAndPushItems", $"Dropping all items from {player.Nickname}'s inventory called by Server.");
             List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
 
             yield return Timing.WaitForOneFrame;  // let engine spawn pickups
@@ -317,7 +317,7 @@
                 try
                 {
                     rb.linearVelocity = dir * mag;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Library_LabAPI.NpcConfig.KeterDamageVelocityModifier;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
                     Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
                 }
                 catch (Exception ex)
@@ -353,8 +353,8 @@
         public static float CalculateForcePush(float baseValue = 1.0f)
         {
             float randomFactor = UnityEngine.Random.Range(
-                Library_LabAPI.NpcConfig.KeterForceMinModifier,
-                Library_LabAPI.NpcConfig.KeterForceMaxModifier);
+                Plugin.Singleton.Config.NpcConfig.KeterForceMinModifier,
+                Plugin.Singleton.Config.NpcConfig.KeterForceMaxModifier);
 
             return baseValue * randomFactor;
         }
@@ -370,7 +370,7 @@
         /// damage amount to provide realistic physics effects.
         /// Currently unused for ragdolls due to position restoration.
         /// </remarks>
-        public static Vector3 GetRandomUnitSphereVelocity(float baseValue = 1.0f)
+        public static Vector3 GetRandomUnitSphereVelocity(float baseVelocityValue = 1.0f)
         {
             Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
 
@@ -384,9 +384,9 @@
             }
 
             // Apply logarithmic scaling based on damage for realistic force distribution  
-            float modifier = baseValue *
-                           Mathf.Log(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier * Library_LabAPI.NpcConfig.KeterDamage + 1) *
-                           CalculateForcePush(Library_LabAPI.NpcConfig.KeterDamageVelocityModifier);
+            float modifier = baseVelocityValue *
+                           Mathf.Log(Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier) *
+                           CalculateForcePush(Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier);
 
             return randomDirection * modifier;
         }

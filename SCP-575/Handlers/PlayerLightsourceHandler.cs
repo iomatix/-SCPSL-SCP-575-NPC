@@ -48,12 +48,6 @@ namespace SCP_575.Handlers
             if (_plugin.Config == null)
                 throw new InvalidOperationException("Config is not initialized.");
 
-            if (!Plugin.Singleton.Config.NpcConfig.EnableKeterLightsourceCooldown)
-            {
-                Library_ExiledAPI.LogInfo("LightCooldownHandler.Constructor", "EnableKeterLightsourceCooldown is disabled in config.");
-                return;
-            }
-
             _weaponFlashlightDisabled = _attachmentsField == null;
             if (_weaponFlashlightDisabled)
                 Library_ExiledAPI.LogWarn("LightCooldownHandler.Constructor", "Weapon flashlight support disabled due to missing attachments field.");
@@ -64,12 +58,12 @@ namespace SCP_575.Handlers
         /// <summary>
         /// Gets the cleanup interval from configuration, defaulting to 160 seconds if not specified.
         /// </summary>
-        private float CleanupInterval => _plugin.Config.NpcConfig?.HandlerCleanupInterval ?? 160f;
+        private float CleanupInterval => _plugin.Config?.HandlerCleanupInterval ?? 160f;
 
         /// <summary>
         /// Gets the cooldown duration from configuration, defaulting to 1 second if invalid.
         /// </summary>
-        private TimeSpan CooldownDuration => TimeSpan.FromSeconds(Math.Max(1, _plugin.Config.NpcConfig?.KeterLightsourceCooldown ?? 1));
+        private TimeSpan CooldownDuration => TimeSpan.FromSeconds(Math.Max(1, _plugin.Config.LightsourceConfig.KeterLightsourceCooldown));
 
         #region Event Handlers
 
@@ -126,7 +120,7 @@ namespace SCP_575.Handlers
 
                 bool isAllowed = ev.IsAllowed;
                 bool newState = ev.NewState;
-                HandleLightToggling(ev.Player, ref isAllowed, ref newState, _plugin.Config.NpcConfig?.LightEmitterCooldownHint ?? "Cooldown active.");
+                HandleLightToggling(ev.Player, ref isAllowed, ref newState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
                 ev.IsAllowed = isAllowed;
                 ev.NewState = newState;
                 Library_ExiledAPI.LogDebug("OnPlayerTogglingFlashlight", $"Processed flashlight toggle for {ev.Player.Nickname}: IsAllowed={isAllowed}, NewState={newState}");
@@ -159,7 +153,7 @@ namespace SCP_575.Handlers
 
                 bool isAllowed = ev.IsAllowed;
                 bool newState = ev.NewState;
-                HandleLightToggling(ev.Player, ref isAllowed, ref newState, _plugin.Config.NpcConfig?.LightEmitterCooldownHint ?? "Cooldown active.");
+                HandleLightToggling(ev.Player, ref isAllowed, ref newState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
                 ev.IsAllowed = isAllowed;
                 ev.NewState = newState;
                 Library_ExiledAPI.LogDebug("OnPlayerTogglingWeaponFlashlight", $"Processed weapon flashlight toggle for {ev.Player.Nickname}: IsAllowed={isAllowed}, NewState={newState}");
@@ -249,9 +243,6 @@ namespace SCP_575.Handlers
                         _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(OnScp575AttacksPlayer)));
                         break;
                 }
-
-                if (_plugin.Config.NpcConfig?.EnableLightEmitterCooldownHint ?? false)
-                    target.SendHint(_plugin.Config.NpcConfig?.LightEmitterDisabledHint ?? "Your light is disabled!", 1.75f);
             }
             catch (Exception ex)
             {
@@ -275,8 +266,8 @@ namespace SCP_575.Handlers
 
                 _cooldownUntil[player.UserId] = DateTime.Now + CooldownDuration;
                 Library_ExiledAPI.LogDebug("ForceCooldown", $"Forced cooldown on {player.Nickname}");
-                if (_plugin.Config.NpcConfig?.EnableLightEmitterCooldownHint ?? false)
-                    player.SendHint(_plugin.Config.NpcConfig?.LightEmitterDisabledHint ?? "Your light is disabled!", 1.75f);
+
+                    player.SendHint(_plugin.Config.HintsConfig.LightEmitterDisabledHint, 1.75f);
             }
             catch (Exception ex)
             {
@@ -464,8 +455,7 @@ namespace SCP_575.Handlers
                     isAllowed = true;
                     newState = false;
                     Library_ExiledAPI.LogDebug("HandleLightToggling", $"Blocked toggle for {player.Nickname} due to cooldown ({(until - DateTime.Now).TotalSeconds:F1}s left).");
-                    if (_plugin.Config.NpcConfig?.EnableLightEmitterCooldownHint ?? false)
-                        player.SendHint(cooldownMessage, 1.75f);
+                    player.SendHint(cooldownMessage, 1.75f);
                 }
             }
             catch (Exception ex)

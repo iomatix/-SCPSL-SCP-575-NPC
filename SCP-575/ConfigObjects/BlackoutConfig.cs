@@ -10,12 +10,12 @@ namespace SCP_575.ConfigObjects
         /// Gets or sets the percentage chance that a round includes SCP-575 blackout events.
         /// </summary>
         [Description("The chance that a Round even has SCP-575 blackouts")]
-        public float Spawnchance
+        public float EventChance
         {
-            get => _spawnchance;
-            set => _spawnchance = value < 0f ? 0f : value > 100f ? 100f : value;
+            get => _eventChance;
+            set => _eventChance = value < 0f ? 0f : value > 100f ? 100f : value;
         }
-        private float _spawnchance = 55f;
+        private float _eventChance = 55f;
 
         /// <summary>
         /// Whether random blackout events should occur.

@@ -53,13 +53,12 @@
         {
             try
             {
-                if (_plugin.Config.NpcConfig == null)
+                if (Plugin.Singleton.Config.NpcConfig == null)
                 {
                     Library_ExiledAPI.LogError("OnWaitingForPlayers", "NpcConfig is null. Cannot initialize SCP-575.");
                     return;
                 }
 
-                Library_ExiledAPI.LogDebug("OnWaitingForPlayers", $"Spawn check: SpawnType={_plugin.Config.SpawnType}, SpawnChance={_plugin.Config.NpcConfig.SpawnChance}");
                 Library_ExiledAPI.LogInfo("OnWaitingForPlayers", "SCP-575 initialized.");
                 Methods.Init();
 

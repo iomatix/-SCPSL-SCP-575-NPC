@@ -16,9 +16,6 @@
         /// <summary>Gets the singleton instance of the SCP-575 plugin.</summary>
         public static Plugin Plugin => Plugin.Singleton;
 
-        /// <summary>Gets the NPC configuration.</summary>
-        public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
-
         /// <summary>Gets the full configuration object.</summary>
         public static Config Config => Plugin.Config;
 
@@ -64,13 +61,13 @@
             if (exiledRoom != null)
             {
                 exiledRoom.RoomLightController.LightsEnabled = true;
-                exiledRoom.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
+                exiledRoom.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
 
                 foreach (var neighbor in exiledRoom.NearestRooms)
                 {
                     Library_ExiledAPI.LogDebug("EnableAndFlickerRoomLights", $"Also flickering lights in neighbor room: {neighbor.Name}");
                     neighbor.RoomLightController.LightsEnabled = true;
-                    neighbor.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
+                    neighbor.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
                 }
             }
         }
@@ -84,7 +81,7 @@
 
         /// <summary>Sends a glitched Cassie message with configured glitch and jam chances.</summary>
         public static void Cassie_GlitchyMessage(string message) =>
-            Cassie.GlitchyMessage("pitch_1.15 " + message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
+            Cassie.GlitchyMessage("pitch_1.15 " + message, Config.CassieConfig.GlitchChance / 100, Config.CassieConfig.JamChance / 100);
 
         /// <summary>Sends a clean Cassie message with no noise or subtitles.</summary>
         public static void Cassie_Message(string message) =>

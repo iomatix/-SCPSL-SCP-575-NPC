@@ -42,7 +42,7 @@ namespace SCP_575.Npc
                 float roll = Library_ExiledAPI.Loader_Random_Next(100);
                 Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}");
 
-                if (roll <= Library_LabAPI.NpcConfig.SpawnChance)
+                if (roll <= Plugin.Singleton.Config.BlackoutConfig.EventChance)
                 {
                     Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "OnRoundStart: SCP-575 NPC spawning due to roll being within spawn chance.");
                     Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.RunBlackoutTimer()));
@@ -125,7 +125,7 @@ namespace SCP_575.Npc
                     {
                         Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamDying, lifespan: 25f);
                     });
-                    if (Library_LabAPI.NpcConfig.IsNpcKillable)
+                    if (Plugin.Singleton.Config.NpcConfig.IsNpcKillable)
                     {
                         _plugin.Npc.Methods.Kill575();
                     }

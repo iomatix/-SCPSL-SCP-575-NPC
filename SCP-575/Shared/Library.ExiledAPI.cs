@@ -25,9 +25,6 @@
         /// <summary>Gets the NPC Methods section of the plugin.</summary>
         public static Methods Methods => Plugin.Npc.Methods;
 
-        /// <summary>Gets the NPC configuration section of the plugin.</summary>
-        public static NpcConfig NpcConfig => Plugin.Config.NpcConfig;
-
         /// <summary>Gets the root plugin configuration object.</summary>
         public static SCP_575.Config Config => Plugin.Config;
 
@@ -65,7 +62,7 @@
 
         /// <summary>Sends a glitched Cassie message with configured glitch and jam chances.</summary>
         public static void Cassie_GlitchyMessage(string message) =>
-            Cassie.GlitchyMessage("pitch_1.15 " + message, NpcConfig.GlitchChance / 100, NpcConfig.JamChance / 100);
+            Cassie.GlitchyMessage("pitch_1.15 " + message, Config.CassieConfig.GlitchChance / 100, Config.CassieConfig.JamChance / 100);
 
         /// <summary>Sends a clean Cassie message with no noise or subtitles.</summary>
         public static void Cassie_Message(string message) =>
@@ -107,7 +104,7 @@
                 LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
                 r.AreLightsOff = false;
-                r.RoomLightController.ServerFlickerLights(NpcConfig.FlickerLightsDuration);
+                r.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
             }
 
 
@@ -134,7 +131,7 @@
             {
                 LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
-                float blackoutDuration = blackoutDurationBase + ((NpcConfig.DurationMin + NpcConfig.DurationMax) / 2f);
+                float blackoutDuration = blackoutDurationBase + ((Config.BlackoutConfig.DurationMin + Config.BlackoutConfig.DurationMax) / 2f);
 
                 bool attemptResult = Methods.AttemptRoomBlackout(r, blackoutDuration, isCassieSilent: true, isForced: true);
                 if (attemptResult)
