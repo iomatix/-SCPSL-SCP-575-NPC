@@ -451,10 +451,20 @@ namespace SCP_575.Npc
             return player.CurrentRoom?.AreLightsOff ?? false;
         }
 
-        // TODO: KeterDamage -> Sanity System, checks if in the dark room -> sanity goes down
-        // -> less sanity eq more negative effects and damage while SCP 575 strikes
-        // Sanity regens only with pills (configurable random e.g. 2-10%) and SCP-500 (configrable default 100%)
-        // E.g.
+        /// <summary>  
+        /// Executes the primary SCP-575 attack sequence, applying sanity-based damage and effects to players.  
+        /// This coroutine runs continuously during blackout events, targeting players based on their current  
+        /// sanity levels and applying progressive damage scaling with blackout intensity.  
+        /// </summary>  
+        /// <returns>An enumerator for the coroutine execution.</returns>  
+        /// <remarks>  
+        /// The method performs the following operations:  
+        /// - Evaluates each alive human player's current sanity stage  
+        /// - Applies sanity-appropriate status effects (blurred vision, deafness, etc.)  
+        /// - Calculates damage based on sanity stage and blackout stack multiplier  
+        /// - Triggers immersive audio effects with randomized selection  
+        /// - Integrates with the lightsource handler for attack-based light disruption  
+        /// </remarks>  
         public IEnumerator<float> KeterAction()
         {
             while (true)
@@ -463,13 +473,14 @@ namespace SCP_575.Npc
 
                 foreach (LabApi.Features.Wrappers.Player player in LabApi.Features.Wrappers.Player.ReadyList.Where(p => (p.IsAlive && p.IsHuman)))
                 {
-                    PlayerSanityStageConfig stage = _sanityHandler.GetCurrentSanityStage(player); // Find matching config
+                    PlayerSanityStageConfig stage = _sanityHandler.GetCurrentSanityStage(player);
                     if (stage == null) continue;
+
                     if (IsBlackoutActive && stage.DamageOnStrike > 0)
                     {
                         if (player.IsAlive)
                         {
-                            // TODO better audio immersion
+                            // Trigger immersive audio effects with delay for atmospheric buildup  
                             Timing.CallDelayed(1.75f, () =>
                             {
                                 var audioOptions = new AudioKey[]
@@ -483,14 +494,19 @@ namespace SCP_575.Npc
                                 var randomIndex = UnityEngine.Random.Range(0, audioOptions.Length);
                                 var selectedClip = audioOptions[randomIndex];
 
-                                Plugin.Singleton.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 25f);
-
+                                _plugin.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 25f);
                             });
 
+                            // Apply sanity-based status effects  
                             _sanityHandler.ApplyStageEffects(player);
+
+                            // Calculate progressive damage based on sanity stage and blackout intensity  
                             float rawDamage = stage.DamageOnStrike * _blackoutStacks;
                             float clampedDamage = Mathf.Max(rawDamage, 1f);
+
+                            // Execute damage and trigger lightsource disruption  
                             Scp575DamageSystem.DamagePlayer(player, clampedDamage);
+                            _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
                         }
                     }
                 }

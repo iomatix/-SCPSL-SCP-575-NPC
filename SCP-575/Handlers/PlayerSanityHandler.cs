@@ -219,10 +219,10 @@
             }
         }
 
-        /// <summary>
-        /// Applies status effects to a player based on their current sanity stage.
-        /// </summary>
-        /// <param name="player">The player to apply effects to.</param>
+        /// <summary>  
+        /// Applies status effects to a player based on their current sanity stage.  
+        /// </summary>  
+        /// <param name="player">The player to apply effects to.</param>  
         public void ApplyStageEffects(Player player)
         {
             if (player == null) return;
@@ -234,24 +234,140 @@
             {
                 try
                 {
-                    // Use LabAPI's proper EnableEffect method signature  
-                    if (effectConfig.EffectType.IsSubclassOf(typeof(StatusEffectBase)))
-                    {
-                        var method = typeof(Player).GetMethod("EnableEffect", new[] { typeof(byte), typeof(float), typeof(bool) })
-                                                  ?.MakeGenericMethod(effectConfig.EffectType);
-
-                        method?.Invoke(player, new object[] {
-                            effectConfig.Intensity,
-                            effectConfig.Duration,
-                            false
-                        });
-                    }
+                    // Use direct method calls instead of reflection for better performance  
+                    ApplyEffectDirect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
                 }
                 catch (Exception ex)
                 {
                     Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects",
-                        $"Failed to apply effect {effectConfig.EffectType.Name}: {ex.Message}");
+                        $"Failed to apply effect {effectConfig.EffectType}: {ex.Message}");
                 }
+            }
+        }
+
+        /// <summary>  
+        /// Applies a specific effect type directly without reflection for optimal performance.  
+        /// </summary>  
+        private static void ApplyEffectDirect(Player player, SanityEffectType effectType, byte intensity, float duration)
+        {
+            switch (effectType)
+            {
+                // Visual Effects  
+                case SanityEffectType.Blurred:
+                    player.EnableEffect<CustomPlayerEffects.Blurred>(intensity, duration);
+                    break;
+                case SanityEffectType.Blindness:
+                    player.EnableEffect<CustomPlayerEffects.Blindness>(intensity, duration);
+                    break;
+                case SanityEffectType.Flashed:
+                    player.EnableEffect<CustomPlayerEffects.Flashed>(intensity, duration);
+                    break;
+
+                // Audio Effects  
+                case SanityEffectType.Deafened:
+                    player.EnableEffect<CustomPlayerEffects.Deafened>(intensity, duration);
+                    break;
+
+                // Movement Effects  
+                case SanityEffectType.Slowness:
+                    player.EnableEffect<CustomPlayerEffects.Slowness>(intensity, duration);
+                    break;
+                case SanityEffectType.SilentWalk:
+                    player.EnableEffect<CustomPlayerEffects.SilentWalk>(intensity, duration);
+                    break;
+                case SanityEffectType.Exhausted:
+                    player.EnableEffect<CustomPlayerEffects.Exhausted>(intensity, duration);
+                    break;
+                case SanityEffectType.Disabled:
+                    player.EnableEffect<CustomPlayerEffects.Disabled>(intensity, duration);
+                    break;
+
+                // Health Effects  
+                case SanityEffectType.Bleeding:
+                    player.EnableEffect<CustomPlayerEffects.Bleeding>(intensity, duration);
+                    break;
+                case SanityEffectType.Poisoned:
+                    player.EnableEffect<CustomPlayerEffects.Poisoned>(intensity, duration);
+                    break;
+                case SanityEffectType.Burned:
+                    player.EnableEffect<CustomPlayerEffects.Burned>(intensity, duration);
+                    break;
+                case SanityEffectType.Corroding:
+                    player.EnableEffect<CustomPlayerEffects.Corroding>(intensity, duration);
+                    break;
+
+                // Mental Effects  
+                case SanityEffectType.Concussed:
+                    player.EnableEffect<CustomPlayerEffects.Concussed>(intensity, duration);
+                    break;
+                case SanityEffectType.Traumatized:
+                    player.EnableEffect<CustomPlayerEffects.Traumatized>(intensity, duration);
+                    break;
+
+                // Special Effects  
+                case SanityEffectType.Invisible:
+                    player.EnableEffect<CustomPlayerEffects.Invisible>(intensity, duration);
+                    break;
+                case SanityEffectType.Scp207:
+                    player.EnableEffect<CustomPlayerEffects.Scp207>(intensity, duration);
+                    break;
+                case SanityEffectType.AntiScp207:
+                    player.EnableEffect<CustomPlayerEffects.AntiScp207>(intensity, duration);
+                    break;
+                case SanityEffectType.MovementBoost:
+                    player.EnableEffect<CustomPlayerEffects.MovementBoost>(intensity, duration);
+                    break;
+                case SanityEffectType.DamageReduction:
+                    player.EnableEffect<CustomPlayerEffects.DamageReduction>(intensity, duration);
+                    break;
+                case SanityEffectType.RainbowTaste:
+                    player.EnableEffect<CustomPlayerEffects.RainbowTaste>(intensity, duration);
+                    break;
+                case SanityEffectType.BodyshotReduction:
+                    player.EnableEffect<CustomPlayerEffects.BodyshotReduction>(intensity, duration);
+                    break;
+                case SanityEffectType.Scp1853:
+                    player.EnableEffect<CustomPlayerEffects.Scp1853>(intensity, duration);
+                    break;
+                case SanityEffectType.CardiacArrest:
+                    player.EnableEffect<CustomPlayerEffects.CardiacArrest>(intensity, duration);
+                    break;
+                case SanityEffectType.InsufficientLighting:
+                    player.EnableEffect<CustomPlayerEffects.InsufficientLighting>(intensity, duration);
+                    break;
+                case SanityEffectType.SoundtrackMute:
+                    player.EnableEffect<CustomPlayerEffects.SoundtrackMute>(intensity, duration);
+                    break;
+                case SanityEffectType.SpawnProtected:
+                    player.EnableEffect<CustomPlayerEffects.SpawnProtected>(intensity, duration);
+                    break;
+                case SanityEffectType.Ensnared:
+                    player.EnableEffect<CustomPlayerEffects.Ensnared>(intensity, duration);
+                    break;
+                case SanityEffectType.Ghostly:
+                    player.EnableEffect<CustomPlayerEffects.Ghostly>(intensity, duration);
+                    break;
+                case SanityEffectType.SeveredHands:
+                    player.EnableEffect<CustomPlayerEffects.SeveredHands>(intensity, duration);
+                    break;
+                case SanityEffectType.Stained:
+                    player.EnableEffect<CustomPlayerEffects.Stained>(intensity, duration);
+                    break;
+                case SanityEffectType.Vitality:
+                    player.EnableEffect<CustomPlayerEffects.Vitality>(intensity, duration);
+                    break;
+                case SanityEffectType.Asphyxiated:
+                    player.EnableEffect<CustomPlayerEffects.Asphyxiated>(intensity, duration);
+                    break;
+                case SanityEffectType.Decontaminating:
+                    player.EnableEffect<CustomPlayerEffects.Decontaminating>(intensity, duration);
+                    break;
+                case SanityEffectType.PocketCorroding:
+                    player.EnableEffect<CustomPlayerEffects.PocketCorroding>(intensity, duration);
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unknown effect type: {effectType}");
             }
         }
 

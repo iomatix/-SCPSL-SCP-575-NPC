@@ -79,85 +79,83 @@
         /// </summary>
         [Description("Stages of sanity and their associated effects.")]
         public List<PlayerSanityStageConfig> SanityStages { get; set; } = new()
+{
+    new PlayerSanityStageConfig
+    {
+        MinThreshold = 75f,
+        MaxThreshold = 100f,
+        DamageOnStrike = 0f,
+        Effects = new()
         {
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 75f,
-                MaxThreshold = 100f,
-                DamageOnStrike = 0f,
-                Effects = new()
-                {
-                    new() { EffectType = typeof(SilentWalk), Duration = 5f, Intensity = 3 },
-                    new() { EffectType = typeof(Slowness), Duration = 1.25f, Intensity = 30 },
-                    new() { EffectType = typeof(Disabled), Duration = 5f},
-                    new() { EffectType = typeof(Traumatized), Duration = 5f},
-                    new() { EffectType = typeof(Blurred), Duration = 1f},
-                    new() { EffectType = typeof(Concussed), Duration = 2f},
-                    new() { EffectType = typeof(Blindness), Duration = 0.45f},
-                    new() { EffectType = typeof(Deafened), Duration = 0.55f},
-                    new() { EffectType = typeof(Flashed), Duration = 0.15f },
-                }
-            },
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 50f,
-                MaxThreshold = 75f,
-                DamageOnStrike = 5f,
-                Effects = new()
-                {
-                    new() { EffectType = typeof(SilentWalk), Duration = 5f, Intensity = 7 },
-                    new() { EffectType = typeof(Slowness), Duration = 1.65f, Intensity = 40 },
-                    new() { EffectType = typeof(Disabled), Duration = 7f},
-                    new() { EffectType = typeof(Traumatized), Duration = 7f},
-                    new() { EffectType = typeof(Exhausted), Duration = 1.5f},
-                    new() { EffectType = typeof(Blurred), Duration = 2f},
-                    new() { EffectType = typeof(Concussed), Duration = 3f},
-                    new() { EffectType = typeof(Blindness), Duration = 0.75f},
-                    new() { EffectType = typeof(Deafened), Duration = 1.25f},
-                    new() { EffectType = typeof(Flashed), Duration = 0.25f },
-                }
-            },
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 25f,
-                MaxThreshold = 50f,
-                DamageOnStrike = 12f,
-                Effects = new()
-                {
-                    new() { EffectType = typeof(SilentWalk), Duration = 5f, Intensity = 9 },
-                    new() { EffectType = typeof(Slowness), Duration = 2.45f, Intensity = 60 },
-                    new() { EffectType = typeof(Disabled), Duration = 10f},
-                    new() { EffectType = typeof(Traumatized), Duration = 10f},
-                    new() { EffectType = typeof(Exhausted), Duration = 2.5f},
-                    new() { EffectType = typeof(Blurred), Duration = 5f},
-                    new() { EffectType = typeof(Concussed), Duration = 8f},
-                    new() { EffectType = typeof(Blindness), Duration = 1.25f},
-                    new() { EffectType = typeof(Deafened), Duration = 2.25f},
-                    new() { EffectType = typeof(Flashed), Duration = 0.35f },
-
-
-                }
-            },
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 0f,
-                MaxThreshold = 25f,
-                DamageOnStrike = 25f,
-                Effects = new()
-                {
-                    new() { EffectType = typeof(SilentWalk), Duration = 5f, Intensity = 10 },
-                    new() { EffectType = typeof(Slowness), Duration = 3.25f, Intensity = 70 },
-                    new() { EffectType = typeof(Disabled), Duration = 20f},
-                    new() { EffectType = typeof(Traumatized), Duration = 20f},
-                    new() { EffectType = typeof(Exhausted), Duration = 4.75f},
-                    new() { EffectType = typeof(Blurred), Duration = 7f},
-                    new() { EffectType = typeof(Concussed), Duration = 10f},
-                    new() { EffectType = typeof(Blindness), Duration = 1.45f},
-                    new() { EffectType = typeof(Deafened), Duration = 3.5f},
-                    new() { EffectType = typeof(Flashed), Duration = 0.65f },
-                }
-            },
-        };
+            new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 3 },
+            new() { EffectType = SanityEffectType.Slowness, Duration = 1.25f, Intensity = 30 },
+            new() { EffectType = SanityEffectType.Disabled, Duration = 5f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Traumatized, Duration = 5f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Blurred, Duration = 1f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Concussed, Duration = 2f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Blindness, Duration = 0.45f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Deafened, Duration = 0.55f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Flashed, Duration = 0.15f, Intensity = 1 },
+        }
+    },
+    new PlayerSanityStageConfig
+    {
+        MinThreshold = 50f,
+        MaxThreshold = 75f,
+        DamageOnStrike = 5f,
+        Effects = new()
+        {
+            new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 7 },
+            new() { EffectType = SanityEffectType.Slowness, Duration = 1.65f, Intensity = 40 },
+            new() { EffectType = SanityEffectType.Disabled, Duration = 7f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Traumatized, Duration = 7f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Exhausted, Duration = 1.5f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Blurred, Duration = 2f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Concussed, Duration = 3f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Blindness, Duration = 0.75f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Deafened, Duration = 1.25f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Flashed, Duration = 0.25f, Intensity = 1 },
+        }
+    },
+    new PlayerSanityStageConfig
+    {
+        MinThreshold = 25f,
+        MaxThreshold = 50f,
+        DamageOnStrike = 12f,
+        Effects = new()
+        {
+            new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 9 },
+            new() { EffectType = SanityEffectType.Slowness, Duration = 2.45f, Intensity = 55 },
+            new() { EffectType = SanityEffectType.Disabled, Duration = 10f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Traumatized, Duration = 10f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Exhausted, Duration = 2.5f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Blurred, Duration = 5f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Concussed, Duration = 8f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Blindness, Duration = 1.25f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Deafened, Duration = 2.25f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Flashed, Duration = 0.35f, Intensity = 1 },
+        }
+    },
+    new PlayerSanityStageConfig
+    {
+        MinThreshold = 0f,
+        MaxThreshold = 25f,
+        DamageOnStrike = 25f,
+        Effects = new()
+        {
+            new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 10 },
+            new() { EffectType = SanityEffectType.Slowness, Duration = 3.25f, Intensity = 70 },
+            new() { EffectType = SanityEffectType.Disabled, Duration = 20f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Traumatized, Duration = 20f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Exhausted, Duration = 4.75f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Blurred, Duration = 7f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Concussed, Duration = 10f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Blindness, Duration = 1.45f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Deafened, Duration = 3.5f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Flashed, Duration = 0.65f, Intensity = 1 },
+        }
+    },
+};
 
         #endregion
     }
