@@ -119,6 +119,30 @@
         }
 
         /// <summary>
+        /// Initializes a player's sanity to the configured starting value upon spawning.
+        /// </summary>
+        /// <param name="ev">Event arguments containing the player reference.</param>
+        public override void OnPlayerChangedRole(PlayerChangedRoleEventArgs ev)
+        {
+            if (!_plugin.IsEventActive) return;
+            if (!IsValidPlayer(ev?.Player)) return;
+
+            string userId = NormalizeUserId(ev.Player.UserId);
+            lock (_cacheLock)
+            {
+                if (!_sanityCache.ContainsKey(userId))
+                {
+                    _sanityCache[userId] = _sanityConfig.InitialSanity;
+                    Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Instance ID={_instanceId}, Initialized sanity for {userId} ({ev.Player.Nickname}) to {_sanityConfig.InitialSanity}.");
+                }
+                else
+                {
+                    Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerSpawned", $"Instance ID={_instanceId}, Sanity already initialized for {userId} ({ev.Player.Nickname}), current value: {_sanityCache[userId]}.");
+                }
+            }
+        }
+
+        /// <summary>
         /// Restores sanity when a player uses specific items (e.g., SCP-500, Painkillers).
         /// </summary>
         /// <param name="ev">Event arguments containing item and player information.</param>
