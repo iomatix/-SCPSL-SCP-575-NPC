@@ -19,6 +19,8 @@ namespace SCP_575
         private Scp575AudioManager _audioManager;
         private Config _config;
 
+        private bool _isEventActive = false;
+
         /// <summary>
         /// Gets the singleton instance of the SCP-575 plugin.
         /// </summary>
@@ -41,6 +43,14 @@ namespace SCP_575
 
         public PlayerLightsourceHandler LightsourceHandler => _lightsourceHandler;
 
+        /// <summary>
+        /// Gets or sets the blackout event status of the current round.
+        /// </summary>
+        public bool IsEventActive
+        {
+            get => _isEventActive;
+            set => _isEventActive = value;
+        }
 
         /// <summary>
         /// Gets the NPC instance for managing SCP-575 behaviors.
@@ -67,7 +77,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override System.Version Version => new(8,1,8);
+        public override System.Version Version => new(8,1,9);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.

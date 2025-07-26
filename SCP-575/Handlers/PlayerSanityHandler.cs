@@ -51,8 +51,14 @@
         /// </summary>
         public void Initialize()
         {
-            if (_isDisposed || _sanityDecayCoroutine.IsRunning) return;
-            _sanityDecayCoroutine = Timing.RunCoroutine(HandleSanityDecay());
+            if (!_plugin.IsEventActive)
+            {
+                this.Dispose();
+                return;
+            }
+            if (_isDisposed) return;
+
+            if(!_sanityDecayCoroutine.IsRunning) _sanityDecayCoroutine = Timing.RunCoroutine(HandleSanityDecay());
             Library_ExiledAPI.LogInfo("PlayerSanityHandler.Initialize", "Sanity decay coroutine started.");
         }
 

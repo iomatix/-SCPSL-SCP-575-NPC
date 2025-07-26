@@ -46,6 +46,7 @@ namespace SCP_575.Npc
 
                 if (roll <= _config.BlackoutConfig.EventChance)
                 {
+                    _plugin.IsEventActive = true;
                     Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "OnRoundStart: SCP-575 NPC spawning due to roll being within spawn chance.");
                     Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.RunBlackoutTimer()));
 

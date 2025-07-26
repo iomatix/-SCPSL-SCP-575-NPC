@@ -33,6 +33,7 @@ namespace SCP_575.Handlers
         private readonly Random _random = new();
         private readonly ConcurrentDictionary<ushort, (bool State, DateTime LastUsed)> _weaponFlashlightStates = new();
         private CoroutineHandle _cleanupCoroutine;
+        private bool _isDisposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PlayerLightsourceHandler"/> class.
@@ -53,8 +54,14 @@ namespace SCP_575.Handlers
         /// </summary>
         public void Initialize()
         {
-            if (_cleanupCoroutine.IsRunning) return;
-            _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
+            if (!_plugin.IsEventActive)
+            {
+                this.Dispose();
+                return;
+            }
+            if (_isDisposed) return;
+
+            if (!_cleanupCoroutine.IsRunning) _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
             Library_ExiledAPI.LogInfo("PlayerLightsourceHandler.Initialize", "Initialized lightsource handler.");
         }
 
@@ -63,6 +70,9 @@ namespace SCP_575.Handlers
         /// </summary>
         public void Dispose()
         {
+            if (_isDisposed) return;
+            _isDisposed = true;
+
             Timing.KillCoroutines(_cleanupCoroutine);
             foreach (var cts in _flickerTokens.Values)
             {

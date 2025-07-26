@@ -222,8 +222,11 @@
             // Play Ambience only for players covered by darkness and if SCP-575 is active.
             if (speaker is ISpeakerWithPlayerFilter filterSpeaker)
             {
+                var lightsOffFilter = AudioManagerAPI.Features.Filters.AudioFilters.IsInRoomWhereLightsAre(false);
 
-                Func<Player, bool> combinedFilter = player => AudioManagerAPI.Features.Filters.AudioFilters.IsInRoomWhereLightsAre(false)(player) && AudioManagerAPI.Features.Filters.AudioFilters.IsConditionTrue(_plugin.Npc.Methods.IsBlackoutActive)(player);
+                Func<Player, bool> combinedFilter = player =>
+                    lightsOffFilter(player) && _plugin.Npc.Methods.IsBlackoutActive;
+
                 filterSpeaker.ValidPlayers = combinedFilter;
             }
             else
