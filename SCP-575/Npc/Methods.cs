@@ -1,4 +1,4 @@
-namespace SCP_575.Npc
+﻿namespace SCP_575.Npc
 {
     using Handlers;
     using MapGeneration;
@@ -9,6 +9,7 @@ namespace SCP_575.Npc
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using UnityEngine;
 
@@ -82,6 +83,11 @@ namespace SCP_575.Npc
         public void Clean()
         {
             Library_ExiledAPI.LogInfo("Clean", "SCP-575 NPC methods cleaned.");
+
+            // Kill CASSIE coroutine  
+            if (_cassieCooldownCoroutine.IsRunning)
+                Timing.KillCoroutines(_cassieCooldownCoroutine);
+
             Plugin.Singleton.AudioManager.StopAmbience();
             _blackoutStacks = 0;
             _triggeredZones.Clear();
@@ -120,14 +126,19 @@ namespace SCP_575.Npc
             yield return Timing.WaitForSeconds(_config.BlackoutConfig.InitialDelay);
             Library_ExiledAPI.LogDebug("RunBlackoutTimer", "SCP-575 NPC blackout timer started.");
 
-            while (true)
+            while (_plugin.IsEventActive)
             {
+                if (!_plugin.IsEventActive) break;
+
                 float delay = _config.BlackoutConfig.RandomEvents
                     ? Library_ExiledAPI.Loader_Random_Next(_config.BlackoutConfig.DelayMin, _config.BlackoutConfig.DelayMax)
                     : _config.BlackoutConfig.InitialDelay;
                 yield return Timing.WaitForSeconds(delay);
+                if (!_plugin.IsEventActive) break;
+
                 _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent(), "575BlackoutExec"));
             }
+            Library_ExiledAPI.LogInfo("RunBlackoutTimer", "Blackout timer coroutine stopped.");
         }
 
         private IEnumerator<float> ExecuteBlackoutEvent()
@@ -157,21 +168,23 @@ namespace SCP_575.Npc
             _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration), "575BlackoutFinalize"));
         }
 
-        private async void FlickerAffectedZones(float blackoutDuration)
+
+        private async Task FlickerAffectedZones(float blackoutDuration, CancellationToken cancellationToken = default)
         {
             if (!_config.BlackoutConfig.FlickerLights) return;
 
-            Library_ExiledAPI.LogDebug("FlickerAffectedZones", "Starting smart zone flickering based on blackout configuration.");
-
             var zonesToFlicker = GetZonesToFlicker();
-            var flickerTasks = zonesToFlicker.Select((zone, index) => Task.Run(async () =>
-            {
-                await Task.Delay(index * 200);
-                await FlickerZoneLightsAsync(zone);
-            })).ToList();
+            var flickerTasks = zonesToFlicker.Select((zone, index) =>
+                FlickerZoneLightsAsync(zone, cancellationToken)).ToList();
 
-            await Task.WhenAll(flickerTasks);
-            Library_ExiledAPI.LogDebug("FlickerAffectedZones", "Completed smart zone flickering sequence.");
+            try
+            {
+                await Task.WhenAll(flickerTasks);
+            }
+            catch (OperationCanceledException)
+            {
+                Library_ExiledAPI.LogDebug("FlickerAffectedZones", "Flickering cancelled.");
+            }
         }
 
         private List<FacilityZone> GetZonesToFlicker()
@@ -191,24 +204,38 @@ namespace SCP_575.Npc
             return zones;
         }
 
-        private async Task FlickerZoneLightsAsync(FacilityZone targetZone)
+        private async Task FlickerZoneLightsAsync(FacilityZone targetZone, CancellationToken cancellationToken = default)
         {
             var blackoutColor = new UnityEngine.Color(_config.BlackoutConfig.LightsColorR, _config.BlackoutConfig.LightsColorG, _config.BlackoutConfig.LightsColorB, 1f);
             float flickerInterval = 1f / _config.BlackoutConfig.FlickerFrequency;
             int totalFlickers = Mathf.RoundToInt(_config.BlackoutConfig.FlickerDuration / flickerInterval);
 
-            LabApi.Features.Wrappers.Map.SetColorOfLights(blackoutColor, targetZone);
-
-            for (int i = 0; i < totalFlickers; i++)
+            try
             {
-                LabApi.Features.Wrappers.Map.TurnOffLights(flickerInterval * 0.5f, targetZone);
-                await Task.Delay(Mathf.RoundToInt(flickerInterval * 500));
-                LabApi.Features.Wrappers.Map.TurnOnLights(targetZone);
                 LabApi.Features.Wrappers.Map.SetColorOfLights(blackoutColor, targetZone);
-                await Task.Delay(Mathf.RoundToInt(flickerInterval * 500));
-            }
 
-            LabApi.Features.Wrappers.Map.TurnOffLights(targetZone);
+                for (int i = 0; i < totalFlickers; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    LabApi.Features.Wrappers.Map.TurnOffLights(flickerInterval * 0.5f, targetZone);
+                    await Task.Delay(Mathf.RoundToInt(flickerInterval * 500), cancellationToken);
+
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    LabApi.Features.Wrappers.Map.TurnOnLights(targetZone);
+                    LabApi.Features.Wrappers.Map.SetColorOfLights(blackoutColor, targetZone);
+                    await Task.Delay(Mathf.RoundToInt(flickerInterval * 500), cancellationToken);
+                }
+
+                LabApi.Features.Wrappers.Map.TurnOffLights(targetZone);
+            }
+            catch (OperationCanceledException)
+            {
+                LabApi.Features.Wrappers.Map.TurnOffLights(targetZone);
+                Library_ExiledAPI.LogDebug("FlickerZoneLightsAsync", $"Flickering cancelled for zone {targetZone}");
+                throw;
+            }
         }
 
         private float GetRandomBlackoutDuration()
@@ -437,9 +464,11 @@ namespace SCP_575.Npc
         /// <returns>An enumerator for the coroutine execution.</returns>
         public IEnumerator<float> KeterAction()
         {
-            while (true)
+            while (_plugin.IsEventActive)
             {
                 yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
+                if (!_plugin.IsEventActive) break;
+
                 var players = LabApi.Features.Wrappers.Player.ReadyList.ToList();
                 foreach (LabApi.Features.Wrappers.Player player in players)
                 {

@@ -11,6 +11,7 @@ namespace SCP_575.Handlers
     using InventorySystem.Items.Firearms.Attachments.Components;
     using InventorySystem.Items.ToggleableLights;
     using LabApi.Events.Arguments.PlayerEvents;
+    using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
     using MEC;
@@ -60,15 +61,11 @@ namespace SCP_575.Handlers
             Library_ExiledAPI.LogInfo("PlayerLightsourceHandler.Initialize", "Initialized lightsource handler.");
         }
 
-        /// <summary>
-        /// Disposes the handler, stopping coroutines and clearing resources.
-        /// </summary>
-        public void Dispose()
+        public void Clean()
         {
-            if (_isDisposed) return;
-            _isDisposed = true;
+            if (_cleanupCoroutine.IsRunning)
+                Timing.KillCoroutines(_cleanupCoroutine);
 
-            Timing.KillCoroutines(_cleanupCoroutine);
             foreach (var cts in _flickerTokens.Values)
             {
                 cts?.Cancel();
@@ -78,6 +75,28 @@ namespace SCP_575.Handlers
             _cooldownUntil.Clear();
             _flickeringPlayers.Clear();
             _weaponFlashlightStates.Clear();
+        }
+
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev)
+        {
+            Clean();
+        }
+
+        public override void OnServerWaitingForPlayers()
+        {
+            Clean();
+        }
+
+
+        /// <summary>
+        /// Disposes the handler, stopping coroutines and clearing resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Clean();
+            if (_isDisposed) return;
+            _isDisposed = true;
+
             Library_ExiledAPI.LogInfo("PlayerLightsourceHandler.Dispose", "Disposed lightsource handler.");
         }
 
@@ -352,9 +371,11 @@ namespace SCP_575.Handlers
 
         private IEnumerator<float> CleanupCoroutine()
         {
-            while (true)
+            while (!_isDisposed && _plugin.IsEventActive)
             {
                 yield return Timing.WaitForSeconds(CleanupInterval);
+                if (_isDisposed || !_plugin.IsEventActive) break;
+
                 var cutoff = DateTime.UtcNow - CooldownDuration;
                 foreach (var kvp in _cooldownUntil)
                 {

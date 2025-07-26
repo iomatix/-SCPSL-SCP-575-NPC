@@ -2,6 +2,7 @@
 {
     using Hints;
     using LabApi.Events.Arguments.PlayerEvents;
+    using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
     using MEC;
@@ -71,14 +72,8 @@
             Library_ExiledAPI.LogInfo("PlayerSanityHandler.Initialize", $"Instance ID={_instanceId}, Sanity decay coroutine started.");
         }
 
-        /// <summary>
-        /// Disposes the handler, stopping coroutines and clearing resources.
-        /// </summary>
-        public void Dispose()
+        public void Clean()
         {
-            if (_isDisposed) return;
-
-            _isDisposed = true;
             if (_sanityDecayCoroutine.IsRunning)
                 Timing.KillCoroutines(_sanityDecayCoroutine);
 
@@ -87,7 +82,31 @@
                 _sanityCache.Clear();
                 _lastHintTime.Clear();
             }
+
+        }
+
+        /// <summary>
+        /// Disposes the handler, stopping coroutines and clearing resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Clean();
+            if (_isDisposed) return;
+
+            _isDisposed = true;
+
             Library_ExiledAPI.LogInfo("PlayerSanityHandler.Dispose", $"Instance ID={_instanceId}, Disposed PlayerSanityHandler and cleaned up resources.");
+        }
+
+
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev)
+        {
+            Clean();
+        }
+
+        public override void OnServerWaitingForPlayers()
+        {
+            Clean();
         }
 
         #endregion
@@ -159,6 +178,8 @@
 
             Library_ExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerUsedItem", $"Instance ID={_instanceId}, Restored {restoreAmount} sanity to {ev.Player.UserId} ({ev.Player.Nickname}) with {ev.UsableItem.Type}. New sanity: {newSanity}");
         }
+
+
 
         #endregion
 
@@ -381,9 +402,10 @@
         /// <returns>An enumerator for the MEC coroutine system.</returns>
         private IEnumerator<float> HandleSanityDecay()
         {
-            while (!_isDisposed)
+            while (!_isDisposed && _plugin.IsEventActive)
             {
                 yield return Timing.WaitForSeconds(1f);
+                if (_isDisposed || !_plugin.IsEventActive) break;
 
                 foreach (var player in Player.ReadyList.Where(p => IsPlayerValidForSanitySystem(p)))
                 {
@@ -406,6 +428,7 @@
                     }
                 }
             }
+            Library_ExiledAPI.LogInfo("PlayerSanityHandler.HandleSanityDecay", $"Instance ID={_instanceId}, Sanity decay coroutine stopped.");
         }
 
         /// <summary>

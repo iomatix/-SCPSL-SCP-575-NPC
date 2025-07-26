@@ -1,10 +1,11 @@
 ﻿namespace SCP_575
 {
-    using System;
-    using System.Collections.Generic;
     using MEC;
+    using SCP_575.Handlers;
     using SCP_575.Npc;
     using SCP_575.Shared;
+    using System;
+    using System.Collections.Generic;
     using Systems;
 
     /// <summary>
@@ -93,8 +94,7 @@
         {
             try
             {
-
-                Plugin.Singleton.AudioManager.CleanupAllSpeakers();
+                _plugin.AudioManager.CleanupAllSpeakers();
                 foreach (CoroutineHandle handle in Coroutines)
                 {
                     Timing.KillCoroutines(handle);
