@@ -1,14 +1,5 @@
 namespace SCP_575.Handlers
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Reflection;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using MEC;
-    using Utils.Networking;
     using InventorySystem.Items.Firearms;
     using InventorySystem.Items.Firearms.Attachments;
     using InventorySystem.Items.Firearms.Attachments.Components;
@@ -16,8 +7,18 @@ namespace SCP_575.Handlers
     using LabApi.Events.Arguments.PlayerEvents;
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
-    using SCP_575.Shared;
+    using MEC;
     using SCP_575;
+    using SCP_575.ConfigObjects;
+    using SCP_575.Shared;
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Utils.Networking;
 
     // TODO: Refactor Weapon flashlight handling to same logic like flashlight when LabAPI has it ready: https://github.com/northwood-studios/LabAPI/issues/220?notification_referrer_id=NT_kwDOAMgLkbQxNzY3OTc2MTM2ODoxMzExMDE2MQ#issuecomment-3092327154
 
@@ -28,6 +29,7 @@ namespace SCP_575.Handlers
     public class PlayerLightsourceHandler : CustomEventsHandler, IDisposable
     {
         private readonly Plugin _plugin;
+        private readonly PlayerLightsourceConfig _lightsourceConfig;
         private readonly ConcurrentDictionary<string, DateTime> _cooldownUntil = new();
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _flickerTokens = new();
         private readonly HashSet<string> _flickeringPlayers = new();
@@ -48,6 +50,7 @@ namespace SCP_575.Handlers
             if (_plugin.Config == null)
                 throw new InvalidOperationException("Config is not initialized.");
 
+            _lightsourceConfig = _plugin.Config.LightsourceConfig;
             _weaponFlashlightDisabled = _attachmentsField == null;
             if (_weaponFlashlightDisabled)
                 Library_ExiledAPI.LogWarn("LightCooldownHandler.Constructor", "Weapon flashlight support disabled due to missing attachments field.");
@@ -63,7 +66,7 @@ namespace SCP_575.Handlers
         /// <summary>
         /// Gets the cooldown duration from configuration, defaulting to 1 second if invalid.
         /// </summary>
-        private TimeSpan CooldownDuration => TimeSpan.FromSeconds(Math.Max(1, _plugin.Config.LightsourceConfig.KeterLightsourceCooldown));
+        private TimeSpan CooldownDuration => TimeSpan.FromSeconds(Math.Max(1, _lightsourceConfig.KeterLightsourceCooldown));
 
         #region Event Handlers
 
@@ -112,7 +115,7 @@ namespace SCP_575.Handlers
                     return;
                 }
 
-                if (!Plugin.Singleton.Npc.Methods.IsBlackoutActive)
+                if (!_plugin.Npc.Methods.IsBlackoutActive)
                 {
                     Library_ExiledAPI.LogDebug("OnPlayerTogglingFlashlight", "SCP-575 is not active. Skipping.");
                     return;
@@ -145,7 +148,7 @@ namespace SCP_575.Handlers
                     return;
                 }
 
-                if (!Plugin.Singleton.Npc.Methods.IsBlackoutActive)
+                if (!_plugin.Npc.Methods.IsBlackoutActive)
                 {
                     Library_ExiledAPI.LogDebug("OnPlayerTogglingFlashlight", "SCP-575 is not active. Skipping.");
                     return;

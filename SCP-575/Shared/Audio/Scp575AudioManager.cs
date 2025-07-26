@@ -21,6 +21,7 @@
     /// </summary>
     public class Scp575AudioManager
     {
+        private readonly Plugin _plugin;
         private static IAudioManager sharedAudioManager;
         private const float GLOBAL_SCREAM_COOLDOWN = 35f;
         private DateTime lastGlobalScreamTime = DateTime.MinValue;
@@ -41,8 +42,11 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="Scp575AudioManager"/> class.
         /// </summary>
-        public Scp575AudioManager()
+        /// <param name="plugin">Reference to the main <see cref="Plugin"/> instance.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the plugin instance is null.</exception>
+        public Scp575AudioManager(Plugin plugin)
         {
+            _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             if (sharedAudioManager == null)
             {
                 DefaultAudioManager.RegisterDefaults(cacheSize: 20);
@@ -219,7 +223,7 @@
             if (speaker is ISpeakerWithPlayerFilter filterSpeaker)
             {
 
-                Func<Player, bool> combinedFilter = player => AudioManagerAPI.Features.Filters.AudioFilters.IsInRoomWhereLightsAre(false)(player) && AudioManagerAPI.Features.Filters.AudioFilters.IsConditionTrue(Plugin.Singleton.Npc.Methods.IsBlackoutActive)(player);
+                Func<Player, bool> combinedFilter = player => AudioManagerAPI.Features.Filters.AudioFilters.IsInRoomWhereLightsAre(false)(player) && AudioManagerAPI.Features.Filters.AudioFilters.IsConditionTrue(_plugin.Npc.Methods.IsBlackoutActive)(player);
                 filterSpeaker.ValidPlayers = combinedFilter;
             }
             else

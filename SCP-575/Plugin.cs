@@ -66,7 +66,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override System.Version Version => new(8,1,0);
+        public override System.Version Version => new(8,1,1);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.
@@ -82,7 +82,7 @@ namespace SCP_575
             {
                 Singleton = this;
                 _eventHandler = new EventHandler(this);
-                _audioManager = new Scp575AudioManager();
+                _audioManager = new Scp575AudioManager(this);
                 _npc = new NestingObjects.Npc(this);
                 _config = new Config();
 

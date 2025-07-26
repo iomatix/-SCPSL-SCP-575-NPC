@@ -17,6 +17,7 @@ namespace SCP_575.Npc
     public class EventHandler
     {
         private readonly Plugin _plugin;
+        private readonly Config _config;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EventHandler"/> class.
@@ -25,6 +26,7 @@ namespace SCP_575.Npc
         public EventHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
+            _config = _plugin.Config;
         }
 
         /// <summary>
@@ -42,7 +44,7 @@ namespace SCP_575.Npc
                 float roll = Library_ExiledAPI.Loader_Random_Next(100);
                 Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}");
 
-                if (roll <= Plugin.Singleton.Config.BlackoutConfig.EventChance)
+                if (roll <= _config.BlackoutConfig.EventChance)
                 {
                     Library_ExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "OnRoundStart: SCP-575 NPC spawning due to roll being within spawn chance.");
                     Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.RunBlackoutTimer()));
@@ -116,16 +118,16 @@ namespace SCP_575.Npc
                 Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
 
                 // Play a global angry sound as a creepy audio cue
-                Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
+                _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
 
                 // Check if all generators are engaged to trigger SCP-575 behavior
                 if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
                 {
                     Timing.CallDelayed(3.75f, () =>
                     {
-                        Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamDying, lifespan: 25f);
+                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamDying, lifespan: 25f);
                     });
-                    if (Plugin.Singleton.Config.NpcConfig.IsNpcKillable)
+                    if (_plugin.Config.NpcConfig.IsNpcKillable)
                     {
                         _plugin.Npc.Methods.Kill575();
                     }
@@ -226,8 +228,8 @@ namespace SCP_575.Npc
                     case ScpProjectileImpactType.ProjectileImpactType.Helpful:
                         Library_ExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Helpful impact type used in room: {room.Name}");
                         Library_ExiledAPI.DisableRoomAndNeighborLights(room);
-                        Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.WhispersBang, lifespan: 25f);
-                        Plugin.Singleton.AudioManager.PlayAmbience();
+                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.WhispersBang, lifespan: 25f);
+                        _plugin.AudioManager.PlayAmbience();
                         break;
 
                     case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
@@ -238,13 +240,13 @@ namespace SCP_575.Npc
                         }
                         Library_ExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
                         Library_ExiledAPI.EnableAndFlickerRoomAndNeighborLights(room);
-                        Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
+                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
                         break;
 
                     case ScpProjectileImpactType.ProjectileImpactType.Neutral:
                     case ScpProjectileImpactType.ProjectileImpactType.Unknown:
                         Library_ExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Non-dangerous or unknown impact type: {impactType}");
-                        Plugin.Singleton.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Whispers, lifespan: 25f);
+                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Whispers, lifespan: 25f);
                         break;
 
                     default:
