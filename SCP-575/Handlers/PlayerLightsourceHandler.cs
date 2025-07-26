@@ -96,6 +96,7 @@ namespace SCP_575.Handlers
         /// <param name="ev">Event arguments for the item changed event.</param>
         public override void OnPlayerChangedItem(PlayerChangedItemEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player) || ev.NewItem is not LightItem lightItem || !lightItem.IsEmitting) return;
 
             Timing.CallDelayed(0.05f, () =>
@@ -111,6 +112,7 @@ namespace SCP_575.Handlers
         /// <param name="ev">Event arguments containing player and toggle state.</param>
         public override void OnPlayerTogglingFlashlight(PlayerTogglingFlashlightEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player) || !IsBlackout()) return;
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
@@ -123,6 +125,7 @@ namespace SCP_575.Handlers
         /// <param name="ev">The event arguments containing a player and toggle state.</param>
         public override void OnPlayerTogglingWeaponFlashlight(PlayerTogglingWeaponFlashlightEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !IsBlackout() || !HasFlashlight(ev.FirearmItem))
             {
                 if (ev?.FirearmItem == null)
@@ -140,6 +143,7 @@ namespace SCP_575.Handlers
         /// <param name="ev">The event arguments containing a player and a flashlight item.</param>
         public override void OnPlayerToggledFlashlight(PlayerToggledFlashlightEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player) || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
 
             _ = StartFlickerEffectAsync(ev.Player.UserId, "Flashlight", () => ev.LightItem.IsEmitting, state => ev.LightItem.IsEmitting = state);
@@ -151,6 +155,7 @@ namespace SCP_575.Handlers
         /// <param name="ev">The event arguments containing a player and a firearm item.</param>
         public override void OnPlayerToggledWeaponFlashlight(PlayerToggledWeaponFlashlightEventArgs ev)
         {
+            if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !HasFlashlight(ev.FirearmItem))
             {
                 if (ev?.FirearmItem == null)

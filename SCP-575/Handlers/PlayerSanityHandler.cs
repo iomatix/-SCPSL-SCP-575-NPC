@@ -87,8 +87,7 @@
         /// </summary>
         /// <param name="ev">Event arguments containing the player reference.</param>
         public override void OnPlayerSpawned(PlayerSpawnedEventArgs ev)
-        {
-            base.OnPlayerSpawned(ev);
+        {;
             if (!IsValidPlayer(ev?.Player)) return;
 
             _sanityCache[ev.Player.UserId] = _sanityConfig.InitialSanity;
@@ -101,7 +100,6 @@
         /// <param name="ev">Event arguments containing item and player information.</param>
         public override void OnPlayerUsedItem(PlayerUsedItemEventArgs ev)
         {
-            base.OnPlayerUsedItem(ev);
             if (!IsValidPlayer(ev?.Player) || !IsPlayerValidForSanitySystem(ev.Player) || ev.UsableItem?.Type == null) return;
 
             float restoreAmount = GetItemRestoreAmount(ev.UsableItem.Type);
