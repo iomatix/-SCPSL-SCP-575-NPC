@@ -85,6 +85,7 @@
         MinThreshold = 75f,
         MaxThreshold = 100f,
         DamageOnStrike = 0f,
+        AdditionalDamagePerStack = 0f,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 3 },
@@ -100,7 +101,8 @@
     {
         MinThreshold = 50f,
         MaxThreshold = 75f,
-        DamageOnStrike = 5f,
+        DamageOnStrike = 3f,
+        AdditionalDamagePerStack = 2f,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 7 },
@@ -119,7 +121,8 @@
     {
         MinThreshold = 25f,
         MaxThreshold = 50f,
-        DamageOnStrike = 12f,
+        DamageOnStrike = 6f,
+        AdditionalDamagePerStack = 5f,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 9 },
@@ -138,7 +141,8 @@
     {
         MinThreshold = 0f,
         MaxThreshold = 25f,
-        DamageOnStrike = 18f,
+        DamageOnStrike = 9f,
+        AdditionalDamagePerStack = 8f,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 10 },

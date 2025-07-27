@@ -21,7 +21,7 @@
         private readonly Plugin _plugin;
         private readonly Config _config;
         private readonly NpcConfig _npcConfig;
-        private readonly PlayerLightsourceHandler _lightCooldownHandler;
+        private readonly PlayerLightsourceHandler _lightsourceHandler;
         private readonly PlayerSanityHandler _sanityHandler;
         private readonly HashSet<FacilityZone> _triggeredZones = new();
         private static readonly object BlackoutLock = new();
@@ -46,7 +46,7 @@
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _config = Plugin.Singleton.Config;
             _npcConfig = _config.NpcConfig;
-            _lightCooldownHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler is null.");
+            _lightsourceHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler is null.");
             _sanityHandler = _plugin.SanityEventHandler ?? throw new InvalidOperationException("SanityEventHandler is null.");
             Library_ExiledAPI.LogDebug("Methods.Constructor", $"Initialized Methods with PlayerSanityHandler instance ID={_sanityHandler.GetHashCode()}");
         }
@@ -55,6 +55,11 @@
         /// Gets a value indicating whether a blackout is currently active.
         /// </summary>
         public bool IsBlackoutActive => _blackoutStacks > 0;
+
+        /// <summary>
+        /// Gets a value indicating how many stacks are currently active.
+        /// </summary>
+        public int GetCurrentBlackoutStacks => _blackoutStacks;
 
         #region Lifecycle Management
 
@@ -241,8 +246,8 @@
             }
         }
 
-        private float GetRandomBlackoutDuration()  
-        {  
+        private float GetRandomBlackoutDuration()
+        {
             return UnityEngine.Random.Range(_config.BlackoutConfig.DurationMin, _config.BlackoutConfig.DurationMax);
         }
 
@@ -362,7 +367,7 @@
                 Library_ExiledAPI.LogDebug("HandleRoomBlackout", "Nuke detonation cancelled in HCZ Nuke room.");
             }
 
-            Library_LabAPI.TurnOffRoomLights(room,blackoutDuration);
+            Library_LabAPI.TurnOffRoomLights(room, blackoutDuration);
             Library_ExiledAPI.LogDebug("HandleRoomBlackout", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
         }
 
@@ -553,7 +558,7 @@
                         Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Calling ApplyStageEffects for {player.UserId} ({nickname})");
                         _sanityHandler.ApplyStageEffects(player);
                         PlayRandomAudioEffect(player);
-                        _plugin.LightsourceHandler.OnScp575AttacksPlayer(player);
+                        _lightsourceHandler.ApplyLightsourceEffects(player);
                     }
                     catch (Exception ex)
                     {

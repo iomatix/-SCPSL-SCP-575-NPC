@@ -28,13 +28,13 @@
 
         private readonly Dictionary<AudioKey, (string key, float volume, float minDistance, float maxDistance, bool isSpatial, AudioPriority priority, float defaultLifespan)> audioConfig = new()
         {
-            { AudioKey.Scream, ("scp575.scream", 0.8f, 5f, 50f, true, AudioPriority.High, 15f) },
+            { AudioKey.Scream, ("scp575.scream", 0.85f, 5f, 50f, true, AudioPriority.High, 15f) },
             { AudioKey.ScreamAngry, ("scp575.scream-angry", 0.9f, 5f, 50f, true, AudioPriority.High, 15f) },
             { AudioKey.ScreamDying, ("scp575.scream-dying", 1.0f, 60f, 60f, true, AudioPriority.High, 15f) },
-            { AudioKey.Whispers, ("scp575.whispers", 0.5f, 3f, 30f, true, AudioPriority.Medium, 15f) },
-            { AudioKey.WhispersBang, ("scp575.whispers-bang", 0.6f, 3f, 30f, true, AudioPriority.Medium, 15f) },
-            { AudioKey.WhispersMixed, ("scp575.whispers-mixed", 0.5f, 3f, 30f, true, AudioPriority.Medium, 15f) },
-            { AudioKey.Ambience, ("scp575.ambience", 0.4f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
+            { AudioKey.Whispers, ("scp575.whispers", 0.95f, 3f, 30f, true, AudioPriority.Medium, 15f) },
+            { AudioKey.WhispersBang, ("scp575.whispers-bang", 0.65f, 3f, 30f, true, AudioPriority.Medium, 15f) },
+            { AudioKey.WhispersMixed, ("scp575.whispers-mixed", 0.85f, 3f, 30f, true, AudioPriority.Medium, 15f) },
+            { AudioKey.Ambience, ("scp575.ambience", 0.5f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
         };
 
         /// <summary>
@@ -86,6 +86,12 @@
 
             var config = audioConfig[audioKey];
             Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
+            // Log player position and distance to audio position
+            if (!isNonSpatial && player != null)
+            {
+                float distance = Vector3.Distance(player.Position, playPosition);
+                Log.Debug($"[Scp575AudioManager] Player {player.Nickname} position: {player.Position}, audio position: {playPosition}, distance: {distance:F2}, maxDistance: {config.maxDistance}");
+            }
 
             if (isNonSpatial && (audioKey == AudioKey.Scream || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
@@ -342,9 +348,13 @@
                 sharedAudioManager.RegisterAudio(pair.Value.key, () =>
                 {
                     var stream = assembly.GetManifestResourceStream(resourceName);
-                    if (stream == null)
+                    if (stream == null || stream.Length == 0)
                     {
-                        Log.Error($"[Scp575AudioManager][RegisterAudioResources] Failed to load audio resource: {resourceName}");
+                        Log.Error($"[Scp575AudioManager][RegisterAudioResources] Failed to load audio resource: {resourceName}. Stream is null or empty.");
+                    }
+                    else
+                    {
+                        Log.Debug($"[Scp575AudioManager][RegisterAudioResources] Loaded audio resource: {resourceName}, size: {stream.Length} bytes");
                     }
                     return stream;
                 });

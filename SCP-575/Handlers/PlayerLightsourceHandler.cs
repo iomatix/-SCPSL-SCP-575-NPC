@@ -192,7 +192,7 @@ namespace SCP_575.Handlers
         /// Disables a player's light source, triggers a flicker effect, and applies a cooldown when attacked by SCP-575.
         /// </summary>
         /// <param name="target">The player attacked by SCP-575.</param>
-        public void OnScp575AttacksPlayer(Player target)
+        public void ApplyLightsourceEffects(Player target)
         {
             if (!IsValidPlayer(target)) return;
 
@@ -205,9 +205,9 @@ namespace SCP_575.Handlers
                     _ = StartFlickerEffectAsync(target.UserId, "Flashlight", () => lightItem.IsEmitting, state => lightItem.IsEmitting = state, forceOff: true);
                     break;
                 case FirearmItem firearm when HasFlashlight(firearm):
-                    ToggleWeaponFlashlight(firearm, false, nameof(OnScp575AttacksPlayer));
+                    ToggleWeaponFlashlight(firearm, false, nameof(ApplyLightsourceEffects));
                     Library_ExiledAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off weapon flashlight for {target.Nickname}");
-                    _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(OnScp575AttacksPlayer)), forceOff: true);
+                    _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(ApplyLightsourceEffects)), forceOff: true);
                     break;
             }
         }

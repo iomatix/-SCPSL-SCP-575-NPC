@@ -343,12 +343,13 @@
                 }
                 Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applying stage for {userId} ({nickname}), Sanity: {sanity}, Stage: Min={stage.MinThreshold}, Max={stage.MaxThreshold}, Damage={stage.DamageOnStrike}, Effects={stage.Effects?.Count ?? 0}, StackTrace: {Environment.StackTrace}");
 
-                if (Helpers.IsHumanWithoutLight(player) && stage.DamageOnStrike > 0)
+                float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
+                if (Helpers.IsHumanWithoutLight(player) && culmDamage > 0)
                 {
                     try
                     {
-                        Scp575DamageSystem.DamagePlayer(player, stage.DamageOnStrike);
-                        Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied damage {stage.DamageOnStrike} to {userId} ({nickname})");
+                        Scp575DamageSystem.DamagePlayer(player, culmDamage);
+                        Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied damage {culmDamage} to {userId} ({nickname})");
                     }
                     catch (Exception ex)
                     {

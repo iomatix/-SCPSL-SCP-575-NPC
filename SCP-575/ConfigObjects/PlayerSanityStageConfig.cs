@@ -32,6 +32,12 @@ namespace SCP_575.ConfigObjects
         public float DamageOnStrike { get; set; }
 
         /// <summary>
+        /// Additional damage to apply per each active blackout stack.
+        /// </summary>
+        [Description("Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.")]
+        public float AdditionalDamagePerStack { get; set; }
+
+        /// <summary>
         /// Gets or sets the list of custom sanity effects applied during this stage.
         /// </summary>
 
