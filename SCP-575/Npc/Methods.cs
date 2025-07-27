@@ -1,4 +1,4 @@
-﻿namespace SCP_575.Npc
+namespace SCP_575.Npc
 {
     using Handlers;
     using MapGeneration;
@@ -45,7 +45,7 @@
         public Methods(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
-            _config = Plugin.Singleton.Config;
+            _config = _plugin.Config;
             _npcConfig = _config.NpcConfig;
             _lightsourceHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler is null.");
             _sanityHandler = _plugin.SanityEventHandler ?? throw new InvalidOperationException("SanityEventHandler is null.");
