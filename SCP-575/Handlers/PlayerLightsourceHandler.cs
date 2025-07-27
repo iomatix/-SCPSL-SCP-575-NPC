@@ -372,7 +372,12 @@ namespace SCP_575.Handlers
             {
                 _weaponFlashlightStates[firearm.Serial] = (enabled, DateTime.UtcNow);
                 new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-                Library_ExiledAPI.LogDebug("ToggleWeaponFlashlight", $"Toggled flashlight emission state to {enabled} for {firearm.Base.GetType().Name} (Serial: {firearm.Serial}) in context {context}.");
+
+                // Add verification with retry  
+                Timing.CallDelayed(0.1f, () => {
+                    // Send the message again to ensure it takes effect  
+                    new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
+                });
             }
         }
 
