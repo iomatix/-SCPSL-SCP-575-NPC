@@ -22,25 +22,25 @@
         /// Base rate at which sanity naturally decays per second.
         /// </summary>
         [Description("Base sanity decay rate per second.")]
-        public float DecayRateBase { get; set; } = 0.22f;
+        public float DecayRateBase { get; set; } = 0.15f;
 
         /// <summary>
         /// Additional decay multiplier applied when SCP-575 is active (i.e. during blackout).
         /// </summary>
         [Description("Decay multiplier when SCP-575 is active.")]
-        public float DecayMultiplierBlackout { get; set; } = 1.75f;
+        public float DecayMultiplierBlackout { get; set; } = 1.45f;
 
         /// <summary>
         /// Extra multiplier applied when player is in darkness (without active light source).
         /// </summary>
         [Description("Decay multiplier when player has no light source.")]
-        public float DecayMultiplierDarkness { get; set; } = 2.0f;
+        public float DecayMultiplierDarkness { get; set; } = 1.45f;
 
         /// <summary>
         /// Amount of sanity regained passively per second outside blackout or danger zones.
         /// </summary>
         [Description("Passive sanity regen rate per second.")]
-        public float PassiveRegenRate { get; set; } = 0.05f;
+        public float PassiveRegenRate { get; set; } = 0.06f;
 
         #endregion
 
@@ -50,13 +50,13 @@
         /// Minimum sanity percentage restored from consuming Painkillers.
         /// </summary>
         [Description("Minimum sanity restore percent from medical pills.")]
-        public float PillsRestoreMin { get; set; } = 3f;
+        public float PillsRestoreMin { get; set; } = 4f;
 
         /// <summary>
         /// Maximum sanity percentage restored from consuming Painkillers.
         /// </summary>
         [Description("Maximum sanity restore percent from medical pills.")]
-        public float PillsRestoreMax { get; set; } = 14f;
+        public float PillsRestoreMax { get; set; } = 16f;
 
         /// <summary>
         /// Minimum sanity percentage restored by SCP-500 pills.
@@ -126,8 +126,8 @@
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 9 },
             new() { EffectType = SanityEffectType.Slowness, Duration = 2.45f, Intensity = 55 },
-            new() { EffectType = SanityEffectType.Disabled, Duration = 10f, Intensity = 1 },
-            new() { EffectType = SanityEffectType.Traumatized, Duration = 10f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Disabled, Duration = 9f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Traumatized, Duration = 9f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Exhausted, Duration = 2.5f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Blurred, Duration = 5f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Concussed, Duration = 8f, Intensity = 1 },
@@ -145,8 +145,8 @@
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 10 },
             new() { EffectType = SanityEffectType.Slowness, Duration = 3.25f, Intensity = 70 },
-            new() { EffectType = SanityEffectType.Disabled, Duration = 20f, Intensity = 1 },
-            new() { EffectType = SanityEffectType.Traumatized, Duration = 20f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Disabled, Duration = 15f, Intensity = 1 },
+            new() { EffectType = SanityEffectType.Traumatized, Duration = 15f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Exhausted, Duration = 4.75f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Blurred, Duration = 7f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Concussed, Duration = 10f, Intensity = 1 },
