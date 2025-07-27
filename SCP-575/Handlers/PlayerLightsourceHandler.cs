@@ -352,21 +352,28 @@ namespace SCP_575.Handlers
             return hasFlashlight;
         }
 
+        private readonly object _weaponFlashlightLock = new object();
         private bool GetWeaponFlashlightState(FirearmItem firearm)
         {
-            if (!HasFlashlight(firearm))
-                return false;
+            if (!HasFlashlight(firearm)) return false;
 
-            return _weaponFlashlightStates.TryGetValue(firearm.Serial, out var state) && state.State;
+            lock (_weaponFlashlightLock)
+            {
+                return _weaponFlashlightStates.TryGetValue(firearm.Serial, out var state) && state.State;
+            }
         }
 
+        // Wait for LabAPI's unified toggleable light support mentioned
         private void ToggleWeaponFlashlight(FirearmItem firearm, bool enabled, string context)
         {
-            if (!HasFlashlight(firearm))return;
+            if (!HasFlashlight(firearm)) return;
 
-            _weaponFlashlightStates[firearm.Serial] = (enabled, DateTime.UtcNow);
-            new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-            Library_ExiledAPI.LogDebug("ToggleWeaponFlashlight", $"Toggled flashlight emission state to {enabled} for {firearm.Base.GetType().Name} (Serial: {firearm.Serial}) in context {context}.");
+            lock (_weaponFlashlightLock)
+            {
+                _weaponFlashlightStates[firearm.Serial] = (enabled, DateTime.UtcNow);
+                new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
+                Library_ExiledAPI.LogDebug("ToggleWeaponFlashlight", $"Toggled flashlight emission state to {enabled} for {firearm.Base.GetType().Name} (Serial: {firearm.Serial}) in context {context}.");
+            }
         }
 
         private IEnumerator<float> CleanupCoroutine()

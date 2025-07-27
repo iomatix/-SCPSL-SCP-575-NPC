@@ -39,7 +39,7 @@ namespace SCP_575.ConfigObjects
             get => _keterActionDelay;
             private set => _keterActionDelay = value < 0f ? 0f : value;
         }
-        private float _keterActionDelay = 12.85f;
+        private float _keterActionDelay = 13.85f;
 
         #endregion
 
