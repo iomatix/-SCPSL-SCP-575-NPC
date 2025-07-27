@@ -87,8 +87,7 @@
             var config = audioConfig[audioKey];
             Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
 
-            // Enforce global scream cooldown for non-spatial or all-player spatial audio
-            if ((isNonSpatial || hearableForAllPlayers) && (audioKey == AudioKey.Scream || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
+            if (isNonSpatial && (audioKey == AudioKey.Scream || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
                 double secondsSinceLastScream = (DateTime.UtcNow - lastGlobalScreamTime).TotalSeconds;
                 if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown)
