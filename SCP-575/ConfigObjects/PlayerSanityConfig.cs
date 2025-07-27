@@ -68,7 +68,7 @@
         /// Maximum sanity percentage restored by SCP-500 pills.
         /// </summary>
         [Description("Maximum sanity restore percent from SCP-500.")]
-        public float SCP500RestoreMax { get; set; } = 100f;
+        public float Scp500RestoreMax { get; set; } = 100f;
 
         #endregion
 
