@@ -53,12 +53,21 @@
             if (_plugin.Config.AudioConfig.DefaultFadeDuration < 0)
                 throw new ArgumentException("DefaultFadeDuration must be non-negative.", nameof(_plugin.Config.AudioConfig));
 
-            if (sharedAudioManager == null)
+            if (DefaultAudioManager.Instance == null)
             {
-                DefaultAudioManager.RegisterDefaults(cacheSize: 20);
+                Log.Debug("[Scp575AudioManager] Initializing DefaultAudioManager.Instance.");
+                DefaultAudioManager.RegisterDefaults(cacheSize: 120);
+                sharedAudioManager = DefaultAudioManager.Instance;
+                Log.Debug($"[Scp575AudioManager] sharedAudioManager initialized: {sharedAudioManager}");
+                RegisterAudioResources();
+            }
+            else
+            {
+                Log.Debug("[Scp575AudioManager] DefaultAudioManager.Instance already initialized, using existing instance.");
                 sharedAudioManager = DefaultAudioManager.Instance;
                 RegisterAudioResources();
             }
+
             _ambienceAudioControllerId = 0;
         }
 
