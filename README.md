@@ -130,6 +130,8 @@ sanity_config:
     max_threshold: 100
     # Damage to apply on SCP-575 strike at this sanity level.
     damage_on_strike: 0
+    # Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.
+    additional_damage_per_stack: 0
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -187,7 +189,9 @@ sanity_config:
     # Max sanity % to activate this stage.
     max_threshold: 75
     # Damage to apply on SCP-575 strike at this sanity level.
-    damage_on_strike: 5
+    damage_on_strike: 3
+    # Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.
+    additional_damage_per_stack: 2
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -266,7 +270,9 @@ sanity_config:
     # Max sanity % to activate this stage.
     max_threshold: 50
     # Damage to apply on SCP-575 strike at this sanity level.
-    damage_on_strike: 12
+    damage_on_strike: 6
+    # Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.
+    additional_damage_per_stack: 5
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -287,14 +293,14 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Disabled
       # Duration of the effect in seconds.
-      duration: 10
+      duration: 9
       # Intensity level of the status effect.
       intensity: 1
     -
     # Specifies the status effect type to apply.
       effect_type: Traumatized
       # Duration of the effect in seconds.
-      duration: 10
+      duration: 9
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -345,7 +351,9 @@ sanity_config:
     # Max sanity % to activate this stage.
     max_threshold: 25
     # Damage to apply on SCP-575 strike at this sanity level.
-    damage_on_strike: 18
+    damage_on_strike: 9
+    # Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.
+    additional_damage_per_stack: 8
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -484,6 +492,12 @@ cassie_config:
   jam_chance: 3
   # Cassie Keter sound during blackout.
   cassie_keter: 'pitch_0.15 .g7'
+# Audio system configuration.
+audio_config:
+# The cooldown time in seconds for global scream audio playback. Must be positive.
+  global_scream_cooldown: 35
+  # The default duration in seconds for audio fade-in and fade-out effects. Must be non-negative.
+  default_fade_duration: 1
 # Interval for automatic cleanup of event handlers (seconds).
 handler_cleanup_interval: 90
 ```
