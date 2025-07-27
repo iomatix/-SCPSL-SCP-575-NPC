@@ -179,6 +179,8 @@
 
         private async Task FlickerAffectedZones(float blackoutDuration, CancellationToken cancellationToken = default)
         {
+            if (!_plugin.IsEventActive) return;
+
             if (!_config.BlackoutConfig.FlickerLights) return;
 
             var zonesToFlicker = GetZonesToFlicker();
@@ -253,6 +255,8 @@
 
         private bool HandleZoneSpecificBlackout(float blackoutDuration)
         {
+            if (!_plugin.IsEventActive) return false;
+
             bool isBlackoutTriggered = false;
             isBlackoutTriggered |= AttemptZoneBlackout(FacilityZone.LightContainment, _config.BlackoutConfig.ChanceLight, _config.CassieConfig.CassieMessageLight, blackoutDuration);
             isBlackoutTriggered |= AttemptZoneBlackout(FacilityZone.HeavyContainment, _config.BlackoutConfig.ChanceHeavy, _config.CassieConfig.CassieMessageHeavy, blackoutDuration);
@@ -270,6 +274,8 @@
 
         private bool AttemptZoneBlackout(FacilityZone zone, float chance, string cassieMessage, float blackoutDuration, bool disableSystems = false)
         {
+            if (!_plugin.IsEventActive) return false;
+
             if (UnityEngine.Random.Range(0f, 100f) >= chance) return false;
 
             if (_config.BlackoutConfig.FlickerLights) FlickerZoneLightsAsync(zone).GetAwaiter().GetResult();
@@ -284,6 +290,8 @@
 
         private void TriggerFacilityWideBlackout(float blackoutDuration)
         {
+            if (!_plugin.IsEventActive) return;
+
             foreach (FacilityZone zone in Enum.GetValues(typeof(FacilityZone)))
             {
                 LabApi.Features.Wrappers.Map.TurnOffLights(blackoutDuration, zone);
@@ -295,6 +303,8 @@
 
         private bool HandleRoomSpecificBlackout(float blackoutDuration)
         {
+            if (!_plugin.IsEventActive) return false;
+
             bool blackoutTriggered = false;
             foreach (LabApi.Features.Wrappers.Room room in Library_LabAPI.Rooms)
             {
@@ -324,6 +334,8 @@
         /// <returns>True if blackout was triggered; otherwise, false.</returns>
         public bool AttemptRoomBlackout(LabApi.Features.Wrappers.Room room, float blackoutDuration, bool isForced = false, bool isCassieSilent = false)
         {
+            if (!_plugin.IsEventActive) return false;
+
             var (chance, cassieMessage) = GetRoomBlackoutParams(room.Zone);
             if (!isForced && UnityEngine.Random.Range(0f, 100f) >= chance) return false;
 
