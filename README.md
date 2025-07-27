@@ -46,27 +46,27 @@ blackout_config:
   # Enable or disable randomly timed blackout events.
   random_events: true
   # Delay before first event of each round.
-  initial_delay: 45
+  initial_delay: 95
   # Minimum blackout duration in seconds.
-  duration_min: 95
+  duration_min: 120
   # Maximum blackout duration in seconds.
-  duration_max: 445
+  duration_max: 280
   # Minimum delay between events in seconds.
-  delay_min: 225
+  delay_min: 180
   # Maximum delay between events in seconds.
-  delay_max: 565
+  delay_max: 435
   # Enable facility-wide blackout if no zones selected.
   enable_facility_blackout: true
   # Chance (%) of outage in Heavy Containment Zone.
-  chance_heavy: 85
+  chance_heavy: 69
   # Chance (%) of outage in Light Containment Zone.
-  chance_light: 35
+  chance_light: 25
   # Chance (%) of outage in Entrance Zone.
-  chance_entrance: 65
+  chance_entrance: 55
   # Chance (%) of outage in Surface Zone.
-  chance_surface: 15
+  chance_surface: 12
   # Chance (%) of outage in unspecified zones.
-  chance_other: 20
+  chance_other: 25
   # Use per-room chance settings instead of per-zone.
   use_per_room_chances: true
   # Disable Tesla gates during blackout.
@@ -92,35 +92,35 @@ npc_config:
   # Determines whether to disable ragdolls for SCP-575 kills.
   disable_ragdolls: false
   # The delay of receiving damage.
-  keter_action_delay: 8.75
+  keter_action_delay: 12.75
   # Penetration modifier same as in FirearmsDamageHandler.
-  keter_damage_penetration: 0.67
+  keter_damage_penetration: 0.670000017
   # The modifier applied to velocity when players are damaged by SCP-575.
   keter_damage_velocity_modifier: 1.25
   # The minimum modifier applied to ragdolls when they were damaged by SCP-575.
   keter_force_min_modifier: 0.75
   # The maximum modifier applied to ragdolls when they were damaged by SCP-575.
-  keter_force_max_modifier: 2.45
+  keter_force_max_modifier: 2.45000005
 # Sanity system configuration.
 sanity_config:
 # Initial sanity value (0–100) on spawn.
   initial_sanity: 100
   # Base sanity decay rate per second.
-  decay_rate_base: 0.22
+  decay_rate_base: 0.109999999
   # Decay multiplier when SCP-575 is active.
-  decay_multiplier_blackout: 1.75
+  decay_multiplier_blackout: 1.64999998
   # Decay multiplier when player has no light source.
-  decay_multiplier_darkness: 2
+  decay_multiplier_darkness: 1.45000005
   # Passive sanity regen rate per second.
-  passive_regen_rate: 0.051
+  passive_regen_rate: 0.0799999982
   # Minimum sanity restore percent from medical pills.
-  pills_restore_min: 4
+  pills_restore_min: 15
   # Maximum sanity restore percent from medical pills.
-  pills_restore_max: 14
+  pills_restore_max: 35
   # Minimum sanity restore percent from SCP-500.
-  s_c_p500_restore_min: 75
+  scp500_restore_min: 75
   # Maximum sanity restore percent from SCP-500.
-  s_c_p500_restore_max: 100
+  scp500_restore_max: 100
   # Stages of sanity and their associated effects.
   sanity_stages:
   -
@@ -146,20 +146,6 @@ sanity_config:
       duration: 1.25
       # Intensity level of the status effect.
       intensity: 30
-    -
-    # Specifies the status effect type to apply.
-      effect_type: Disabled
-      # Duration of the effect in seconds.
-      duration: 5
-      # Intensity level of the status effect.
-      intensity: 1
-    -
-    # Specifies the status effect type to apply.
-      effect_type: Traumatized
-      # Duration of the effect in seconds.
-      duration: 5
-      # Intensity level of the status effect.
-      intensity: 1
     -
     # Specifies the status effect type to apply.
       effect_type: Blurred
@@ -359,7 +345,7 @@ sanity_config:
     # Max sanity % to activate this stage.
     max_threshold: 25
     # Damage to apply on SCP-575 strike at this sanity level.
-    damage_on_strike: 25
+    damage_on_strike: 18
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -380,14 +366,14 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Disabled
       # Duration of the effect in seconds.
-      duration: 20
+      duration: 15
       # Intensity level of the status effect.
       intensity: 1
     -
     # Specifies the status effect type to apply.
       effect_type: Traumatized
       # Duration of the effect in seconds.
-      duration: 20
+      duration: 15
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -443,9 +429,9 @@ hints_config:
   # Inform players when thier sanity is affected.
   is_enabled_sanity_hint: true
   # Hint shown when player's sanity level decreases. {0} = current sanity value
-  sanity_decreased_hint: 'Your sanity is decreasing! Sanity: {0:F1}. Find light sources or medical items to recover.'
+  sanity_decreased_hint: 'Your sanity is decreasing!\n Sanity: {0:F1}. Find light sources or medical items to recover.'
   # Hint shown when player's sanity recovers from medical treatment. {0} = new sanity value
-  sanity_increased_hint: 'Your sanity is recovering! Sanity: {0:F1} thanks to medical treatment!'
+  sanity_increased_hint: 'Your sanity is recovering!\n Sanity: {0:F1} thanks to medical treatment!'
   # Hint shown when player is affected by SCP-575.
   keter_hint: 'You were affected by actions of SCP-575! Equip a flashlight!'
   # Inform players about cooldown of light emitter.
@@ -469,7 +455,7 @@ cassie_config:
   # Cassie countdown before blackout.
   cassie_message_countdown: 'pitch_0.2 .g4 . .g4 pitch_1 door control system pitch_0.25 .g1 pitch_0.9 malfunction pitch_1 . initializing repair'
   # Time between sentence and countdown.
-  time_between_sentence_and_start: 48.6
+  time_between_sentence_and_start: 48.5999985
   # Time between blackout end and end message.
   time_between_sentence_and_end: 7
   # Cassie message at blackout start.
