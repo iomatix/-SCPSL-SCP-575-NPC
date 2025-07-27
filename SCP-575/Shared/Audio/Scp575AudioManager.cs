@@ -344,7 +344,7 @@
         {
             try
             {
-                sharedAudioManager.CleanupAllSpeakers();
+                    sharedAudioManager.CleanupAllSpeakers();
             }
             catch (NullReferenceException ex)
             {
