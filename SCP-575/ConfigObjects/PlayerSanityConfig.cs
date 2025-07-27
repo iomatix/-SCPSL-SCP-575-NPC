@@ -22,7 +22,7 @@
         /// Base rate at which sanity naturally decays per second.
         /// </summary>
         [Description("Base sanity decay rate per second.")]
-        public float DecayRateBase { get; set; } = 0.15f;
+        public float DecayRateBase { get; set; } = 0.12f;
 
         /// <summary>
         /// Additional decay multiplier applied when SCP-575 is active (i.e. during blackout).
@@ -40,7 +40,7 @@
         /// Amount of sanity regained passively per second outside blackout or danger zones.
         /// </summary>
         [Description("Passive sanity regen rate per second.")]
-        public float PassiveRegenRate { get; set; } = 0.06f;
+        public float PassiveRegenRate { get; set; } = 0.075f;
 
         #endregion
 
@@ -50,19 +50,19 @@
         /// Minimum sanity percentage restored from consuming Painkillers.
         /// </summary>
         [Description("Minimum sanity restore percent from medical pills.")]
-        public float PillsRestoreMin { get; set; } = 4f;
+        public float PillsRestoreMin { get; set; } = 15f;
 
         /// <summary>
         /// Maximum sanity percentage restored from consuming Painkillers.
         /// </summary>
         [Description("Maximum sanity restore percent from medical pills.")]
-        public float PillsRestoreMax { get; set; } = 16f;
+        public float PillsRestoreMax { get; set; } = 35f;
 
         /// <summary>
         /// Minimum sanity percentage restored by SCP-500 pills.
         /// </summary>
         [Description("Minimum sanity restore percent from SCP-500.")]
-        public float SCP500RestoreMin { get; set; } = 75f;
+        public float Scp500RestoreMin { get; set; } = 75f;
 
         /// <summary>
         /// Maximum sanity percentage restored by SCP-500 pills.
@@ -89,8 +89,6 @@
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 3 },
             new() { EffectType = SanityEffectType.Slowness, Duration = 1.25f, Intensity = 30 },
-            new() { EffectType = SanityEffectType.Disabled, Duration = 5f, Intensity = 1 },
-            new() { EffectType = SanityEffectType.Traumatized, Duration = 5f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Blurred, Duration = 1f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Concussed, Duration = 2f, Intensity = 1 },
             new() { EffectType = SanityEffectType.Blindness, Duration = 0.45f, Intensity = 1 },
@@ -140,7 +138,7 @@
     {
         MinThreshold = 0f,
         MaxThreshold = 25f,
-        DamageOnStrike = 25f,
+        DamageOnStrike = 18f,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 10 },
