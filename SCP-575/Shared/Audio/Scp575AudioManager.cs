@@ -338,32 +338,6 @@
         }
 
         /// <summary>
-        /// Cleans up all active audio speakers and resets the ambience controller ID.
-        /// </summary>
-        public void CleanupAllSpeakers()
-        {
-            try
-            {
-                    sharedAudioManager.CleanupAllSpeakers();
-            }
-            catch (NullReferenceException ex)
-            {
-                Log.Debug($"[Scp575AudioManager][CleanupAllSpeakers] Speaker was already cleaned up: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[Scp575AudioManager][CleanupAllSpeakers] Unexpected error during cleanup: {ex.Message}");
-            }
-            finally
-            {
-                _ambienceAudioControllerId = 0;
-                Log.Debug($"[Scp575AudioManager][CleanupAllSpeakers] Cleanup completed.");
-            }
-            _ambienceAudioControllerId = 0;
-            Log.Debug($"[Scp575AudioManager][CleanupAllSpeakers] Cleaned up all SCP-575 audio speakers.");
-        }
-
-        /// <summary>
         /// Registers SCP-575 audio resources from the assembly's embedded resources.
         /// </summary>
         private void RegisterAudioResources()

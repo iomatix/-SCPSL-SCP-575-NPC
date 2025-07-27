@@ -142,7 +142,6 @@ namespace SCP_575
                 _sanityHandler = null;
                 _lightsourceHandler = null;
                 _npc = null;
-                _audioManager?.CleanupAllSpeakers();
                 _audioManager = null;
                 _config = null;
 

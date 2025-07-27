@@ -94,7 +94,6 @@
         {
             try
             {
-                _plugin.AudioManager.CleanupAllSpeakers();
                 foreach (CoroutineHandle handle in Coroutines)
                 {
                     Timing.KillCoroutines(handle);
