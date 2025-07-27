@@ -85,7 +85,7 @@
                 throw new ArgumentNullException(nameof(player), "Player cannot be null when hearableForAllPlayers is false and audio is spatial.");
 
             var config = audioConfig[audioKey];
-            Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? (hearableForAllPlayers ? Vector3.zero : player.Position));
+            Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
 
             // Enforce global scream cooldown for non-spatial or all-player spatial audio
             if ((isNonSpatial || hearableForAllPlayers) && (audioKey == AudioKey.Scream || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
