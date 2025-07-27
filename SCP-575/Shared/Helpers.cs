@@ -1,6 +1,7 @@
 ﻿namespace SCP_575.Shared
 {
     using System;
+    using System.Linq;
     using UnityEngine;
 
     public static class Helpers
@@ -25,38 +26,6 @@
             catch (Exception ex)
             {
                 Library_ExiledAPI.LogError("Helpers.IsHumanWithoutLight", $"Failed to check player {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Checks if a player is in a dark room (lights disabled).
-        /// </summary>
-        /// <param name="player">The player to check.</param>
-        /// <returns>True if the player is in a dark room, false otherwise.</returns>
-        public static bool IsInDarkRoom(LabApi.Features.Wrappers.Player player)
-        {
-            try
-            {
-                if (player == null)
-                {
-                    Library_ExiledAPI.LogDebug("Helpers.IsInDarkRoom", "Player is null.");
-                    return false;
-                }
-                var room = player.Room;
-                Library_ExiledAPI.LogDebug("Helpers.IsInDarkRoom", $"Player {player.UserId} ({player.Nickname ?? "unknown"}): Room is {(room != null ? "non-null" : "null")}");
-                if (room == null || room.LightController == null)
-                {
-                    Library_ExiledAPI.LogDebug("Helpers.IsInDarkRoom", $"Player {player.UserId} ({player.Nickname ?? "unknown"}): Room or LightController is null, returning false.");
-                    return false;
-                }
-                bool isDark = !room.LightController.LightsEnabled;
-                Library_ExiledAPI.LogDebug("Helpers.IsInDarkRoom", $"Player {player.UserId} ({player.Nickname ?? "unknown"}): LightsEnabled={room.LightController.LightsEnabled}, IsDark={isDark}");
-                return isDark;
-            }
-            catch (Exception ex)
-            {
-                Library_ExiledAPI.LogWarn("Helpers.IsInDarkRoom", $"Failed to check dark room for {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
                 return false;
             }
         }

@@ -430,7 +430,7 @@
             float decayRate = _sanityConfig.DecayRateBase;
             if (_plugin.Npc?.Methods?.IsBlackoutActive == true)
                 decayRate *= _sanityConfig.DecayMultiplierBlackout;
-            if (Library_LabAPI.IsPlayerInDarkRoom(player))
+            if (Library_LabAPI.IsPlayerInDarkRoom(player) && Helpers.IsHumanWithoutLight(player))
                 decayRate *= _sanityConfig.DecayMultiplierDarkness;
             return decayRate;
         }

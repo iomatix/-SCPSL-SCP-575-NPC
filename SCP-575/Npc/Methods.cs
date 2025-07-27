@@ -23,7 +23,7 @@
         private readonly NpcConfig _npcConfig;
         private readonly PlayerLightsourceHandler _lightCooldownHandler;
         private readonly PlayerSanityHandler _sanityHandler;
-        private readonly HashSet<Exiled.API.Enums.ZoneType> _triggeredZones = new();
+        private readonly HashSet<FacilityZone> _triggeredZones = new();
         private static readonly object BlackoutLock = new();
         private static int _blackoutStacks = 0;
         private CassieStatus _cassieState = CassieStatus.Idle;
@@ -136,7 +136,7 @@
                 }
 
                 float delay = _config.BlackoutConfig.RandomEvents
-                    ? Library_ExiledAPI.Loader_Random_Next(_config.BlackoutConfig.DelayMin, _config.BlackoutConfig.DelayMax)
+                    ? UnityEngine.Random.Range(_config.BlackoutConfig.DelayMin, _config.BlackoutConfig.DelayMax)
                     : _config.BlackoutConfig.InitialDelay;
                 yield return Timing.WaitForSeconds(delay);
 
@@ -241,18 +241,18 @@
             }
         }
 
-        private float GetRandomBlackoutDuration()
-        {
-            return (float)Library_ExiledAPI.Loader_Random_NextDouble() * (_config.BlackoutConfig.DurationMax - _config.BlackoutConfig.DurationMin) + _config.BlackoutConfig.DurationMin;
+        private float GetRandomBlackoutDuration()  
+        {  
+            return UnityEngine.Random.Range(_config.BlackoutConfig.DurationMin, _config.BlackoutConfig.DurationMax);
         }
 
         private bool HandleZoneSpecificBlackout(float blackoutDuration)
         {
             bool isBlackoutTriggered = false;
-            isBlackoutTriggered |= AttemptZoneBlackout(Exiled.API.Enums.ZoneType.LightContainment, _config.BlackoutConfig.ChanceLight, _config.CassieConfig.CassieMessageLight, blackoutDuration);
-            isBlackoutTriggered |= AttemptZoneBlackout(Exiled.API.Enums.ZoneType.HeavyContainment, _config.BlackoutConfig.ChanceHeavy, _config.CassieConfig.CassieMessageHeavy, blackoutDuration);
-            isBlackoutTriggered |= AttemptZoneBlackout(Exiled.API.Enums.ZoneType.Entrance, _config.BlackoutConfig.ChanceEntrance, _config.CassieConfig.CassieMessageEntrance, blackoutDuration);
-            isBlackoutTriggered |= AttemptZoneBlackout(Exiled.API.Enums.ZoneType.Surface, _config.BlackoutConfig.ChanceSurface, _config.CassieConfig.CassieMessageSurface, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(FacilityZone.LightContainment, _config.BlackoutConfig.ChanceLight, _config.CassieConfig.CassieMessageLight, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(FacilityZone.HeavyContainment, _config.BlackoutConfig.ChanceHeavy, _config.CassieConfig.CassieMessageHeavy, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(FacilityZone.Entrance, _config.BlackoutConfig.ChanceEntrance, _config.CassieConfig.CassieMessageEntrance, blackoutDuration);
+            isBlackoutTriggered |= AttemptZoneBlackout(FacilityZone.Surface, _config.BlackoutConfig.ChanceSurface, _config.CassieConfig.CassieMessageSurface, blackoutDuration);
 
             if (!isBlackoutTriggered && _config.BlackoutConfig.EnableFacilityBlackout)
             {
@@ -263,15 +263,13 @@
             return isBlackoutTriggered;
         }
 
-        private bool AttemptZoneBlackout(Exiled.API.Enums.ZoneType zone, float chance, string cassieMessage, float blackoutDuration, bool disableSystems = false)
+        private bool AttemptZoneBlackout(FacilityZone zone, float chance, string cassieMessage, float blackoutDuration, bool disableSystems = false)
         {
-            if (Library_ExiledAPI.Loader_Random_NextDouble() * 100 >= chance) return false;
+            if (UnityEngine.Random.Range(0f, 100f) >= chance) return false;
 
-            var labApiZone = Library_LabAPI.ConvertToLabApiZone(zone);
-            if (_config.BlackoutConfig.FlickerLights && labApiZone.HasValue)
-                FlickerZoneLightsAsync(labApiZone.Value).GetAwaiter().GetResult();
+            if (_config.BlackoutConfig.FlickerLights) FlickerZoneLightsAsync(zone).GetAwaiter().GetResult();
 
-            Exiled.API.Features.Map.TurnOffAllLights(blackoutDuration, zone);
+            LabApi.Features.Wrappers.Map.TurnOffLights(blackoutDuration, zone);
             Library_ExiledAPI.LogDebug("AttemptZoneBlackout", $"Blackout triggered in zone {zone} for {blackoutDuration} seconds.");
 
             if (!IsBlackoutActive) TriggerCassieMessage(cassieMessage, true);
@@ -281,9 +279,9 @@
 
         private void TriggerFacilityWideBlackout(float blackoutDuration)
         {
-            foreach (Exiled.API.Enums.ZoneType zone in Enum.GetValues(typeof(Exiled.API.Enums.ZoneType)))
+            foreach (FacilityZone zone in Enum.GetValues(typeof(FacilityZone)))
             {
-                Exiled.API.Features.Map.TurnOffAllLights(blackoutDuration, zone);
+                LabApi.Features.Wrappers.Map.TurnOffLights(blackoutDuration, zone);
                 Library_ExiledAPI.LogDebug("TriggerFacilityWideBlackout", $"Lights off in zone {zone} for {blackoutDuration} seconds.");
             }
             DisableFacilitySystems(blackoutDuration);
@@ -293,7 +291,7 @@
         private bool HandleRoomSpecificBlackout(float blackoutDuration)
         {
             bool blackoutTriggered = false;
-            foreach (Exiled.API.Features.Room room in Library_ExiledAPI.Rooms)
+            foreach (LabApi.Features.Wrappers.Room room in Library_LabAPI.Rooms)
             {
                 if (AttemptRoomBlackout(room, blackoutDuration))
                 {
@@ -319,10 +317,10 @@
         /// <param name="isForced">If true, forces the blackout regardless of chance.</param>
         /// <param name="isCassieSilent">If true, suppresses CASSIE messages.</param>
         /// <returns>True if blackout was triggered; otherwise, false.</returns>
-        public bool AttemptRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration, bool isForced = false, bool isCassieSilent = false)
+        public bool AttemptRoomBlackout(LabApi.Features.Wrappers.Room room, float blackoutDuration, bool isForced = false, bool isCassieSilent = false)
         {
             var (chance, cassieMessage) = GetRoomBlackoutParams(room.Zone);
-            if (!isForced && Library_ExiledAPI.Loader_Random_NextDouble() * 100 >= chance) return false;
+            if (!isForced && UnityEngine.Random.Range(0f, 100f) >= chance) return false;
 
             HandleRoomBlackout(room, blackoutDuration);
             if (!_triggeredZones.Contains(room.Zone) && !isCassieSilent)
@@ -333,43 +331,46 @@
             return true;
         }
 
-        private (float Chance, string CassieMessage) GetRoomBlackoutParams(Exiled.API.Enums.ZoneType zone)
+        private (float Chance, string CassieMessage) GetRoomBlackoutParams(FacilityZone zone)
         {
             return zone switch
             {
-                Exiled.API.Enums.ZoneType.HeavyContainment => (_config.BlackoutConfig.ChanceHeavy, _config.CassieConfig.CassieMessageHeavy),
-                Exiled.API.Enums.ZoneType.LightContainment => (_config.BlackoutConfig.ChanceLight, _config.CassieConfig.CassieMessageLight),
-                Exiled.API.Enums.ZoneType.Entrance => (_config.BlackoutConfig.ChanceEntrance, _config.CassieConfig.CassieMessageEntrance),
-                Exiled.API.Enums.ZoneType.Surface => (_config.BlackoutConfig.ChanceSurface, _config.CassieConfig.CassieMessageSurface),
+                FacilityZone.HeavyContainment => (_config.BlackoutConfig.ChanceHeavy, _config.CassieConfig.CassieMessageHeavy),
+                FacilityZone.LightContainment => (_config.BlackoutConfig.ChanceLight, _config.CassieConfig.CassieMessageLight),
+                FacilityZone.Entrance => (_config.BlackoutConfig.ChanceEntrance, _config.CassieConfig.CassieMessageEntrance),
+                FacilityZone.Surface => (_config.BlackoutConfig.ChanceSurface, _config.CassieConfig.CassieMessageSurface),
                 _ => (_config.BlackoutConfig.ChanceOther, _config.CassieConfig.CassieMessageOther)
             };
         }
 
-        private void HandleRoomBlackout(Exiled.API.Features.Room room, float blackoutDuration)
+        private void HandleRoomBlackout(LabApi.Features.Wrappers.Room room, float blackoutDuration)
         {
-            if (!Library_ExiledAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return;
+            if (!Library_LabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return;
 
-            if (_config.BlackoutConfig.DisableTeslas && room.Type == Exiled.API.Enums.RoomType.HczTesla)
+            if (_config.BlackoutConfig.DisableTeslas && room.Name == RoomName.HczTesla)
             {
-                room.TeslaGate.CooldownTime = blackoutDuration + 0.5f;
-                room.TeslaGate.ForceTrigger();
+                if (LabApi.Features.Wrappers.Tesla.TryGet(room, out LabApi.Features.Wrappers.Tesla tesla))
+                {
+                    tesla.InactiveTime = blackoutDuration + 0.5f;
+                    tesla.Trigger();
+                }
             }
 
-            if (_config.BlackoutConfig.DisableNuke && room.Type == Exiled.API.Enums.RoomType.HczNuke && LabApi.Features.Wrappers.Warhead.IsDetonationInProgress && !LabApi.Features.Wrappers.Warhead.IsLocked)
+            if (_config.BlackoutConfig.DisableNuke && room.Name == RoomName.HczWarhead && LabApi.Features.Wrappers.Warhead.IsDetonationInProgress && !LabApi.Features.Wrappers.Warhead.IsLocked)
             {
                 LabApi.Features.Wrappers.Warhead.Stop();
                 Library_ExiledAPI.LogDebug("HandleRoomBlackout", "Nuke detonation cancelled in HCZ Nuke room.");
             }
 
-            room.TurnOffLights(blackoutDuration);
+            Library_LabAPI.TurnOffRoomLights(room,blackoutDuration);
             Library_ExiledAPI.LogDebug("HandleRoomBlackout", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
         }
 
         private void DisableFacilitySystems(float blackoutDuration)
         {
-            foreach (Exiled.API.Features.Room room in Library_ExiledAPI.Rooms.Where(Library_ExiledAPI.IsRoomAndNeighborsFreeOfEngagedGenerators))
+            foreach (LabApi.Features.Wrappers.Room room in Library_LabAPI.Rooms.Where(Library_LabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators))
             {
-                room.TurnOffLights(blackoutDuration);
+                Library_LabAPI.TurnOffRoomLights(room, blackoutDuration);
                 Library_ExiledAPI.LogDebug("DisableFacilitySystems", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
             }
 
@@ -412,11 +413,11 @@
 
         private void ResetTeslaGates()
         {
-            foreach (var teslaGate in Library_ExiledAPI.TeslaGates)
+            foreach (LabApi.Features.Wrappers.Tesla tesla in Library_LabAPI.Tesla)
             {
-                teslaGate.ForceTrigger();
-                teslaGate.CooldownTime = 5f;
-                Library_ExiledAPI.LogDebug("ResetTeslaGate", $"TeslaGate {teslaGate} reset. Cooldown: {teslaGate.CooldownTime}");
+                tesla.Trigger();
+                tesla.InactiveTime = 5f;
+                Library_ExiledAPI.LogDebug("ResetTeslaGate", $"TeslaGate {tesla} reset. Cooldown: {tesla.InactiveTime}");
             }
         }
 
@@ -513,7 +514,7 @@
                             Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Skipping player {player.UserId} ({nickname}): Blackout not active");
                             continue;
                         }
-                        bool isInDarkRoom = Helpers.IsInDarkRoom(player);
+                        bool isInDarkRoom = Library_LabAPI.IsPlayerInDarkRoom(player);
                         if (!isInDarkRoom)
                         {
                             Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Skipping player {player.UserId} ({nickname}): Not in dark room");
@@ -573,9 +574,9 @@
             try
             {
                 Library_ExiledAPI.LogDebug("Methods.PlayRandomAudioEffect", $"Playing audio for {player.UserId} ({player.Nickname ?? "null"})");
-                var audioOptions = new[] { AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.WhispersBang };
+                var audioOptions = new[] { AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.Whispers };
                 var selectedClip = audioOptions[UnityEngine.Random.Range(0, audioOptions.Length)];
-                _plugin.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 25f);
+                _plugin.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 16f);
             }
             catch (Exception ex)
             {

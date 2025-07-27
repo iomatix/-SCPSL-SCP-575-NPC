@@ -2,9 +2,13 @@
 {
     using LabApi.Features.Wrappers;
     using MapGeneration;
+    using MEC;
     using SCP_575.ConfigObjects;
+    using SCP_575.Npc;
+    using System;
     using System.Collections.Generic;
     using System.Linq;
+    using UnityEngine;
 
     /// <summary>
     /// Utility and adapter class for interacting with LabAPI within the SCP-575 context.
@@ -17,7 +21,10 @@
         /// <summary>Gets the singleton instance of the SCP-575 plugin.</summary>
         public static Plugin Plugin => Plugin.Singleton;
 
-        /// <summary>Gets the full configuration object.</summary>
+        /// <summary>Gets the NPC Methods section of the plugin.</summary>
+        public static Methods Methods => Plugin.Npc.Methods;
+
+        /// <summary>Gets the root plugin configuration object.</summary>
         public static Config Config => Plugin.Config;
 
         /// <summary>Gets a list of all players (LabAPI wrapped).</summary>
@@ -26,15 +33,131 @@
         /// <summary>Gets a list of all rooms (LabAPI wrapped).</summary>
         public static IReadOnlyCollection<Room> Rooms => Room.List;
 
+        /// <summary>Gets the list of all Tesla gates.</summary>
+        public static IReadOnlyCollection<Tesla> Tesla => Tesla.List;
+
+        /// <summary>Gets the room at the specified position.</summary>
+        public static Room GetRoomAtPosition(Vector3 pos) => Room.GetRoomAtPosition(pos);
+
         /// <summary>Gets a LabAPI player wrapper from a reference hub.</summary>
         public static Player GetPlayer(ReferenceHub ply) => Player.Get(ply);
 
         /// <summary>Gets a LabAPI ragdoll wrapper from a native ragdoll object.</summary>
         public static Ragdoll GetRagdoll(PlayerRoles.Ragdolls.BasicRagdoll ragdoll) => Ragdoll.Get(ragdoll);
 
-        #endregion
 
-        #region Utilities
+        #region Room Utilities
+
+        /// <summary>  
+        /// Turns off lights in a specific room for the specified duration.  
+        /// </summary>  
+        /// <param name="room">The room to turn lights off in.</param>  
+        /// <param name="duration">Duration in seconds to keep lights off.</param>  
+        public static void TurnOffRoomLights(Room room, float duration)
+        {
+            if (room == null)
+            {
+                Library_ExiledAPI.LogWarn("TurnOffRoomLights", "Room instance is null");
+                return;
+            }
+
+            foreach (var lightController in room.AllLightControllers)
+            {
+                lightController.FlickerLights(duration);
+            }
+
+            Library_ExiledAPI.LogDebug("TurnOffRoomLights", $"Lights turned off in room {room.Name} for {duration} seconds.");
+        }
+
+        /// <summary>Returns true if the given room contains an engaged generator.</summary>  
+        public static bool IsRoomFreeOfEngagedGenerators(Room room) => !Generator.List.Any(gen => gen.Room == room && gen.Engaged);
+
+        /// <summary>  
+        /// Returns true if the specified room and all its neighbors are free of engaged generators.  
+        /// </summary>  
+        public static bool IsRoomAndNeighborsFreeOfEngagedGenerators(Room room)
+        {
+            if (room == null) return false;
+
+            // Get neighbor rooms using LabAPI  
+            var neighborRooms = room.ConnectedRooms.Select(Room.Get).Where(r => r != null);
+            var allRooms = new HashSet<Room> { room };
+            foreach (var neighbor in neighborRooms)
+                allRooms.Add(neighbor);
+
+            return !Generator.List.Any(gen =>
+                gen.Engaged && allRooms.Contains(gen.Room));
+        }
+
+        /// <summary>  
+        /// Enables and flickers lights in a room and all its neighboring rooms.  
+        /// </summary>  
+        /// <param name="room">The LabAPI room to light up and flicker.</param>  
+        public static void EnableAndFlickerRoomAndNeighborLights(Room room)
+        {
+            if (room == null)
+            {
+                Library_ExiledAPI.LogWarn("EnableAndFlickerRoomAndNeighborLights", "Room instance is null");
+                return;
+            }
+
+            // Get neighbor rooms using LabAPI  
+            var neighborRooms = room.ConnectedRooms.Select(Room.Get).Where(r => r != null);
+            var roomSet = new HashSet<Room> { room };
+            foreach (var neighbor in neighborRooms)
+                roomSet.Add(neighbor);
+
+            foreach (var r in roomSet)
+            {
+                Library_ExiledAPI.LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
+
+                // Enable lights and flicker using LabAPI  
+                foreach (var lightController in r.AllLightControllers)
+                {
+                    lightController.LightsEnabled = true;
+                    lightController.FlickerLights(Config.BlackoutConfig.FlickerDuration);
+                }
+            }
+        }
+
+        /// <summary>  
+        /// Attempts a blackout event in a room and all its neighboring rooms. Increments blackout stacks by 1 if successful.  
+        /// </summary>  
+        /// <param name="room">The LabAPI room to blackout.</param>  
+        /// <param name="blackoutDurationBase">Minimum time in seconds that the blackout occurs.</param>   
+        public static void DisableRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
+        {
+            if (room == null)
+            {
+                Library_ExiledAPI.LogWarn("DisableRoomAndNeighborLights", "Room instance is null");
+                return;
+            }
+
+            // Get neighbor rooms using LabAPI  
+            var neighborRooms = room.ConnectedRooms.Select(Room.Get).Where(r => r != null);
+            var roomSet = new HashSet<Room> { room };
+            foreach (var neighbor in neighborRooms)
+                roomSet.Add(neighbor);
+
+            bool attemptFirstSuccess = false;
+            foreach (var r in roomSet)
+            {
+                Library_ExiledAPI.LogDebug("DisableAndFlickerRoomAndNeighborLights", $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
+
+                float blackoutDuration = blackoutDurationBase + ((Config.BlackoutConfig.DurationMin + Config.BlackoutConfig.DurationMax) / 2f);
+
+                bool attemptResult = Methods.AttemptRoomBlackout(r, blackoutDuration, isCassieSilent: true, isForced: true);
+                if (attemptResult)
+                {
+                    if (!attemptFirstSuccess)
+                    {
+                        Methods.IncrementBlackoutStack();
+                        Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
+                        attemptFirstSuccess = true;
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Determines if the given player is in a dark room (lights off).
@@ -42,36 +165,44 @@
         public static bool IsPlayerInDarkRoom(Player player)
         {
             var room = player.Room;
-            return room?.LightController != null && !room.LightController.LightsEnabled;
+            return room?.AllLightControllers.Any() == true &&
+                   room.AllLightControllers.All(lc => !lc.LightsEnabled);
         }
 
-        /// <summary>
-        /// Returns true if the given room contains an engaged generator.
-        /// </summary>
-        public static bool IsRoomFreeOfEngagedGenerators(Room room) =>
-            Generator.List.Any(gen => gen.Room == room && gen.Engaged);
+        #endregion
 
-        /// <summary>
-        /// Enables and flickers lights in a LabAPI room and its neighboring Exiled rooms.
-        /// </summary>
-        public static void EnableAndFlickerRoomAndNeighborLights(Room labRoom)
-        {
-            var exiledRoom = Library_ExiledAPI.ToExiledRoom(labRoom);
-            Library_ExiledAPI.LogDebug("EnableAndFlickerRoomLights", $"Processing room: {exiledRoom?.Name}");
+        #region Utilities
 
-            if (exiledRoom != null)
-            {
-                exiledRoom.RoomLightController.LightsEnabled = true;
-                exiledRoom.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
+        /// <summary>  
+        /// Checks if a player is human and not holding an active light source.  
+        /// </summary>  
+        /// <param name="player">The player to check.</param>  
+        /// <returns>True if the player is human without an active light source, false otherwise.</returns>  
+        //public static bool IsHumanWithoutLight(Player player)
+        //{
+        //    try
+        //    {
+        //        if (!player.IsHuman) return false;
 
-                foreach (var neighbor in exiledRoom.NearestRooms)
-                {
-                    Library_ExiledAPI.LogDebug("EnableAndFlickerRoomLights", $"Also flickering lights in neighbor room: {neighbor.Name}");
-                    neighbor.RoomLightController.LightsEnabled = true;
-                    neighbor.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
-                }
-            }
-        }
+        //        // Check if player has weapon flashlight enabled  
+        //        // The specific limitation is weapon flashlight detection. While LabAPI provides events for when weapon flashlights are toggled, it doesn't expose a direct property on FirearmItem to check the current flashlight state.
+        //        if (player.CurrentItem is FirearmItem firearm && firearm.FlashlightEnabled)
+        //            return false;
+
+        //        // Check if player is holding an active light item  
+        //        if (player.CurrentItem is LightItem lightItem && lightItem.IsEmitting)
+        //            return false;
+
+        //        return true;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Library_ExiledAPI.LogError("Helpers.IsHumanWithoutLight", $"Failed to check player {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
+        //        return false;
+        //    }
+        //}
+
+
 
         #endregion
 
