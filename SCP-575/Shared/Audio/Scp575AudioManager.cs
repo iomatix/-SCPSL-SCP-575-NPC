@@ -6,12 +6,14 @@
     using UnityEngine;
     using AudioManagerAPI.Defaults;
     using AudioManagerAPI.Features.Enums;
+    using AudioManagerAPI.Features.Filters;
     using AudioManagerAPI.Features.Management;
     using AudioManagerAPI.Features.Speakers;
     using AudioManagerAPI.Features.Static;
     using LabApi.Features.Wrappers;
     using MEC;
     using SCP_575.Shared.Audio.Enums;
+    using SCP_575.ConfigObjects;
     using Log = LabApi.Features.Console.Logger;
 
     /// <summary>
@@ -21,8 +23,6 @@
     {
         private readonly Plugin _plugin;
         private static IAudioManager sharedAudioManager;
-        private const float GLOBAL_SCREAM_COOLDOWN = 35f;
-        private const float DEFAULT_FADE_DURATION = 1f;
         private DateTime lastGlobalScreamTime = DateTime.MinValue;
         private byte _ambienceAudioControllerId;
 
@@ -41,10 +41,18 @@
         /// Initializes a new instance of the <see cref="Scp575AudioManager"/> class.
         /// </summary>
         /// <param name="plugin">Reference to the main <see cref="Plugin"/> instance.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the plugin instance is null.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if the plugin instance or its AudioConfig is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if the AudioConfig values are invalid.</exception>
         public Scp575AudioManager(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
+            if (_plugin.Config?.AudioConfig == null)
+                throw new ArgumentNullException(nameof(_plugin.Config.AudioConfig), "Audio configuration cannot be null.");
+            if (_plugin.Config.AudioConfig.GlobalScreamCooldown <= 0)
+                throw new ArgumentException("GlobalScreamCooldown must be positive.", nameof(_plugin.Config.AudioConfig));
+            if (_plugin.Config.AudioConfig.DefaultFadeDuration < 0)
+                throw new ArgumentException("DefaultFadeDuration must be non-negative.", nameof(_plugin.Config.AudioConfig));
+
             if (sharedAudioManager == null)
             {
                 DefaultAudioManager.RegisterDefaults(cacheSize: 20);
@@ -83,7 +91,7 @@
             if ((isNonSpatial || hearableForAllPlayers) && (audioKey == AudioKey.Scream || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
                 double secondsSinceLastScream = (DateTime.UtcNow - lastGlobalScreamTime).TotalSeconds;
-                if (secondsSinceLastScream < GLOBAL_SCREAM_COOLDOWN)
+                if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown)
                 {
                     Log.Warn($"[Scp575AudioManager] Scream audio {audioKey} blocked due to global cooldown. Time since last scream: {secondsSinceLastScream:F2}s.");
                     return 0;
@@ -173,7 +181,7 @@
                     }
                     else
                     {
-                        sharedAudioManager.FadeOutAudio(controllerId, DEFAULT_FADE_DURATION);
+                        sharedAudioManager.FadeOutAudio(controllerId, _plugin.Config.AudioConfig.DefaultFadeDuration);
                     }
                     return 0;
                 }
@@ -186,7 +194,7 @@
                     }
                     else
                     {
-                        sharedAudioManager.FadeOutAudio(controllerId, DEFAULT_FADE_DURATION);
+                        sharedAudioManager.FadeOutAudio(controllerId, _plugin.Config.AudioConfig.DefaultFadeDuration);
                         Log.Debug($"[Scp575AudioManager] Stopped audio {audioKey} with controller ID {controllerId} after lifespan of {effectiveLifespan} seconds.");
                     }
                 });
@@ -221,6 +229,13 @@
         {
             var config = audioConfig[AudioKey.Ambience];
 
+            // Validate default lifespan
+            if (!loop && config.defaultLifespan <= 0 && !lifespan.HasValue)
+            {
+                Log.Warn($"[Scp575AudioManager][PlayAmbience] Invalid default lifespan for ambience: {config.defaultLifespan}. Must be positive for non-looping audio.");
+                return 0;
+            }
+
             // Stop existing ambience if any
             if (_ambienceAudioControllerId != 0)
             {
@@ -237,8 +252,7 @@
                 {
                     if (speaker is ISpeakerWithPlayerFilter filterSpeaker)
                     {
-                        var lightsOffFilter = AudioManagerAPI.Features.Filters.AudioFilters.IsInRoomWhereLightsAre(false);
-                        filterSpeaker.SetValidPlayers(player => lightsOffFilter(player) && _plugin.Npc.Methods.IsBlackoutActive);
+                        filterSpeaker.SetValidPlayers(player => AudioFilters.IsInRoomWhereLightsAre(false)(player) && _plugin.Npc.Methods.IsBlackoutActive);
                     }
                     else
                     {
@@ -281,9 +295,10 @@
         /// </summary>
         public void StopAmbience()
         {
+            if (!sharedAudioManager.IsValidController(_ambienceAudioControllerId)) return;
             if (_ambienceAudioControllerId != 0)
             {
-                sharedAudioManager.FadeOutAudio(_ambienceAudioControllerId, DEFAULT_FADE_DURATION);
+                sharedAudioManager.FadeOutAudio(_ambienceAudioControllerId, _plugin.Config.AudioConfig.DefaultFadeDuration);
                 Log.Debug($"[Scp575AudioManager] Stopped ambience audio with controller ID {_ambienceAudioControllerId}.");
                 _ambienceAudioControllerId = 0;
             }

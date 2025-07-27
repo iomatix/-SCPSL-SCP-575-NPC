@@ -78,6 +78,16 @@ namespace SCP_575
 
         #endregion
 
+        #region Audio
+
+        /// <summary>
+        /// Gets or sets the audio configuration.
+        /// </summary>
+        [Description("Audio system configuration.")]
+        public AudioConfig AudioConfig { get; set; } = new AudioConfig();
+
+        #endregion
+
         #region Utilities
 
         /// <summary>
