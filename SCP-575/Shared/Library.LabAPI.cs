@@ -34,7 +34,7 @@
         public static IReadOnlyCollection<Room> Rooms => Room.List;
 
         /// <summary>Gets the list of all Tesla gates.</summary>
-        public static IReadOnlyCollection<Tesla> Tesla => Tesla.List;
+        public static IReadOnlyCollection<Tesla> Teslas => Tesla.List;
 
         /// <summary>Gets the room at the specified position.</summary>
         public static Room GetRoomAtPosition(Vector3 pos) => Room.GetRoomAtPosition(pos);

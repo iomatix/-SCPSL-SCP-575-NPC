@@ -413,7 +413,7 @@
 
         private void ResetTeslaGates()
         {
-            foreach (LabApi.Features.Wrappers.Tesla tesla in Library_LabAPI.Tesla)
+            foreach (LabApi.Features.Wrappers.Tesla tesla in Library_LabAPI.Teslas)
             {
                 tesla.Trigger();
                 tesla.InactiveTime = 5f;
@@ -625,8 +625,11 @@
             _blackoutStacks = 0;
             foreach (var room in LabApi.Features.Wrappers.Room.List)
             {
-                room.LightController.LightsEnabled = true;
-                room.LightController.FlickerLights(_config.BlackoutConfig.FlickerDuration);
+                foreach (var lightController in room.AllLightControllers)
+                {
+                    lightController.LightsEnabled = true;
+                    lightController.FlickerLights(_config.BlackoutConfig.FlickerDuration);
+                }
             }
             _triggeredZones.Clear();
             ResetTeslaGates();
