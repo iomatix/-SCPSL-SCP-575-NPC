@@ -343,7 +343,7 @@
                 }
                 Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applying stage for {userId} ({nickname}), Sanity: {sanity}, Stage: Min={stage.MinThreshold}, Max={stage.MaxThreshold}, Damage={stage.DamageOnStrike}, Effects={stage.Effects?.Count ?? 0}, StackTrace: {Environment.StackTrace}");
 
-                if (stage.DamageOnStrike > 0)
+                if (Helpers.IsHumanWithoutLight(player) && stage.DamageOnStrike > 0)
                 {
                     try
                     {

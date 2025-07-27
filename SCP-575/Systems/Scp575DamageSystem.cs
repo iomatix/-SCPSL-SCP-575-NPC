@@ -353,12 +353,14 @@
                 Library_ExiledAPI.LogDebug("DropAndPushItems", $"Dropping all items from {player.Nickname ?? "null"}'s inventory called by Server.");
                 List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
 
+                // Pre-calculate all forces before applying (Improvement 3: Batch Physics Operations)
+                var physicsOperations = new List<(Rigidbody rb, Vector3 velocity, Vector3 angular, ushort serial, string name)>();
 
                 foreach (var pickup in droppedPickups)
                 {
-                    if (pickup?.Rigidbody == null)
+                    if (pickup?.Rigidbody == null || pickup.IsDestroyed || !pickup.IsSpawned)
                     {
-                        Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid pickup or missing Rigidbody - skipping.");
+                        Library_ExiledAPI.LogWarn("DropAndPushItems", $"Invalid or unspawned pickup - skipping.");
                         continue;
                     }
 
@@ -366,17 +368,43 @@
                     var dir = GetRandomUnitSphereVelocity();
                     var mag = CalculateForcePush();
 
+                    physicsOperations.Add((rb, dir * mag,
+                        UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier,
+                        pickup.Serial, pickup.Base.name));
+                }
+
+                // Apply all physics operations at once
+                foreach (var (rb, velocity, angular, serial, name) in physicsOperations)
+                {
                     try
                     {
-                        rb.linearVelocity = dir * mag;
-                        rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
-                        Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {pickup.Serial} with velocity {dir * mag}.");
+                        rb.linearVelocity = velocity;
+                        rb.angularVelocity = angular;
+                        Library_ExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {serial} with velocity {velocity}.");
+                    }
+                    catch (NullReferenceException ex)
+                    {
+                        Library_ExiledAPI.LogError("DropAndPushItems", $"Null reference during physics application for item {serial}:{name}: {ex.Message}");
+                    }
+                    catch (UnityEngine.UnityException ex)
+                    {
+                        Library_ExiledAPI.LogError("DropAndPushItems", $"Unity physics error for item {serial}:{name}: {ex.Message}");
                     }
                     catch (Exception ex)
                     {
-                        Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {pickup.Serial}:{pickup.Base.name}: {ex.Message}, StackTrace: {ex.StackTrace}");
+                        Library_ExiledAPI.LogError("DropAndPushItems", $"Error pushing item {serial}:{name}: {ex.Message}, StackTrace: {ex.StackTrace}");
                     }
                 }
+
+                NorthwoodLib.Pools.ListPool<LabApi.Features.Wrappers.Pickup>.Shared.Return(droppedPickups);
+            }
+            catch (NullReferenceException ex)
+            {
+                Library_ExiledAPI.LogError("DropAndPushItems", $"Null reference during item dropping for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
+            }
+            catch (UnityEngine.UnityException ex)
+            {
+                Library_ExiledAPI.LogError("DropAndPushItems", $"Unity error during item dropping for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
             }
             catch (Exception ex)
             {
