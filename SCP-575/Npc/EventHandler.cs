@@ -56,7 +56,7 @@ namespace SCP_575.Npc
 
                     Timing.KillCoroutines("SCP575keter");
                     Coroutines.RemoveAll(handle => handle.IsRunning);
-                    Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.KeterAction(), tag: "SCP575keter"));
+                    _plugin.Npc.Methods.StartKeterAction();
 
                     if (_plugin.SanityEventHandler.SanityDecayCoroutine.IsRunning)
                         Timing.KillCoroutines(_plugin.SanityEventHandler.SanityDecayCoroutine);
@@ -83,30 +83,6 @@ namespace SCP_575.Npc
             }
         }
 
-        public void OnServerRoundEnded(LabApi.Events.Arguments.ServerEvents.RoundEndedEventArgs ev)
-        {
-            _plugin.IsEventActive = false;
-            _plugin.Npc.Methods.Disable();
-            foreach (CoroutineHandle handle in Coroutines)
-            {
-                Timing.KillCoroutines(handle);
-            }
-            Coroutines.Clear();
-            _plugin.SanityEventHandler.Clean();
-        }
-
-        public void OnServerWaitingForPlayers()
-        {
-            _plugin.IsEventActive = false;
-            _plugin.Npc.Methods.Disable();
-            foreach (CoroutineHandle handle in Coroutines)
-            {
-                Timing.KillCoroutines(handle);
-            }
-            Coroutines.Clear();
-            _plugin.SanityEventHandler.Clean();
-        }
-
         /// <summary>
         /// Handles the RoundEnded event, cleaning up SCP-575 blackout mechanics.
         /// </summary>
@@ -114,6 +90,7 @@ namespace SCP_575.Npc
         public void OnRoundEnd(LabApi.Events.Arguments.ServerEvents.RoundEndedEventArgs ev)
         {
             _plugin.IsEventActive = false; // Explicitly disable event
+            _plugin.Npc.Methods.StopKeterAction();
             _plugin.Npc.Methods.Disable();
             foreach (CoroutineHandle handle in Coroutines)
             {
@@ -129,6 +106,7 @@ namespace SCP_575.Npc
         public void OnWaitingPlayers()
         {
             _plugin.IsEventActive = false; // Explicitly disable event
+            _plugin.Npc.Methods.StopKeterAction();
             _plugin.Npc.Methods.Disable();
             foreach (CoroutineHandle handle in Coroutines)
             {

@@ -28,6 +28,7 @@
         private static int _blackoutStacks = 0;
         private CassieStatus _cassieState = CassieStatus.Idle;
         private CoroutineHandle _cassieCooldownCoroutine;
+        private CoroutineHandle _keterActionCoroutine;
 
         private enum CassieStatus
         {
@@ -93,6 +94,10 @@
             if (_cassieCooldownCoroutine.IsRunning)
                 Timing.KillCoroutines(_cassieCooldownCoroutine);
 
+            if (_keterActionCoroutine.IsRunning)
+                Timing.KillCoroutines(_keterActionCoroutine);
+
+            _keterActionCoroutine = default;
             Plugin.Singleton.AudioManager.StopAmbience();
             _blackoutStacks = 0;
             _triggeredZones.Clear();
@@ -603,7 +608,30 @@
 
         #endregion
 
+
         #region Utility Methods
+
+        /// <summary>  
+        /// Starts the damage coroutine if not already running  
+        /// </summary>  
+        public void StartKeterAction()
+        {
+            if (!_keterActionCoroutine.IsRunning)
+            {
+                _keterActionCoroutine = Timing.RunCoroutine(KeterAction(), "SCP575keter");
+            }
+        }
+
+        /// <summary>  
+        /// Stops the damage coroutine  
+        /// </summary>  
+        public void StopKeterAction()
+        {
+            if (_keterActionCoroutine.IsRunning)
+            {
+                Timing.KillCoroutines(_keterActionCoroutine);
+            }
+        }  
 
         /// <summary>
         /// Increments the blackout stack count in a thread-safe manner.
@@ -677,6 +705,7 @@
             Library_ExiledAPI.LogDebug("Kill575", "Killing SCP-575 NPC.");
             Clean();
         }
+
 
         #endregion
     }
