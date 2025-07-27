@@ -71,7 +71,13 @@
         }
 
         /// <summary>Returns true if the given room contains an engaged generator.</summary>  
-        public static bool IsRoomFreeOfEngagedGenerators(Room room) => !Generator.List.Any(gen => gen.Room == room && gen.Engaged);
+        public static bool IsRoomFreeOfEngagedGenerators(Room room)
+        {
+            if (!Generator.TryGetFromRoom(room, out List<Generator>? generators))
+                return true; // No generators in room  
+
+            return !generators.Any(gen => gen.Engaged);
+        }
 
         /// <summary>  
         /// Returns true if the specified room and all its neighbors are free of engaged generators.  
@@ -80,16 +86,24 @@
         {
             if (room == null) return false;
 
-            // Get neighbor rooms using LabAPI  
-            var neighborRooms = room.ConnectedRooms.Select(Room.Get).Where(r => r != null);
+            // Get connected rooms  
+            var connectedRooms = room.ConnectedRooms.Select(Room.Get).Where(r => r != null);
             var allRooms = new HashSet<Room> { room };
-            foreach (var neighbor in neighborRooms)
+            foreach (var neighbor in connectedRooms)
                 allRooms.Add(neighbor);
 
-            return !Generator.List.Any(gen =>
-                gen.Engaged && allRooms.Contains(gen.Room));
-        }
+            // Check each room using optimized lookup  
+            foreach (var roomToCheck in allRooms)
+            {
+                if (Generator.TryGetFromRoom(roomToCheck, out List<Generator>? generators))
+                {
+                    if (generators.Any(gen => gen.Engaged))
+                        return false;
+                }
+            }
 
+            return true;
+        }
         /// <summary>  
         /// Enables and flickers lights in a room and all its neighboring rooms.  
         /// </summary>  
