@@ -45,6 +45,7 @@
         /// <summary>Gets a LabAPI ragdoll wrapper from a native ragdoll object.</summary>
         public static Ragdoll GetRagdoll(PlayerRoles.Ragdolls.BasicRagdoll ragdoll) => Ragdoll.Get(ragdoll);
 
+        #endregion
 
         #region Room Utilities
 

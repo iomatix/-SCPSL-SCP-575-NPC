@@ -133,7 +133,8 @@
 
                 float blackoutDuration = blackoutDurationBase + ((Config.BlackoutConfig.DurationMin + Config.BlackoutConfig.DurationMax) / 2f);
 
-                bool attemptResult = Methods.AttemptRoomBlackout(r, blackoutDuration, isCassieSilent: true, isForced: true);
+                var labApiRoom = Library_LabAPI.ToLabApiRoom(r);
+                bool attemptResult = Methods.AttemptRoomBlackout(labApiRoom, blackoutDuration, isCassieSilent: true, isForced: true);
                 if (attemptResult)
                 {
                     if (!attemptFirstSucces)
