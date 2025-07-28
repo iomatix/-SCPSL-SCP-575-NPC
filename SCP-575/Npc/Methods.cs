@@ -313,6 +313,10 @@ namespace SCP_575.Npc
             bool blackoutTriggered = false;
             foreach (LabApi.Features.Wrappers.Room room in Library_LabAPI.Rooms)
             {
+                // Skip rooms without light controllers
+                if (!room.AllLightControllers.Any()) continue;
+
+
                 if (AttemptRoomBlackout(room, blackoutDuration))
                 {
                     blackoutTriggered = true;

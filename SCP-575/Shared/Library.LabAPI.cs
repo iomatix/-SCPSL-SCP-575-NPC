@@ -62,10 +62,12 @@
                 return;
             }
 
-            foreach (var lightController in room.AllLightControllers)
-            {
-                lightController.FlickerLights(duration);
-            }
+            Library_ExiledAPI.ToExiledRoom(room).TurnOffLights(duration);
+            // This foreach loop makes global blackout.
+            //foreach (var lightController in room.AllLightControllers)
+            //{
+            //    lightController.FlickerLights(duration);
+            //}
 
             Library_ExiledAPI.LogDebug("TurnOffRoomLights", $"Lights turned off in room {room.Name} for {duration} seconds.");
         }
@@ -126,12 +128,13 @@
             {
                 Library_ExiledAPI.LogDebug("EnableAndFlickerRoomLights", $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
+                Library_ExiledAPI.ToExiledRoom(r).TurnOffLights(Config.BlackoutConfig.FlickerDuration); // Turn them On after Flicker Duration via Exiled adapter.
                 // Enable lights and flicker using LabAPI  
-                foreach (var lightController in r.AllLightControllers)
-                {
-                    lightController.LightsEnabled = true;
-                    lightController.FlickerLights(Config.BlackoutConfig.FlickerDuration);
-                }
+                //foreach (var lightController in r.AllLightControllers)
+                //{
+                //    lightController.LightsEnabled = true;
+                //    lightController.FlickerLights(Config.BlackoutConfig.FlickerDuration);
+                //}
             }
         }
 
