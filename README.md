@@ -58,15 +58,15 @@ blackout_config:
   # Enable facility-wide blackout if no zones selected.
   enable_facility_blackout: true
   # Chance (%) of outage in Heavy Containment Zone.
-  chance_heavy: 69
+  chance_heavy: 75
   # Chance (%) of outage in Light Containment Zone.
-  chance_light: 25
+  chance_light: 15
   # Chance (%) of outage in Entrance Zone.
-  chance_entrance: 55
+  chance_entrance: 45
   # Chance (%) of outage in Surface Zone.
-  chance_surface: 12
+  chance_surface: 10
   # Chance (%) of outage in unspecified zones.
-  chance_other: 25
+  chance_other: 15
   # Use per-room chance settings instead of per-zone.
   use_per_room_chances: true
   # Disable Tesla gates during blackout.
@@ -106,13 +106,13 @@ sanity_config:
 # Initial sanity value (0–100) on spawn.
   initial_sanity: 100
   # Base sanity decay rate per second.
-  decay_rate_base: 0.109999999
+  decay_rate_base: 0.115000002
   # Decay multiplier when SCP-575 is active.
-  decay_multiplier_blackout: 1.64999998
+  decay_multiplier_blackout: 1.54999995
   # Decay multiplier when player has no light source.
-  decay_multiplier_darkness: 1.45000005
+  decay_multiplier_darkness: 1.64999998
   # Passive sanity regen rate per second.
-  passive_regen_rate: 0.0799999982
+  passive_regen_rate: 0.0820000023
   # Minimum sanity restore percent from medical pills.
   pills_restore_min: 15
   # Maximum sanity restore percent from medical pills.
@@ -132,6 +132,8 @@ sanity_config:
     damage_on_strike: 0
     # Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.
     additional_damage_per_stack: 0
+    # Determines whether negative sanity effects should be applied even when the player is holding a lightsource in the room with lights off.
+    override_light_source_sanity_protection: false
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -152,7 +154,7 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Blurred
       # Duration of the effect in seconds.
-      duration: 1
+      duration: 0.25
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -192,6 +194,8 @@ sanity_config:
     damage_on_strike: 3
     # Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.
     additional_damage_per_stack: 2
+    # Determines whether negative sanity effects should be applied even when the player is holding a lightsource in the room with lights off.
+    override_light_source_sanity_protection: false
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -233,7 +237,7 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Blurred
       # Duration of the effect in seconds.
-      duration: 2
+      duration: 0.449999988
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -273,6 +277,8 @@ sanity_config:
     damage_on_strike: 6
     # Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.
     additional_damage_per_stack: 5
+    # Determines whether negative sanity effects should be applied even when the player is holding a lightsource in the room with lights off.
+    override_light_source_sanity_protection: false
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -314,14 +320,14 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Blurred
       # Duration of the effect in seconds.
-      duration: 5
+      duration: 1.25
       # Intensity level of the status effect.
       intensity: 1
     -
     # Specifies the status effect type to apply.
       effect_type: Concussed
       # Duration of the effect in seconds.
-      duration: 8
+      duration: 6
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -354,6 +360,8 @@ sanity_config:
     damage_on_strike: 9
     # Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.
     additional_damage_per_stack: 8
+    # Determines whether negative sanity effects should be applied even when the player is holding a lightsource in the room with lights off.
+    override_light_source_sanity_protection: true
     # List of effects to apply to the player during this sanity stage.
     effects:
     -
@@ -395,14 +403,14 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Blurred
       # Duration of the effect in seconds.
-      duration: 7
+      duration: 1.75
       # Intensity level of the status effect.
       intensity: 1
     -
     # Specifies the status effect type to apply.
       effect_type: Concussed
       # Duration of the effect in seconds.
-      duration: 10
+      duration: 8
       # Intensity level of the status effect.
       intensity: 1
     -
