@@ -343,32 +343,35 @@
                 }
                 Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applying stage for {userId} ({nickname}), Sanity: {sanity}, Stage: Min={stage.MinThreshold}, Max={stage.MaxThreshold}, Damage={stage.DamageOnStrike}, Effects={stage.Effects?.Count ?? 0}, StackTrace: {Environment.StackTrace}");
 
-                float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
-                if (Helpers.IsHumanWithoutLight(player) && culmDamage > 0)
+                if (Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection)
                 {
-                    try
-                    {
-                        Scp575DamageSystem.DamagePlayer(player, culmDamage);
-                        Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied damage {culmDamage} to {userId} ({nickname})");
-                    }
-                    catch (Exception ex)
-                    {
-                        Library_ExiledAPI.LogError("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply damage to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
-                    }
-                }
-
-                if (stage.Effects != null)
-                {
-                    foreach (var effectConfig in stage.Effects)
+                    float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
+                    if (culmDamage > 0)
                     {
                         try
                         {
-                            ApplyEffect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
-                            Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied effect {effectConfig.EffectType} to {userId} ({nickname}) with intensity {effectConfig.Intensity}, duration {effectConfig.Duration}");
+                            Scp575DamageSystem.DamagePlayer(player, culmDamage);
+                            Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied damage {culmDamage} to {userId} ({nickname})");
                         }
                         catch (Exception ex)
                         {
-                            Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply effect {effectConfig.EffectType} to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                            Library_ExiledAPI.LogError("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply damage to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                        }
+                    }
+
+                    if (stage.Effects != null)
+                    {
+                        foreach (var effectConfig in stage.Effects)
+                        {
+                            try
+                            {
+                                ApplyEffect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
+                                Library_ExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied effect {effectConfig.EffectType} to {userId} ({nickname}) with intensity {effectConfig.Intensity}, duration {effectConfig.Duration}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Library_ExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply effect {effectConfig.EffectType} to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                            }
                         }
                     }
                 }

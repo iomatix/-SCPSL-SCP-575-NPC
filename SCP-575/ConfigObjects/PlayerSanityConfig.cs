@@ -86,6 +86,7 @@
         MaxThreshold = 100f,
         DamageOnStrike = 0f,
         AdditionalDamagePerStack = 0f,
+        OverrideLightSourceSanityProtection = false,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 3 },
@@ -103,6 +104,7 @@
         MaxThreshold = 75f,
         DamageOnStrike = 3f,
         AdditionalDamagePerStack = 2f,
+        OverrideLightSourceSanityProtection = false,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 7 },
@@ -123,6 +125,7 @@
         MaxThreshold = 50f,
         DamageOnStrike = 6f,
         AdditionalDamagePerStack = 5f,
+        OverrideLightSourceSanityProtection = false,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 9 },
@@ -143,6 +146,7 @@
         MaxThreshold = 25f,
         DamageOnStrike = 9f,
         AdditionalDamagePerStack = 8f,
+        OverrideLightSourceSanityProtection = true,
         Effects = new()
         {
             new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 10 },

@@ -38,6 +38,13 @@ namespace SCP_575.ConfigObjects
         public float AdditionalDamagePerStack { get; set; }
 
         /// <summary>
+        /// Determines whether negative sanity effects should be applied even when the player is holding a lightsource.
+        /// If set to true, overrides the IsHumanWithoutLight check.
+        /// </summary>
+        [Description("Determines whether negative sanity effects should be applied even when the player is holding a lightsource in the room with lights off.")]
+        public bool OverrideLightSourceSanityProtection { get; set; }
+
+        /// <summary>
         /// Gets or sets the list of custom sanity effects applied during this stage.
         /// </summary>
 
