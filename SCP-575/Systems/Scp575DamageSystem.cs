@@ -1,7 +1,9 @@
 ﻿namespace SCP_575.Systems
 {
     using InventorySystem.Items.Armor;
+    using LabApi.Features.Wrappers;
     using MEC;
+    using NorthwoodLib.Pools;
     using PlayerRoles;
     using PlayerRoles.PlayableScps.Scp3114;
     using PlayerRoles.Ragdolls;
@@ -10,6 +12,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using UnityEngine;
 
     public static class Scp575DamageSystem
@@ -238,7 +241,7 @@
         /// </summary>
         /// <param name="ragdoll">The LabAPI ragdoll wrapper to process.</param>
         /// <exception cref="ArgumentNullException">Thrown when ragdoll or handler is null.</exception>
-        public static void RagdollProcessor(Exiled.API.Features.Player player, Exiled.API.Features.Ragdoll ragdoll)
+        public static void RagdollProcessor(Player player, Ragdoll ragdoll)
         {
             if (ragdoll == null)
                 throw new ArgumentNullException(nameof(ragdoll));
@@ -246,7 +249,7 @@
             LibraryExiledAPI.LogDebug("RagdollProcess", $"Processing SCP-575 ragdoll at position: {ragdoll.Position}");
             try
             {
-                Exiled.API.Features.Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll);
+                Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll);
                 ApplyStandardRagdollPhysics(newRagdoll);
                 ConvertToBones(newRagdoll);
                 LibraryExiledAPI.LogDebug("RagdollProcess", $"SCP-575 ragdoll processing completed successfully");
@@ -257,7 +260,7 @@
             }
         }
 
-        public static Exiled.API.Features.Ragdoll ReplaceRagdoll(Exiled.API.Features.Player player, Exiled.API.Features.Ragdoll originalRagdoll)
+        public static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll)
         {
             if (player == null || originalRagdoll == null)
                 return null;
@@ -269,19 +272,21 @@
 
                 // Prepare RagdollData
                 var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
-                var ragdollData = new RagdollData(
-                    player.ReferenceHub,
-                    customHandler,
-                    RoleTypeId.Scp3114, // Temporary replace body to skeleton, for player.Role,
+                Ragdoll newRagdoll = Ragdoll.SpawnRagdoll(
+                    RoleTypeId.Scp3114,
                     originalRagdoll.Position,
                     originalRagdoll.Rotation,
-                    player.DisplayNickname,
-                    Time.time);
+                    customHandler,
+                    player.Nickname);
 
-                originalRagdoll.Destroy();
+                // Only destroy original if new ragdoll was successfully created
+                if (newRagdoll != null)
+                {
+                    originalRagdoll.Destroy();
+                    return newRagdoll;
+                }
 
-                // Spawn Exiled ragdoll
-                return Exiled.API.Features.Ragdoll.CreateAndSpawn(ragdollData);
+                return null; // Failed to create replacement
             }
             catch (Exception ex)
             {
@@ -291,21 +296,27 @@
             }
         }
 
-        public static void ApplyStandardRagdollPhysics(Exiled.API.Features.Ragdoll ragdoll)
+        public static void ApplyStandardRagdollPhysics(Ragdoll ragdoll)
         {
             try
             {
-                LibraryExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on Exiled ragdoll at {ragdoll.Position}");
+                LibraryExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on LabAPI ragdoll at {ragdoll.Position}");
 
                 Vector3 upwardForce = Vector3.up * CalculateForcePush(3.8f);
                 Vector3 randomForce = GetRandomUnitSphereVelocity(2.8f);
-                foreach (Rigidbody rb in ragdoll.SpecialRigidbodies)
+
+                // Access rigidbodies through the base BasicRagdoll  
+                Rigidbody[] rigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
+
+                if (rigidbodies == null || rigidbodies.Length == 0)
                 {
-                    if (ragdoll.SpecialRigidbodies == null || ragdoll.SpecialRigidbodies.Count() == 0)
-                    {
-                        LibraryExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbodies found on ragdoll.");
-                        return;
-                    }
+                    LibraryExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbodies found on ragdoll.");
+                    return;
+                }
+
+                foreach (Rigidbody rb in rigidbodies)
+                {
+                    if (rb == null) continue;
 
                     try
                     {
@@ -315,7 +326,7 @@
                     }
                     catch (Exception ex)
                     {
-                        LibraryExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply Exiled ragdoll physics: {ex.Message}");
+                        LibraryExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply ragdoll physics to {rb.name}: {ex.Message}");
                     }
                 }
             }
@@ -325,7 +336,7 @@
             }
         }
 
-        public static void ConvertToBones(Exiled.API.Features.Ragdoll ragdoll)
+        public static void ConvertToBones(Ragdoll ragdoll)
         {
             try
             {
@@ -345,70 +356,133 @@
 
         #region Utility Methods  
 
-        public static IEnumerator<float> DropAndPushItems(LabApi.Features.Wrappers.Player player)
+        public static IEnumerator<float> DropAndPushItems(Player player)
         {
-            yield return Timing.WaitForOneFrame;  // let engine spawn pickups
+            if (player == null || !player.IsReady || player.IsHost)
+            {
+                LibraryExiledAPI.LogDebug(nameof(DropAndPushItems),
+                    "Aborted: Invalid player state");
+                yield break;
+            }
+
+            const int maxWaitFrames = 6;
+            int waitFrames = 0;
+
+            // Wait until items are properly spawned
+            while (player.Inventory.UserInventory.Items.Count > 0 && waitFrames++ < maxWaitFrames)
+            {
+                yield return Timing.WaitForOneFrame;
+            }
+
             try
             {
-                LibraryExiledAPI.LogDebug("DropAndPushItems", $"Dropping all items from {player.Nickname ?? "null"}'s inventory called by Server.");
-                List<LabApi.Features.Wrappers.Pickup> droppedPickups = player.DropAllItems();
+                LibraryExiledAPI.LogDebug(nameof(DropAndPushItems),
+                    $"Processing {player.Nickname}'s inventory ({player.Inventory.UserInventory.Items.Count} items)");
 
-                // Pre-calculate all forces before applying (Improvement 3: Batch Physics Operations)
-                var physicsOperations = new List<(Rigidbody rb, Vector3 velocity, Vector3 angular, ushort serial, string name)>();
-
-                foreach (var pickup in droppedPickups)
+                // Use pooled memory for dropped items
+                var droppedPickups = ListPool<Pickup>.Shared.Rent();
+                try
                 {
-                    if (pickup?.Rigidbody == null || pickup.IsDestroyed || !pickup.IsSpawned)
-                    {
-                        LibraryExiledAPI.LogWarn("DropAndPushItems", $"Invalid or unspawned pickup - skipping.");
-                        continue;
-                    }
+                    droppedPickups = player.DropAllItems();
+                    LibraryExiledAPI.LogDebug(nameof(DropAndPushItems),
+                        $"Dropped {droppedPickups.Count} items from {player.Nickname}");
 
-                    var rb = pickup.Rigidbody;
-                    var dir = GetRandomUnitSphereVelocity();
-                    var mag = CalculateForcePush();
-
-                    physicsOperations.Add((rb, dir * mag,
-                        UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier,
-                        pickup.Serial, pickup.Base.name));
-                }
-
-                // Apply all physics operations at once
-                foreach (var (rb, velocity, angular, serial, name) in physicsOperations)
-                {
+                    // Physics operations list with pooled memory
+                    var physicsOperations = ListPool<(Rigidbody rb, Vector3 velocity, Vector3 angular)>.Shared.Rent();
                     try
                     {
-                        rb.linearVelocity = velocity;
-                        rb.angularVelocity = angular;
-                        LibraryExiledAPI.LogDebug("DropAndPushItems", $"Pushed item {serial} with velocity {velocity}.");
+                        // Pre-calculate physics forces
+                        foreach (var pickup in droppedPickups)
+                        {
+                            if (!IsPickupValid(pickup)) continue;
+
+                            var rb = pickup.Rigidbody;
+                            var dir = GetRandomUnitSphereVelocity();
+                            var mag = CalculateForcePush();
+                            var velocity = dir * mag;
+                            var angular = UnityEngine.Random.insideUnitSphere *
+                                           Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+
+                            physicsOperations.Add((rb, velocity, angular));
+                        }
+
+                        // Apply physics in a single pass
+                        ApplyPhysicsOperations(physicsOperations);
                     }
-                    catch (NullReferenceException ex)
+                    finally
                     {
-                        LibraryExiledAPI.LogError("DropAndPushItems", $"Null reference during physics application for item {serial}:{name}: {ex.Message}");
-                    }
-                    catch (UnityEngine.UnityException ex)
-                    {
-                        LibraryExiledAPI.LogError("DropAndPushItems", $"Unity physics error for item {serial}:{name}: {ex.Message}");
-                    }
-                    catch (Exception ex)
-                    {
-                        LibraryExiledAPI.LogError("DropAndPushItems", $"Error pushing item {serial}:{name}: {ex.Message}, StackTrace: {ex.StackTrace}");
+                        ListPool<(Rigidbody, Vector3, Vector3)>.Shared.Return(physicsOperations);
                     }
                 }
-
-                NorthwoodLib.Pools.ListPool<LabApi.Features.Wrappers.Pickup>.Shared.Return(droppedPickups);
-            }
-            catch (NullReferenceException ex)
-            {
-                LibraryExiledAPI.LogError("DropAndPushItems", $"Null reference during item dropping for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
-            }
-            catch (UnityEngine.UnityException ex)
-            {
-                LibraryExiledAPI.LogError("DropAndPushItems", $"Unity error during item dropping for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
+                finally
+                {
+                    ListPool<Pickup>.Shared.Return(droppedPickups);
+                }
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("DropAndPushItems", $"Failed to drop and push items for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                LibraryExiledAPI.LogError(nameof(DropAndPushItems),
+                    $"Critical error for {player.Nickname}: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        private static bool IsPickupValid(Pickup pickup)
+        {
+            if (pickup?.Rigidbody == null)
+            {
+                LibraryExiledAPI.LogDebug(nameof(IsPickupValid), "Skipped: Rigidbody missing");
+                return false;
+            }
+
+            if (pickup.IsDestroyed)
+            {
+                LibraryExiledAPI.LogDebug(nameof(IsPickupValid), $"Skipped: Pickup destroyed (Serial:{pickup.Serial})");
+                return false;
+            }
+
+            if (!pickup.IsSpawned)
+            {
+                LibraryExiledAPI.LogDebug(nameof(IsPickupValid), $"Skipped: Pickup not spawned (Serial:{pickup.Serial})");
+                return false;
+            }
+
+            if (pickup.Rigidbody.isKinematic)
+            {
+                LibraryExiledAPI.LogDebug(nameof(IsPickupValid), $"Skipped: Kinematic rigidbody (Serial:{pickup.Serial})");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static void ApplyPhysicsOperations(List<(Rigidbody rb, Vector3 velocity, Vector3 angular)> operations)
+        {
+            if (operations.Count == 0) return;
+
+            foreach (var (rb, velocity, angular) in operations)
+            {
+                try
+                {
+                    // Skip destroyed objects
+                    if (rb == null || rb.gameObject == null) continue;
+
+                    rb.linearVelocity = velocity;
+                    rb.angularVelocity = angular;
+
+#if DEBUG
+            LibraryExiledAPI.LogDebug(nameof(ApplyPhysicsOperations), 
+                $"Applied physics: Vel={velocity.magnitude:F2} Ang={angular.magnitude:F2}");
+#endif
+                }
+                catch (MissingReferenceException)
+                {
+                    // Object destroyed during operation - safe to ignore
+                }
+                catch (Exception ex)
+                {
+                    LibraryExiledAPI.LogError(nameof(ApplyPhysicsOperations),
+                        $"Physics error: {ex.GetType().Name} - {ex.Message}");
+                }
             }
         }
 
