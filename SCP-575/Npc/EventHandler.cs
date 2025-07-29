@@ -1,8 +1,8 @@
 namespace SCP_575.Npc
 {
+    using LabApi.Features.Wrappers;
     using MEC;
     using SCP_575.Shared;
-    using SCP_575.Shared.Audio;
     using SCP_575.Shared.Audio.Enums;
     using System;
     using System.Collections.Generic;
@@ -17,6 +17,7 @@ namespace SCP_575.Npc
     public class EventHandler
     {
         private readonly Plugin _plugin;
+        private readonly LibraryLabAPI _libraryLabAPI;
         private readonly Config _config;
 
         /// <summary>
@@ -26,6 +27,7 @@ namespace SCP_575.Npc
         public EventHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
+            _libraryLabAPI = _plugin.LibraryLabAPI;
             _config = _plugin.Config;
         }
 
@@ -42,7 +44,9 @@ namespace SCP_575.Npc
             try
             {
                 _plugin.IsEventActive = false;
-                int roll = LibraryExiledAPI.GetRandomInt(100);
+
+                
+                float roll = UnityEngine.Random.Range(0f,100f);
                 LibraryExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}");
 
                 if (roll <= _config.BlackoutConfig.EventChance)
@@ -131,7 +135,8 @@ namespace SCP_575.Npc
                     return;
                 }
 
-                Exiled.API.Features.Room room = LibraryExiledAPI.GetRoomAtPosition(ev.Generator.Position);
+                
+                Room room = _libraryLabAPI.GetRoomAtPosition(ev.Generator.Position);
                 if (room == null)
                 {
                     LibraryExiledAPI.LogDebug("EventHandler.OnGeneratorActivated", "No room data found for generator position.");
@@ -146,7 +151,7 @@ namespace SCP_575.Npc
                 }
 
                 LibraryExiledAPI.LogInfo("EventHandler.OnGeneratorActivated", $"Generator activated in SCP-575 room: {room.Name}");
-                LibraryExiledAPI.EnableAndFlickerRoomAndNeighbors(room);
+                _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room);
 
                 // Play a global angry sound as a creepy audio cue
                 _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
@@ -248,7 +253,7 @@ namespace SCP_575.Npc
                     return;
                 }
 
-                Exiled.API.Features.Room room = LibraryExiledAPI.GetRoomAtPosition(position);
+                Room room = _libraryLabAPI.GetRoomAtPosition(position);
                 if (room == null)
                 {
                     LibraryExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", "Explosion event had no room data.");
@@ -260,19 +265,20 @@ namespace SCP_575.Npc
                 {
                     case ScpProjectileImpactType.ProjectileImpactType.Helpful:
                         LibraryExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Helpful impact type used in room: {room.Name}");
-                        LibraryExiledAPI.TriggerBlackoutInRoomAndNeighbors(room);
+
+                        _libraryLabAPI.DisableRoomAndNeighborLights(room);
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.WhispersBang, lifespan: 25f);
                         _plugin.AudioManager.PlayAmbience();
                         break;
 
                     case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-                        if (!room.AreLightsOff || !isScp575Present)
+                        if (room.LightController.LightsEnabled || !isScp575Present)
                         {
                             LibraryExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Event in safe room, Lights are On or SCP-575 is not active. LightsOff: {room.AreLightsOff}, IsBlackoutActive: {isScp575Present}");
                             return;
                         }
                         LibraryExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
-                        LibraryExiledAPI.EnableAndFlickerRoomAndNeighbors(room);
+                        _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room);
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
                         break;
 
