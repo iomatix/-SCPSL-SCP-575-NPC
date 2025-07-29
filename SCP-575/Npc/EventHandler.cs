@@ -266,7 +266,7 @@ namespace SCP_575.Npc
                     case ScpProjectileImpactType.ProjectileImpactType.Helpful:
                         LibraryExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Helpful impact type used in room: {room.Name}");
 
-                        _libraryLabAPI.DisableRoomAndNeighborLights(room, _config.BlackoutConfig.ElevatorLockdownProbability);
+                        _libraryLabAPI.DisableRoomAndNeighborLights(room);
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.WhispersBang, lifespan: 25f);
                         _plugin.AudioManager.PlayAmbience();
                         break;

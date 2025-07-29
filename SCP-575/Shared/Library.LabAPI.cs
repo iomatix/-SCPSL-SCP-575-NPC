@@ -112,7 +112,15 @@ namespace SCP_575.Shared
                 return;
             }
 
-            LibraryExiledAPI.ToExiledRoom(room).TurnOffLights(duration);
+            if (room.LightController == null)
+            {
+                LibraryExiledAPI.LogDebug(nameof(TurnOffRoomLights), $"Room {room.Name} instance doesn't have the light controller!");
+            }
+            else
+            {
+                // TODO LabAPI logcis when fixed: https://github.com/northwood-studios/LabAPI/issues/232
+                LibraryExiledAPI.ToExiledRoom(room).TurnOffLights(duration);
+            }
 
             // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
             HandleElevatorsForRoom(room, elevatorAffectChance, duration, elevator =>
@@ -161,13 +169,23 @@ namespace SCP_575.Shared
                 return;
             }
 
+
+
             var roomSet = GetRoomAndNeighbors(room);
             foreach (var r in roomSet)
             {
                 LibraryExiledAPI.LogDebug(nameof(EnableAndFlickerRoomAndNeighborLights), 
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
-                LibraryExiledAPI.ToExiledRoom(r).TurnOffLights(Config.BlackoutConfig.FlickerDuration);
+                if (room.LightController == null)
+                {
+                    LibraryExiledAPI.LogDebug(nameof(TurnOffRoomLights), $"Room {room.Name} instance doesn't have the light controller!");
+                }
+                else
+                {
+                    // TODO LabAPI logcis when fixed: https://github.com/northwood-studios/LabAPI/issues/232
+                    LibraryExiledAPI.ToExiledRoom(r).TurnOffLights(Config.BlackoutConfig.FlickerDuration);
+                }
 
                 // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
                 HandleElevatorsForRoom(r, elevatorAffectChance, 0.5f, elevator =>
@@ -183,8 +201,7 @@ namespace SCP_575.Shared
         /// </summary>
         /// <param name="room">The room to blackout.</param>
         /// <param name="blackoutDurationBase">Minimum time in seconds for the blackout.</param>
-        /// <param name="elevatorAffectChance">Percentage chance (0-100) that connected elevators will be affected.</param>
-        public void DisableRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f, float elevatorAffectChance = 0f)
+        public void DisableRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f) // no elevatorAffectChance param because the DisableRoomAndNeighborLights method calls TurnOffRoomLights
         {
             if (room == null)
             {
@@ -208,17 +225,6 @@ namespace SCP_575.Shared
                     Methods.IncrementBlackoutStack();
                     Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
                     attemptFirstSuccess = true;
-                }
-
-                // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
-                if (attemptResult)
-                {
-                    HandleElevatorsForRoom(r, elevatorAffectChance, blackoutDuration, elevator =>
-                    {
-                        elevator.LockAllDoors();
-                        LibraryExiledAPI.LogDebug(nameof(DisableRoomAndNeighborLights), "Locked elevator due to blackout");
-                        Timing.CallDelayed(blackoutDuration, () => elevator.UnlockAllDoors());
-                    });
                 }
             }
         }
