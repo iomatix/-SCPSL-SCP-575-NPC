@@ -244,68 +244,19 @@
         public static void RagdollProcessor(Player player, Ragdoll ragdoll)
         {
             if (ragdoll == null)
-            {
-                LibraryExiledAPI.LogWarn(nameof(RagdollProcessor), "Aborted: Null ragdoll received");
-                return;
-            }
+                throw new ArgumentNullException(nameof(ragdoll));
 
+            LibraryExiledAPI.LogDebug("RagdollProcess", $"Processing SCP-575 ragdoll at position: {ragdoll.Position}");
             try
             {
-                // Validate player state before processing
-                if (player == null || !player.IsReady)
-                {
-                    LibraryExiledAPI.LogWarn(nameof(RagdollProcessor),
-                        $"Invalid player state for ragdoll at {ragdoll.Position}");
-                    return;
-                }
-
-                LibraryExiledAPI.LogDebug(nameof(RagdollProcessor),
-                    $"Processing SCP-575 ragdoll for {player.Nickname} at {ragdoll.Position}");
-
-                // Create replacement ragdoll
                 Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll);
-                if (newRagdoll == null)
-                {
-                    LibraryExiledAPI.LogError(nameof(RagdollProcessor),
-                        "Failed to create replacement ragdoll");
-                    return;
-                }
-
-                // Apply physics in a coroutine to ensure proper frame timing
-                Timing.RunCoroutine(ProcessRagdollPhysics(newRagdoll));
-
-                LibraryExiledAPI.LogDebug(nameof(RagdollProcessor),
-                    $"SCP-575 ragdoll processing completed");
+                ApplyStandardRagdollPhysics(newRagdoll);
+                ConvertToBones(newRagdoll);
+                LibraryExiledAPI.LogDebug("RagdollProcess", $"SCP-575 ragdoll processing completed successfully");
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(RagdollProcessor),
-                    $"Critical ragdoll error: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
-            }
-        }
-
-        private static IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll)
-        {
-            // Wait 2 frames to ensure ragdoll is fully initialized
-            yield return Timing.WaitForOneFrame;
-            yield return Timing.WaitForOneFrame;
-
-            try
-            {
-                if (ragdoll?.Base?.gameObject == null)
-                {
-                    LibraryExiledAPI.LogWarn(nameof(ProcessRagdollPhysics),
-                        "Ragdoll destroyed before physics could be applied");
-                    yield break;
-                }
-
-                ApplyStandardRagdollPhysics(ragdoll);
-                ConvertToBones(ragdoll);
-            }
-            catch (Exception ex)
-            {
-                LibraryExiledAPI.LogError(nameof(ProcessRagdollPhysics),
-                    $"Physics processing failed: {ex.Message}");
+                LibraryExiledAPI.LogError("RagdollProcess", $"Failed to process exiled ragdoll: {ex.Message}");
             }
         }
 
@@ -316,169 +267,90 @@
 
             try
             {
-                LibraryExiledAPI.LogDebug(nameof(ReplaceRagdoll),
-                    $"Replacing ragdoll for {player.Nickname} at {originalRagdoll.Position}");
+                LibraryExiledAPI.LogDebug("ReplaceRagdoll",
+                    $"Replacing ragdoll for {player.Nickname ?? "null"} at position: {originalRagdoll.Position}");
 
-                // Check ragdoll validity
-                if (originalRagdoll.Base == null || !originalRagdoll.Base.isActiveAndEnabled)
-                {
-                    LibraryExiledAPI.LogWarn(nameof(ReplaceRagdoll),
-                        "Original ragdoll is invalid or not spawned");
-                    return null;
-                }
-
-                // Store position with vertical offset to prevent floor clipping
-                Vector3 spawnPosition = originalRagdoll.Position + Vector3.up * 0.15f;
-                Quaternion spawnRotation = originalRagdoll.Rotation;
-
+                // Prepare RagdollData
                 var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
-
-                // Create new ragdoll
                 Ragdoll newRagdoll = Ragdoll.SpawnRagdoll(
                     RoleTypeId.Scp3114,
-                    spawnPosition,
-                    spawnRotation,
+                    originalRagdoll.Position,
+                    originalRagdoll.Rotation,
                     customHandler,
                     player.Nickname);
 
-                if (newRagdoll == null)
+                // Only destroy original if new ragdoll was successfully created
+                if (newRagdoll != null)
                 {
-                    LibraryExiledAPI.LogError(nameof(ReplaceRagdoll),
-                        "Ragdoll.SpawnRagdoll returned null");
-                    return null;
+                    originalRagdoll.Destroy();
+                    return newRagdoll;
                 }
 
-                // Delay destruction of original ragdoll by 1 frame
-                Timing.CallDelayed(0.1f, () =>
-                {
-                    try
-                    {
-                        if (originalRagdoll.Base.isActiveAndEnabled)
-                        {
-                            originalRagdoll.Destroy();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        LibraryExiledAPI.LogWarn(nameof(ReplaceRagdoll),
-                            $"Error destroying original ragdoll: {ex.Message}");
-                    }
-                });
-
-                return newRagdoll;
+                return null; // Failed to create replacement
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(ReplaceRagdoll),
-                    $"Ragdoll replacement failed: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
+                LibraryExiledAPI.LogError("ReplaceRagdoll",
+                    $"Failed to replace ragdoll for {player.UserId} ({player.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                 return null;
             }
         }
 
         public static void ApplyStandardRagdollPhysics(Ragdoll ragdoll)
         {
-            if (ragdoll?.Base?.gameObject == null)
-            {
-                LibraryExiledAPI.LogWarn(nameof(ApplyStandardRagdollPhysics),
-                    "Ragdoll is null or destroyed - physics aborted");
-                return;
-            }
-
             try
             {
-                LibraryExiledAPI.LogDebug(nameof(ApplyStandardRagdollPhysics),
-                    $"Applying physics to ragdoll at {ragdoll.Position}");
+                LibraryExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Attempting physics on LabAPI ragdoll at {ragdoll.Position}");
 
-                // Get all rigidbodies first to avoid modifying during iteration
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(3.8f);
+                Vector3 randomForce = GetRandomUnitSphereVelocity(2.8f);
+
+                // Access rigidbodies through the base BasicRagdoll  
                 Rigidbody[] rigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
+
                 if (rigidbodies == null || rigidbodies.Length == 0)
                 {
-                    LibraryExiledAPI.LogWarn(nameof(ApplyStandardRagdollPhysics),
-                        "No rigidbodies found on ragdoll");
+                    LibraryExiledAPI.LogWarn("ApplyStandardRagdollPhysics", "No rigidbodies found on ragdoll.");
                     return;
                 }
 
-                // Pre-calculate forces
-                Vector3 upwardForce = Vector3.up * CalculateForcePush(3.8f);
-                Vector3 randomForce = GetRandomUnitSphereVelocity(2.8f);
-                Vector3 combinedForce = upwardForce + randomForce;
-                Vector3 angularForce = UnityEngine.Random.insideUnitSphere * 6f;
-
                 foreach (Rigidbody rb in rigidbodies)
                 {
-                    if (rb == null || rb.gameObject == null) continue;
-                    if (rb.isKinematic)
-                    {
-                        LibraryExiledAPI.LogDebug(nameof(ApplyStandardRagdollPhysics),
-                            $"Skipping kinematic rigidbody: {rb.name}");
-                        continue;
-                    }
+                    if (rb == null) continue;
 
                     try
                     {
-                        // Reset velocity before applying new forces
-                        rb.linearVelocity = Vector3.zero;
-                        rb.angularVelocity = Vector3.zero;
-
-                        rb.AddForce(combinedForce, ForceMode.VelocityChange);
-                        rb.AddTorque(angularForce, ForceMode.VelocityChange);
-                    }
-                    catch (MissingReferenceException)
-                    {
-                        // Object destroyed - safe to ignore
+                        rb.linearVelocity = upwardForce + randomForce;
+                        rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6f;
+                        LibraryExiledAPI.LogDebug("ApplyStandardRagdollPhysics", $"Applying forces to {rb.name} - Upward: {upwardForce}, Random: {randomForce}");
                     }
                     catch (Exception ex)
                     {
-                        LibraryExiledAPI.LogError(nameof(ApplyStandardRagdollPhysics),
-                            $"Physics error on {rb.name}: {ex.Message}");
+                        LibraryExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to apply ragdoll physics to {rb.name}: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(ApplyStandardRagdollPhysics),
-                    $"Ragdoll physics failed: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
+                LibraryExiledAPI.LogError("ApplyStandardRagdollPhysics", $"Failed to process ragdoll physics: {ex.Message}, StackTrace: {ex.StackTrace}");
             }
         }
 
         public static void ConvertToBones(Ragdoll ragdoll)
         {
-            if (ragdoll?.Base == null)
-            {
-                LibraryExiledAPI.LogWarn(nameof(ConvertToBones),
-                    "Ragdoll is null or destroyed - bone conversion aborted");
-                return;
-            }
-
             try
             {
-                if (ragdoll.Base.TryGetComponent<DynamicRagdoll>(out var dynamicRagdoll))
+                // Convert to bones
+                if (ragdoll.Base.TryGetComponent<DynamicRagdoll>(out var dr))
                 {
-                    // Ensure we don't convert multiple times
-                    if (dynamicRagdoll is Scp3114Ragdoll)
-                    {
-                        LibraryExiledAPI.LogDebug(nameof(ConvertToBones),
-                            "Ragdoll is already converted to bones");
-                        return;
-                    }
-
-                    Scp3114RagdollToBonesConverter.ConvertExisting(dynamicRagdoll);
-                    LibraryExiledAPI.LogDebug(nameof(ConvertToBones),
-                        "Ragdoll successfully converted to bones");
-                }
-                else
-                {
-                    LibraryExiledAPI.LogWarn(nameof(ConvertToBones),
-                        "Ragdoll missing DynamicRagdoll component");
+                    Scp3114RagdollToBonesConverter.ConvertExisting(dr);
                 }
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(ConvertToBones),
-                    $"Bone conversion failed: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
+                LibraryExiledAPI.LogError("ConvertToBones", $"Failed to convert Exiled ragdoll to bones: {ex.Message}, StackTrace: {ex.StackTrace}");
             }
         }
-
 
         #endregion
 
