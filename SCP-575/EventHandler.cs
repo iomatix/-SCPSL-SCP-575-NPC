@@ -24,6 +24,7 @@
         public EventHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
+            _libraryLabAPI = _plugin.LibraryLabAPI;
         }
 
         /// <summary>

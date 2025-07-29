@@ -49,9 +49,18 @@ namespace SCP_575.Npc
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _config = _plugin.Config;
             _npcConfig = _config.NpcConfig;
-            _lightsourceHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler is null.");
-            _sanityHandler = _plugin.SanityEventHandler ?? throw new InvalidOperationException("SanityEventHandler is null.");
-            LibraryExiledAPI.LogDebug("Methods.Constructor", $"Initialized Methods with PlayerSanityHandler instance ID={_sanityHandler.GetHashCode()}");
+
+            // Initialize all critical dependencies with proper null checks
+            _lightsourceHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler is null. Plugin cannot function without it.");
+            _sanityHandler = _plugin.SanityEventHandler ?? throw new InvalidOperationException("SanityEventHandler is null. Plugin cannot function without it.");
+
+            // Initialize the LabAPI with dependency injection
+            _libraryLabAPI = _plugin.LibraryLabAPI ?? throw new InvalidOperationException("LibraryLabAPI is null. Plugin cannot function without it.");
+
+            LibraryExiledAPI.LogDebug(nameof(Methods), $"Initialized with Handler IDs: " +
+                $"Lightsource={_lightsourceHandler.GetHashCode()}, " +
+                $"Sanity={_sanityHandler.GetHashCode()}, " +
+                $"LabAPI={_libraryLabAPI.GetHashCode()}");
         }
 
         /// <summary>
