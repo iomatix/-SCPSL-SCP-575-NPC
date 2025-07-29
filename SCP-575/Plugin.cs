@@ -80,7 +80,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override System.Version Version => new(8,7,0);
+        public override System.Version Version => new(8,6,1);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.
@@ -171,7 +171,7 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.Hurt += _eventHandler.OnPlayerHurt;
             LabApi.Events.Handlers.PlayerEvents.Dying += _eventHandler.OnPlayerDying;
             LabApi.Events.Handlers.PlayerEvents.Death += _eventHandler.OnPlayerDeath;
-            LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll += _eventHandler.OnSpawnedRagdoll;
+            Exiled.Events.Handlers.Player.SpawnedRagdoll += _eventHandler.OnSpawnedRagdoll;
             CustomHandlersManager.RegisterEventsHandler(_lightsourceHandler);
             CustomHandlersManager.RegisterEventsHandler(_sanityHandler);
             LibraryExiledAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
@@ -191,7 +191,7 @@ namespace SCP_575
                 LabApi.Events.Handlers.PlayerEvents.Hurt -= _eventHandler.OnPlayerHurt;
                 LabApi.Events.Handlers.PlayerEvents.Dying -= _eventHandler.OnPlayerDying;
                 LabApi.Events.Handlers.PlayerEvents.Death -= _eventHandler.OnPlayerDeath;
-                LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll -= _eventHandler.OnSpawnedRagdoll;
+                Exiled.Events.Handlers.Player.SpawnedRagdoll -= _eventHandler.OnSpawnedRagdoll;
                 CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
                 CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
                 LibraryExiledAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");

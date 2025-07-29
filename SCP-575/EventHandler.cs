@@ -1,6 +1,5 @@
 ﻿namespace SCP_575
 {
-    using LabApi.Events.Arguments.PlayerEvents;
     using MEC;
     using SCP_575.Handlers;
     using SCP_575.Npc;
@@ -247,12 +246,12 @@
         /// Handles the SpawnedRagdoll event, processing ragdolls for SCP-575 kills.
         /// </summary>
         /// <param name="ev">The event arguments for the ragdoll spawn event.</param>
-        public void OnSpawnedRagdoll(PlayerSpawnedRagdollEventArgs ev)
+        public void OnSpawnedRagdoll(Exiled.Events.EventArgs.Player.SpawnedRagdollEventArgs ev)
         {
             if (!_plugin.IsEventActive) return;
             try
             {
-                if (ev?.Player == null || ev.Ragdoll == null || ev.DamageHandler == null)
+                if (ev?.Player == null || ev.Ragdoll == null || ev.DamageHandlerBase == null)
                 {
                     LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", "Event arguments, player, or ragdoll is null. Skipping.");
                     return;
@@ -260,7 +259,7 @@
 
                 LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", $"Ragdoll spawned for player: {ev.Player.Nickname} at {ev.Ragdoll.Position}.");
 
-                if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
+                if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandlerBase))
                 {
                     LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll not caused by SCP-575. Skipping.");
                     return;
