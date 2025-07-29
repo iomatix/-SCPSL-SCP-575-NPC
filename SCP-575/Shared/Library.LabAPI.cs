@@ -33,6 +33,12 @@
         /// <summary>Gets a list of all rooms (LabAPI wrapped).</summary>
         public static IReadOnlyCollection<Room> Rooms => Room.List;
 
+        /// <summary>Gets a list of all elevators (LabAPI wrapped).</summary>  
+        public static IReadOnlyCollection<Elevator> Elevators => Elevator.List;  
+          
+        /// <summary>Gets a random elevator from the facility.</summary>  
+        public static Elevator GetRandomElevator() => Map.GetRandomElevator();
+
         /// <summary>Gets the list of all Tesla gates.</summary>
         public static IReadOnlyCollection<Tesla> Teslas => Tesla.List;
 
@@ -187,6 +193,99 @@
                    room.AllLightControllers.All(lc => !lc.LightsEnabled);
         }
 
+        #endregion
+
+        #region Elevator Utilities  
+          
+        /// <summary>  
+        /// Gets all elevators in a specific zone.  
+        /// </summary>  
+        /// <param name="zone">The facility zone to search.</param>  
+        /// <returns>Collection of elevators in the specified zone.</returns>  
+        public static IEnumerable<Elevator> GetElevatorsInZone(FacilityZone zone)  
+        {  
+            return Elevators.Where(elevator =>   
+                elevator.Rooms.Any(room => Room.Get(room)?.Zone == zone));  
+        }  
+          
+        /// <summary>  
+        /// Checks if any elevator is currently moving between the specified rooms.  
+        /// </summary>  
+        /// <param name="room">The room to check elevator activity for.</param>  
+        /// <returns>True if an elevator is active in or connected to the room.</returns>  
+        public static bool IsElevatorActiveInRoom(Room room)  
+        {  
+            if (room == null) return false;  
+              
+            return Elevators.Any(elevator =>   
+                elevator.Rooms.Contains(room.Base) && elevator.IsMoving);  
+        }  
+          
+        /// <summary>  
+        /// Gets all elevators connected to a specific room.  
+        /// </summary>  
+        /// <param name="room">The room to find connected elevators for.</param>  
+        /// <returns>Collection of elevators connected to the room.</returns>  
+        public static IEnumerable<Elevator> GetElevatorsConnectedToRoom(Room room)  
+        {  
+            if (room == null) return Enumerable.Empty<Elevator>();  
+              
+            return Elevators.Where(elevator => elevator.Rooms.Contains(room.Base));  
+        }  
+          
+        /// <summary>  
+        /// Attempts to lock all elevators in a zone for security purposes.  
+        /// </summary>  
+        /// <param name="zone">The zone to lock elevators in.</param>  
+        /// <param name="lockReason">The reason for locking.</param>  
+        public static void LockElevatorsInZone(FacilityZone zone, DoorLockReason lockReason = DoorLockReason.AdminCommand)  
+        {  
+            var elevatorsInZone = GetElevatorsInZone(zone);  
+              
+            foreach (var elevator in elevatorsInZone)  
+            {  
+                foreach (var door in elevator.Doors)  
+                {  
+                    door.Lock(lockReason, true);  
+                }  
+                  
+                Library_ExiledAPI.LogDebug("LockElevatorsInZone",   
+                    $"Locked elevator doors in zone {zone}");  
+            }  
+        }  
+          
+        /// <summary>  
+        /// Unlocks all elevators in a zone.  
+        /// </summary>  
+        /// <param name="zone">The zone to unlock elevators in.</param>  
+        public static void UnlockElevatorsInZone(FacilityZone zone)  
+        {  
+            var elevatorsInZone = GetElevatorsInZone(zone);  
+              
+            foreach (var elevator in elevatorsInZone)  
+            {  
+                foreach (var door in elevator.Doors)  
+                {  
+                    door.Unlock();  
+                }  
+                  
+                Library_ExiledAPI.LogDebug("UnlockElevatorsInZone",   
+                    $"Unlocked elevator doors in zone {zone}");  
+            }  
+        }  
+          
+        /// <summary>  
+        /// Determines if a player is currently in an elevator.  
+        /// </summary>  
+        /// <param name="player">The player to check.</param>  
+        /// <returns>True if the player is in an elevator room.</returns>  
+        public static bool IsPlayerInElevator(Player player)  
+        {  
+            if (player?.Room == null) return false;  
+              
+            return Elevators.Any(elevator => elevator.Rooms.Contains(player.Room.Base));  
+        }  
+          
         #endregion
 
         #region Utilities
