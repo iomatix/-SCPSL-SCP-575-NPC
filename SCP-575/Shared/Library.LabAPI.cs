@@ -207,6 +207,36 @@
             return Elevators.Where(elevator =>   
                 elevator.Rooms.Any(room => Room.Get(room)?.Zone == zone));  
         }  
+
+        /// <summary>  
+        /// Handles connected elevators based on percentage chance.  
+        /// </summary>  
+        /// <param name="room">The room to check for connected elevators.</param>  
+        /// <param name="affectChance">Percentage chance (0-100) to affect each elevator.</param>  
+        /// <param name="elevatorAction">Action to perform on affected elevators.</param>  
+        private static void HandleConnectedElevators(Room room, float affectChance, Action<Elevator> elevatorAction)  
+        {  
+            if (affectChance <= 0f || affectChance > 100f) return;  
+          
+            var connectedElevators = GetElevatorsConnectedToRoom(room);  
+              
+            foreach (var elevator in connectedElevators)  
+            {  
+                // Roll percentage chance for each elevator  
+                float roll = UnityEngine.Random.Range(0f, 100f);  
+                if (roll <= affectChance)  
+                {  
+                    elevatorAction(elevator);  
+                    Library_ExiledAPI.LogDebug("HandleConnectedElevators",   
+                        $"Affected elevator (roll: {roll:F1}% <= {affectChance}%)");  
+                }  
+                else  
+                {  
+                    Library_ExiledAPI.LogDebug("HandleConnectedElevators",   
+                        $"Skipped elevator (roll: {roll:F1}% > {affectChance}%)");  
+                }  
+            }  
+        }  
           
         /// <summary>  
         /// Checks if any elevator is currently moving between the specified rooms.  
