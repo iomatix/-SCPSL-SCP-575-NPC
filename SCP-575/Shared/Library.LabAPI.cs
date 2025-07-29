@@ -3,6 +3,7 @@ namespace SCP_575.Shared
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Interactables.Interobjects.DoorUtils;
     using LabApi.Features.Wrappers;
     using MapGeneration;
     using MEC;
@@ -107,19 +108,19 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                Library_ExiledAPI.LogWarn(nameof(TurnOffRoomLights), "Room instance is null");
+                LibraryExiledAPI.LogWarn(nameof(TurnOffRoomLights), "Room instance is null");
                 return;
             }
 
-            Library_ExiledAPI.ToExiledRoom(room).TurnOffLights(duration);
+            LibraryExiledAPI.ToExiledRoom(room).TurnOffLights(duration);
             HandleElevatorsForRoom(room, elevatorAffectChance, duration, elevator =>
             {
                 elevator.LockAllDoors();
-                Library_ExiledAPI.LogDebug(nameof(TurnOffRoomLights), "Locked elevator doors due to room blackout");
+                LibraryExiledAPI.LogDebug(nameof(TurnOffRoomLights), "Locked elevator doors due to room blackout");
                 Timing.CallDelayed(duration, () => elevator.UnlockAllDoors());
             });
 
-            Library_ExiledAPI.LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
+            LibraryExiledAPI.LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
         }
 
         /// <summary>
@@ -154,17 +155,17 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                Library_ExiledAPI.LogWarn(nameof(EnableAndFlickerRoomAndNeighborLights), "Room instance is null");
+                LibraryExiledAPI.LogWarn(nameof(EnableAndFlickerRoomAndNeighborLights), "Room instance is null");
                 return;
             }
 
             var roomSet = GetRoomAndNeighbors(room);
             foreach (var r in roomSet)
             {
-                Library_ExiledAPI.LogDebug(nameof(EnableAndFlickerRoomAndNeighborLights), 
+                LibraryExiledAPI.LogDebug(nameof(EnableAndFlickerRoomAndNeighborLights), 
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
-                Library_ExiledAPI.ToExiledRoom(r).TurnOffLights(Config.BlackoutConfig.FlickerDuration);
+                LibraryExiledAPI.ToExiledRoom(r).TurnOffLights(Config.BlackoutConfig.FlickerDuration);
                 HandleElevatorsForRoom(r, elevatorAffectChance, 0.5f, elevator =>
                 {
                     elevator.LockAllDoors();
@@ -183,17 +184,18 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                Library_ExiledAPI.LogWarn(nameof(DisableRoomAndNeighborLights), "Room instance is null");
+                LibraryExiledAPI.LogWarn(nameof(DisableRoomAndNeighborLights), "Room instance is null");
                 return;
             }
 
             var roomSet = GetRoomAndNeighbors(room);
             bool attemptFirstSuccess = false;
-            float blackoutDuration = blackoutDurationBase + ((Config.BlackoutConfig.DurationMin + Config.BlackoutConfig.DurationMax) / 2f);
+            float blackoutDuration = blackoutDurationBase + UnityEngine.Random.Range(Config.BlackoutConfig.DurationMin, Config.BlackoutConfig.DurationMax);
+
 
             foreach (var r in roomSet)
             {
-                Library_ExiledAPI.LogDebug(nameof(DisableRoomAndNeighborLights), 
+                LibraryExiledAPI.LogDebug(nameof(DisableRoomAndNeighborLights), 
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
                 bool attemptResult = Methods.AttemptRoomBlackout(r, blackoutDuration, isCassieSilent: true, isForced: true);
@@ -209,7 +211,7 @@ namespace SCP_575.Shared
                     HandleElevatorsForRoom(r, elevatorAffectChance, blackoutDuration, elevator =>
                     {
                         elevator.LockAllDoors();
-                        Library_ExiledAPI.LogDebug(nameof(DisableRoomAndNeighborLights), "Locked elevator due to blackout");
+                        LibraryExiledAPI.LogDebug(nameof(DisableRoomAndNeighborLights), "Locked elevator due to blackout");
                         Timing.CallDelayed(blackoutDuration, () => elevator.UnlockAllDoors());
                     });
                 }
@@ -238,7 +240,7 @@ namespace SCP_575.Shared
         /// <returns>A collection of elevators in the specified zone.</returns>
         public IEnumerable<Elevator> GetElevatorsInZone(FacilityZone zone)
         {
-            return Elevators.Where(elevator => elevator.Rooms.Any(room => Room.Get(room)?.Zone == zone));
+            return Elevators.Where(elevator => elevator.CurrentDestination.Rooms.Any(room => Room.Get(room.Base)?.Zone == zone));
         }
 
         /// <summary>
@@ -248,7 +250,7 @@ namespace SCP_575.Shared
         /// <returns>True if an elevator is active in or connected to the room; otherwise, false.</returns>
         public bool IsElevatorActiveInRoom(Room room)
         {
-            return room != null && Elevators.Any(elevator => elevator.Rooms.Contains(room.Base) && elevator.IsMoving);
+            return room != null && Elevators.Any(elevator => elevator.CurrentDestination.Rooms.Contains(room) && elevator.CurrentSequence != Interactables.Interobjects.ElevatorChamber.ElevatorSequence.Ready);
         }
 
         /// <summary>
@@ -258,7 +260,7 @@ namespace SCP_575.Shared
         /// <returns>A collection of elevators connected to the room.</returns>
         public IEnumerable<Elevator> GetElevatorsConnectedToRoom(Room room)
         {
-            return room == null ? Enumerable.Empty<Elevator>() : Elevators.Where(elevator => elevator.Rooms.Contains(room.Base));
+            return room == null ? Enumerable.Empty<Elevator>() : Elevators.Where(elevator => elevator.CurrentDestination.Rooms.Contains(room));
         }
 
         /// <summary>
@@ -270,11 +272,8 @@ namespace SCP_575.Shared
         {
             foreach (var elevator in GetElevatorsInZone(zone))
             {
-                foreach (var door in elevator.Doors)
-                {
-                    door.Lock(lockReason, true);
-                }
-                Library_ExiledAPI.LogDebug(nameof(LockElevatorsInZone), $"Locked elevator doors in zone {zone}");
+                elevator.LockAllDoors();
+                LibraryExiledAPI.LogDebug(nameof(LockElevatorsInZone), $"Locked elevator doors in zone {zone}");
             }
         }
 
@@ -286,11 +285,8 @@ namespace SCP_575.Shared
         {
             foreach (var elevator in GetElevatorsInZone(zone))
             {
-                foreach (var door in elevator.Doors)
-                {
-                    door.Unlock();
-                }
-                Library_ExiledAPI.LogDebug(nameof(UnlockElevatorsInZone), $"Unlocked elevator doors in zone {zone}");
+                elevator.UnlockAllDoors();
+                LibraryExiledAPI.LogDebug(nameof(UnlockElevatorsInZone), $"Unlocked elevator doors in zone {zone}");
             }
         }
 
@@ -301,7 +297,7 @@ namespace SCP_575.Shared
         /// <returns>True if the player is in an elevator room; otherwise, false.</returns>
         public bool IsPlayerInElevator(Player player)
         {
-            return player?.Room != null && Elevators.Any(elevator => elevator.Rooms.Contains(player.Room.Base));
+            return player?.Room != null && Elevators.Any(elevator => elevator.CurrentDestination.Rooms.Contains(player.Room));
         }
 
         #endregion
@@ -406,12 +402,12 @@ namespace SCP_575.Shared
                 if (roll <= affectChance)
                 {
                     elevatorAction(elevator);
-                    Library_ExiledAPI.LogDebug(nameof(HandleElevatorsForRoom), 
+                    LibraryExiledAPI.LogDebug(nameof(HandleElevatorsForRoom), 
                         $"Affected elevator (roll: {roll:F1}% <= {affectChance}%)");
                 }
                 else
                 {
-                    Library_ExiledAPI.LogDebug(nameof(HandleElevatorsForRoom), 
+                    LibraryExiledAPI.LogDebug(nameof(HandleElevatorsForRoom), 
                         $"Skipped elevator (roll: {roll:F1}% > {affectChance}%)");
                 }
             }

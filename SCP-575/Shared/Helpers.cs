@@ -15,7 +15,7 @@
         {
             try
             {
-                var exiledPlayer = Library_ExiledAPI.ToExiledPlayer(player);
+                var exiledPlayer = LibraryExiledAPI.ToExiledPlayer(player);
                 if (!player.IsHuman || exiledPlayer.HasFlashlightModuleEnabled) return false;
 
                 if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
@@ -25,7 +25,7 @@
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("Helpers.IsHumanWithoutLight", $"Failed to check player {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
+                LibraryExiledAPI.LogError("Helpers.IsHumanWithoutLight", $"Failed to check player {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
                 return false;
             }
         }
@@ -45,12 +45,12 @@
                     throw new ArgumentNullException(a == null ? nameof(a) : nameof(b), "Vector cannot be null.");
 
                 float distance = Vector3.Distance(a, b);
-                Library_ExiledAPI.LogDebug("Helpers.Distance", $"Calculated distance between {a} and {b}: {distance}");
+                LibraryExiledAPI.LogDebug("Helpers.Distance", $"Calculated distance between {a} and {b}: {distance}");
                 return distance;
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("Helpers.Distance", $"Failed to calculate distance between {a} and {b}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryExiledAPI.LogError("Helpers.Distance", $"Failed to calculate distance between {a} and {b}: {ex.Message}\nStackTrace: {ex.StackTrace}");
                 return 0f;
             }
         }

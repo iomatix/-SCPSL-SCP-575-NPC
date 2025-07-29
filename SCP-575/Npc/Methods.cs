@@ -23,6 +23,7 @@ namespace SCP_575.Npc
         private readonly NpcConfig _npcConfig;
         private readonly PlayerLightsourceHandler _lightsourceHandler;
         private readonly PlayerSanityHandler _sanityHandler;
+        private readonly LibraryLabAPI _libraryLabAPI;
         private readonly HashSet<FacilityZone> _triggeredZones = new();
         private static readonly object BlackoutLock = new();
         private static int _blackoutStacks = 0;
@@ -49,7 +50,7 @@ namespace SCP_575.Npc
             _npcConfig = _config.NpcConfig;
             _lightsourceHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler is null.");
             _sanityHandler = _plugin.SanityEventHandler ?? throw new InvalidOperationException("SanityEventHandler is null.");
-            Library_ExiledAPI.LogDebug("Methods.Constructor", $"Initialized Methods with PlayerSanityHandler instance ID={_sanityHandler.GetHashCode()}");
+            LibraryExiledAPI.LogDebug("Methods.Constructor", $"Initialized Methods with PlayerSanityHandler instance ID={_sanityHandler.GetHashCode()}");
         }
 
         /// <summary>
@@ -69,7 +70,7 @@ namespace SCP_575.Npc
         /// </summary>
         public void Init()
         {
-            Library_ExiledAPI.LogInfo("Init", "SCP-575 NPC methods initialized.");
+            LibraryExiledAPI.LogInfo("Init", "SCP-575 NPC methods initialized.");
             RegisterEventHandlers();
         }
 
@@ -78,7 +79,7 @@ namespace SCP_575.Npc
         /// </summary>
         public void Disable()
         {
-            Library_ExiledAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
+            LibraryExiledAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
             Clean();
             UnregisterEventHandlers();
         }
@@ -88,7 +89,7 @@ namespace SCP_575.Npc
         /// </summary>
         public void Clean()
         {
-            Library_ExiledAPI.LogInfo("Clean", "SCP-575 NPC methods cleaned.");
+            LibraryExiledAPI.LogInfo("Clean", "SCP-575 NPC methods cleaned.");
 
             // Kill CASSIE coroutine  
             if (_cassieCooldownCoroutine.IsRunning)
@@ -134,13 +135,13 @@ namespace SCP_575.Npc
         public IEnumerator<float> RunBlackoutTimer()
         {
             yield return Timing.WaitForSeconds(_config.BlackoutConfig.InitialDelay);
-            Library_ExiledAPI.LogDebug("RunBlackoutTimer", "SCP-575 NPC blackout timer started.");
+            LibraryExiledAPI.LogDebug("RunBlackoutTimer", "SCP-575 NPC blackout timer started.");
 
             while (true)
             {
                 if (!_plugin.IsEventActive)
                 {
-                    Library_ExiledAPI.LogDebug("RunBlackoutTimer", "Event is inactive, waiting for reactivation.");
+                    LibraryExiledAPI.LogDebug("RunBlackoutTimer", "Event is inactive, waiting for reactivation.");
                     yield return Timing.WaitForSeconds(1f); // Poll for reactivation
                     continue;
                 }
@@ -159,9 +160,9 @@ namespace SCP_575.Npc
             if (IsBlackoutActive) yield break;
 
             if (_config.CassieConfig.CassieMessageClearBeforeImportant)
-                Library_ExiledAPI.Cassie_Clear();
+                LibraryExiledAPI.ClearCassieQueue();
 
-            Library_ExiledAPI.LogDebug("ExecuteBlackoutEvent", "Starting blackout event...");
+            LibraryExiledAPI.LogDebug("ExecuteBlackoutEvent", "Starting blackout event...");
             TriggerCassieMessage(_config.CassieConfig.CassieMessageStart, true);
 
             if (_config.BlackoutConfig.FlickerLights)
@@ -198,7 +199,7 @@ namespace SCP_575.Npc
             }
             catch (OperationCanceledException)
             {
-                Library_ExiledAPI.LogDebug("FlickerAffectedZones", "Flickering cancelled.");
+                LibraryExiledAPI.LogDebug("FlickerAffectedZones", "Flickering cancelled.");
             }
         }
 
@@ -248,7 +249,7 @@ namespace SCP_575.Npc
             catch (OperationCanceledException)
             {
                 LabApi.Features.Wrappers.Map.TurnOffLights(targetZone);
-                Library_ExiledAPI.LogDebug("FlickerZoneLightsAsync", $"Flickering cancelled for zone {targetZone}");
+                LibraryExiledAPI.LogDebug("FlickerZoneLightsAsync", $"Flickering cancelled for zone {targetZone}");
                 throw;
             }
         }
@@ -271,7 +272,7 @@ namespace SCP_575.Npc
             if (!isBlackoutTriggered && _config.BlackoutConfig.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
-                Library_ExiledAPI.LogDebug("HandleZoneSpecificBlackout", "Facility-wide blackout triggered.");
+                LibraryExiledAPI.LogDebug("HandleZoneSpecificBlackout", "Facility-wide blackout triggered.");
                 return true;
             }
             return isBlackoutTriggered;
@@ -286,7 +287,7 @@ namespace SCP_575.Npc
             if (_config.BlackoutConfig.FlickerLights) FlickerZoneLightsAsync(zone).GetAwaiter().GetResult();
 
             LabApi.Features.Wrappers.Map.TurnOffLights(blackoutDuration, zone);
-            Library_ExiledAPI.LogDebug("AttemptZoneBlackout", $"Blackout triggered in zone {zone} for {blackoutDuration} seconds.");
+            LibraryExiledAPI.LogDebug("AttemptZoneBlackout", $"Blackout triggered in zone {zone} for {blackoutDuration} seconds.");
 
             if (!IsBlackoutActive) TriggerCassieMessage(cassieMessage, true);
             if (disableSystems) DisableFacilitySystems(blackoutDuration);
@@ -300,7 +301,7 @@ namespace SCP_575.Npc
             foreach (FacilityZone zone in Enum.GetValues(typeof(FacilityZone)))
             {
                 LabApi.Features.Wrappers.Map.TurnOffLights(blackoutDuration, zone);
-                Library_ExiledAPI.LogDebug("TriggerFacilityWideBlackout", $"Lights off in zone {zone} for {blackoutDuration} seconds.");
+                LibraryExiledAPI.LogDebug("TriggerFacilityWideBlackout", $"Lights off in zone {zone} for {blackoutDuration} seconds.");
             }
             DisableFacilitySystems(blackoutDuration);
             if (!IsBlackoutActive) TriggerCassieMessage(_config.CassieConfig.CassieMessageFacility, true);
@@ -311,7 +312,7 @@ namespace SCP_575.Npc
             if (!_plugin.IsEventActive) return false;
 
             bool blackoutTriggered = false;
-            foreach (LabApi.Features.Wrappers.Room room in Library_LabAPI.Rooms)
+            foreach (LabApi.Features.Wrappers.Room room in _libraryLabAPI.Rooms)
             {
                 // Skip rooms without light controllers
                 if (!room.AllLightControllers.Any()) continue;
@@ -320,14 +321,14 @@ namespace SCP_575.Npc
                 if (AttemptRoomBlackout(room, blackoutDuration))
                 {
                     blackoutTriggered = true;
-                    Library_ExiledAPI.LogDebug("HandleRoomSpecificBlackout", $"Blackout triggered in room {room.Name}.");
+                    LibraryExiledAPI.LogDebug("HandleRoomSpecificBlackout", $"Blackout triggered in room {room.Name}.");
                 }
             }
 
             if (!blackoutTriggered && _config.BlackoutConfig.EnableFacilityBlackout)
             {
                 TriggerFacilityWideBlackout(blackoutDuration);
-                Library_ExiledAPI.LogDebug("HandleRoomSpecificBlackout", "Facility-wide blackout triggered.");
+                LibraryExiledAPI.LogDebug("HandleRoomSpecificBlackout", "Facility-wide blackout triggered.");
                 return true;
             }
             return blackoutTriggered;
@@ -371,7 +372,7 @@ namespace SCP_575.Npc
 
         private void HandleRoomBlackout(LabApi.Features.Wrappers.Room room, float blackoutDuration)
         {
-            if (!Library_LabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return;
+            if (!_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return;
 
             if (_config.BlackoutConfig.DisableTeslas && room.Name == RoomName.HczTesla)
             {
@@ -385,19 +386,19 @@ namespace SCP_575.Npc
             if (_config.BlackoutConfig.DisableNuke && room.Name == RoomName.HczWarhead && LabApi.Features.Wrappers.Warhead.IsDetonationInProgress && !LabApi.Features.Wrappers.Warhead.IsLocked)
             {
                 LabApi.Features.Wrappers.Warhead.Stop();
-                Library_ExiledAPI.LogDebug("HandleRoomBlackout", "Nuke detonation cancelled in HCZ Nuke room.");
+                LibraryExiledAPI.LogDebug("HandleRoomBlackout", "Nuke detonation cancelled in HCZ Nuke room.");
             }
 
-            Library_LabAPI.TurnOffRoomLights(room, blackoutDuration);
-            Library_ExiledAPI.LogDebug("HandleRoomBlackout", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
+            _libraryLabAPI.TurnOffRoomLights(room, blackoutDuration);
+            LibraryExiledAPI.LogDebug("HandleRoomBlackout", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
         }
 
         private void DisableFacilitySystems(float blackoutDuration)
         {
-            foreach (LabApi.Features.Wrappers.Room room in Library_LabAPI.Rooms.Where(Library_LabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators))
+            foreach (LabApi.Features.Wrappers.Room room in _libraryLabAPI.Rooms.Where(_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators))
             {
-                Library_LabAPI.TurnOffRoomLights(room, blackoutDuration);
-                Library_ExiledAPI.LogDebug("DisableFacilitySystems", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
+                _libraryLabAPI.TurnOffRoomLights(room, blackoutDuration);
+                LibraryExiledAPI.LogDebug("DisableFacilitySystems", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
             }
 
             ResetTeslaGates();
@@ -405,7 +406,7 @@ namespace SCP_575.Npc
             if (_config.BlackoutConfig.DisableNuke && LabApi.Features.Wrappers.Warhead.IsDetonationInProgress && !LabApi.Features.Wrappers.Warhead.IsLocked)
             {
                 LabApi.Features.Wrappers.Warhead.Stop();
-                Library_ExiledAPI.LogDebug("DisableFacilitySystems", "Nuke detonation cancelled.");
+                LibraryExiledAPI.LogDebug("DisableFacilitySystems", "Nuke detonation cancelled.");
             }
         }
 
@@ -418,13 +419,13 @@ namespace SCP_575.Npc
             }
 
             IncrementBlackoutStack();
-            Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout triggered. Stacks: {_blackoutStacks}, Duration: {blackoutDuration}");
+            LibraryExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout triggered. Stacks: {_blackoutStacks}, Duration: {blackoutDuration}");
             TriggerCassieMessage(_config.CassieConfig.CassieKeter);
             Plugin.Singleton.AudioManager.PlayAmbience();
 
             yield return Timing.WaitForSeconds(blackoutDuration);
             DecrementBlackoutStack();
-            Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout finalized. Stacks: {_blackoutStacks}");
+            LibraryExiledAPI.LogDebug("FinalizeBlackoutEvent", $"Blackout finalized. Stacks: {_blackoutStacks}");
 
             if (!IsBlackoutActive)
             {
@@ -433,17 +434,17 @@ namespace SCP_575.Npc
                 ResetTeslaGates();
                 _triggeredZones.Clear();
                 Plugin.Singleton.AudioManager.StopAmbience();
-                Library_ExiledAPI.LogDebug("FinalizeBlackoutEvent", "Blackout completed. Systems reset.");
+                LibraryExiledAPI.LogDebug("FinalizeBlackoutEvent", "Blackout completed. Systems reset.");
             }
         }
 
         private void ResetTeslaGates()
         {
-            foreach (LabApi.Features.Wrappers.Tesla tesla in Library_LabAPI.Teslas)
+            foreach (LabApi.Features.Wrappers.Tesla tesla in _libraryLabAPI.Teslas)
             {
                 tesla.Trigger();
                 tesla.InactiveTime = 5f;
-                Library_ExiledAPI.LogDebug("ResetTeslaGate", $"TeslaGate {tesla} reset. Cooldown: {tesla.InactiveTime}");
+                LibraryExiledAPI.LogDebug("ResetTeslaGate", $"TeslaGate {tesla} reset. Cooldown: {tesla.InactiveTime}");
             }
         }
 
@@ -455,20 +456,20 @@ namespace SCP_575.Npc
         {
             if (string.IsNullOrWhiteSpace(message) || _cassieState != CassieStatus.Idle)
             {
-                Library_ExiledAPI.LogDebug("TriggerCassieMessage", $"Cassie busy ({_cassieState}), skipping: {message}");
+                LibraryExiledAPI.LogDebug("TriggerCassieMessage", $"Cassie busy ({_cassieState}), skipping: {message}");
                 return;
             }
 
             _cassieState = CassieStatus.Playing;
-            Library_ExiledAPI.LogDebug("TriggerCassieMessage", $"Triggering CASSIE: {message}");
+            LibraryExiledAPI.LogDebug("TriggerCassieMessage", $"Triggering CASSIE: {message}");
 
             if (_config.CassieConfig.CassieMessageClearBeforeImportant)
-                Library_ExiledAPI.Cassie_Clear();
+                LibraryExiledAPI.ClearCassieQueue();
 
             if (isGlitchy)
-                Library_ExiledAPI.Cassie_GlitchyMessage(message);
+                LibraryExiledAPI.SendGlitchyCassieMessage(message);
             else
-                Library_ExiledAPI.Cassie_Message(message);
+                LibraryExiledAPI.SendCleanCassieMessage(message);
 
             if (_cassieCooldownCoroutine.IsRunning)
                 Timing.KillCoroutines(_cassieCooldownCoroutine);
@@ -498,7 +499,7 @@ namespace SCP_575.Npc
             {
                 if (!_plugin.IsEventActive)
                 {
-                    Library_ExiledAPI.LogDebug("KeterAction", "Event is inactive, waiting for reactivation.");
+                    LibraryExiledAPI.LogDebug("KeterAction", "Event is inactive, waiting for reactivation.");
                     yield return Timing.WaitForSeconds(1f); // Poll for reactivation
                     continue;
                 }
@@ -513,7 +514,7 @@ namespace SCP_575.Npc
                     {
                         if (player == null || player.UserId == null)
                         {
-                            Library_ExiledAPI.LogWarn("Methods.KeterAction", "Player or UserId is null.");
+                            LibraryExiledAPI.LogWarn("Methods.KeterAction", "Player or UserId is null.");
                             continue;
                         }
                         string nickname = "Unknown";
@@ -527,63 +528,63 @@ namespace SCP_575.Npc
                         }
                         catch (Exception ex)
                         {
-                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Failed to access player properties for {player.UserId}: {ex.Message}");
+                            LibraryExiledAPI.LogWarn("Methods.KeterAction", $"Failed to access player properties for {player.UserId}: {ex.Message}");
                             continue;
                         }
                         if (!isAlive || !isHuman || nickname == "null")
                         {
-                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Invalid player state: {player.UserId} ({nickname}), IsAlive={isAlive}, IsHuman={isHuman}, Nickname={(nickname != null ? "non-null" : "null")}");
+                            LibraryExiledAPI.LogWarn("Methods.KeterAction", $"Invalid player state: {player.UserId} ({nickname}), IsAlive={isAlive}, IsHuman={isHuman}, Nickname={(nickname != null ? "non-null" : "null")}");
                             continue;
                         }
                         if (!IsBlackoutActive)
                         {
-                            Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Skipping player {player.UserId} ({nickname}): Blackout not active");
+                            LibraryExiledAPI.LogDebug("Methods.KeterAction", $"Skipping player {player.UserId} ({nickname}): Blackout not active");
                             continue;
                         }
-                        bool isInDarkRoom = Library_LabAPI.IsPlayerInDarkRoom(player);
+                        bool isInDarkRoom = _libraryLabAPI.IsPlayerInDarkRoom(player);
                         if (!isInDarkRoom)
                         {
-                            Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Skipping player {player.UserId} ({nickname}): Not in dark room");
+                            LibraryExiledAPI.LogDebug("Methods.KeterAction", $"Skipping player {player.UserId} ({nickname}): Not in dark room");
                             continue;
                         }
                         if (!_sanityHandler.IsValidPlayer(player))
                         {
-                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Player {player.UserId} ({nickname}) became invalid before GetCurrentSanity");
+                            LibraryExiledAPI.LogWarn("Methods.KeterAction", $"Player {player.UserId} ({nickname}) became invalid before GetCurrentSanity");
                             continue;
                         }
                         float sanity;
                         try
                         {
                             sanity = _sanityHandler.GetCurrentSanity(player);
-                            Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Retrieved sanity {sanity} for {player.UserId} ({nickname})");
+                            LibraryExiledAPI.LogDebug("Methods.KeterAction", $"Retrieved sanity {sanity} for {player.UserId} ({nickname})");
                         }
                         catch (Exception ex)
                         {
-                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Failed to get sanity for {player.UserId} ({nickname}): {ex.Message}");
+                            LibraryExiledAPI.LogWarn("Methods.KeterAction", $"Failed to get sanity for {player.UserId} ({nickname}): {ex.Message}");
                             continue;
                         }
                         try
                         {
-                            Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Processing player {player.UserId} ({nickname}), Sanity: {sanity}, IsAlive: {isAlive}, IsHuman: {isHuman}, PlayerSanityHandler instance ID: {_sanityHandler.GetHashCode()}");
+                            LibraryExiledAPI.LogDebug("Methods.KeterAction", $"Processing player {player.UserId} ({nickname}), Sanity: {sanity}, IsAlive: {isAlive}, IsHuman: {isHuman}, PlayerSanityHandler instance ID: {_sanityHandler.GetHashCode()}");
                         }
                         catch (Exception ex)
                         {
-                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Failed to log processing for {player.UserId} ({nickname}): {ex.Message}");
+                            LibraryExiledAPI.LogWarn("Methods.KeterAction", $"Failed to log processing for {player.UserId} ({nickname}): {ex.Message}");
                             continue;
                         }
                         if (!_sanityHandler.IsValidPlayer(player))
                         {
-                            Library_ExiledAPI.LogWarn("Methods.KeterAction", $"Player {player.UserId} ({nickname}) became invalid before ApplyStageEffects");
+                            LibraryExiledAPI.LogWarn("Methods.KeterAction", $"Player {player.UserId} ({nickname}) became invalid before ApplyStageEffects");
                             continue;
                         }
-                        Library_ExiledAPI.LogDebug("Methods.KeterAction", $"Calling ApplyStageEffects for {player.UserId} ({nickname})");
+                        LibraryExiledAPI.LogDebug("Methods.KeterAction", $"Calling ApplyStageEffects for {player.UserId} ({nickname})");
                         _sanityHandler.ApplyStageEffects(player);
                         PlayRandomAudioEffect(player);
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }
                     catch (Exception ex)
                     {
-                        Library_ExiledAPI.LogError("Methods.KeterAction", $"Failed to process player {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                        LibraryExiledAPI.LogError("Methods.KeterAction", $"Failed to process player {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                     }
                 }
             }
@@ -599,14 +600,14 @@ namespace SCP_575.Npc
         {
             try
             {
-                Library_ExiledAPI.LogDebug("Methods.PlayRandomAudioEffect", $"Playing audio for {player.UserId} ({player.Nickname ?? "null"})");
+                LibraryExiledAPI.LogDebug("Methods.PlayRandomAudioEffect", $"Playing audio for {player.UserId} ({player.Nickname ?? "null"})");
                 var audioOptions = new[] { AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.Whispers };
                 var selectedClip = audioOptions[UnityEngine.Random.Range(0, audioOptions.Length)];
                 _plugin.AudioManager.PlayAudioAutoManaged(player, selectedClip, hearableForAllPlayers: true, lifespan: 16f);
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("Methods.PlayRandomAudioEffect", $"Failed to play audio for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                LibraryExiledAPI.LogError("Methods.PlayRandomAudioEffect", $"Failed to play audio for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
             }
         }
 
@@ -670,7 +671,7 @@ namespace SCP_575.Npc
         /// </summary>
         public void Reset575()
         {
-            Library_ExiledAPI.LogDebug("Reset575", "Resetting SCP-575 state.");
+            LibraryExiledAPI.LogDebug("Reset575", "Resetting SCP-575 state.");
             _blackoutStacks = 0;
             foreach (var room in LabApi.Features.Wrappers.Room.List)
             {
@@ -706,7 +707,7 @@ namespace SCP_575.Npc
         /// </summary>
         public void Kill575()
         {
-            Library_ExiledAPI.LogDebug("Kill575", "Killing SCP-575 NPC.");
+            LibraryExiledAPI.LogDebug("Kill575", "Killing SCP-575 NPC.");
             Clean();
         }
 

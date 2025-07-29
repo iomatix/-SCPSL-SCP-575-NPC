@@ -17,6 +17,7 @@ namespace SCP_575
         private PlayerLightsourceHandler _lightsourceHandler;
         private NestingObjects.Npc _npc;
         private Scp575AudioManager _audioManager;
+        private LibraryLabAPI _libraryLabAPI;
         private Config _config;
 
         private bool _isEventActive = false;
@@ -59,6 +60,8 @@ namespace SCP_575
 
         public Scp575AudioManager AudioManager => _audioManager;
 
+        public LibraryLabAPI LibraryLabAPI => _libraryLabAPI;
+
         /// <summary>
         /// Gets the author of the plugin.
         /// </summary>
@@ -94,6 +97,7 @@ namespace SCP_575
                 Singleton = this;
                 _eventHandler = new EventHandler(this);
                 _audioManager = new Scp575AudioManager(this);
+                _libraryLabAPI = new LibraryLabAPI(this);
                 _config = new Config();
 
                 // Initialize the custom handlers BEFORE registering events
@@ -107,12 +111,12 @@ namespace SCP_575
 
                 RegisterEvents();
 
-                Library_ExiledAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
+                LibraryExiledAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
                 base.OnEnabled();
             }
             catch (System.Exception ex)
             {
-                Library_ExiledAPI.LogError("Plugin.OnEnabled", $"Failed to enable SCP-575 plugin: {ex.Message}");
+                LibraryExiledAPI.LogError("Plugin.OnEnabled", $"Failed to enable SCP-575 plugin: {ex.Message}");
                 throw;
             }
         }
@@ -145,12 +149,12 @@ namespace SCP_575
                 _audioManager = null;
                 _config = null;
 
-                Library_ExiledAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");
+                LibraryExiledAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");
                 base.OnDisabled();
             }
             catch (System.Exception ex)
             {
-                Library_ExiledAPI.LogError("Plugin.OnDisabled", $"Failed to disable SCP-575 plugin: {ex.Message}");
+                LibraryExiledAPI.LogError("Plugin.OnDisabled", $"Failed to disable SCP-575 plugin: {ex.Message}");
                 throw;
             }
         }
@@ -170,7 +174,7 @@ namespace SCP_575
             Exiled.Events.Handlers.Player.SpawnedRagdoll += _eventHandler.OnSpawnedRagdoll;
             CustomHandlersManager.RegisterEventsHandler(_lightsourceHandler);
             CustomHandlersManager.RegisterEventsHandler(_sanityHandler);
-            Library_ExiledAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
+            LibraryExiledAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
         }
 
         /// <summary>
@@ -190,7 +194,7 @@ namespace SCP_575
                 Exiled.Events.Handlers.Player.SpawnedRagdoll -= _eventHandler.OnSpawnedRagdoll;
                 CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
                 CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
-                Library_ExiledAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
+                LibraryExiledAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
             }
         }
     }

@@ -7,6 +7,7 @@ namespace SCP_575.Shared
     using Exiled.Loader;
     using MEC;
     using SCP_575.ConfigObjects;
+    using SCP_575.Npc;
     using UnityEngine;
 
     /// <summary>
@@ -16,7 +17,7 @@ namespace SCP_575.Shared
     /// </summary>
     public static class LibraryExiledAPI
     {
-        private static readonly Random Random = Loader.Random;
+        private static readonly System.Random Random = Loader.Random;
 
         #region Configuration and Plugin Access
 
@@ -246,7 +247,7 @@ namespace SCP_575.Shared
             }
 
             bool isFirstSuccess = false;
-            float blackoutDuration = blackoutDurationBase + ((Config.BlackoutConfig.DurationMin + Config.BlackoutConfig.DurationMax) / 2f);
+            float blackoutDuration = blackoutDurationBase + UnityEngine.Random.Range(Config.BlackoutConfig.DurationMin, Config.BlackoutConfig.DurationMax);
 
             foreach (var targetRoom in roomSet)
             {
@@ -415,7 +416,7 @@ namespace SCP_575.Shared
                 return null;
             }
 
-            return Library_LabAPI.ToLabApiRoom(room);
+            return Plugin.Singleton.LibraryLabAPI.ToLabApiRoom(room);
         }
 
         #endregion

@@ -27,6 +27,7 @@ namespace SCP_575.Handlers
     public class PlayerLightsourceHandler : CustomEventsHandler, IDisposable
     {
         private readonly Plugin _plugin;
+        private readonly LibraryLabAPI _libraryLabAPI;
         private readonly PlayerLightsourceConfig _config;
         private readonly ConcurrentDictionary<string, DateTime> _cooldownUntil = new();
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _flickerTokens = new();
@@ -45,6 +46,7 @@ namespace SCP_575.Handlers
         public PlayerLightsourceHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
+            _libraryLabAPI = _plugin.LibraryLabAPI;
             _config = plugin.Config?.LightsourceConfig ?? throw new InvalidOperationException("LightsourceConfig is not initialized.");
         }
 
@@ -58,7 +60,7 @@ namespace SCP_575.Handlers
             if (_isDisposed) return;
 
             if (!_cleanupCoroutine.IsRunning) _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
-            Library_ExiledAPI.LogInfo("PlayerLightsourceHandler.Initialize", "Initialized lightsource handler.");
+            LibraryExiledAPI.LogInfo("PlayerLightsourceHandler.Initialize", "Initialized lightsource handler.");
         }
 
         public void Clean()
@@ -97,7 +99,7 @@ namespace SCP_575.Handlers
             if (_isDisposed) return;
             _isDisposed = true;
 
-            Library_ExiledAPI.LogInfo("PlayerLightsourceHandler.Dispose", "Disposed lightsource handler.");
+            LibraryExiledAPI.LogInfo("PlayerLightsourceHandler.Dispose", "Disposed lightsource handler.");
         }
 
         #endregion
@@ -116,7 +118,7 @@ namespace SCP_575.Handlers
             Timing.CallDelayed(0.05f, () =>
             {
                 lightItem.IsEmitting = false;
-                Library_ExiledAPI.LogDebug("OnPlayerChangedItem", $"Disabled flashlight for {ev.Player.Nickname}.");
+                LibraryExiledAPI.LogDebug("OnPlayerChangedItem", $"Disabled flashlight for {ev.Player.Nickname}.");
             });
         }
 
@@ -130,7 +132,7 @@ namespace SCP_575.Handlers
             if (!IsValidPlayer(ev?.Player) || !IsBlackout()) return;
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
-            Library_ExiledAPI.LogDebug("OnPlayerToggling", $"Flashlight toggle: {ev.Player.Nickname}: IsAllowed={ev.IsAllowed}, NewState={ev.NewState}");
+            LibraryExiledAPI.LogDebug("OnPlayerToggling", $"Flashlight toggle: {ev.Player.Nickname}: IsAllowed={ev.IsAllowed}, NewState={ev.NewState}");
         }
 
         /// <summary>
@@ -143,12 +145,12 @@ namespace SCP_575.Handlers
             if (!IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !IsBlackout() || !HasFlashlight(ev.FirearmItem))
             {
                 if (ev?.FirearmItem == null)
-                    Library_ExiledAPI.LogWarn("OnPlayerTogglingWeaponFlashlight", "FirearmItem is null.");
+                    LibraryExiledAPI.LogWarn("OnPlayerTogglingWeaponFlashlight", "FirearmItem is null.");
                 return;
             }
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
-            Library_ExiledAPI.LogDebug("OnPlayerTogglingWeaponFlashlight", $"Weapon flashlight toggle: {ev.Player.Nickname}: IsAllowed={ev.IsAllowed}, NewState={ev.NewState}");
+            LibraryExiledAPI.LogDebug("OnPlayerTogglingWeaponFlashlight", $"Weapon flashlight toggle: {ev.Player.Nickname}: IsAllowed={ev.IsAllowed}, NewState={ev.NewState}");
         }
 
         /// <summary>
@@ -173,7 +175,7 @@ namespace SCP_575.Handlers
             if (!IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !HasFlashlight(ev.FirearmItem))
             {
                 if (ev?.FirearmItem == null)
-                    Library_ExiledAPI.LogWarn("OnPlayerToggledWeaponFlashlight", "FirearmItem is null.");
+                    LibraryExiledAPI.LogWarn("OnPlayerToggledWeaponFlashlight", "FirearmItem is null.");
                 return;
             }
 
@@ -201,12 +203,12 @@ namespace SCP_575.Handlers
             {
                 case LightItem lightItem:
                     lightItem.IsEmitting = false;
-                    Library_ExiledAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off flashlight for {target.Nickname}");
+                    LibraryExiledAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off flashlight for {target.Nickname}");
                     _ = StartFlickerEffectAsync(target.UserId, "Flashlight", () => lightItem.IsEmitting, state => lightItem.IsEmitting = state, forceOff: true);
                     break;
                 case FirearmItem firearm when HasFlashlight(firearm):
                     ToggleWeaponFlashlight(firearm, false, nameof(ApplyLightsourceEffects));
-                    Library_ExiledAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off weapon flashlight for {target.Nickname}");
+                    LibraryExiledAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off weapon flashlight for {target.Nickname}");
                     _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(ApplyLightsourceEffects)), forceOff: true);
                     break;
             }
@@ -222,7 +224,7 @@ namespace SCP_575.Handlers
 
             ApplyCooldown(player);
             player.SendHint(_plugin.Config.HintsConfig.LightEmitterCooldownHint, 1.75f);
-            Library_ExiledAPI.LogDebug("ForceCooldown", $"Forced cooldown on {player.Nickname}");
+            LibraryExiledAPI.LogDebug("ForceCooldown", $"Forced cooldown on {player.Nickname}");
         }
 
         /// <summary>
@@ -234,12 +236,12 @@ namespace SCP_575.Handlers
             if (player == null)
             {
                 _cooldownUntil.Clear();
-                Library_ExiledAPI.LogDebug("ClearCooldown", "Cleared cooldown for all players");
+                LibraryExiledAPI.LogDebug("ClearCooldown", "Cleared cooldown for all players");
             }
             else if (IsValidPlayer(player))
             {
                 _cooldownUntil.TryRemove(player.UserId, out _);
-                Library_ExiledAPI.LogDebug("ClearCooldown", $"Cleared cooldown for {player.Nickname}");
+                LibraryExiledAPI.LogDebug("ClearCooldown", $"Cleared cooldown for {player.Nickname}");
             }
         }
 
@@ -251,7 +253,7 @@ namespace SCP_575.Handlers
         {
             if (player?.UserId == null)
             {
-                Library_ExiledAPI.LogDebug("IsValidPlayer", "Player or UserId is null.");
+                LibraryExiledAPI.LogDebug("IsValidPlayer", "Player or UserId is null.");
                 return false;
             }
             return true;
@@ -264,7 +266,7 @@ namespace SCP_575.Handlers
 
         private bool IsPlayerInDarkRoom(Player player)
         {
-            return Library_LabAPI.IsPlayerInDarkRoom(player);
+            return _libraryLabAPI.IsPlayerInDarkRoom(player);
         }
 
         private float CleanupInterval => _plugin.Config?.HandlerCleanupInterval ?? 160f;
@@ -277,7 +279,7 @@ namespace SCP_575.Handlers
         {
             var cooldownUntil = DateTime.UtcNow + CooldownDuration;
             _cooldownUntil[player.UserId] = cooldownUntil;
-            Library_ExiledAPI.LogDebug("ApplyCooldown", $"Applied cooldown to {player.Nickname} until {cooldownUntil:T}");
+            LibraryExiledAPI.LogDebug("ApplyCooldown", $"Applied cooldown to {player.Nickname} until {cooldownUntil:T}");
         }
 
         private (bool IsAllowed, bool NewState) HandleLightToggling(Player player, bool isAllowed, bool newState, string message)
@@ -287,14 +289,14 @@ namespace SCP_575.Handlers
 
             if (_flickeringPlayers.Contains(player.UserId))
             {
-                Library_ExiledAPI.LogDebug("HandleLightToggling", $"Blocked toggle for {player.Nickname} due to active flicker.");
+                LibraryExiledAPI.LogDebug("HandleLightToggling", $"Blocked toggle for {player.Nickname} due to active flicker.");
                 return (false, false);
             }
 
             if (_cooldownUntil.TryGetValue(player.UserId, out var until) && DateTime.UtcNow < until)
             {
                 player.SendHint(message, 1.0f);
-                Library_ExiledAPI.LogDebug("HandleLightToggling", $"Blocked toggle for {player.Nickname} due to cooldown ({(until - DateTime.UtcNow).TotalSeconds:F1}s left).");
+                LibraryExiledAPI.LogDebug("HandleLightToggling", $"Blocked toggle for {player.Nickname} due to cooldown ({(until - DateTime.UtcNow).TotalSeconds:F1}s left).");
                 return (true, false);
             }
 
@@ -305,13 +307,13 @@ namespace SCP_575.Handlers
         {
             if (!_flickeringPlayers.Add(userId))
             {
-                Library_ExiledAPI.LogDebug("StartFlickerEffectAsync", $"Flicker already active for {userId}. Skipping.");
+                LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Flicker already active for {userId}. Skipping.");
                 return;
             }
 
             var cts = new CancellationTokenSource();
             _flickerTokens[userId] = cts;
-            Library_ExiledAPI.LogDebug("StartFlickerEffectAsync", $"Started {lightType} flicker for {userId}");
+            LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Started {lightType} flicker for {userId}");
 
             try
             {
@@ -326,14 +328,14 @@ namespace SCP_575.Handlers
             catch (TaskCanceledException)
             {
                 if(forceOff) setState(false);
-                Library_ExiledAPI.LogDebug("StartFlickerEffectAsync", $"Flicker cancelled for {userId}.");
+                LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Flicker cancelled for {userId}.");
             }
             finally
             {
                 _flickeringPlayers.Remove(userId);
                 _flickerTokens.TryRemove(userId, out var disposedCts);
                 disposedCts?.Dispose();
-                Library_ExiledAPI.LogDebug("StartFlickerEffectAsync", $"Ended {lightType} flicker for {userId}");
+                LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Ended {lightType} flicker for {userId}");
             }
         }
 
@@ -341,14 +343,14 @@ namespace SCP_575.Handlers
         {
             if (firearm?.Base == null)
             {
-                Library_ExiledAPI.LogDebug("HasFlashlight", $"Invalid firearm.");
+                LibraryExiledAPI.LogDebug("HasFlashlight", $"Invalid firearm.");
                 return false;
             }
 
             Attachment[] attachments = firearm.Base.Attachments;
             bool hasFlashlight = attachments != null && attachments.Any(a => a.Name == AttachmentName.Flashlight);
             if (!hasFlashlight)
-                Library_ExiledAPI.LogDebug("HasFlashlight", $"No flashlight attachment found for {firearm.Base.GetType().Name}.");
+                LibraryExiledAPI.LogDebug("HasFlashlight", $"No flashlight attachment found for {firearm.Base.GetType().Name}.");
             return hasFlashlight;
         }
 
@@ -412,7 +414,7 @@ namespace SCP_575.Handlers
                         _weaponFlashlightStates.TryRemove(kvp.Key, out _);
                 }
 
-                Library_ExiledAPI.LogDebug("CleanupCoroutine", "Completed cleanup of expired cooldowns, flicker tokens, and weapon flashlight states.");
+                LibraryExiledAPI.LogDebug("CleanupCoroutine", "Completed cleanup of expired cooldowns, flicker tokens, and weapon flashlight states.");
             }
         }
 
