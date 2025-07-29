@@ -214,7 +214,7 @@ namespace SCP_575.Shared
             float blackoutDuration = blackoutDurationBase + UnityEngine.Random.Range(Config.BlackoutConfig.DurationMin, Config.BlackoutConfig.DurationMax);
 
 
-            foreach (var r in roomSet)
+            foreach (Room r in roomSet)
             {
                 LibraryExiledAPI.LogDebug(nameof(DisableRoomAndNeighborLights), 
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");

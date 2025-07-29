@@ -12,6 +12,7 @@ namespace SCP_575.Npc
     using System.Threading;
     using System.Threading.Tasks;
     using UnityEngine;
+    using LabApi.Features.Wrappers;
 
     /// <summary>
     /// Manages SCP-575 NPC behaviors, including blackout events, CASSIE announcements, and damage mechanics.
@@ -228,27 +229,27 @@ namespace SCP_575.Npc
 
             try
             {
-                LabApi.Features.Wrappers.Map.SetColorOfLights(blackoutColor, targetZone);
+                Map.SetColorOfLights(blackoutColor, targetZone);
 
                 for (int i = 0; i < totalFlickers; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    LabApi.Features.Wrappers.Map.TurnOffLights(flickerInterval * 0.5f, targetZone);
+                    Map.TurnOffLights(flickerInterval * 0.5f, targetZone);
                     await Task.Delay(Mathf.RoundToInt(flickerInterval * 500), cancellationToken);
 
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    LabApi.Features.Wrappers.Map.TurnOnLights(targetZone);
-                    LabApi.Features.Wrappers.Map.SetColorOfLights(blackoutColor, targetZone);
+                    Map.TurnOnLights(targetZone);
+                    Map.SetColorOfLights(blackoutColor, targetZone);
                     await Task.Delay(Mathf.RoundToInt(flickerInterval * 500), cancellationToken);
                 }
 
-                LabApi.Features.Wrappers.Map.TurnOffLights(targetZone);
+                Map.TurnOffLights(targetZone);
             }
             catch (OperationCanceledException)
             {
-                LabApi.Features.Wrappers.Map.TurnOffLights(targetZone);
+                Map.TurnOffLights(targetZone);
                 LibraryExiledAPI.LogDebug("FlickerZoneLightsAsync", $"Flickering cancelled for zone {targetZone}");
                 throw;
             }
@@ -286,7 +287,7 @@ namespace SCP_575.Npc
 
             if (_config.BlackoutConfig.FlickerLights) FlickerZoneLightsAsync(zone).GetAwaiter().GetResult();
 
-            LabApi.Features.Wrappers.Map.TurnOffLights(blackoutDuration, zone);
+            Map.TurnOffLights(blackoutDuration, zone);
             LibraryExiledAPI.LogDebug("AttemptZoneBlackout", $"Blackout triggered in zone {zone} for {blackoutDuration} seconds.");
 
             if (!IsBlackoutActive) TriggerCassieMessage(cassieMessage, true);
@@ -300,7 +301,7 @@ namespace SCP_575.Npc
 
             foreach (FacilityZone zone in Enum.GetValues(typeof(FacilityZone)))
             {
-                LabApi.Features.Wrappers.Map.TurnOffLights(blackoutDuration, zone);
+                Map.TurnOffLights(blackoutDuration, zone);
                 LibraryExiledAPI.LogDebug("TriggerFacilityWideBlackout", $"Lights off in zone {zone} for {blackoutDuration} seconds.");
             }
             DisableFacilitySystems(blackoutDuration);
@@ -312,7 +313,7 @@ namespace SCP_575.Npc
             if (!_plugin.IsEventActive) return false;
 
             bool blackoutTriggered = false;
-            foreach (LabApi.Features.Wrappers.Room room in _libraryLabAPI.Rooms)
+            foreach (Room room in _libraryLabAPI.Rooms)
             {
                 // Skip rooms without light controllers
                 if (!room.AllLightControllers.Any()) continue;
@@ -342,9 +343,10 @@ namespace SCP_575.Npc
         /// <param name="isForced">If true, forces the blackout regardless of chance.</param>
         /// <param name="isCassieSilent">If true, suppresses CASSIE messages.</param>
         /// <returns>True if blackout was triggered; otherwise, false.</returns>
-        public bool AttemptRoomBlackout(LabApi.Features.Wrappers.Room room, float blackoutDuration, bool isForced = false, bool isCassieSilent = false)
+        public bool AttemptRoomBlackout(Room room, float blackoutDuration, bool isForced = false, bool isCassieSilent = false)
         {
             if (!_plugin.IsEventActive) return false;
+            if (room == null) return false;
 
             var (chance, cassieMessage) = GetRoomBlackoutParams(room.Zone);
             if (!isForced && UnityEngine.Random.Range(0f, 100f) >= chance) return false;
@@ -370,22 +372,22 @@ namespace SCP_575.Npc
             };
         }
 
-        private void HandleRoomBlackout(LabApi.Features.Wrappers.Room room, float blackoutDuration)
+        private void HandleRoomBlackout(Room room, float blackoutDuration)
         {
             if (!_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return;
 
             if (_config.BlackoutConfig.DisableTeslas && room.Name == RoomName.HczTesla)
             {
-                if (LabApi.Features.Wrappers.Tesla.TryGet(room, out LabApi.Features.Wrappers.Tesla tesla))
+                if (Tesla.TryGet(room, out Tesla tesla))
                 {
                     tesla.InactiveTime = blackoutDuration + 0.5f;
                     tesla.Trigger();
                 }
             }
 
-            if (_config.BlackoutConfig.DisableNuke && room.Name == RoomName.HczWarhead && LabApi.Features.Wrappers.Warhead.IsDetonationInProgress && !LabApi.Features.Wrappers.Warhead.IsLocked)
+            if (_config.BlackoutConfig.DisableNuke && room.Name == RoomName.HczWarhead && Warhead.IsDetonationInProgress && !Warhead.IsLocked)
             {
-                LabApi.Features.Wrappers.Warhead.Stop();
+                Warhead.Stop();
                 LibraryExiledAPI.LogDebug("HandleRoomBlackout", "Nuke detonation cancelled in HCZ Nuke room.");
             }
 
@@ -395,7 +397,7 @@ namespace SCP_575.Npc
 
         private void DisableFacilitySystems(float blackoutDuration)
         {
-            foreach (LabApi.Features.Wrappers.Room room in _libraryLabAPI.Rooms.Where(_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators))
+            foreach (Room room in _libraryLabAPI.Rooms.Where(_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators))
             {
                 _libraryLabAPI.TurnOffRoomLights(room, blackoutDuration, _config.BlackoutConfig.ElevatorLockdownProbability);
                 LibraryExiledAPI.LogDebug("DisableFacilitySystems", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
@@ -403,9 +405,9 @@ namespace SCP_575.Npc
 
             ResetTeslaGates();
 
-            if (_config.BlackoutConfig.DisableNuke && LabApi.Features.Wrappers.Warhead.IsDetonationInProgress && !LabApi.Features.Wrappers.Warhead.IsLocked)
+            if (_config.BlackoutConfig.DisableNuke && Warhead.IsDetonationInProgress && !Warhead.IsLocked)
             {
-                LabApi.Features.Wrappers.Warhead.Stop();
+                Warhead.Stop();
                 LibraryExiledAPI.LogDebug("DisableFacilitySystems", "Nuke detonation cancelled.");
             }
         }
@@ -440,7 +442,7 @@ namespace SCP_575.Npc
 
         private void ResetTeslaGates()
         {
-            foreach (LabApi.Features.Wrappers.Tesla tesla in _libraryLabAPI.Teslas)
+            foreach (Tesla tesla in _libraryLabAPI.Teslas)
             {
                 tesla.Trigger();
                 tesla.InactiveTime = 5f;
@@ -507,8 +509,8 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
                 if (!_plugin.IsEventActive) continue;
 
-                var players = LabApi.Features.Wrappers.Player.ReadyList.ToList();
-                foreach (LabApi.Features.Wrappers.Player player in players)
+                var players = Player.ReadyList.ToList();
+                foreach (Player player in players)
                 {
                     try
                     {
@@ -596,7 +598,7 @@ namespace SCP_575.Npc
         /// Plays a random audio effect for a player during an SCP-575 attack.
         /// </summary>
         /// <param name="player">The player to play the audio for.</param>
-        private void PlayRandomAudioEffect(LabApi.Features.Wrappers.Player player)
+        private void PlayRandomAudioEffect(Player player)
         {
             try
             {
@@ -662,7 +664,7 @@ namespace SCP_575.Npc
         /// <returns>True if all generators are engaged; otherwise, false.</returns>
         public bool AreAllGeneratorsEngaged(int reqCountEngagedGens = 3)
         {
-            var generators = LabApi.Features.Wrappers.Generator.List;
+            var generators = Generator.List;
             return generators.Count >= reqCountEngagedGens && generators.All(gen => gen.Engaged);
         }
 
@@ -673,7 +675,7 @@ namespace SCP_575.Npc
         {
             LibraryExiledAPI.LogDebug("Reset575", "Resetting SCP-575 state.");
             _blackoutStacks = 0;
-            foreach (var room in LabApi.Features.Wrappers.Room.List)
+            foreach (var room in Room.List)
             {
                 foreach (var lightController in room.AllLightControllers)
                 {
