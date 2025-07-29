@@ -60,7 +60,8 @@
         /// </summary>  
         /// <param name="room">The room to turn lights off in.</param>  
         /// <param name="duration">Duration in seconds to keep lights off.</param>  
-        public static void TurnOffRoomLights(Room room, float duration)
+        /// <param name="elevatorAffectChance">Percentage chance (0-100) that connected elevators will be affected.</param>  
+        public static void TurnOffRoomLights(Room room, float duration, float elevatorAffectChance = 0f)  
         {
             if (room == null)
             {
@@ -74,7 +75,19 @@
             //{
             //    lightController.FlickerLights(duration);
             //}
-
+            
+            // Handle connected elevators if chance is specified  
+            if (elevatorAffectChance > 0f)  
+            {  
+                HandleConnectedElevators(room, elevatorAffectChance, (elevator) =>   
+                {  
+                    elevator.LockAllDoors();  
+                    Library_ExiledAPI.LogDebug("TurnOffRoomLights", $"Locked elevator doors due to room blackout");  
+                      
+                    // Unlock after duration  
+                    Timing.CallDelayed(duration, () => elevator.UnlockAllDoors());  
+                });  
+            }  
             Library_ExiledAPI.LogDebug("TurnOffRoomLights", $"Lights turned off in room {room.Name} for {duration} seconds.");
         }
 
@@ -116,7 +129,8 @@
         /// Enables and flickers lights in a room and all its neighboring rooms.  
         /// </summary>  
         /// <param name="room">The LabAPI room to light up and flicker.</param>  
-        public static void EnableAndFlickerRoomAndNeighborLights(Room room)
+        /// <param name="elevatorAffectChance">Percentage chance (0-100) that connected elevators will be affected.</param>  
+        public static void EnableAndFlickerRoomAndNeighborLights(Room room, float elevatorAffectChance = 0f)  
         {
             if (room == null)
             {
@@ -141,16 +155,28 @@
                 //    lightController.LightsEnabled = true;
                 //    lightController.FlickerLights(Config.BlackoutConfig.FlickerDuration);
                 //}
+
+                // Handle elevators for each room in the set  
+                if (elevatorAffectChance > 0f)  
+                {  
+                    HandleConnectedElevators(r, elevatorAffectChance, (elevator) =>   
+                    {  
+                        // Flicker elevator by briefly locking/unlocking  
+                        elevator.LockAllDoors();  
+                        Timing.CallDelayed(0.5f, () => elevator.UnlockAllDoors());  
+                    });  
+                }
             }
         }
 
         /// <summary>  
         /// Attempts a blackout event in a room and all its neighboring rooms. Increments blackout stacks by 1 if successful.  
         /// </summary>  
-        /// <param name="room">The LabAPI room to blackout.</param>  
-        /// <param name="blackoutDurationBase">Minimum time in seconds that the blackout occurs.</param>   
-        public static void DisableRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
-        {
+        /// <param name="room">The LabAPI room to blackout.</param>    
+        /// <param name="blackoutDurationBase">Minimum time in seconds that the blackout occurs.</param>  
+        /// <param name="elevatorAffectChance">Percentage chance (0-100) that connected elevators will be affected.</param>  
+        public static void DisableRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f, float elevatorAffectChance = 0f)  
+        {  
             if (room == null)
             {
                 Library_ExiledAPI.LogWarn("DisableRoomAndNeighborLights", "Room instance is null");
@@ -179,6 +205,19 @@
                         Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
                         attemptFirstSuccess = true;
                     }
+
+                    // Handle elevators for successful blackouts  
+                    if (elevatorAffectChance > 0f)  
+                    {  
+                        HandleConnectedElevators(r, elevatorAffectChance, (elevator) =>   
+                        {  
+                            elevator.LockAllDoors();  
+                            Library_ExiledAPI.LogDebug("DisableRoomAndNeighborLights", $"Locked elevator due to blackout");  
+                              
+                            // Unlock after blackout duration  
+                            Timing.CallDelayed(blackoutDuration, () => elevator.UnlockAllDoors());  
+                        });  
+                    }  
                 }
             }
         }
