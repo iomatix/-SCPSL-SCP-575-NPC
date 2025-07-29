@@ -274,7 +274,7 @@ namespace SCP_575.Npc
                     case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
                         if (room.LightController.LightsEnabled || !isScp575Present)
                         {
-                            LibraryExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Event in safe room, Lights are On or SCP-575 is not active. LightsOff: {room.AreLightsOff}, IsBlackoutActive: {isScp575Present}");
+                            LibraryExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Event in safe room, Lights are On or SCP-575 is not active. LightsEnabled: {room.LightController.LightsEnabled}, IsBlackoutActive: {isScp575Present}");
                             return;
                         }
                         LibraryExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
