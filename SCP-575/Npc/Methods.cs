@@ -57,10 +57,11 @@ namespace SCP_575.Npc
             // Initialize the LabAPI with dependency injection
             _libraryLabAPI = _plugin.LibraryLabAPI ?? throw new InvalidOperationException("LibraryLabAPI is null. Plugin cannot function without it.");
 
-            LibraryExiledAPI.LogDebug(nameof(Methods), $"Initialized with Handler IDs: " +
-                $"Lightsource={_lightsourceHandler.GetHashCode()}, " +
-                $"Sanity={_sanityHandler.GetHashCode()}, " +
-                $"LabAPI={_libraryLabAPI.GetHashCode()}");
+            LibraryExiledAPI.LogDebug(nameof(Methods), $"Dependencies initialized:\n" +
+                $"• LightsourceHandler: {_lightsourceHandler.GetHashCode()}\n" +
+                $"• SanityHandler: {_sanityHandler.GetHashCode()}\n" +
+                $"• LibraryLabAPI: {_libraryLabAPI?.GetHashCode()}\n" +
+                $"• Config v{_plugin.Version}");
         }
 
         /// <summary>
