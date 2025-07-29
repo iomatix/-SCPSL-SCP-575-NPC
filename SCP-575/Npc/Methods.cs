@@ -389,7 +389,7 @@ namespace SCP_575.Npc
                 LibraryExiledAPI.LogDebug("HandleRoomBlackout", "Nuke detonation cancelled in HCZ Nuke room.");
             }
 
-            _libraryLabAPI.TurnOffRoomLights(room, blackoutDuration);
+            _libraryLabAPI.TurnOffRoomLights(room, blackoutDuration, _config.BlackoutConfig.ElevatorLockdownProbability);
             LibraryExiledAPI.LogDebug("HandleRoomBlackout", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
         }
 
@@ -397,7 +397,7 @@ namespace SCP_575.Npc
         {
             foreach (LabApi.Features.Wrappers.Room room in _libraryLabAPI.Rooms.Where(_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators))
             {
-                _libraryLabAPI.TurnOffRoomLights(room, blackoutDuration);
+                _libraryLabAPI.TurnOffRoomLights(room, blackoutDuration, _config.BlackoutConfig.ElevatorLockdownProbability);
                 LibraryExiledAPI.LogDebug("DisableFacilitySystems", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
             }
 

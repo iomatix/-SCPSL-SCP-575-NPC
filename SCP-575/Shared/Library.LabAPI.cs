@@ -113,6 +113,8 @@ namespace SCP_575.Shared
             }
 
             LibraryExiledAPI.ToExiledRoom(room).TurnOffLights(duration);
+
+            // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
             HandleElevatorsForRoom(room, elevatorAffectChance, duration, elevator =>
             {
                 elevator.LockAllDoors();
@@ -166,6 +168,8 @@ namespace SCP_575.Shared
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
                 LibraryExiledAPI.ToExiledRoom(r).TurnOffLights(Config.BlackoutConfig.FlickerDuration);
+
+                // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
                 HandleElevatorsForRoom(r, elevatorAffectChance, 0.5f, elevator =>
                 {
                     elevator.LockAllDoors();
@@ -206,6 +210,7 @@ namespace SCP_575.Shared
                     attemptFirstSuccess = true;
                 }
 
+                // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
                 if (attemptResult)
                 {
                     HandleElevatorsForRoom(r, elevatorAffectChance, blackoutDuration, elevator =>

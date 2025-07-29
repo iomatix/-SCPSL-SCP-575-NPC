@@ -151,7 +151,7 @@ namespace SCP_575.Npc
                 }
 
                 LibraryExiledAPI.LogInfo("EventHandler.OnGeneratorActivated", $"Generator activated in SCP-575 room: {room.Name}");
-                _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room);
+                _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room, _config.BlackoutConfig.ElevatorLockdownProbability);
 
                 // Play a global angry sound as a creepy audio cue
                 _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
@@ -266,7 +266,7 @@ namespace SCP_575.Npc
                     case ScpProjectileImpactType.ProjectileImpactType.Helpful:
                         LibraryExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Helpful impact type used in room: {room.Name}");
 
-                        _libraryLabAPI.DisableRoomAndNeighborLights(room);
+                        _libraryLabAPI.DisableRoomAndNeighborLights(room, _config.BlackoutConfig.ElevatorLockdownProbability);
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.WhispersBang, lifespan: 25f);
                         _plugin.AudioManager.PlayAmbience();
                         break;
@@ -278,7 +278,7 @@ namespace SCP_575.Npc
                             return;
                         }
                         LibraryExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
-                        _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room);
+                        _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room, _config.BlackoutConfig.ElevatorLockdownProbability);
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
                         break;
 

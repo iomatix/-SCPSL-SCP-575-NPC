@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 
 namespace SCP_575.ConfigObjects
 {
@@ -92,56 +93,67 @@ namespace SCP_575.ConfigObjects
         /// Chance (%) of a blackout in the Heavy Containment Zone.
         /// </summary>
         [Description("Chance (%) of outage in Heavy Containment Zone.")]
-        public int ChanceHeavy
+        public float ChanceHeavy
         {
             get => _chanceHeavy;
             set => _chanceHeavy = value < 0 ? 0 : value > 100 ? 100 : value;
         }
-        private int _chanceHeavy = 99;
+        private float _chanceHeavy = 99;
 
         /// <summary>
         /// Chance (%) of a blackout in the Light Containment Zone.
         /// </summary>
         [Description("Chance (%) of outage in Light Containment Zone.")]
-        public int ChanceLight
+        public float ChanceLight
         {
             get => _chanceLight;
             set => _chanceLight = value < 0 ? 0 : value > 100 ? 100 : value;
         }
-        private int _chanceLight = 45;
+        private float _chanceLight = 45;
 
         /// <summary>
         /// Chance (%) of a blackout in the Entrance Zone.
         /// </summary>
         [Description("Chance (%) of outage in Entrance Zone.")]
-        public int ChanceEntrance
+        public float ChanceEntrance
         {
             get => _chanceEntrance;
             set => _chanceEntrance = value < 0 ? 0 : value > 100 ? 100 : value;
         }
-        private int _chanceEntrance = 65;
+        private float _chanceEntrance = 65;
 
         /// <summary>
         /// Chance (%) of a blackout in the Surface Zone.
         /// </summary>
         [Description("Chance (%) of outage in Surface Zone.")]
-        public int ChanceSurface
+        public float ChanceSurface
         {
             get => _chanceSurface;
             set => _chanceSurface = value < 0 ? 0 : value > 100 ? 100 : value;
         }
-        private int _chanceSurface = 25;
+        private float _chanceSurface = 25;
 
         /// <summary>
         /// Chance (%) of a blackout in an unspecified zone.
         /// </summary>
         [Description("Chance (%) of outage in unspecified zones.")]
-        public int ChanceOther
+        public float ChanceOther
         {
             get => _chanceOther;
             set => _chanceOther = value < 0 ? 0 : value > 100 ? 100 : value;
         }
-        private int _chanceOther = 0;
+        private float _chanceOther = 0;
+
+        /// <summary>
+        /// Probability (0–100%) that connected elevators will be locked down when a room loses power.
+        /// </summary>
+        [Description("Elevator lockdown probability (%) when a connected room loses power")]
+        public float ElevatorLockdownProbability
+        {
+            get => _elevatorLockdownProbability;
+            set => _elevatorLockdownProbability = value < 0 ? 0 : value > 100 ? 100 : value;
+        }
+        private float _elevatorLockdownProbability = 35;
 
         /// <summary>
         /// Use per-room probability settings instead of per-zone.
