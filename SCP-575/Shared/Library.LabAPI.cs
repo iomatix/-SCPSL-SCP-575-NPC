@@ -214,8 +214,9 @@ namespace SCP_575.Shared
             float blackoutDuration = blackoutDurationBase + UnityEngine.Random.Range(Config.BlackoutConfig.DurationMin, Config.BlackoutConfig.DurationMax);
 
 
-            foreach (Room r in roomSet)
+            foreach (var r in roomSet)
             {
+
                 LibraryExiledAPI.LogDebug(nameof(DisableRoomAndNeighborLights), 
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
@@ -391,6 +392,12 @@ namespace SCP_575.Shared
             var roomSet = new HashSet<Room> { room };
             foreach (var neighbor in room.ConnectedRooms.Select(Room.Get).Where(r => r != null))
             {
+                if (neighbor == null)
+                {
+                    LibraryExiledAPI.LogWarn(nameof(GetRoomAndNeighbors), "Room instance is null");
+                    continue;
+                }
+
                 roomSet.Add(neighbor);
             }
             return roomSet;

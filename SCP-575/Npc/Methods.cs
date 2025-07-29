@@ -374,25 +374,93 @@ namespace SCP_575.Npc
 
         private void HandleRoomBlackout(Room room, float blackoutDuration)
         {
-            if (!_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return;
+            if (room == null)
+            {
+                LibraryExiledAPI.LogError(nameof(HandleRoomBlackout), "Blackout aborted: Room reference is null");
+                return;
+            }
 
-            if (_config.BlackoutConfig.DisableTeslas && room.Name == RoomName.HczTesla)
+            try
+            {
+                if (!_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room))
+                {
+                    LibraryExiledAPI.LogDebug(nameof(HandleRoomBlackout),
+                        $"Skipping blackout in {room.Name}: Engaged generators present");
+                    return;
+                }
+
+                HandleTeslaBlackout(room, blackoutDuration);
+                HandleWarheadBlackout();
+                ExecuteRoomBlackout(room, blackoutDuration);
+            }
+            catch (Exception ex)
+            {
+                LibraryExiledAPI.LogError(nameof(HandleRoomBlackout),
+                    $"CRITICAL FAILURE during blackout: {ex}\nRoom: {room.Name} ({room?.GetType()})");
+            }
+        }
+
+        private void HandleTeslaBlackout(Room room, float blackoutDuration)
+        {
+            if (!_config.BlackoutConfig.DisableTeslas || room.Name != RoomName.HczTesla)
+                return;
+
+            try
             {
                 if (Tesla.TryGet(room, out Tesla tesla))
                 {
                     tesla.InactiveTime = blackoutDuration + 0.5f;
                     tesla.Trigger();
+                    LibraryExiledAPI.LogDebug(nameof(HandleRoomBlackout),
+                        $"Disabled Tesla in {room.Name} for {blackoutDuration + 0.5f}s");
                 }
             }
-
-            if (_config.BlackoutConfig.DisableNuke && room.Name == RoomName.HczWarhead && Warhead.IsDetonationInProgress && !Warhead.IsLocked)
+            catch (Exception ex)
             {
-                Warhead.Stop();
-                LibraryExiledAPI.LogDebug("HandleRoomBlackout", "Nuke detonation cancelled in HCZ Nuke room.");
+                LibraryExiledAPI.LogError(nameof(HandleRoomBlackout),
+                    $"Tesla blackout failed: {ex}\nRoom: {room.Name}");
             }
+        }
 
-            _libraryLabAPI.TurnOffRoomLights(room, blackoutDuration, _config.BlackoutConfig.ElevatorLockdownProbability);
-            LibraryExiledAPI.LogDebug("HandleRoomBlackout", $"Lights off in room {room.Name} for {blackoutDuration} seconds.");
+        private void HandleWarheadBlackout()
+        {
+            if (!_config.BlackoutConfig.DisableNuke)
+                return;
+
+            try
+            {
+                if (Warhead.IsDetonationInProgress && !Warhead.IsLocked)
+                {
+                    Warhead.Stop();
+                    LibraryExiledAPI.LogDebug(nameof(HandleRoomBlackout),
+                        "Nuke detonation cancelled in HCZ Nuke room");
+                }
+            }
+            catch (Exception ex)
+            {
+                LibraryExiledAPI.LogError(nameof(HandleRoomBlackout),
+                    $"Warhead cancellation failed: {ex}");
+            }
+        }
+
+        private void ExecuteRoomBlackout(Room room, float blackoutDuration)
+        {
+            try
+            {
+                _libraryLabAPI.TurnOffRoomLights(
+                    room,
+                    blackoutDuration,
+                    _config.BlackoutConfig.ElevatorLockdownProbability
+                );
+
+                LibraryExiledAPI.LogDebug(nameof(HandleRoomBlackout),
+                    $"Lights disabled in {room.Name} for {blackoutDuration}s");
+            }
+            catch (Exception ex)
+            {
+                LibraryExiledAPI.LogError(nameof(HandleRoomBlackout),
+                    $"Light blackout failed: {ex}\nRoom: {room.Name}");
+            }
         }
 
         private void DisableFacilitySystems(float blackoutDuration)
