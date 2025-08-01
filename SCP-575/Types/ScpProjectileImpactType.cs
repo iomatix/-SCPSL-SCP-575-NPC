@@ -1,5 +1,6 @@
-﻿namespace SCP_575.Shared.Types
+﻿namespace SCP_575.Types
 {
+    using SCP_575.Shared;
     using System;
 
     /// <summary>
@@ -49,11 +50,11 @@
             {
                 if (type == null)
                 {
-                    Library_ExiledAPI.LogDebug("ScpProjectileImpactType.ClassifyExplosionImpact", "Explosion type is null. Returning Unknown.");
+                    LibraryExiledAPI.LogDebug("ScpProjectileImpactType.ClassifyExplosionImpact", "Explosion type is null. Returning Unknown.");
                     return ProjectileImpactType.Unknown;
                 }
 
-                Library_ExiledAPI.LogDebug("ScpProjectileImpactType.ClassifyExplosionImpact", $"Classifying explosion type: {type}");
+                LibraryExiledAPI.LogDebug("ScpProjectileImpactType.ClassifyExplosionImpact", $"Classifying explosion type: {type}");
                 return type switch
                 {
                     ExplosionType.Grenade => ProjectileImpactType.Dangerous,
@@ -65,7 +66,7 @@
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("ScpProjectileImpactType.ClassifyExplosionImpact", $"Failed to classify explosion impact for type {type}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryExiledAPI.LogError("ScpProjectileImpactType.ClassifyExplosionImpact", $"Failed to classify explosion impact for type {type}: {ex.Message}\nStackTrace: {ex.StackTrace}");
                 return ProjectileImpactType.Unknown;
             }
         }
@@ -81,12 +82,12 @@
             {
                 if (projectile == null)
                 {
-                    Library_ExiledAPI.LogDebug("ScpProjectileImpactType.ClassifyProjectileImpact", "Projectile is null. Returning Unknown.");
+                    LibraryExiledAPI.LogDebug("ScpProjectileImpactType.ClassifyProjectileImpact", "Projectile is null. Returning Unknown.");
                     return ProjectileImpactType.Unknown;
                 }
 
                 ItemType type = projectile.Type;
-                Library_ExiledAPI.LogDebug("ScpProjectileImpactType.ClassifyProjectileImpact", $"Classifying projectile with ItemType: {type}");
+                LibraryExiledAPI.LogDebug("ScpProjectileImpactType.ClassifyProjectileImpact", $"Classifying projectile with ItemType: {type}");
 
                 return type switch
                 {
@@ -102,7 +103,7 @@
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("ScpProjectileImpactType.ClassifyProjectileImpact", $"Failed to classify projectile impact: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryExiledAPI.LogError("ScpProjectileImpactType.ClassifyProjectileImpact", $"Failed to classify projectile impact: {ex.Message}\nStackTrace: {ex.StackTrace}");
                 return ProjectileImpactType.Unknown;
             }
         }

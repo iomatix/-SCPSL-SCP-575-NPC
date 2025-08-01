@@ -1,10 +1,34 @@
 ﻿namespace SCP_575.Shared
 {
     using System;
+    using System.Linq;
     using UnityEngine;
 
     public static class Helpers
     {
+        /// <summary>
+        /// Checks if a player is human and not holding an active light source.
+        /// </summary>
+        /// <param name="player">The player to check.</param>
+        /// <returns>True if the player is human without an active light source, false otherwise.</returns>
+        public static bool IsHumanWithoutLight(LabApi.Features.Wrappers.Player player)
+        {
+            try
+            {
+                var exiledPlayer = LibraryExiledAPI.ToExiledPlayer(player);
+                if (!player.IsHuman || exiledPlayer.HasFlashlightModuleEnabled) return false;
+
+                if (player.CurrentItem?.Base is InventorySystem.Items.ToggleableLights.ToggleableLightItemBase lightItem)
+                    return !lightItem.IsEmittingLight;
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LibraryExiledAPI.LogError("Helpers.IsHumanWithoutLight", $"Failed to check player {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
+                return false;
+            }
+        }
 
         /// <summary>
         /// Calculates the Euclidean distance between two 3D points.
@@ -21,12 +45,12 @@
                     throw new ArgumentNullException(a == null ? nameof(a) : nameof(b), "Vector cannot be null.");
 
                 float distance = Vector3.Distance(a, b);
-                Library_ExiledAPI.LogDebug("Helpers.Distance", $"Calculated distance between {a} and {b}: {distance}");
+                LibraryExiledAPI.LogDebug("Helpers.Distance", $"Calculated distance between {a} and {b}: {distance}");
                 return distance;
             }
             catch (Exception ex)
             {
-                Library_ExiledAPI.LogError("Helpers.Distance", $"Failed to calculate distance between {a} and {b}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryExiledAPI.LogError("Helpers.Distance", $"Failed to calculate distance between {a} and {b}: {ex.Message}\nStackTrace: {ex.StackTrace}");
                 return 0f;
             }
         }

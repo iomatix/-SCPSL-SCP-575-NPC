@@ -12,9 +12,6 @@
 		<LangVersion>9.0</LangVersion>
 	</PropertyGroup>
 	<ItemGroup>
-	  <Compile Remove="EventHandler.cs" />
-	</ItemGroup>
-	<ItemGroup>
 		<None Remove="Shared\Audio\ambience.wav" />
 		<None Remove="Shared\Audio\scream-angry.wav" />
 		<None Remove="Shared\Audio\scream-dying.wav" />
@@ -43,7 +40,7 @@
 	<ItemGroup>
 		<PackageReference Include="ExMod.Exiled" Version="9.6.3" />
 		<PackageReference Include="Northwood.LabAPI" Version="1.1.0" />
-		<PackageReference Include="SCPSL-AudioManagerAPI" Version="1.4.2" />
+		<PackageReference Include="SCPSL-AudioManagerAPI" Version="1.7.0" />
 		<PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" IncludeAssets="All" PrivateAssets="All" />
 		<PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556">
 			<PrivateAssets>all</PrivateAssets>

@@ -6,174 +6,211 @@
     using UnityEngine;
     using AudioManagerAPI.Defaults;
     using AudioManagerAPI.Features.Enums;
+    using AudioManagerAPI.Features.Filters;
     using AudioManagerAPI.Features.Management;
     using AudioManagerAPI.Features.Speakers;
     using AudioManagerAPI.Features.Static;
     using LabApi.Features.Wrappers;
     using MEC;
-
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Shared.Audio.Filters;
-
+    using SCP_575.ConfigObjects;
     using Log = LabApi.Features.Console.Logger;
 
     /// <summary>
-    /// Manages audio playback for SCP-575, including screams, whispers, and ambience.
+    /// Manages audio playback for SCP-575, including screams, whispers, and ambience, with support for spatial and non-spatial audio.
     /// </summary>
     public class Scp575AudioManager
     {
+        private readonly Plugin _plugin;
         private static IAudioManager sharedAudioManager;
-        private const float GLOBAL_SCREAM_COOLDOWN = 35f;
         private DateTime lastGlobalScreamTime = DateTime.MinValue;
         private byte _ambienceAudioControllerId;
-        private const float DEFAULT_FADE_DURATION = 1f;
+
+        private readonly HashSet<byte> _pluginControllerIds = new();
 
         private readonly Dictionary<AudioKey, (string key, float volume, float minDistance, float maxDistance, bool isSpatial, AudioPriority priority, float defaultLifespan)> audioConfig = new()
         {
-            { AudioKey.Scream, ("scp575.scream", 0.8f, 5f, 50f, true, AudioPriority.High, 15f) },
+            { AudioKey.Scream, ("scp575.scream", 0.85f, 5f, 50f, true, AudioPriority.High, 15f) },
             { AudioKey.ScreamAngry, ("scp575.scream-angry", 0.9f, 5f, 50f, true, AudioPriority.High, 15f) },
             { AudioKey.ScreamDying, ("scp575.scream-dying", 1.0f, 60f, 60f, true, AudioPriority.High, 15f) },
-            { AudioKey.Whispers, ("scp575.whispers", 0.5f, 3f, 30f, true, AudioPriority.Medium, 15f) },
-            { AudioKey.WhispersBang, ("scp575.whispers-bang", 0.6f, 3f, 30f, true, AudioPriority.Medium, 15f) },
-            { AudioKey.WhispersMixed, ("scp575.whispers-mixed", 0.5f, 3f, 30f, true, AudioPriority.Medium, 15f) },
-            { AudioKey.Ambience, ("scp575.ambience", 0.4f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
+            { AudioKey.Whispers, ("scp575.whispers", 0.95f, 3f, 30f, true, AudioPriority.Medium, 15f) },
+            { AudioKey.WhispersBang, ("scp575.whispers-bang", 0.65f, 3f, 30f, true, AudioPriority.Medium, 15f) },
+            { AudioKey.WhispersMixed, ("scp575.whispers-mixed", 0.85f, 3f, 30f, true, AudioPriority.Medium, 15f) },
+            { AudioKey.Ambience, ("scp575.ambience", 0.5f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
         };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Scp575AudioManager"/> class.
         /// </summary>
-        public Scp575AudioManager()
+        /// <param name="plugin">Reference to the main <see cref="Plugin"/> instance.</param>
+        /// <exception cref="ArgumentNullException">Thrown if the plugin instance or its AudioConfig is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if the AudioConfig values are invalid.</exception>
+        public Scp575AudioManager(Plugin plugin)
         {
-            if (sharedAudioManager == null)
-            {
-                DefaultAudioManager.RegisterDefaults(cacheSize: 20);
-                sharedAudioManager = DefaultAudioManager.Instance;
-                RegisterAudioResources();
-            }
+            _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
+            if (_plugin.Config?.AudioConfig == null)
+                throw new ArgumentNullException(nameof(_plugin.Config.AudioConfig), "Audio configuration cannot be null.");
+            if (_plugin.Config.AudioConfig.GlobalScreamCooldown <= 0)
+                throw new ArgumentException("GlobalScreamCooldown must be positive.", nameof(_plugin.Config.AudioConfig));
+            if (_plugin.Config.AudioConfig.DefaultFadeDuration < 0)
+                throw new ArgumentException("DefaultFadeDuration must be non-negative.", nameof(_plugin.Config.AudioConfig));
+
+            sharedAudioManager = DefaultAudioManager.Instance;
+            RegisterAudioResources();
+
+
             _ambienceAudioControllerId = 0;
         }
 
         /// <summary>
-        /// Plays an audio effect for a specific player or globally, with optional auto-stop after a lifespan.
+        /// Plays an audio effect at a 3D position for a specific player, all nearby players, or globally (non-spatial) for all players, with optional auto-stop after a lifespan.
         /// </summary>
-        /// <param name="player">The player to hear the audio, or null for global playback.</param>
+        /// <param name="player">The player to hear the audio, or null for playback audible to all nearby players or non-spatial global playback.</param>
         /// <param name="audioKey">The audio effect to play.</param>
-        /// <param name="position">The optional 3D position for playback; defaults to player's position or Vector3.zero for global.</param>
+        /// <param name="position">The optional 3D position for spatial audio; defaults to player's position if hearableForAllPlayers is false, or Vector3.zero if hearableForAllPlayers is true.</param>
         /// <param name="lifespan">The optional duration before auto-stopping the audio; defaults to config value.</param>
-        /// <param name="hearableForAllPlayers">If true, plays audio globally for all ready players.</param>
+        /// <param name="hearableForAllPlayers">If true, plays spatial audio at the specified position for all nearby players; if false, plays only for the specified player. Ignored if isNonSpatial is true.</param>
         /// <param name="queue">If true, queues the audio instead of playing immediately.</param>
         /// <param name="fadeInDuration">The duration of the fade-in effect in seconds (0 for no fade).</param>
+        /// <param name="isNonSpatial">If true, plays audio globally without spatial positioning, audible to all ready players.</param>
         /// <returns>The controller ID of the speaker, or 0 if playback fails.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null when <paramref name="hearableForAllPlayers"/> is false.</exception>
-        public byte PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f)
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="player"/> is null when <paramref name="hearableForAllPlayers"/> is false and <paramref name="isNonSpatial"/> is false.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="audioKey"/> is not found in the audio configuration.</exception>
+        public byte PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false)
         {
-            if (!hearableForAllPlayers && player == null)
-                throw new ArgumentNullException(nameof(player), "Player cannot be null when hearableForAllPlayers is false.");
+            if (!audioConfig.ContainsKey(audioKey))
+                throw new ArgumentException($"Audio key {audioKey} not found in configuration.", nameof(audioKey));
+
+            if (!hearableForAllPlayers && player == null && !isNonSpatial)
+                throw new ArgumentNullException(nameof(player), "Player cannot be null when hearableForAllPlayers is false and audio is spatial.");
 
             var config = audioConfig[audioKey];
-            Vector3 playPosition = hearableForAllPlayers ? (position ?? Vector3.zero) : (position ?? player.Position);
-
-            // Enforce global scream cooldown
-            if (hearableForAllPlayers && (audioKey == AudioKey.Scream || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
+            Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
+            // Log player position and distance to audio position
+            if (!isNonSpatial && player != null)
             {
-                if ((DateTime.UtcNow - lastGlobalScreamTime).TotalSeconds < GLOBAL_SCREAM_COOLDOWN)
+                float distance = Vector3.Distance(player.Position, playPosition);
+                Log.Debug($"[Scp575AudioManager] Player {player.Nickname} position: {player.Position}, audio position: {playPosition}, distance: {distance:F2}, maxDistance: {config.maxDistance}");
+            }
+
+            if (isNonSpatial && (audioKey == AudioKey.Scream || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
+            {
+                double secondsSinceLastScream = (DateTime.UtcNow - lastGlobalScreamTime).TotalSeconds;
+                if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown)
                 {
-                    Log.Warn($"[AudioManagerAPI] Global scream {audioKey} blocked due to cooldown. Time since last scream: {(DateTime.UtcNow - lastGlobalScreamTime).TotalSeconds:F2}s.");
+                    Log.Warn($"[Scp575AudioManager] Scream audio {audioKey} blocked due to global cooldown. Time since last scream: {secondsSinceLastScream:F2}s.");
                     return 0;
                 }
                 lastGlobalScreamTime = DateTime.UtcNow;
             }
 
-            // Validate position
-            if (float.IsNaN(playPosition.x) || float.IsNaN(playPosition.y) || float.IsNaN(playPosition.z) ||
-                float.IsInfinity(playPosition.x) || float.IsInfinity(playPosition.y) || float.IsInfinity(playPosition.z))
+            // Validate position for spatial audio
+            if (!isNonSpatial && (float.IsNaN(playPosition.x) || float.IsNaN(playPosition.y) || float.IsNaN(playPosition.z) ||
+                float.IsInfinity(playPosition.x) || float.IsInfinity(playPosition.y) || float.IsInfinity(playPosition.z)))
             {
-                Log.Warn($"[AudioManagerAPI] Invalid position for audio {audioKey}: {playPosition}.");
+                Log.Warn($"[Scp575AudioManager] Invalid position for audio {audioKey}: {playPosition}. Falling back to Vector3.zero.");
+                playPosition = Vector3.zero;
+            }
+
+            // Validate distances for spatial audio
+            if (!isNonSpatial && config.minDistance > config.maxDistance)
+            {
+                Log.Warn($"[Scp575AudioManager] Invalid distances for audio {audioKey}: minDistance ({config.minDistance}) > maxDistance ({config.maxDistance}).");
                 return 0;
             }
 
-            // Validate distances
-            if (config.minDistance > config.maxDistance)
-            {
-                Log.Warn($"[AudioManagerAPI] Invalid distances for audio {audioKey}: minDistance ({config.minDistance}) > maxDistance ({config.maxDistance}).");
-                return 0;
-            }
-
-            // Stop existing ambience if playing ambience globally
-            if (hearableForAllPlayers && audioKey == AudioKey.Ambience && _ambienceAudioControllerId != 0)
+            // Stop existing ambience if playing new ambience
+            if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers) && _ambienceAudioControllerId != 0)
             {
                 StopAmbience();
             }
 
             byte controllerId;
-            if (hearableForAllPlayers)
+            if (isNonSpatial)
             {
-                controllerId = sharedAudioManager.PlayGlobalAudio(config.key, false, config.volume, config.priority, queue: queue, fadeInDuration: fadeInDuration, lifespan: lifespan, autoCleanup: true);
+                controllerId = sharedAudioManager.PlayGlobalAudio(
+                    config.key,
+                    loop: false,
+                    volume: config.volume,
+                    priority: config.priority,
+                    queue: queue,
+                    fadeInDuration: fadeInDuration,
+                    lifespan: lifespan,
+                    autoCleanup: true);
             }
             else
             {
                 controllerId = sharedAudioManager.PlayAudio(
-                    config.key, playPosition, false, config.volume, config.minDistance, config.maxDistance, config.isSpatial, config.priority, queue: queue, lifespan: lifespan, autoCleanup: true, configureSpeaker: speaker =>
+                    config.key,
+                    playPosition,
+                    loop: false,
+                    volume: config.volume,
+                    minDistance: config.minDistance,
+                    maxDistance: config.maxDistance,
+                    isSpatial: config.isSpatial,
+                    priority: config.priority,
+                    queue: queue,
+                    lifespan: lifespan,
+                    autoCleanup: true,
+                    configureSpeaker: speaker =>
                     {
-                        if (speaker is ISpeakerWithPlayerFilter playerFilterSpeaker)
+                        if (!hearableForAllPlayers && speaker is ISpeakerWithPlayerFilter playerFilterSpeaker)
                         {
                             playerFilterSpeaker.SetValidPlayers(p => p == player);
                         }
                     });
             }
 
-            if (controllerId != 0)
+            if (controllerId == 0)
             {
-                // Track ambience controller ID for global ambience
-                if (audioKey == AudioKey.Ambience && hearableForAllPlayers)
-                {
-                    _ambienceAudioControllerId = controllerId;
-                }
+                Log.Warn($"[Scp575AudioManager] Failed to play audio {audioKey} {(isNonSpatial ? "globally (non-spatial)" : hearableForAllPlayers ? "for all nearby players" : $"for player {player?.Nickname ?? "unknown"}")} at {playPosition}. Possible reasons: audio file missing, speaker creation failed, or ID allocation queued.");
+                return 0;
+            }
 
-                // Apply default or provided lifespan
-                float effectiveLifespan = lifespan ?? config.defaultLifespan;
-                if (effectiveLifespan > 0)
+            // Track ambience controller ID
+            if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
+            {
+                _ambienceAudioControllerId = controllerId;
+            }
+
+            // Apply lifespan for auto-stop
+            float effectiveLifespan = lifespan ?? config.defaultLifespan;
+            if (effectiveLifespan > 0)
+            {
+                if (effectiveLifespan <= 0)
                 {
-                    if (effectiveLifespan <= 0)
+                    Log.Warn($"[Scp575AudioManager] Invalid lifespan for audio {audioKey}: {effectiveLifespan}. Must be positive.");
+                    if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
                     {
-                        Log.Warn($"[AudioManagerAPI] Invalid lifespan for audio {audioKey}: {effectiveLifespan}. Must be positive.");
-                        if (audioKey == AudioKey.Ambience && hearableForAllPlayers)
-                        {
-                            StopAmbience();
-                        }
-                        else
-                        {
-                            sharedAudioManager.FadeOutAudio(controllerId, DEFAULT_FADE_DURATION);
-                        }
-                        return 0;
+                        StopAmbience();
                     }
-
-                    Timing.CallDelayed(effectiveLifespan, () =>
+                    else
                     {
-                        if (audioKey == AudioKey.Ambience && hearableForAllPlayers)
-                        {
-                            StopAmbience();
-                        }
-                        else
-                        {
-                            sharedAudioManager.FadeOutAudio(controllerId, DEFAULT_FADE_DURATION);
-                            Log.Debug($"[AudioManagerAPI] Destroyed speaker for audio {audioKey} with controller ID {controllerId} after lifespan of {effectiveLifespan} seconds.");
-                        }
-                    });
+                        sharedAudioManager.FadeOutAudio(controllerId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                    }
+                    return 0;
                 }
 
-                Log.Debug($"[AudioManagerAPI] Played audio {audioKey} {(hearableForAllPlayers ? "globally" : $"for player {player?.Nickname ?? "unknown"}")} at {playPosition} with ID {controllerId}{(queue ? " (queued)" : "")}.");
-            }
-            else
-            {
-                Log.Warn($"[AudioManagerAPI] Failed to play audio {audioKey} {(hearableForAllPlayers ? "globally" : $"for player {player?.Nickname ?? "unknown"}")}. Possible reasons: audio file missing, speaker creation failed, or ID allocation queued.");
+                Timing.CallDelayed(effectiveLifespan, () =>
+                {
+                    if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
+                    {
+                        StopAmbience();
+                    }
+                    else
+                    {
+                        sharedAudioManager.FadeOutAudio(controllerId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                        Log.Debug($"[Scp575AudioManager] Stopped audio {audioKey} with controller ID {controllerId} after lifespan of {effectiveLifespan} seconds.");
+                    }
+                });
             }
 
+            Log.Debug($"[Scp575AudioManager] Played audio {audioKey} {(isNonSpatial ? "globally (non-spatial)" : hearableForAllPlayers ? "for all nearby players" : $"for player {player?.Nickname ?? "unknown"}")} at {playPosition} with ID {controllerId}{(queue ? " (queued)" : "")}.");
             return controllerId;
         }
 
         /// <summary>
-        /// Plays an audio effect globally for all ready players with optional auto-stop.
+        /// Plays an audio effect globally (non-spatial) for all ready players with optional auto-stop.
         /// </summary>
         /// <param name="audioKey">The audio effect to play.</param>
         /// <param name="lifespan">The optional duration before auto-stopping the audio; defaults to config value.</param>
@@ -182,11 +219,11 @@
         /// <returns>The controller ID of the speaker, or 0 if playback fails.</returns>
         public byte PlayGlobalAudioAutoManaged(AudioKey audioKey, float? lifespan = null, bool queue = false, float fadeInDuration = 0f)
         {
-            return PlayAudioAutoManaged(null, audioKey, Vector3.zero, lifespan, hearableForAllPlayers: true, queue, fadeInDuration);
+            return PlayAudioAutoManaged(null, audioKey, null, lifespan, hearableForAllPlayers: true, queue, fadeInDuration, isNonSpatial: true);
         }
 
         /// <summary>
-        /// Plays ambient audio globally, with optional looping and auto-stop.
+        /// Plays ambient audio globally, with optional looping and auto-stop, audible only to players in dark rooms during SCP-575 blackout.
         /// </summary>
         /// <param name="loop">Whether the ambience should loop.</param>
         /// <param name="lifespan">The optional duration before auto-stopping the audio; ignored if looping.</param>
@@ -197,90 +234,79 @@
         {
             var config = audioConfig[AudioKey.Ambience];
 
-            // Stop currently playing ambience (if any)
+            // Validate default lifespan
+            if (!loop && config.defaultLifespan <= 0 && !lifespan.HasValue)
+            {
+                Log.Warn($"[Scp575AudioManager][PlayAmbience] Invalid default lifespan for ambience: {config.defaultLifespan}. Must be positive for non-looping audio.");
+                return 0;
+            }
+
+            // Stop existing ambience if any
             if (_ambienceAudioControllerId != 0)
             {
-                sharedAudioManager.FadeOutAudio(_ambienceAudioControllerId, DEFAULT_FADE_DURATION);
                 StopAmbience();
             }
 
             // Play new ambience
-            byte controllerId = sharedAudioManager.PlayGlobalAudio(
-                config.key, loop, config.volume, config.priority, queue: queue, fadeInDuration: fadeInDuration, persistent: true);
+            byte controllerId = sharedAudioManager.PlayGlobalAudioWithFilter(
+                key: config.key,
+                loop: loop,
+                volume: config.volume,
+                priority: config.priority,
+                configureSpeaker: speaker =>
+                {
+                    if (speaker is ISpeakerWithPlayerFilter filterSpeaker)
+                    {
+                        filterSpeaker.SetValidPlayers(player => AudioFilters.IsInRoomWhereLightsAre(false)(player) && _plugin.Npc.Methods.IsBlackoutActive);
+                    }
+                    else
+                    {
+                        Log.Warn($"[Scp575AudioManager][PlayAmbience] Speaker does not implement ISpeakerWithPlayerFilter. Filtering will not apply.");
+                    }
+                },
+                queue: queue,
+                fadeInDuration: fadeInDuration,
+                persistent: true,
+                lifespan: null, // Managed manually below
+                autoCleanup: true);
 
-            // Try get speaker
-            var speaker = StaticSpeakerFactory.GetSpeaker(controllerId);
-            if (speaker == null) {
-                Log.Warn($"[PlayAmbience] Speaker was not created correctly, received null.");
+            if (controllerId == 0)
+            {
+                Log.Warn($"[Scp575AudioManager][PlayAmbience] Failed to play ambience. Possible reasons: audio file missing, speaker creation failed, or ID allocation queued.");
                 return 0;
             }
 
-            // Play Ambience only for players covered by darkness and if SCP-575 is active.
-            if (speaker is ISpeakerWithPlayerFilter filterSpeaker)
-            {
-                filterSpeaker.ValidPlayers = AudioFilters.InDarkRoomAliveAndCondition(Plugin.Singleton.Npc.Methods.IsBlackoutActive);
-            }
-            else
-            {
-                Log.Warn($"[PlayAmbience] Speaker does not implement ISpeakerWithPlayerFilter. Filterring will not apply.");
-            }
+            _ambienceAudioControllerId = controllerId;
 
-            if (controllerId != 0)
+            // Apply lifespan for non-looping ambience
+            if (!loop && lifespan.HasValue)
             {
-                _ambienceAudioControllerId = controllerId;
-
-                if (lifespan.HasValue && !loop)
+                if (lifespan.Value <= 0)
                 {
-                    if (lifespan.Value <= 0)
-                    {
-                        Log.Warn($"[PlayAmbience] Invalid lifespan: {lifespan.Value}. Must be positive.");
-                        StopAmbience();
-                        return 0;
-                    }
-
-                    Timing.CallDelayed(lifespan.Value, () =>
-                    {
-                        sharedAudioManager.FadeOutAudio(controllerId, DEFAULT_FADE_DURATION);
-                        StopAmbience();
-                    });
+                    Log.Warn($"[Scp575AudioManager][PlayAmbience] Invalid lifespan: {lifespan.Value}. Must be positive.");
+                    StopAmbience();
+                    return 0;
                 }
 
-                Log.Debug($"[PlayAmbience] Started ambience with ID {controllerId} (loop: {loop}, queue: {queue}).");
-            }
-            else
-            {
-                Log.Warn($"[PlayAmbience] Failed to play ambience. Possible reasons: audio file missing, speaker creation failed, or ID allocation queued.");
+                Timing.CallDelayed(lifespan.Value, StopAmbience);
             }
 
+            Log.Debug($"[Scp575AudioManager][PlayAmbience] Started ambience with ID {controllerId} (loop: {loop}, queue: {queue}).");
             return controllerId;
         }
 
         /// <summary>
-        /// Stops and destroys the current global ambience audio.
+        /// Stops the currently playing ambience audio, if any.
         /// </summary>
-        /// <returns>True if ambience was stopped; false if no ambience was playing.</returns>
-        public bool StopAmbience()
+        public void StopAmbience()
         {
-            if (_ambienceAudioControllerId == 0)
+            if (!sharedAudioManager.IsValidController(_ambienceAudioControllerId)) return;
+            if (_ambienceAudioControllerId != 0)
             {
-                Log.Debug($"[StopAmbience] No ambience is currently playing.");
-                return false;
-            }
-
-            var speaker = sharedAudioManager.GetSpeaker(_ambienceAudioControllerId);
-            if (speaker == null)
-            {
-                Log.Warn($"[StopAmbience] No speaker found for ambience controller ID {_ambienceAudioControllerId}. Clearing invalid ID.");
+                sharedAudioManager.FadeOutAudio(_ambienceAudioControllerId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                Log.Debug($"[Scp575AudioManager] Stopped ambience audio with controller ID {_ambienceAudioControllerId}.");
                 _ambienceAudioControllerId = 0;
-                return false;
             }
-
-            sharedAudioManager.FadeOutAudio(_ambienceAudioControllerId, DEFAULT_FADE_DURATION);
-            sharedAudioManager.DestroySpeaker(_ambienceAudioControllerId);
-            Log.Debug($"[StopAmbience] Stopped and destroyed ambience with controller ID {_ambienceAudioControllerId}.");
-            _ambienceAudioControllerId = 0;
-
-            return true;
         }
 
         /// <summary>
@@ -292,22 +318,12 @@
         {
             if (controllerId == 0)
             {
-                Log.Warn($"[SkipAudio] Invalid controller ID 0 for skipping audio.");
+                Log.Warn($"[Scp575AudioManager][SkipAudio] Invalid controller ID 0 for skipping audio.");
                 return;
             }
 
             sharedAudioManager.SkipAudio(controllerId, count);
-            Log.Debug($"[SkipAudio] Skipped {count} audio clips for controller ID {controllerId}.");
-        }
-
-        /// <summary>
-        /// Cleans up all active SCP-575 audio speakers and resets the ambience controller ID.
-        /// </summary>
-        public void CleanupAllSpeakers()
-        {
-            sharedAudioManager.CleanupAllSpeakers();
-            _ambienceAudioControllerId = 0;
-            Log.Debug($"[CleanupAllSpeakers] Cleaned up all SCP-575 audio speakers.");
+            Log.Debug($"[Scp575AudioManager][SkipAudio] Skipped {count} audio clips for controller ID {controllerId}.");
         }
 
         /// <summary>
@@ -322,13 +338,17 @@
                 sharedAudioManager.RegisterAudio(pair.Value.key, () =>
                 {
                     var stream = assembly.GetManifestResourceStream(resourceName);
-                    if (stream == null)
+                    if (stream == null || stream.Length == 0)
                     {
-                        Log.Error($"[RegisterAudioResources] Failed to load audio resource: {resourceName}");
+                        Log.Error($"[Scp575AudioManager][RegisterAudioResources] Failed to load audio resource: {resourceName}. Stream is null or empty.");
+                    }
+                    else
+                    {
+                        Log.Debug($"[Scp575AudioManager][RegisterAudioResources] Loaded audio resource: {resourceName}, size: {stream.Length} bytes");
                     }
                     return stream;
                 });
-                Log.Debug($"[RegisterAudioResources] Registered audio resource: {pair.Value.key}");
+                Log.Debug($"[Scp575AudioManager][RegisterAudioResources] Registered audio resource: {pair.Value.key}");
             }
         }
     }
