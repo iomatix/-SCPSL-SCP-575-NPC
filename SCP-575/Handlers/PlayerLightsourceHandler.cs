@@ -31,7 +31,6 @@ namespace SCP_575.Handlers
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _flickerTokens = new();
         private readonly HashSet<string> _flickeringPlayers = new();
         private readonly Random _random = new();
-        private readonly ConcurrentDictionary<ushort, (bool State, DateTime LastUsed)> _weaponFlashlightStates = new();
         private CoroutineHandle _cleanupCoroutine;
         private bool _isDisposed;
 
@@ -74,7 +73,6 @@ namespace SCP_575.Handlers
             _flickerTokens.Clear();
             _cooldownUntil.Clear();
             _flickeringPlayers.Clear();
-            _weaponFlashlightStates.Clear();
         }
 
         public override void OnServerRoundEnded(RoundEndedEventArgs ev)
@@ -176,8 +174,6 @@ namespace SCP_575.Handlers
                     LibraryExiledAPI.LogWarn("OnPlayerToggledWeaponFlashlight", "FirearmItem is null.");
                 return;
             }
-
-            _weaponFlashlightStates[ev.FirearmItem.Serial] = (ev.NewState, DateTime.UtcNow);
 
             if (!ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
 
@@ -344,7 +340,7 @@ namespace SCP_575.Handlers
                 LibraryExiledAPI.LogDebug("HasFlashlight", $"Invalid firearm.");
                 return false;
             }
-
+            
             Attachment[] attachments = firearm.Attachments;
             bool hasFlashlight = attachments != null && attachments.Any(a => a.Name == AttachmentName.Flashlight);
             if (!hasFlashlight)
@@ -359,7 +355,7 @@ namespace SCP_575.Handlers
 
             lock (_weaponFlashlightLock)
             {
-                return _weaponFlashlightStates.TryGetValue(firearm.Serial, out var state) && state.State;
+                return firearm.FlashlightEnabled;
             }
         }
 
@@ -367,13 +363,9 @@ namespace SCP_575.Handlers
         {
             if (!HasFlashlight(firearm)) return;
 
-            Attachment[] attachments = firearm.Attachments;
-            var flashlight = attachments.FirstOrDefault(a => a.Name == AttachmentName.Flashlight);
-
             lock (_weaponFlashlightLock)
             {
-                _weaponFlashlightStates[firearm.Serial] = (enabled, DateTime.UtcNow);
-                flashlight.IsEnabled = enabled;
+                firearm.FlashlightEnabled = enabled;
             }
         }
 
@@ -398,14 +390,6 @@ namespace SCP_575.Handlers
                         cts.Cancel();
                         cts.Dispose();
                     }
-                }
-
-                // Clean up stale weapon flashlight states after timeout
-                var stateCutoff = DateTime.UtcNow - WeaponStateTimeout;
-                foreach (var kvp in _weaponFlashlightStates)
-                {
-                    if (kvp.Value.LastUsed < stateCutoff)
-                        _weaponFlashlightStates.TryRemove(kvp.Key, out _);
                 }
 
                 LibraryExiledAPI.LogDebug("CleanupCoroutine", "Completed cleanup of expired cooldowns, flicker tokens, and weapon flashlight states.");
