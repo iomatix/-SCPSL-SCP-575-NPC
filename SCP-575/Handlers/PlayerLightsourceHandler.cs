@@ -19,8 +19,6 @@ namespace SCP_575.Handlers
     using SCP_575.Shared;
     using Utils.Networking;
 
-    // TODO: Refactor weapon flashlight handling to use direct API calls like flashlight when LabAPI provides unified toggleable light support: https://github.com/northwood-studios/LabAPI/issues/220
-
     /// <summary>
     /// Manages restrictions on player flashlights and weapon flashlights affected by SCP-575, including cooldowns, flickering effects, and forced disables during attacks.
     /// </summary>
@@ -347,7 +345,7 @@ namespace SCP_575.Handlers
                 return false;
             }
 
-            Attachment[] attachments = firearm.Base.Attachments;
+            Attachment[] attachments = firearm.Attachments;
             bool hasFlashlight = attachments != null && attachments.Any(a => a.Name == AttachmentName.Flashlight);
             if (!hasFlashlight)
                 LibraryExiledAPI.LogDebug("HasFlashlight", $"No flashlight attachment found for {firearm.Base.GetType().Name}.");
@@ -365,21 +363,17 @@ namespace SCP_575.Handlers
             }
         }
 
-        // Wait for LabAPI's unified toggleable light support mentioned
         private void ToggleWeaponFlashlight(FirearmItem firearm, bool enabled, string context)
         {
             if (!HasFlashlight(firearm)) return;
 
+            Attachment[] attachments = firearm.Attachments;
+            var flashlight = attachments.FirstOrDefault(a => a.Name == AttachmentName.Flashlight);
+
             lock (_weaponFlashlightLock)
             {
                 _weaponFlashlightStates[firearm.Serial] = (enabled, DateTime.UtcNow);
-                new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-
-                // Add verification with retry  
-                Timing.CallDelayed(0.1f, () => {
-                    // Send the message again to ensure it takes effect  
-                    new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-                });
+                flashlight.IsEnabled = enabled;
             }
         }
 
