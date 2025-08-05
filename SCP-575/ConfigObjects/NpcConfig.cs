@@ -94,7 +94,5 @@ namespace SCP_575.ConfigObjects
         private float _keterForceMaxModifier = 2.35f;
 
         #endregion
-
-        // TODO: Add settings for NPC pathfinding behavior or other future features.
     }
 }
