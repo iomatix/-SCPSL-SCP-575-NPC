@@ -142,6 +142,8 @@ namespace SCP_575.Handlers
             {
                 if (ev?.FirearmItem == null)
                     LibraryExiledAPI.LogWarn("OnPlayerTogglingWeaponFlashlight", "FirearmItem is null.");
+                else if (!HasFlashlight(ev.FirearmItem))
+                    LibraryExiledAPI.LogDebug("OnPlayerTogglingWeaponFlashlight", $"No flashlight attachment for {ev.Player.Nickname}.");
                 return;
             }
 
@@ -314,14 +316,24 @@ namespace SCP_575.Handlers
                 int flickerCount = _random.Next(3, 11);
                 for (int i = 0; i < flickerCount && !cts.Token.IsCancellationRequested; i++)
                 {
+                    // Validate FirearmItem before accessing
+                    if (lightType == "WeaponFlashlight")
+                    {
+                        var player = Player.List.FirstOrDefault(p => p.UserId == userId);
+                        if (player == null || !(player.CurrentItem is FirearmItem firearm) || !HasFlashlight(firearm))
+                        {
+                            LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Invalid firearm or no flashlight for {userId}. Cancelling flicker.");
+                            break;
+                        }
+                    }
                     setState(!getState());
                     await Task.Delay(_random.Next(100, 450), cts.Token);
                 }
-                if(forceOff) setState(false);
+                if (forceOff) setState(false);
             }
             catch (TaskCanceledException)
             {
-                if(forceOff) setState(false);
+                if (forceOff) setState(false);
                 LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Flicker cancelled for {userId}.");
             }
             finally
