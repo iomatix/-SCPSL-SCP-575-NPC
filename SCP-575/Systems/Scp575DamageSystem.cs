@@ -374,15 +374,19 @@
                 LibraryExiledAPI.LogWarn(nameof(ApplyStandardRagdollPhysics), $"No rigidbodies found on ragdoll");
                 return;
             }
-
             foreach (Rigidbody rb in rigidbodies)
             {
                 if (rb == null) continue;
 
                 try
                 {
-                    rb.linearVelocity = upwardForce + randomForce;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 7.25f;
+                    // Scale force based on rigidbody mass  
+                    float massMultiplier = Mathf.Max(1f, rb.mass / 1f);
+                    Vector3 scaledUpwardForce = upwardForce * massMultiplier;
+                    Vector3 scaledRandomForce = randomForce * massMultiplier;
+
+                    rb.linearVelocity = scaledUpwardForce + scaledRandomForce;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
                 }
                 catch (Exception ex)
                 {
@@ -472,8 +476,7 @@
 
                     // Apply physics directly  
                     pickup.Rigidbody.linearVelocity = direction * magnitude;
-                    pickup.Rigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere *
-                        Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+                    pickup.Rigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
 
                     LibraryExiledAPI.LogDebug(nameof(DropAndPushItems),
                         $"Applied physics to item {pickup.Serial} ({pickup.Type}) with velocity {direction * magnitude}");
