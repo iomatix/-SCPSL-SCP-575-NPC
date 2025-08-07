@@ -1,4 +1,4 @@
-﻿namespace SCP_575.Systems
+namespace SCP_575.Systems
 {
     using InventorySystem.Items.Armor;
     using LabApi.Features.Wrappers;
@@ -336,8 +336,7 @@
                     return null;
                 }
 
-                // Store position with vertical offset to prevent floor clipping
-                Vector3 spawnPosition = originalRagdoll.Position + Vector3.up * 0.15f;
+                Vector3 spawnPosition = originalRagdoll.Position;
                 Quaternion spawnRotation = originalRagdoll.Rotation;
 
                 // Prepare RagdollData
