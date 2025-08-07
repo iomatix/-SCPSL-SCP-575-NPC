@@ -175,6 +175,7 @@ namespace SCP_575.Shared
                     controller.FlickerLights(Config.BlackoutConfig.FlickerDuration);
                 }
 
+                // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
                 HandleElevatorsForRoom(r, elevatorAffectChance, Config.BlackoutConfig.FlickerDuration, elevator =>
                 {
                     elevator.LockAllDoors();
