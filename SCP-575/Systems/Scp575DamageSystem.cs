@@ -1,5 +1,6 @@
 ﻿namespace SCP_575.Systems
 {
+    using Exiled.API.Features.Pickups;
     using InventorySystem.Items.Armor;
     using LabApi.Features.Wrappers;
     using MEC;
@@ -304,8 +305,16 @@
                     continue;
                 }
 
+                if(rb.isKinematic)
+                {
+                    LibraryExiledAPI.LogWarn(nameof(ProcessRagdollPhysics), "rigidbody found but is KINEMATIC - skipping");
+                    continue;
+                }
+
                 try
                 {
+
+
                     // Apply physics directly  
                     rb.linearVelocity = upwardForce + randomForce;
                     rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6f;
