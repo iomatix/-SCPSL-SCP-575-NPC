@@ -307,7 +307,7 @@ namespace SCP_575.Handlers
                 return;
             }
 
-            var cts = new CancellationTokenSource();
+            using var cts = new CancellationTokenSource();
             _flickerTokens[userId] = cts;
             LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Started {lightType} flicker for {userId}");
 
@@ -319,19 +319,21 @@ namespace SCP_575.Handlers
                     // Validate FirearmItem before accessing
                     if (lightType == "WeaponFlashlight")
                     {
-                        var player = Player.List.FirstOrDefault(p => p.UserId == userId);
-                        if (player == null || !(player.CurrentItem is FirearmItem firearm) || !HasFlashlight(firearm))
+                        var player = Player.Get(userId);
+                        if (player?.CurrentItem is not FirearmItem firearm || !HasFlashlight(firearm))
                         {
                             LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Invalid firearm or no flashlight for {userId}. Cancelling flicker.");
                             break;
                         }
                     }
+
                     setState(!getState());
                     await Task.Delay(_random.Next(100, 450), cts.Token);
                 }
+
                 if (forceOff) setState(false);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException) // More specific than TaskCanceledException
             {
                 if (forceOff) setState(false);
                 LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Flicker cancelled for {userId}.");
@@ -339,8 +341,7 @@ namespace SCP_575.Handlers
             finally
             {
                 _flickeringPlayers.Remove(userId);
-                _flickerTokens.TryRemove(userId, out var disposedCts);
-                disposedCts?.Dispose();
+                _flickerTokens.TryRemove(userId, out _); // CTS disposed by using statement
                 LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Ended {lightType} flicker for {userId}");
             }
         }
