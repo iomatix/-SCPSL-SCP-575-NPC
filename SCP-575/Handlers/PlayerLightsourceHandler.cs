@@ -313,7 +313,7 @@ namespace SCP_575.Handlers
 
             try
             {
-                int flickerCount = _random.Next(3, 11);
+                int flickerCount = _random.Next(3, 9);
                 for (int i = 0; i < flickerCount && !cts.Token.IsCancellationRequested; i++)
                 {
                     // Validate FirearmItem before accessing
