@@ -185,19 +185,20 @@ namespace SCP_575.Npc
 
         private IEnumerator<float> ExecuteBlackoutEvent()
         {
-            if (!IsBlackoutActive) {
-            if (_config.CassieConfig.CassieMessageClearBeforeImportant)
-                LibraryExiledAPI.ClearCassieQueue();
+            if (!IsBlackoutActive)
+            {
+                if (_config.CassieConfig.CassieMessageClearBeforeImportant)
+                    LibraryExiledAPI.ClearCassieQueue();
 
-            LibraryExiledAPI.LogDebug("ExecuteBlackoutEvent", "Starting blackout event...");
-            TriggerCassieMessage(_config.CassieConfig.CassieMessageStart, true);
-            if (_config.BlackoutConfig.FlickerLights)
-                FlickerAffectedZones(_config.BlackoutConfig.FlickerDuration);
+                LibraryExiledAPI.LogDebug("ExecuteBlackoutEvent", "Starting blackout event...");
+                TriggerCassieMessage(_config.CassieConfig.CassieMessageStart, true);
+                if (_config.BlackoutConfig.FlickerLights)
+                    FlickerAffectedZones(_config.BlackoutConfig.FlickerDuration);
 
-            yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndStart);
-            TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
+                yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndStart);
+                TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
             }
-            
+
             float blackoutDuration = _config.BlackoutConfig.RandomEvents
                 ? GetRandomBlackoutDuration()
                 : _config.BlackoutConfig.DurationMax;
@@ -255,7 +256,6 @@ namespace SCP_575.Npc
 
             for (int i = 0; i < totalFlickers; i++)
             {
-
                 Map.TurnOffLights(halfInterval, targetZone);
                 yield return Timing.WaitForSeconds(halfInterval);
 
@@ -310,11 +310,8 @@ namespace SCP_575.Npc
         {
             if (!_plugin.IsEventActive) return;
 
-            foreach (FacilityZone zone in Enum.GetValues(typeof(FacilityZone)))
-            {
-                Map.TurnOffLights(blackoutDuration, zone);
-                LibraryExiledAPI.LogDebug("TriggerFacilityWideBlackout", $"Lights off in zone {zone} for {blackoutDuration} seconds.");
-            }
+            Map.TurnOffLights(blackoutDuration);
+            LibraryExiledAPI.LogDebug("TriggerFacilityWideBlackout", $"Lights off in the Facility for {blackoutDuration} seconds.");
             DisableFacilitySystems(blackoutDuration);
             if (!IsBlackoutActive) TriggerCassieMessage(_config.CassieConfig.CassieMessageFacility, true);
         }
