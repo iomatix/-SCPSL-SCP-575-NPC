@@ -112,14 +112,9 @@ namespace SCP_575.Shared
                 return;
             }
 
-            if (room.LightController == null)
+            foreach (LightsController controller in room.AllLightControllers)
             {
-                LibraryExiledAPI.LogDebug(nameof(TurnOffRoomLights), $"Room {room.Name} instance doesn't have the light controller!");
-            }
-            else
-            {
-                // TODO LabAPI logcis when fixed: https://github.com/northwood-studios/LabAPI/issues/232
-                LibraryExiledAPI.ToExiledRoom(room).TurnOffLights(duration);
+                controller.FlickerLights(duration);
             }
 
             // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
