@@ -86,7 +86,7 @@ namespace SCP_575.Npc
                 _plugin.IsEventActive = true;
                 LibraryExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "SCP-575 NPC spawning due to roll being within spawn chance.");
 
-                _plugin.Npc.Methods.StartKeterEventLoop();
+                _plugin.Npc.Methods.StartBlackoutEventLoop();
                 _plugin.Npc.Methods.StartSanityHandlerLoop();
 
                 foreach (var player in LabApi.Features.Wrappers.Player.ReadyList)
@@ -107,7 +107,8 @@ namespace SCP_575.Npc
             LibraryExiledAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
             Clean();
             _plugin.IsEventActive = false;
-            Timing.KillCoroutines("SCP575-EventLoop");
+            Timing.KillCoroutines("SCP575-BlackoutLoop");
+            Timing.KillCoroutines("SCP575-ActionLoop");
             _plugin.SanityEventHandler.Clean();
             UnregisterEventHandlers();
         }
@@ -120,7 +121,6 @@ namespace SCP_575.Npc
             LibraryExiledAPI.LogInfo("Clean", "SCP-575 NPC methods cleaned.");
 
             Timing.KillCoroutines("SCP575-CassieCD");
-            Timing.KillCoroutines("SCP575-Action");
 
             Plugin.Singleton.AudioManager.StopAmbience();
             _blackoutStacks = 0;
@@ -151,10 +151,10 @@ namespace SCP_575.Npc
         #region Blackout Management
 
         /// <summary>
-        /// Runs the blackout timer, triggering blackout events at intervals.
+        /// Runs the Blackout loop, triggering blackout events at intervals.
         /// </summary>
         /// <returns>An enumerator for the coroutine.</returns>
-        public IEnumerator<float> RunBlackoutTimer()
+        public IEnumerator<float> RunBlackoutLoop()
         {
             yield return Timing.WaitForSeconds(_config.BlackoutConfig.InitialDelay);
             LibraryExiledAPI.LogDebug("RunBlackoutTimer", "SCP-575 NPC blackout timer started.");
@@ -173,7 +173,7 @@ namespace SCP_575.Npc
                     : _config.BlackoutConfig.InitialDelay;
                 yield return Timing.WaitForSeconds(delay);
 
-                _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent(), "575BlackoutExec"));
+                _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(ExecuteBlackoutEvent(), "SCP575-BlackoutExec"));
             }
         }
 
@@ -578,7 +578,7 @@ namespace SCP_575.Npc
         #region Damage Logic
 
         /// <summary>
-        /// Executes the primary SCP-575 attack sequence, applying sanity-based damage and effects.
+        /// Executes the primary SCP-575 attack sequence loop, applying sanity-based damage and effects.
         /// </summary>
         /// <returns>An enumerator for the coroutine execution.</returns>
         public IEnumerator<float> KeterAction()
@@ -705,16 +705,16 @@ namespace SCP_575.Npc
         #region Utility Methods
 
         /// <summary>  
-        /// Starts the main event coroutine, or restarts if it is already running.
+        /// Starts the main Blackout event loop coroutine, or restarts if it is already running.
         /// </summary>  
-        public void StartKeterEventLoop()
+        public void StartBlackoutEventLoop()
         {
-            Timing.KillCoroutines("SCP575-EventLoop");
-            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterAction(), "SCP575-EventLoop"));
+            Timing.KillCoroutines("SCP575-BlackoutLoop");
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(RunBlackoutLoop(), "SCP575-BlackoutLoop"));
         }
 
         /// <summary>  
-        /// Starts the Sanity coroutine, or restarts if it is already running.
+        /// Starts the Sanity handler coroutine, or restarts if it is already running.
         /// </summary>  
         public void StartSanityHandlerLoop()
         {
@@ -725,12 +725,12 @@ namespace SCP_575.Npc
         }
 
         /// <summary>  
-        /// Starts the SCP-575 Action coroutine, or restarts if it is already running.
+        /// Starts the SCP-575 Action loop coroutine, or restarts if it is already running.
         /// </summary>
         public void StartKeterAction()
         {
-            Timing.KillCoroutines("SCP575-Action");
-            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterAction(), "SCP575-Action"));
+            Timing.KillCoroutines("SCP575-ActionLoop");
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterAction(), "SCP575-ActionLoop"));
         }
 
         /// <summary>  
