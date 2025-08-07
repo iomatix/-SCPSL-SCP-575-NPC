@@ -293,8 +293,8 @@
                 yield break;
             }
 
-            Vector3 upwardForce = Vector3.up * CalculateForcePush(3.8f);
-            Vector3 randomForce = GetRandomUnitSphereVelocity(2.8f);
+            Vector3 upwardForce = Vector3.up * CalculateForcePush(6.69f);
+            Vector3 randomForce = GetRandomUnitSphereVelocity(4.75f);
 
             foreach (Rigidbody rb in rigidbodies)
             {
@@ -316,7 +316,7 @@
 
                     // Apply physics directly  
                     rb.linearVelocity = upwardForce + randomForce;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6f;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6.35f;
 
                     LibraryExiledAPI.LogDebug(nameof(ProcessRagdollPhysics),
                         $"Applied physics to rigidbody {rb.name} with velocity {upwardForce + randomForce}");
@@ -343,7 +343,7 @@
             }
         }
 
-        public static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll)
+        private static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll)
         {
             if (player == null || originalRagdoll == null)
                 return null;
@@ -391,7 +391,7 @@
             }
         }
 
-        public static void ApplyStandardRagdollPhysics(Ragdoll ragdoll, Vector3 upwardForce, Vector3 randomForce)
+        private static void ApplyStandardRagdollPhysics(Ragdoll ragdoll, Vector3 upwardForce, Vector3 randomForce)
         {
             if (ragdoll?.Base?.gameObject == null)
             {
@@ -413,7 +413,7 @@
                 try
                 {
                     rb.linearVelocity = upwardForce + randomForce;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6f;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 7.25f;
                 }
                 catch (Exception ex)
                 {
@@ -423,7 +423,7 @@
             }
         }
 
-        public static void ConvertToBones(Ragdoll ragdoll)
+        private static void ConvertToBones(Ragdoll ragdoll)
         {
             if (ragdoll?.Base == null)
             {
@@ -544,7 +544,7 @@
         /// This method is currently unused due to ragdoll position restoration but maintained  
         /// for potential future use in item physics or other SCP-575 effects.
         /// </remarks>
-        public static float CalculateForcePush(float baseValue = 1.0f)
+        private static float CalculateForcePush(float baseValue = 1.0f)
         {
             float randomFactor = UnityEngine.Random.Range(
                 Plugin.Singleton.Config.NpcConfig.KeterForceMinModifier,
@@ -564,7 +564,7 @@
         /// damage amount to provide realistic physics effects.
         /// Currently unused for ragdolls due to position restoration.
         /// </remarks>
-        public static Vector3 GetRandomUnitSphereVelocity(float baseVelocityValue = 1.0f)
+        private static Vector3 GetRandomUnitSphereVelocity(float baseVelocityValue = 1.0f)
         {
             Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
 
