@@ -768,14 +768,6 @@ namespace SCP_575.Npc
         {
             LibraryExiledAPI.LogDebug("Reset575", "Resetting SCP-575 state.");
             _blackoutStacks = 0;
-            foreach (var room in Room.List)
-            {
-                foreach (var lightController in room.AllLightControllers)
-                {
-                    lightController.LightsEnabled = true;
-                    lightController.FlickerLights(_config.BlackoutConfig.FlickerDuration);
-                }
-            }
             LabApi.Features.Wrappers.Map.ResetColorOfLights();
             LabApi.Features.Wrappers.Map.TurnOnLights();
             _triggeredZones.Clear();
