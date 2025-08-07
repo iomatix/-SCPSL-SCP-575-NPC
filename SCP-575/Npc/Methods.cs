@@ -54,10 +54,10 @@ namespace SCP_575.Npc
             _libraryLabAPI = _plugin.LibraryLabAPI ?? throw new InvalidOperationException("LibraryLabAPI is null. Plugin cannot function without it.");
 
             LibraryExiledAPI.LogDebug(nameof(Methods), $"Dependencies initialized:\n" +
-                $"• LightsourceHandler: {_lightsourceHandler.GetHashCode()}\n" +
-                $"• SanityHandler: {_sanityHandler.GetHashCode()}\n" +
-                $"• LibraryLabAPI: {_libraryLabAPI?.GetHashCode()}\n" +
-                $"• Config v{_plugin.Version}");
+                $"â€¢ LightsourceHandler: {_lightsourceHandler.GetHashCode()}\n" +
+                $"â€¢ SanityHandler: {_sanityHandler.GetHashCode()}\n" +
+                $"â€¢ LibraryLabAPI: {_libraryLabAPI?.GetHashCode()}\n" +
+                $"â€¢ Config v{_plugin.Version}");
         }
 
         /// <summary>
@@ -185,20 +185,19 @@ namespace SCP_575.Npc
 
         private IEnumerator<float> ExecuteBlackoutEvent()
         {
-            if (IsBlackoutActive) yield break;
-
+            if (!IsBlackoutActive) {
             if (_config.CassieConfig.CassieMessageClearBeforeImportant)
                 LibraryExiledAPI.ClearCassieQueue();
 
             LibraryExiledAPI.LogDebug("ExecuteBlackoutEvent", "Starting blackout event...");
             TriggerCassieMessage(_config.CassieConfig.CassieMessageStart, true);
-
             if (_config.BlackoutConfig.FlickerLights)
                 FlickerAffectedZones(_config.BlackoutConfig.FlickerDuration);
 
             yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndStart);
             TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
-
+            }
+            
             float blackoutDuration = _config.BlackoutConfig.RandomEvents
                 ? GetRandomBlackoutDuration()
                 : _config.BlackoutConfig.DurationMax;
