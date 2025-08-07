@@ -164,29 +164,21 @@ namespace SCP_575.Shared
                 return;
             }
 
-
-
             var roomSet = GetRoomAndNeighbors(room);
             foreach (var r in roomSet)
             {
-                LibraryExiledAPI.LogDebug(nameof(EnableAndFlickerRoomAndNeighborLights), 
+                LibraryExiledAPI.LogDebug(nameof(EnableAndFlickerRoomAndNeighborLights),
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
-                if (room.LightController == null)
+                foreach (LightsController controller in r.AllLightControllers)
                 {
-                    LibraryExiledAPI.LogDebug(nameof(TurnOffRoomLights), $"Room {room.Name} instance doesn't have the light controller!");
-                }
-                else
-                {
-                    // TODO LabAPI logcis when fixed: https://github.com/northwood-studios/LabAPI/issues/232
-                    LibraryExiledAPI.ToExiledRoom(r).TurnOffLights(Config.BlackoutConfig.FlickerDuration);
+                    controller.FlickerLights(Config.BlackoutConfig.FlickerDuration);
                 }
 
-                // TODO: Add lightning handling if implemented: https://github.com/northwood-studios/LabAPI/issues/233
-                HandleElevatorsForRoom(r, elevatorAffectChance, 0.5f, elevator =>
+                HandleElevatorsForRoom(r, elevatorAffectChance, Config.BlackoutConfig.FlickerDuration, elevator =>
                 {
                     elevator.LockAllDoors();
-                    Timing.CallDelayed(0.5f, () => elevator.UnlockAllDoors());
+                    Timing.CallDelayed(Config.BlackoutConfig.FlickerDuration, () => elevator.UnlockAllDoors());
                 });
             }
         }
@@ -260,14 +252,17 @@ namespace SCP_575.Shared
             return room != null && Elevators.Any(elevator => elevator.CurrentDestination.Rooms.Contains(room) && elevator.CurrentSequence != Interactables.Interobjects.ElevatorChamber.ElevatorSequence.Ready);
         }
 
-        /// <summary>
-        /// Gets all elevators connected to a specific room.
-        /// </summary>
-        /// <param name="room">The room to find connected elevators for.</param>
-        /// <returns>A collection of elevators connected to the room.</returns>
+        /// <summary>  
+        /// Gets all elevators connected to a specific room.  
+        /// </summary>  
+        /// <param name="room">The room to find connected elevators for.</param>  
+        /// <returns>A collection of elevators connected to the room.</returns>  
         public IEnumerable<Elevator> GetElevatorsConnectedToRoom(Room room)
         {
-            return room == null ? Enumerable.Empty<Elevator>() : Elevators.Where(elevator => elevator.CurrentDestination.Rooms.Contains(room));
+            if (room == null)
+                return Enumerable.Empty<Elevator>();
+
+            return Elevator.List.Where(elevator => elevator.CurrentDestination?.Rooms.Contains(room) == true);
         }
 
         /// <summary>
