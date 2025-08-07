@@ -87,6 +87,7 @@ namespace SCP_575.Npc
                 LibraryExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "SCP-575 NPC spawning due to roll being within spawn chance.");
 
                 _plugin.Npc.Methods.StartBlackoutEventLoop();
+                _plugin.Npc.Methods.StartKeterActionLoop();
                 _plugin.Npc.Methods.StartSanityHandlerLoop();
 
                 foreach (var player in LabApi.Features.Wrappers.Player.ReadyList)
@@ -581,7 +582,7 @@ namespace SCP_575.Npc
         /// Executes the primary SCP-575 attack sequence loop, applying sanity-based damage and effects.
         /// </summary>
         /// <returns>An enumerator for the coroutine execution.</returns>
-        public IEnumerator<float> KeterAction()
+        public IEnumerator<float> KeterActionLoop()
         {
             while (true)
             {
@@ -727,10 +728,10 @@ namespace SCP_575.Npc
         /// <summary>  
         /// Starts the SCP-575 Action loop coroutine, or restarts if it is already running.
         /// </summary>
-        public void StartKeterAction()
+        public void StartKeterActionLoop()
         {
             Timing.KillCoroutines("SCP575-ActionLoop");
-            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterAction(), "SCP575-ActionLoop"));
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterActionLoop(), "SCP575-ActionLoop"));
         }
 
         /// <summary>  
@@ -739,7 +740,7 @@ namespace SCP_575.Npc
         public void StartCassieCooldown()
         {
             Timing.KillCoroutines("SCP575-CassieCd");
-            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterAction(), "SCP575-CassieCd"));
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(CassieCooldownRoutine(), "SCP575-CassieCd"));
         }
 
         /// <summary>
