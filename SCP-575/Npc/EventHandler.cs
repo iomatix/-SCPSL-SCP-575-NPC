@@ -44,47 +44,28 @@ namespace SCP_575.Npc
             try
             {
                 _plugin.IsEventActive = false;
+                CleanCoroutines();
 
-                
-                float roll = UnityEngine.Random.Range(0f,100f);
+
+                float roll = UnityEngine.Random.Range(0f, 100f);
                 LibraryExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}");
 
-                if (roll <= _config.BlackoutConfig.EventChance)
-                {
-                    _plugin.IsEventActive = true;
-                    LibraryExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "SCP-575 NPC spawning due to roll being within spawn chance.");
-
-                    Timing.KillCoroutines("SCP575keter");
-                    Coroutines.RemoveAll(handle => handle.IsRunning);
-                    Coroutines.Add(Timing.RunCoroutine(_plugin.Npc.Methods.RunBlackoutTimer()));
-
-                    Timing.KillCoroutines("SCP575keter");
-                    Coroutines.RemoveAll(handle => handle.IsRunning);
-                    _plugin.Npc.Methods.StartKeterAction();
-
-                    if (_plugin.SanityEventHandler.SanityDecayCoroutine.IsRunning)
-                        Timing.KillCoroutines(_plugin.SanityEventHandler.SanityDecayCoroutine);
-                    _plugin.SanityEventHandler.SanityDecayCoroutine = Timing.RunCoroutine(_plugin.SanityEventHandler.HandleSanityDecay());
-
-                    foreach (var player in LabApi.Features.Wrappers.Player.List)
-                    {
-                        if (_plugin.SanityEventHandler.IsValidPlayer(player))
-                        {
-                            _plugin.SanityEventHandler.SetSanity(player, _plugin.Config.SanityConfig.InitialSanity);
-                        }
-                    }
-                }
-                else
-                {
-                    _plugin.IsEventActive = false;
-                    Timing.KillCoroutines("SCP575keter");
-                    Coroutines.RemoveAll(handle => handle.IsRunning);
-                }
+                _plugin.Npc.Methods.Init(roll);
             }
             catch (Exception ex)
             {
                 LibraryExiledAPI.LogError("EventHandler.OnRoundStart", $"Failed to handle RoundStarted event: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
+        }
+
+        private void CleanCoroutines()
+        {
+            this.Coroutines.ForEach(handle =>
+            {
+                LibraryExiledAPI.LogDebug("OnRoundStart", $"Killing coroutine: {(string.IsNullOrEmpty(handle.Tag) ? "SCP575-NotTagged" : handle.Tag)}");
+                Timing.KillCoroutines(handle);
+            });
+            this.Coroutines.Clear();
         }
 
         /// <summary>
@@ -93,14 +74,9 @@ namespace SCP_575.Npc
         /// <param name="ev">The event arguments for the round ended event.</param>
         public void OnRoundEnd(LabApi.Events.Arguments.ServerEvents.RoundEndedEventArgs ev)
         {
-            _plugin.IsEventActive = false; // Explicitly disable event
-            _plugin.Npc.Methods.StopKeterAction();
+            _plugin.IsEventActive = false;
             _plugin.Npc.Methods.Disable();
-            foreach (CoroutineHandle handle in Coroutines)
-            {
-                Timing.KillCoroutines(handle);
-            }
-            Coroutines.Clear();
+            this.CleanCoroutines();
             LibraryExiledAPI.LogInfo("OnRoundEnd", "SCP-575 event disabled, coroutines cleared.");
         }
 
@@ -109,14 +85,9 @@ namespace SCP_575.Npc
         /// </summary>
         public void OnWaitingPlayers()
         {
-            _plugin.IsEventActive = false; // Explicitly disable event
-            _plugin.Npc.Methods.StopKeterAction();
+            _plugin.IsEventActive = false;
             _plugin.Npc.Methods.Disable();
-            foreach (CoroutineHandle handle in Coroutines)
-            {
-                Timing.KillCoroutines(handle);
-            }
-            Coroutines.Clear();
+            this.CleanCoroutines();
             LibraryExiledAPI.LogInfo("OnWaitingPlayers", "SCP-575 event disabled, coroutines cleared.");
         }
 
@@ -135,7 +106,7 @@ namespace SCP_575.Npc
                     return;
                 }
 
-                
+
                 Room room = _libraryLabAPI.GetRoomAtPosition(ev.Generator.Position);
                 if (room == null)
                 {

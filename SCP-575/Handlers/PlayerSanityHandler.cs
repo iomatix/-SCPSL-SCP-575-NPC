@@ -29,7 +29,6 @@
         private bool _isDisposed;
         private readonly object _cacheLock = new();
         private readonly int _instanceId;
-
         public CoroutineHandle SanityDecayCoroutine
         {
             get => _sanityDecayCoroutine;

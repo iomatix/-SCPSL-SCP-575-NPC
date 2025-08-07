@@ -29,8 +29,6 @@ namespace SCP_575.Npc
         private static readonly object BlackoutLock = new();
         private static int _blackoutStacks = 0;
         private CassieStatus _cassieState = CassieStatus.Idle;
-        private CoroutineHandle _cassieCooldownCoroutine;
-        private CoroutineHandle _keterActionCoroutine;
 
         private enum CassieStatus
         {
@@ -79,10 +77,26 @@ namespace SCP_575.Npc
         /// <summary>
         /// Initializes event handlers and prepares the NPC for operation.
         /// </summary>
-        public void Init()
+        public void Init(float roll = -1f)
         {
             LibraryExiledAPI.LogInfo("Init", "SCP-575 NPC methods initialized.");
             RegisterEventHandlers();
+            if (roll <= _config.BlackoutConfig.EventChance)
+            {
+                _plugin.IsEventActive = true;
+                LibraryExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "SCP-575 NPC spawning due to roll being within spawn chance.");
+
+                _plugin.Npc.Methods.StartKeterEventLoop();
+                _plugin.Npc.Methods.StartSanityHandlerLoop();
+
+                foreach (var player in LabApi.Features.Wrappers.Player.ReadyList)
+                {
+                    if (_plugin.SanityEventHandler.IsValidPlayer(player))
+                    {
+                        _plugin.SanityEventHandler.SetSanity(player, _plugin.Config.SanityConfig.InitialSanity);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -92,6 +106,9 @@ namespace SCP_575.Npc
         {
             LibraryExiledAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
             Clean();
+            _plugin.IsEventActive = false;
+            Timing.KillCoroutines("SCP575-EventLoop");
+            _plugin.SanityEventHandler.Clean();
             UnregisterEventHandlers();
         }
 
@@ -102,18 +119,12 @@ namespace SCP_575.Npc
         {
             LibraryExiledAPI.LogInfo("Clean", "SCP-575 NPC methods cleaned.");
 
-            // Kill CASSIE coroutine  
-            if (_cassieCooldownCoroutine.IsRunning)
-                Timing.KillCoroutines(_cassieCooldownCoroutine);
+            Timing.KillCoroutines("SCP575-CassieCD");
+            Timing.KillCoroutines("SCP575-Action");
 
-            if (_keterActionCoroutine.IsRunning)
-                Timing.KillCoroutines(_keterActionCoroutine);
-
-            _keterActionCoroutine = default;
             Plugin.Singleton.AudioManager.StopAmbience();
             _blackoutStacks = 0;
             _triggeredZones.Clear();
-            Timing.KillCoroutines("SCP575keter");
             ResetTeslaGates();
         }
 
@@ -551,10 +562,7 @@ namespace SCP_575.Npc
             else
                 LibraryExiledAPI.SendCleanCassieMessage(message);
 
-            if (_cassieCooldownCoroutine.IsRunning)
-                Timing.KillCoroutines(_cassieCooldownCoroutine);
-
-            _cassieCooldownCoroutine = Timing.RunCoroutine(CassieCooldownRoutine());
+            StartCassieCooldown();
         }
 
         private IEnumerator<float> CassieCooldownRoutine()
@@ -697,26 +705,42 @@ namespace SCP_575.Npc
         #region Utility Methods
 
         /// <summary>  
-        /// Starts the damage coroutine if not already running  
+        /// Starts the main event coroutine, or restarts if it is already running.
         /// </summary>  
-        public void StartKeterAction()
+        public void StartKeterEventLoop()
         {
-            if (!_keterActionCoroutine.IsRunning)
-            {
-                _keterActionCoroutine = Timing.RunCoroutine(KeterAction(), "SCP575keter");
-            }
+            Timing.KillCoroutines("SCP575-EventLoop");
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterAction(), "SCP575-EventLoop"));
         }
 
         /// <summary>  
-        /// Stops the damage coroutine  
+        /// Starts the Sanity coroutine, or restarts if it is already running.
         /// </summary>  
-        public void StopKeterAction()
+        public void StartSanityHandlerLoop()
         {
-            if (_keterActionCoroutine.IsRunning)
-            {
-                Timing.KillCoroutines(_keterActionCoroutine);
-            }
-        }  
+            if (_plugin.SanityEventHandler.SanityDecayCoroutine.IsRunning)
+                Timing.KillCoroutines(_plugin.SanityEventHandler.SanityDecayCoroutine);
+            _plugin.SanityEventHandler.SanityDecayCoroutine = Timing.RunCoroutine(_plugin.SanityEventHandler.HandleSanityDecay(), "SCP575-SanityHandler");
+            _plugin.Npc.EventHandler.Coroutines.Add(_plugin.SanityEventHandler.SanityDecayCoroutine);
+        }
+
+        /// <summary>  
+        /// Starts the SCP-575 Action coroutine, or restarts if it is already running.
+        /// </summary>
+        public void StartKeterAction()
+        {
+            Timing.KillCoroutines("SCP575-Action");
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterAction(), "SCP575-Action"));
+        }
+
+        /// <summary>  
+        /// Starts the Cassie Cooldown coroutine, or restarts if it is already running.
+        /// </summary>
+        public void StartCassieCooldown()
+        {
+            Timing.KillCoroutines("SCP575-CassieCd");
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(KeterAction(), "SCP575-CassieCd"));
+        }
 
         /// <summary>
         /// Increments the blackout stack count in a thread-safe manner.
@@ -788,9 +812,8 @@ namespace SCP_575.Npc
         public void Kill575()
         {
             LibraryExiledAPI.LogDebug("Kill575", "Killing SCP-575 NPC.");
-            Clean();
+            Disable();
         }
-
 
         #endregion
     }
