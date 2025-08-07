@@ -80,7 +80,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override System.Version Version => new(8,7,0);
+        public override System.Version Version => new(8,7,2);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.
