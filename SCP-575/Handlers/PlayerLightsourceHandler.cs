@@ -313,7 +313,11 @@ namespace SCP_575.Handlers
 
             try
             {
-                int flickerCount = _random.Next(3, 9);
+                int flickerCount = Math.Max(2, _random.Next(_config.MinFlickerCount, _config.MaxFlickerCount));
+                int totalDurationMs = _random.Next(_config.MinFlickerDurationMs, _config.MaxFlickerDurationMs + 1);
+                int delayPerFlicker = totalDurationMs / flickerCount;
+
+                LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"x{flickerCount} flickers over {totalDurationMs}ms for {userId}");
                 for (int i = 0; i < flickerCount && !cts.Token.IsCancellationRequested; i++)
                 {
                     // Validate FirearmItem before accessing
@@ -328,7 +332,7 @@ namespace SCP_575.Handlers
                     }
 
                     setState(!getState());
-                    await Task.Delay(_random.Next(115, 375), cts.Token);
+                    await Task.Delay(delayPerFlicker, cts.Token);
                 }
 
                 if (forceOff) setState(false);
