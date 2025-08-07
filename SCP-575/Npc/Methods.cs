@@ -299,11 +299,6 @@ namespace SCP_575.Npc
 
             if (UnityEngine.Random.Range(0f, 100f) >= chance) return false;
 
-            if (_config.BlackoutConfig.FlickerLights)
-            {
-                _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(FlickerZoneLightsCoroutine(zone), "SCP575-FlickerZoneTask"));
-            }
-
             Map.TurnOffLights(blackoutDuration, zone);
             LibraryExiledAPI.LogDebug("AttemptZoneBlackout", $"Blackout triggered in zone {zone} for {blackoutDuration} seconds.");
 
