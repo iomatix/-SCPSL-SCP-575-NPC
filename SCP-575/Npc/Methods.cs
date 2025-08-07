@@ -776,6 +776,8 @@ namespace SCP_575.Npc
                     lightController.FlickerLights(_config.BlackoutConfig.FlickerDuration);
                 }
             }
+            LabApi.Features.Wrappers.Map.ResetColorOfLights();
+            LabApi.Features.Wrappers.Map.TurnOnLights();
             _triggeredZones.Clear();
             ResetTeslaGates();
         }
