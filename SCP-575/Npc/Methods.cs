@@ -8,11 +8,8 @@ namespace SCP_575.Npc
     using SCP_575.Shared.Audio.Enums;
     using Shared;
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Threading;
-    using System.Threading.Tasks;
     using UnityEngine;
 
     /// <summary>
