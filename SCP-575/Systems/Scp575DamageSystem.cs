@@ -466,8 +466,8 @@
                     // Ensure rigidbody can receive physics  
                     pickup.Rigidbody.isKinematic = false;
 
-                    var direction = GetRandomUnitSphereVelocity();
-                    var magnitude = CalculateForcePush();
+                    var direction = GetRandomUnitSphereVelocity(5.75f);
+                    var magnitude = CalculateForcePush(7.35f);
 
                     // Apply physics directly  
                     pickup.Rigidbody.linearVelocity = direction * magnitude;
