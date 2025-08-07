@@ -1,6 +1,5 @@
 ﻿namespace SCP_575.Systems
 {
-    using Exiled.API.Features.Pickups;
     using InventorySystem.Items.Armor;
     using LabApi.Features.Wrappers;
     using MEC;
