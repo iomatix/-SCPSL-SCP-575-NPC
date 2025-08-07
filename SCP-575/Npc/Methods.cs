@@ -123,9 +123,16 @@ namespace SCP_575.Npc
 
             Timing.KillCoroutines("SCP575-CassieCD");
 
+            // Restart Coroutines Loops to break any active actions
+            StartBlackoutEventLoop();
+            StartKeterActionLoop();
+            StartSanityHandlerLoop();
+
             Plugin.Singleton.AudioManager.StopAmbience();
             _blackoutStacks = 0;
             _triggeredZones.Clear();
+            LabApi.Features.Wrappers.Map.ResetColorOfLights();
+            LabApi.Features.Wrappers.Map.TurnOnLights();
             ResetTeslaGates();
         }
 
@@ -202,7 +209,7 @@ namespace SCP_575.Npc
                 ? HandleRoomSpecificBlackout(blackoutDuration)
                 : HandleZoneSpecificBlackout(blackoutDuration);
 
-            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration), "575BlackoutFinalize"));
+            _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(FinalizeBlackoutEvent(blackoutOccurred, blackoutDuration), "SCP575-BlackoutFin"));
         }
 
 
