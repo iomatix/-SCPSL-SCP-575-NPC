@@ -328,7 +328,7 @@ namespace SCP_575.Handlers
                     }
 
                     setState(!getState());
-                    await Task.Delay(_random.Next(100, 450), cts.Token);
+                    await Task.Delay(_random.Next(115, 375), cts.Token);
                 }
 
                 if (forceOff) setState(false);
