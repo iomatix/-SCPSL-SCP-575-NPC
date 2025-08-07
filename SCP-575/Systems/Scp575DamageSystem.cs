@@ -296,51 +296,19 @@
             Vector3 upwardForce = Vector3.up * CalculateForcePush(6.69f);
             Vector3 randomForce = GetRandomUnitSphereVelocity(4.75f);
 
-            foreach (Rigidbody rb in rigidbodies)
-            {
-                if (rb == null)
-                {
-                    LibraryExiledAPI.LogWarn(nameof(ProcessRagdollPhysics), "Null rigidbody found - skipping");
-                    continue;
-                }
+            ApplyStandardRagdollPhysics(ragdoll, upwardForce, randomForce);
 
-                if(rb.isKinematic)
-                {
-                    LibraryExiledAPI.LogWarn(nameof(ProcessRagdollPhysics), "rigidbody found but is KINEMATIC - skipping");
-                    continue;
-                }
-
-                try
-                {
-
-
-                    // Apply physics directly  
-                    rb.linearVelocity = upwardForce + randomForce;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 6.35f;
-
-                    LibraryExiledAPI.LogDebug(nameof(ProcessRagdollPhysics),
-                        $"Applied physics to rigidbody {rb.name} with velocity {upwardForce + randomForce}");
-                }
-                catch (Exception ex)
-                {
-                    LibraryExiledAPI.LogError(nameof(ProcessRagdollPhysics),
-                        $"Failed to apply physics to rigidbody {rb.name}: {ex.Message}");
-                }
-
-                // Stagger physics application  
-                yield return Timing.WaitForOneFrame;
-            }
-
+            // TODO: Disabled For Now
             // Convert to bones after physics application  
-            try
-            {
-                ConvertToBones(ragdoll);
-            }
-            catch (Exception ex)
-            {
-                LibraryExiledAPI.LogError(nameof(ProcessRagdollPhysics),
-                    $"Failed to convert ragdoll to bones: {ex.Message}");
-            }
+            //try
+            //{
+            //    ConvertToBones(ragdoll);
+            //}
+            //catch (Exception ex)
+            //{
+            //    LibraryExiledAPI.LogError(nameof(ProcessRagdollPhysics),
+            //        $"Failed to convert ragdoll to bones: {ex.Message}");
+            //}
         }
 
         private static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll)
