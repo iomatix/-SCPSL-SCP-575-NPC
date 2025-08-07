@@ -82,7 +82,7 @@ namespace SCP_575.Npc
             if (roll <= _config.BlackoutConfig.EventChance)
             {
                 _plugin.IsEventActive = true;
-                LibraryExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", "SCP-575 NPC spawning due to roll being within spawn chance.");
+                LibraryExiledAPI.LogInfo(nameof(Init), "SCP-575 NPC spawning due to roll being within spawn chance.");
 
                 _plugin.Npc.Methods.StartBlackoutEventLoop();
                 _plugin.Npc.Methods.StartKeterActionLoop();
@@ -95,6 +95,10 @@ namespace SCP_575.Npc
                         _plugin.SanityEventHandler.SetSanity(player, _plugin.Config.SanityConfig.InitialSanity);
                     }
                 }
+            }
+            else
+            {
+                LibraryExiledAPI.LogDebug(nameof(Init), "Skipping SCP-575 NPC spawn — roll yielded no chance.");
             }
         }
 
