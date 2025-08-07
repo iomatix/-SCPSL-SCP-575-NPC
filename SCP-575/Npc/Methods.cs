@@ -1,18 +1,19 @@
 namespace SCP_575.Npc
 {
     using Handlers;
+    using LabApi.Features.Wrappers;
     using MapGeneration;
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared.Audio.Enums;
     using Shared;
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using UnityEngine;
-    using LabApi.Features.Wrappers;
 
     /// <summary>
     /// Manages SCP-575 NPC behaviors, including blackout events, CASSIE announcements, and damage mechanics.
@@ -213,24 +214,16 @@ namespace SCP_575.Npc
         }
 
 
-        private async Task FlickerAffectedZones(float blackoutDuration, CancellationToken cancellationToken = default)
+        private void FlickerAffectedZones(float blackoutDuration)
         {
             if (!_plugin.IsEventActive) return;
 
             if (!_config.BlackoutConfig.FlickerLights) return;
 
             var zonesToFlicker = GetZonesToFlicker();
-            var flickerTasks = zonesToFlicker.Select((zone, index) =>
-                FlickerZoneLightsAsync(zone, cancellationToken)).ToList();
-
-            try
-            {
-                await Task.WhenAll(flickerTasks);
-            }
-            catch (OperationCanceledException)
-            {
-                LibraryExiledAPI.LogDebug("FlickerAffectedZones", "Flickering cancelled.");
-            }
+            zonesToFlicker.ForEach(zone =>
+                _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(FlickerZoneLightsCoroutine(zone), "SCP575-FlickerZoneTask"))
+            );
         }
 
         private List<FacilityZone> GetZonesToFlicker()
@@ -250,38 +243,33 @@ namespace SCP_575.Npc
             return zones;
         }
 
-        private async Task FlickerZoneLightsAsync(FacilityZone targetZone, CancellationToken cancellationToken = default)
+        public IEnumerator<float> FlickerZoneLightsCoroutine(FacilityZone targetZone)
         {
-            var blackoutColor = new UnityEngine.Color(_config.BlackoutConfig.LightsColorR, _config.BlackoutConfig.LightsColorG, _config.BlackoutConfig.LightsColorB, 1f);
+            var blackoutColor = new UnityEngine.Color(
+                _config.BlackoutConfig.LightsColorR,
+                _config.BlackoutConfig.LightsColorG,
+                _config.BlackoutConfig.LightsColorB,
+                1f);
+
             float flickerInterval = 1f / _config.BlackoutConfig.FlickerFrequency;
             int totalFlickers = Mathf.RoundToInt(_config.BlackoutConfig.FlickerDuration / flickerInterval);
+            float halfInterval = flickerInterval * 0.5f;
 
-            try
+            Map.SetColorOfLights(blackoutColor, targetZone);
+
+            for (int i = 0; i < totalFlickers; i++)
             {
-                Map.SetColorOfLights(blackoutColor, targetZone);
 
-                for (int i = 0; i < totalFlickers; i++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
+                Map.TurnOffLights(halfInterval, targetZone);
+                yield return Timing.WaitForSeconds(halfInterval);
 
-                    Map.TurnOffLights(flickerInterval * 0.5f, targetZone);
-                    await Task.Delay(Mathf.RoundToInt(flickerInterval * 500), cancellationToken);
-
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    Map.TurnOnLights(targetZone);
-                    Map.SetColorOfLights(blackoutColor, targetZone);
-                    await Task.Delay(Mathf.RoundToInt(flickerInterval * 500), cancellationToken);
-                }
-
-                Map.TurnOffLights(targetZone);
+                Map.TurnOnLights(targetZone);
+                yield return Timing.WaitForSeconds(halfInterval);
             }
-            catch (OperationCanceledException)
-            {
-                Map.TurnOffLights(targetZone);
-                LibraryExiledAPI.LogDebug("FlickerZoneLightsAsync", $"Flickering cancelled for zone {targetZone}");
-                throw;
-            }
+
+            Map.ResetColorOfLights(targetZone);
+            Map.TurnOnLights(targetZone);
+            LibraryExiledAPI.LogDebug("FlickerZoneLightsCoroutine", $"Flickering completed for zone {targetZone}");
         }
 
         private float GetRandomBlackoutDuration()
@@ -314,7 +302,10 @@ namespace SCP_575.Npc
 
             if (UnityEngine.Random.Range(0f, 100f) >= chance) return false;
 
-            if (_config.BlackoutConfig.FlickerLights) FlickerZoneLightsAsync(zone).GetAwaiter().GetResult();
+            if (_config.BlackoutConfig.FlickerLights)
+            {
+                _plugin.Npc.EventHandler.Coroutines.Add(Timing.RunCoroutine(FlickerZoneLightsCoroutine(zone), "SCP575-FlickerZoneTask"));
+            }
 
             Map.TurnOffLights(blackoutDuration, zone);
             LibraryExiledAPI.LogDebug("AttemptZoneBlackout", $"Blackout triggered in zone {zone} for {blackoutDuration} seconds.");
