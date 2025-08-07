@@ -234,6 +234,13 @@
 
         #region Ragdoll Processing  
 
+        #region Pooling Infrastructure  
+        /// <summary>  
+        /// Shared pool for rigidbody arrays to reduce garbage collection during ragdoll physics processing.  
+        /// </summary>  
+        private static readonly NorthwoodLib.Pools.ListPool<Rigidbody> RigidbodyPool = NorthwoodLib.Pools.ListPool<Rigidbody>.Shared;
+        #endregion
+
         /// <summary>
         /// Processes an SCP-575 ragdoll with visual effects and validation using LabAPI synchronization.
         /// </summary>
@@ -281,34 +288,35 @@
                 yield break;
             }
 
-            // Wait for ragdoll to be fully initialized  
+            // Wait for ragdoll to be fully initialized    
             yield return Timing.WaitForOneFrame;
             yield return Timing.WaitForOneFrame;
 
-            // Apply physics to all valid rigidbodies  
-            Rigidbody[] rigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
-            if (rigidbodies == null || rigidbodies.Length == 0)
+            // Rent a list from the pool instead of creating array  
+            List<Rigidbody> rigidbodies = RigidbodyPool.Rent();
+
+            try
             {
-                LibraryExiledAPI.LogWarn(nameof(ProcessRagdollPhysics), "No rigidbodies found on ragdoll");
-                yield break;
+                // Get all rigidbodies and add to pooled list  
+                Rigidbody[] ragdollRigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
+                if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0)
+                {
+                    LibraryExiledAPI.LogWarn(nameof(ProcessRagdollPhysics), "No rigidbodies found on ragdoll");
+                    yield break;
+                }
+
+                rigidbodies.AddRange(ragdollRigidbodies);
+
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(6.69f);
+                Vector3 randomForce = GetRandomUnitSphereVelocity(4.75f);
+
+                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, randomForce);
             }
-
-            Vector3 upwardForce = Vector3.up * CalculateForcePush(6.69f);
-            Vector3 randomForce = GetRandomUnitSphereVelocity(4.75f);
-
-            ApplyStandardRagdollPhysics(ragdoll, upwardForce, randomForce);
-
-            // TODO: Disabled For Now
-            // Convert to bones after physics application  
-            //try
-            //{
-            //    ConvertToBones(ragdoll);
-            //}
-            //catch (Exception ex)
-            //{
-            //    LibraryExiledAPI.LogError(nameof(ProcessRagdollPhysics),
-            //        $"Failed to convert ragdoll to bones: {ex.Message}");
-            //}
+            finally
+            {
+                // Always return the list to the pool
+                RigidbodyPool.Return(rigidbodies);
+            }
         }
 
         private static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll)
@@ -359,18 +367,11 @@
             }
         }
 
-        private static void ApplyStandardRagdollPhysics(Ragdoll ragdoll, Vector3 upwardForce, Vector3 randomForce)
+        private static void ApplyStandardRagdollPhysics(List<Rigidbody> rigidbodies, Vector3 upwardForce, Vector3 randomForce)
         {
-            if (ragdoll?.Base?.gameObject == null)
+            if (rigidbodies == null || rigidbodies.Count == 0)
             {
-                LibraryExiledAPI.LogWarn(nameof(ApplyStandardRagdollPhysics), "Ragdoll is null or destroyed - physics aborted");
-                return;
-            }
-
-            Rigidbody[] rigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
-            if (rigidbodies == null || rigidbodies.Length == 0)
-            {
-                LibraryExiledAPI.LogWarn(nameof(ApplyStandardRagdollPhysics), "No rigidbodies found on ragdoll");
+                LibraryExiledAPI.LogWarn(nameof(ApplyStandardRagdollPhysics), $"No rigidbodies found on ragdoll");
                 return;
             }
 
