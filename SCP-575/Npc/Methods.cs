@@ -130,12 +130,7 @@ namespace SCP_575.Npc
             StartKeterActionLoop();
             StartSanityHandlerLoop();
 
-            Plugin.Singleton.AudioManager.StopAmbience();
-            _blackoutStacks = 0;
-            _triggeredZones.Clear();
-            LabApi.Features.Wrappers.Map.ResetColorOfLights();
-            LabApi.Features.Wrappers.Map.TurnOnLights();
-            ResetTeslaGates();
+            Reset575();
         }
 
         private void RegisterEventHandlers()
@@ -767,6 +762,7 @@ namespace SCP_575.Npc
         public void Reset575()
         {
             LibraryExiledAPI.LogDebug("Reset575", "Resetting SCP-575 state.");
+            Plugin.Singleton.AudioManager.StopAmbience();
             _blackoutStacks = 0;
             LabApi.Features.Wrappers.Map.ResetColorOfLights();
             LabApi.Features.Wrappers.Map.TurnOnLights();
