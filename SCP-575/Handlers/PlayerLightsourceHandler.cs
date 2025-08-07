@@ -19,8 +19,6 @@ namespace SCP_575.Handlers
     using SCP_575.Shared;
     using Utils.Networking;
 
-    // TODO: Refactor weapon flashlight handling to use direct API calls like flashlight when LabAPI provides unified toggleable light support: https://github.com/northwood-studios/LabAPI/issues/220
-
     /// <summary>
     /// Manages restrictions on player flashlights and weapon flashlights affected by SCP-575, including cooldowns, flickering effects, and forced disables during attacks.
     /// </summary>
@@ -33,7 +31,6 @@ namespace SCP_575.Handlers
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _flickerTokens = new();
         private readonly HashSet<string> _flickeringPlayers = new();
         private readonly Random _random = new();
-        private readonly ConcurrentDictionary<ushort, (bool State, DateTime LastUsed)> _weaponFlashlightStates = new();
         private CoroutineHandle _cleanupCoroutine;
         private bool _isDisposed;
 
@@ -76,7 +73,6 @@ namespace SCP_575.Handlers
             _flickerTokens.Clear();
             _cooldownUntil.Clear();
             _flickeringPlayers.Clear();
-            _weaponFlashlightStates.Clear();
         }
 
         public override void OnServerRoundEnded(RoundEndedEventArgs ev)
@@ -146,6 +142,8 @@ namespace SCP_575.Handlers
             {
                 if (ev?.FirearmItem == null)
                     LibraryExiledAPI.LogWarn("OnPlayerTogglingWeaponFlashlight", "FirearmItem is null.");
+                else if (!HasFlashlight(ev.FirearmItem))
+                    LibraryExiledAPI.LogDebug("OnPlayerTogglingWeaponFlashlight", $"No flashlight attachment for {ev.Player.Nickname}.");
                 return;
             }
 
@@ -178,8 +176,6 @@ namespace SCP_575.Handlers
                     LibraryExiledAPI.LogWarn("OnPlayerToggledWeaponFlashlight", "FirearmItem is null.");
                 return;
             }
-
-            _weaponFlashlightStates[ev.FirearmItem.Serial] = (ev.NewState, DateTime.UtcNow);
 
             if (!ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
 
@@ -320,14 +316,24 @@ namespace SCP_575.Handlers
                 int flickerCount = _random.Next(3, 11);
                 for (int i = 0; i < flickerCount && !cts.Token.IsCancellationRequested; i++)
                 {
+                    // Validate FirearmItem before accessing
+                    if (lightType == "WeaponFlashlight")
+                    {
+                        var player = Player.List.FirstOrDefault(p => p.UserId == userId);
+                        if (player == null || !(player.CurrentItem is FirearmItem firearm) || !HasFlashlight(firearm))
+                        {
+                            LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Invalid firearm or no flashlight for {userId}. Cancelling flicker.");
+                            break;
+                        }
+                    }
                     setState(!getState());
                     await Task.Delay(_random.Next(100, 450), cts.Token);
                 }
-                if(forceOff) setState(false);
+                if (forceOff) setState(false);
             }
             catch (TaskCanceledException)
             {
-                if(forceOff) setState(false);
+                if (forceOff) setState(false);
                 LibraryExiledAPI.LogDebug("StartFlickerEffectAsync", $"Flicker cancelled for {userId}.");
             }
             finally
@@ -346,8 +352,8 @@ namespace SCP_575.Handlers
                 LibraryExiledAPI.LogDebug("HasFlashlight", $"Invalid firearm.");
                 return false;
             }
-
-            Attachment[] attachments = firearm.Base.Attachments;
+            
+            Attachment[] attachments = firearm.Attachments;
             bool hasFlashlight = attachments != null && attachments.Any(a => a.Name == AttachmentName.Flashlight);
             if (!hasFlashlight)
                 LibraryExiledAPI.LogDebug("HasFlashlight", $"No flashlight attachment found for {firearm.Base.GetType().Name}.");
@@ -361,25 +367,17 @@ namespace SCP_575.Handlers
 
             lock (_weaponFlashlightLock)
             {
-                return _weaponFlashlightStates.TryGetValue(firearm.Serial, out var state) && state.State;
+                return firearm.FlashlightEnabled;
             }
         }
 
-        // Wait for LabAPI's unified toggleable light support mentioned
         private void ToggleWeaponFlashlight(FirearmItem firearm, bool enabled, string context)
         {
             if (!HasFlashlight(firearm)) return;
 
             lock (_weaponFlashlightLock)
             {
-                _weaponFlashlightStates[firearm.Serial] = (enabled, DateTime.UtcNow);
-                new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-
-                // Add verification with retry  
-                Timing.CallDelayed(0.1f, () => {
-                    // Send the message again to ensure it takes effect  
-                    new FlashlightNetworkHandler.FlashlightMessage(firearm.Serial, enabled).SendToAuthenticated();
-                });
+                firearm.FlashlightEnabled = enabled;
             }
         }
 
@@ -404,14 +402,6 @@ namespace SCP_575.Handlers
                         cts.Cancel();
                         cts.Dispose();
                     }
-                }
-
-                // Clean up stale weapon flashlight states after timeout
-                var stateCutoff = DateTime.UtcNow - WeaponStateTimeout;
-                foreach (var kvp in _weaponFlashlightStates)
-                {
-                    if (kvp.Value.LastUsed < stateCutoff)
-                        _weaponFlashlightStates.TryRemove(kvp.Key, out _);
                 }
 
                 LibraryExiledAPI.LogDebug("CleanupCoroutine", "Completed cleanup of expired cooldowns, flicker tokens, and weapon flashlight states.");

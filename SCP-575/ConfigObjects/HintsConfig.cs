@@ -31,8 +31,6 @@
         public string SanityIncreasedHint { get; set; } =
             "Your sanity is recovering!\n Sanity: {0:F1} thanks to medical treatment!";
 
-        // TODO: hint ??? I forgot which one  
-
         /// <summary>
         /// Hint message shown when a player is affected by SCP-575 action.
         /// </summary>
