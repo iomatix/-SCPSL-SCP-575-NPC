@@ -38,16 +38,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="ExMod.Exiled" Version="9.7.1" />
-		<PackageReference Include="Northwood.LabAPI" Version="1.1.1" />
-		<PackageReference Include="SCPSL-AudioManagerAPI" Version="1.7.0" />
+		<PackageReference Include="ExMod.Exiled" Version="9.9.2" />
+		<PackageReference Include="Northwood.LabAPI" Version="1.1.3" />
+		<PackageReference Include="SCPSL-AudioManagerAPI" Version="1.8.0" />
 		<PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" IncludeAssets="All" PrivateAssets="All" />
 		<PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="YamlDotNet" Version="16.3.0" />
-		<PackageReference Include="Lib.Harmony" Version="2.3.6" />
+		<PackageReference Include="Lib.Harmony" Version="2.4.1" />
 	</ItemGroup>
 
 	<PropertyGroup>
@@ -58,6 +58,9 @@
 		<!-- EXILED API References -->
 		<Reference Include="0Harmony">
 			<HintPath>$(EXILED_API)\0Harmony.dll</HintPath>
+		</Reference>
+		<Reference Include="Assembly-CSharp-firstpass">
+		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
 		</Reference>
 		<Reference Include="CommandSystem.Core">
 			<HintPath>$(EXILED_API)\CommandSystem.Core.dll</HintPath>
@@ -77,52 +80,31 @@
 		<Reference Include="Exiled.Permissions">
 			<HintPath>$(EXILED_API)\Exiled.Permissions.dll</HintPath>
 		</Reference>
+		<Reference Include="LabApi">
+		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\LabApi.dll</HintPath>
+		</Reference>
+		<Reference Include="Mirror">
+		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror.dll</HintPath>
+		</Reference>
 		<Reference Include="NorthwoodLib">
 			<HintPath>$(EXILED_API)\NorthwoodLib.dll</HintPath>
 		</Reference>
+		<Reference Include="Pooling">
+		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
+		</Reference>
 		<Reference Include="System.ComponentModel.DataAnnotations">
 			<HintPath>$(EXILED_API)\System.ComponentModel.DataAnnotations.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.CoreModule">
+		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+		</Reference>
+		<Reference Include="UnityEngine.PhysicsModule">
+		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
 		</Reference>
 		<Reference Include="YamlDotNet">
 			<HintPath>$(EXILED_API)\YamlDotNet.dll</HintPath>
 		</Reference>
 
 		<!-- SCP:SL Game References -->
-		<Reference Include="Assembly-CSharp-firstpass">
-			<HintPath>$(SCPSL_MANAGED)\Assembly-CSharp-firstpass.dll</HintPath>
-		</Reference>
-		<Reference Include="Mirror">
-			<HintPath>$(SCPSL_MANAGED)\Mirror.dll</HintPath>
-		</Reference>
-		<Reference Include="Pooling">
-			<HintPath>$(SCPSL_MANAGED)\Pooling.dll</HintPath>
-		</Reference>
-		<Reference Include="Unity.RenderPipelines.Core.Runtime">
-			<HintPath>$(SCPSL_MANAGED)\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine">
-			<HintPath>$(SCPSL_MANAGED)\UnityEngine.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.AnimationModule">
-			<HintPath>$(SCPSL_MANAGED)\UnityEngine.AnimationModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.AudioModule">
-			<HintPath>$(SCPSL_MANAGED)\UnityEngine.AudioModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.CoreModule">
-			<HintPath>$(SCPSL_MANAGED)\UnityEngine.CoreModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.PhysicsModule">
-			<HintPath>$(SCPSL_MANAGED)\UnityEngine.PhysicsModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.TextRenderingModule">
-			<HintPath>$(SCPSL_MANAGED)\UnityEngine.TextRenderingModule.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.UI">
-			<HintPath>$(SCPSL_MANAGED)\UnityEngine.UI.dll</HintPath>
-		</Reference>
-		<Reference Include="UnityEngine.UnityWebRequestModule">
-			<HintPath>$(SCPSL_MANAGED)\UnityEngine.UnityWebRequestModule.dll</HintPath>
-		</Reference>
 	</ItemGroup>
 </Project>
