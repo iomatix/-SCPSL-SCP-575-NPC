@@ -445,9 +445,9 @@ hints_config:
   # Inform players when thier sanity is affected.
   is_enabled_sanity_hint: true
   # Hint shown when player's sanity level decreases. {0} = current sanity value
-  sanity_decreased_hint: 'Your sanity is decreasing!\n Sanity: {0:F1}. Find light sources or medical items to recover.'
+  sanity_decreased_hint: 'Your sanity is decreasing!\n Sanity: {0}. Find light sources or medical items to recover.'
   # Hint shown when player's sanity recovers from medical treatment. {0} = new sanity value
-  sanity_increased_hint: 'Your sanity is recovering!\n Sanity: {0:F1} thanks to medical treatment!'
+  sanity_increased_hint: 'Your sanity is recovering!\n Sanity: {0} thanks to medical treatment!'
   # Hint shown when player is affected by SCP-575.
   keter_hint: 'You were affected by actions of SCP-575! Equip a flashlight!'
   # Inform players about cooldown of light emitter.
