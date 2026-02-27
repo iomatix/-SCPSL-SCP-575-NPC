@@ -310,21 +310,21 @@ namespace SCP_575.Shared
         /// <summary>
         /// Clears all currently queued Cassie messages.
         /// </summary>
-        public void CassieClear() => Cassie.Clear();
+        public void CassieClear() => Announcer.Clear();
 
         /// <summary>
         /// Sends a glitched Cassie message with configured glitch and jam chances.
         /// </summary>
         /// <param name="message">The message to send.</param>
         public void CassieGlitchyMessage(string message) =>
-            Cassie.GlitchyMessage($"pitch_1.15 {message}", Config.CassieConfig.GlitchChance / 100, Config.CassieConfig.JamChance / 100);
+            Announcer.GlitchyMessage($"pitch_1.15 {message}", Config.CassieConfig.GlitchChance / 100, Config.CassieConfig.JamChance / 100);
 
         /// <summary>
         /// Sends a clean Cassie message with no noise or subtitles.
         /// </summary>
         /// <param name="message">The message to send.</param>
         public void CassieMessage(string message) =>
-            Cassie.Message($"pitch_0.95 {message}", isNoisy: false, isSubtitles: false, isHeld: false);
+            Announcer.Message($"pitch_0.95 {message}", priority: Plugin.Singleton.Config.CassieConfig.CassieMessagePriority);
 
         #endregion
 

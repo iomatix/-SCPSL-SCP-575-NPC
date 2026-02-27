@@ -19,6 +19,12 @@
 
         #endregion
 
+        /// <summary>
+        /// Priority level for Cassie’s important messages. Higher values will skip more of the message queue before playing these announcements.
+        /// </summary>
+        [Description("Priority for important Cassie messages.")]
+        public float CassieMessagePriority { get; set; } = 3.1f;
+
         #region Countdown Message
 
         /// <summary>
