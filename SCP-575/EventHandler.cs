@@ -2,7 +2,6 @@
 {
     using LabApi.Events.Arguments.PlayerEvents;
     using MEC;
-    using SCP_575.Handlers;
     using SCP_575.Npc;
     using SCP_575.Shared;
     using System;
