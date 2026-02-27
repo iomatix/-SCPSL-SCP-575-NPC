@@ -22,14 +22,14 @@
         /// </summary>  
         [Description("Hint shown when player's sanity level decreases. {0} = current sanity value")]
         public string SanityDecreasedHint { get; set; } =
-            "Your sanity is decreasing!\n Sanity: {0:F1}. Find light sources or medical items to recover.";
+            "Your sanity is decreasing!\n Sanity: {0}. Find light sources or medical items to recover.";
 
         /// <summary>  
         /// Hint message shown when a player's sanity increases from medical items.  
         /// </summary>  
         [Description("Hint shown when player's sanity recovers from medical treatment. {0} = new sanity value")]
         public string SanityIncreasedHint { get; set; } =
-            "Your sanity is recovering!\n Sanity: {0:F1} thanks to medical treatment!";
+            "Your sanity is recovering!\n Sanity: {0} thanks to medical treatment!";
 
         /// <summary>
         /// Hint message shown when a player is affected by SCP-575 action.
