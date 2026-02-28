@@ -1,14 +1,15 @@
 namespace SCP_575.Shared
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
+    using Cassie;
     using Interactables.Interobjects.DoorUtils;
     using LabApi.Features.Wrappers;
     using MapGeneration;
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
 
     /// <summary>
@@ -316,15 +317,19 @@ namespace SCP_575.Shared
         /// Sends a glitched Cassie message with configured glitch and jam chances.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        public void CassieGlitchyMessage(string message) =>
-            Announcer.GlitchyMessage($"pitch_1.15 {message}", Config.CassieConfig.GlitchChance / 100, Config.CassieConfig.JamChance / 100);
+        public void CassieGlitchyMessage(string message) {
+            message = CassieGlitchifier.Glitchify(message, Config.CassieConfig.GlitchChance / 100, Config.CassieConfig.JamChance / 100);
+            Announcer.Message($"pitch_1.15 {message}", string.Empty, playBackground: false);
+        }
+
+
 
         /// <summary>
         /// Sends a clean Cassie message with no noise or subtitles.
         /// </summary>
         /// <param name="message">The message to send.</param>
         public void CassieMessage(string message) =>
-            Announcer.Message($"pitch_0.95 {message}", priority: Plugin.Singleton.Config.CassieConfig.CassieMessagePriority);
+            Announcer.Message($"pitch_0.95 {message}", playBackground: false, priority: Plugin.Singleton.Config.CassieConfig.CassieMessagePriority);
 
         #endregion
 
