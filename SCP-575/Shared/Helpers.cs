@@ -25,7 +25,7 @@
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("Helpers.IsHumanWithoutLight", $"Failed to check player {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
+                LibraryLabAPI.LogError("Helpers.IsHumanWithoutLight", $"Failed to check player {player?.UserId ?? "null"} ({player?.Nickname ?? "unknown"}): {ex.Message}");
                 return false;
             }
         }
@@ -45,12 +45,12 @@
                     throw new ArgumentNullException(a == null ? nameof(a) : nameof(b), "Vector cannot be null.");
 
                 float distance = Vector3.Distance(a, b);
-                LibraryExiledAPI.LogDebug("Helpers.Distance", $"Calculated distance between {a} and {b}: {distance}");
+                LibraryLabAPI.LogDebug("Helpers.Distance", $"Calculated distance between {a} and {b}: {distance}");
                 return distance;
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("Helpers.Distance", $"Failed to calculate distance between {a} and {b}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("Helpers.Distance", $"Failed to calculate distance between {a} and {b}: {ex.Message}\nStackTrace: {ex.StackTrace}");
                 return 0f;
             }
         }

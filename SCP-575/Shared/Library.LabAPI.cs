@@ -2,6 +2,7 @@ namespace SCP_575.Shared
 {
     using Cassie;
     using Interactables.Interobjects.DoorUtils;
+    using LabApi.Features.Console;
     using LabApi.Features.Wrappers;
     using MapGeneration;
     using MEC;
@@ -10,7 +11,6 @@ namespace SCP_575.Shared
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using UnityEngine;
 
     /// <summary>
     /// Provides utilities and adapters for interacting with LabAPI in the SCP-575 context.
@@ -66,6 +66,52 @@ namespace SCP_575.Shared
 
         #endregion
 
+        #region Logging
+
+        /// <summary>
+        /// Logs a debug message with a module identifier.
+        /// </summary>
+        /// <param name="moduleId">The module identifier.</param>
+        /// <param name="message">The message to log.</param>
+        public static void LogDebug(string moduleId, string message)
+        {
+            if (Plugin.Singleton.Config.Debug == false) return;
+
+            Logger.Debug("[" + moduleId + "] " + message);
+        }
+
+        /// <summary>
+        /// Logs a warning message with a module identifier.
+        /// </summary>
+        /// <param name="moduleId">The module identifier.</param>
+        /// <param name="message">The message to log.</param>
+        public static void LogWarn(string moduleId, string message)
+        {
+            Logger.Warn("[" + moduleId + "] " + message);
+        }
+
+        /// <summary>
+        /// Logs an info message with a module identifier.
+        /// </summary>
+        /// <param name="moduleId">The module identifier.</param>
+        /// <param name="message">The message to log.</param>
+        public static void LogInfo(string moduleId, string message)
+        {
+            Logger.Info("[" + moduleId + "] " + message);
+        }
+
+        /// <summary>
+        /// Logs an error message with a module identifier.
+        /// </summary>
+        /// <param name="moduleId">The module identifier.</param>
+        /// <param name="message">The message to log.</param>
+        public static void LogError(string moduleId, string message)
+        {
+            Logger.Error("[" + moduleId + "] " + message);
+        }
+
+        #endregion
+
         #region Getters
 
         /// <summary>
@@ -79,7 +125,7 @@ namespace SCP_575.Shared
         /// </summary>
         /// <param name="position">The world position to query.</param>
         /// <returns>The <see cref="Room"/> at the specified position, or null if none found.</returns>
-        public Room GetRoomAtPosition(Vector3 position) => Room.GetRoomAtPosition(position);
+        public Room GetRoomAtPosition(UnityEngine.Vector3 position) => Room.GetRoomAtPosition(position);
 
         /// <summary>
         /// Gets a LabAPI player wrapper from a reference hub.
@@ -109,7 +155,7 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                LibraryExiledAPI.LogWarn(nameof(TurnOffRoomLights), "Room instance is null");
+                LibraryLabAPI.LogWarn(nameof(TurnOffRoomLights), "Room instance is null");
                 return;
             }
 
@@ -122,11 +168,11 @@ namespace SCP_575.Shared
             HandleElevatorsForRoom(room, elevatorAffectChance, duration, elevator =>
             {
                 elevator.LockAllDoors();
-                LibraryExiledAPI.LogDebug(nameof(TurnOffRoomLights), "Locked elevator doors due to room blackout");
+                LibraryLabAPI.LogDebug(nameof(TurnOffRoomLights), "Locked elevator doors due to room blackout");
                 Timing.CallDelayed(duration, () => elevator.UnlockAllDoors());
             });
 
-            LibraryExiledAPI.LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
+            LibraryLabAPI.LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
         }
 
         /// <summary>
@@ -161,14 +207,14 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                LibraryExiledAPI.LogWarn(nameof(EnableAndFlickerRoomAndNeighborLights), "Room instance is null");
+                LibraryLabAPI.LogWarn(nameof(EnableAndFlickerRoomAndNeighborLights), "Room instance is null");
                 return;
             }
 
             var roomSet = GetRoomAndNeighbors(room);
             foreach (var r in roomSet)
             {
-                LibraryExiledAPI.LogDebug(nameof(EnableAndFlickerRoomAndNeighborLights),
+                LibraryLabAPI.LogDebug(nameof(EnableAndFlickerRoomAndNeighborLights),
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
                 foreach (LightsController controller in r.AllLightControllers)
@@ -194,7 +240,7 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                LibraryExiledAPI.LogWarn(nameof(DisableRoomAndNeighborLights), "Room instance is null");
+                LogWarn(nameof(DisableRoomAndNeighborLights), "Room instance is null");
                 return;
             }
 
@@ -206,7 +252,7 @@ namespace SCP_575.Shared
             foreach (var r in roomSet)
             {
 
-                LibraryExiledAPI.LogDebug(nameof(DisableRoomAndNeighborLights), 
+                LogDebug(nameof(DisableRoomAndNeighborLights),
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
                 bool attemptResult = Methods.AttemptRoomBlackout(r, blackoutDuration, isCassieSilent: true, isForced: true);
@@ -277,7 +323,7 @@ namespace SCP_575.Shared
             foreach (var elevator in GetElevatorsInZone(zone))
             {
                 elevator.LockAllDoors();
-                LibraryExiledAPI.LogDebug(nameof(LockElevatorsInZone), $"Locked elevator doors in zone {zone}");
+                LogDebug(nameof(LockElevatorsInZone), $"Locked elevator doors in zone {zone}");
             }
         }
 
@@ -290,7 +336,7 @@ namespace SCP_575.Shared
             foreach (var elevator in GetElevatorsInZone(zone))
             {
                 elevator.UnlockAllDoors();
-                LibraryExiledAPI.LogDebug(nameof(UnlockElevatorsInZone), $"Unlocked elevator doors in zone {zone}");
+                LogDebug(nameof(UnlockElevatorsInZone), $"Unlocked elevator doors in zone {zone}");
             }
         }
 
@@ -317,7 +363,8 @@ namespace SCP_575.Shared
         /// Sends a glitched Cassie message with configured glitch and jam chances.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        public void CassieGlitchyMessage(string message) {
+        public void CassieGlitchyMessage(string message)
+        {
             message = CassieGlitchifier.Glitchify(message, Config.CassieConfig.GlitchChance / 100, Config.CassieConfig.JamChance / 100);
             Announcer.Message($"pitch_1.15 {message}", string.Empty, playBackground: false);
         }
@@ -390,7 +437,7 @@ namespace SCP_575.Shared
             {
                 if (neighbor == null)
                 {
-                    LibraryExiledAPI.LogWarn(nameof(GetRoomAndNeighbors), "Room instance is null");
+                    LogWarn(nameof(GetRoomAndNeighbors), "Room instance is null");
                     continue;
                 }
 
@@ -416,12 +463,12 @@ namespace SCP_575.Shared
                 if (roll <= affectChance)
                 {
                     elevatorAction(elevator);
-                    LibraryExiledAPI.LogDebug(nameof(HandleElevatorsForRoom), 
+                    LogDebug(nameof(HandleElevatorsForRoom),
                         $"Affected elevator (roll: {roll:F1}% <= {affectChance}%)");
                 }
                 else
                 {
-                    LibraryExiledAPI.LogDebug(nameof(HandleElevatorsForRoom), 
+                    LogDebug(nameof(HandleElevatorsForRoom),
                         $"Skipped elevator (roll: {roll:F1}% > {affectChance}%)");
                 }
             }

@@ -95,11 +95,11 @@ namespace SCP_575.Systems
             {
                 if (target.ReferenceHub == null)
                 {
-                    LibraryExiledAPI.LogWarn(nameof(DamagePlayer), $"ReferenceHub is null for player {target.UserId} ({target.Nickname ?? "null"})");
+                    LibraryLabAPI.LogWarn(nameof(DamagePlayer), $"ReferenceHub is null for player {target.UserId} ({target.Nickname ?? "null"})");
                     return false;
                 }
 
-                LibraryExiledAPI.LogDebug(nameof(DamagePlayer),
+                LibraryLabAPI.LogDebug(nameof(DamagePlayer),
                     $"Processing damage for {target.Nickname ?? "null"} with Hitbox: {hitbox} and Damage: {damage:F1}");
 
                 float processedDamage = DamageProcessor(target, damage, hitbox);
@@ -108,19 +108,19 @@ namespace SCP_575.Systems
 
                 if (succeeded)
                 {
-                    LibraryExiledAPI.LogDebug(nameof(DamagePlayer),
+                    LibraryLabAPI.LogDebug(nameof(DamagePlayer),
                         target.IsAlive ? "Damage applied successfully - player survived" : "Damage applied successfully - player died");
                 }
                 else
                 {
-                    LibraryExiledAPI.LogDebug(nameof(DamagePlayer), "Failed to apply damage");
+                    LibraryLabAPI.LogDebug(nameof(DamagePlayer), "Failed to apply damage");
                 }
 
                 return succeeded;
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(DamagePlayer),
+                LibraryLabAPI.LogError(nameof(DamagePlayer),
                     $"Failed to process damage for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                 return false;
             }
@@ -140,7 +140,7 @@ namespace SCP_575.Systems
 
             try
             {
-                LibraryExiledAPI.LogDebug(nameof(DamageProcessor),
+                LibraryLabAPI.LogDebug(nameof(DamageProcessor),
                     $"Processing damage for {target.Nickname ?? "null"} with Hitbox: {hitbox} and Damage: {damage:F1}");
 
                 float processedDamage = damage; // Initialize with base damage  
@@ -149,7 +149,7 @@ namespace SCP_575.Systems
                 if (HitboxDamageMultipliers.TryGetValue(hitbox, out var damageMul))
                 {
                     processedDamage *= damageMul;
-                    LibraryExiledAPI.LogDebug(nameof(DamageProcessor),
+                    LibraryLabAPI.LogDebug(nameof(DamageProcessor),
                         $"Applied hitbox multiplier {damageMul:F2} for {hitbox}. Damage: {damage:F1} -> {processedDamage:F1}");
                 }
 
@@ -160,7 +160,7 @@ namespace SCP_575.Systems
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(DamageProcessor),
+                LibraryLabAPI.LogError(nameof(DamageProcessor),
                     $"Failed to process damage for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                 return damage;
             }
@@ -183,19 +183,19 @@ namespace SCP_575.Systems
             {
                 if (target.RoleBase is not IArmoredRole armoredRole)
                 {
-                    LibraryExiledAPI.LogDebug(nameof(ProcessArmorInteraction),
+                    LibraryLabAPI.LogDebug(nameof(ProcessArmorInteraction),
                         $"Player {target.Nickname ?? "null"} has no armored role, returning damage: {damage:F1}");
                     return damage;
                 }
 
                 if (target.ReferenceHub == null)
                 {
-                    LibraryExiledAPI.LogWarn(nameof(ProcessArmorInteraction),
+                    LibraryLabAPI.LogWarn(nameof(ProcessArmorInteraction),
                         $"ReferenceHub is null for player {target.UserId} ({target.Nickname ?? "null"})");
                     return damage;
                 }
 
-                LibraryExiledAPI.LogDebug(nameof(ProcessArmorInteraction),
+                LibraryLabAPI.LogDebug(nameof(ProcessArmorInteraction),
                     $"Player {target.Nickname ?? "null"} has armor role: {armoredRole.GetType().Name}");
 
                 int armorEfficacy = armoredRole.GetArmorEfficacy(hitbox);
@@ -214,7 +214,7 @@ namespace SCP_575.Systems
                 // Final damage is shield damage (always full) plus penetrated armor damage  
                 float finalDamage = shieldDamage + postArmorDamage;
 
-                LibraryExiledAPI.LogDebug(nameof(ProcessArmorInteraction),
+                LibraryLabAPI.LogDebug(nameof(ProcessArmorInteraction),
                     $"Armor calculation for {target.Nickname ?? "null"}: " +
                     $"Efficacy={armorEfficacy}, Penetration={penetrationPercent}%, " +
                     $"Shield={shieldDamage:F1}, Armor={armorDamage:F1}->{postArmorDamage:F1}, " +
@@ -224,7 +224,7 @@ namespace SCP_575.Systems
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("ProcessArmorInteraction",
+                LibraryLabAPI.LogError("ProcessArmorInteraction",
                     $"Failed to process armor for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                 return damage;
             }
@@ -250,41 +250,41 @@ namespace SCP_575.Systems
         {
             if (ragdoll == null)
             {
-                LibraryExiledAPI.LogWarn(nameof(RagdollProcessor), "Aborted: Null ragdoll received");
+                LibraryLabAPI.LogWarn(nameof(RagdollProcessor), "Aborted: Null ragdoll received");
                 return;
             }
 
             if (player == null || !player.IsReady)
             {
-                LibraryExiledAPI.LogWarn(nameof(RagdollProcessor),
+                LibraryLabAPI.LogWarn(nameof(RagdollProcessor),
                     $"Invalid player state for ragdoll at {ragdoll.Position}");
                 return;
             }
 
-            LibraryExiledAPI.LogDebug(nameof(RagdollProcessor), $"Processing SCP-575 ragdoll for {player.Nickname} at position: {ragdoll.Position}");
+            LibraryLabAPI.LogDebug(nameof(RagdollProcessor), $"Processing SCP-575 ragdoll for {player.Nickname} at position: {ragdoll.Position}");
             try
             {
                 Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll);
                 if (newRagdoll == null)
                 {
-                    LibraryExiledAPI.LogError(nameof(RagdollProcessor), "Failed to create replacement ragdoll");
+                    LibraryLabAPI.LogError(nameof(RagdollProcessor), "Failed to create replacement ragdoll");
                     return;
                 }
 
                 // Apply physics in a coroutine to ensure proper frame timing
                 Timing.RunCoroutine(ProcessRagdollPhysics(newRagdoll));
-                LibraryExiledAPI.LogDebug(nameof(RagdollProcessor), $"SCP-575 ragdoll processing completed");
+                LibraryLabAPI.LogDebug(nameof(RagdollProcessor), $"SCP-575 ragdoll processing completed");
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(RagdollProcessor), $"Critical ragdoll error: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
+                LibraryLabAPI.LogError(nameof(RagdollProcessor), $"Critical ragdoll error: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
             }
         }
         private static IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll)
         {
             if (ragdoll?.Base?.gameObject == null)
             {
-                LibraryExiledAPI.LogWarn(nameof(ProcessRagdollPhysics), "Ragdoll destroyed before physics could be applied");
+                LibraryLabAPI.LogWarn(nameof(ProcessRagdollPhysics), "Ragdoll destroyed before physics could be applied");
                 yield break;
             }
 
@@ -301,7 +301,7 @@ namespace SCP_575.Systems
                 Rigidbody[] ragdollRigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
                 if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0)
                 {
-                    LibraryExiledAPI.LogWarn(nameof(ProcessRagdollPhysics), "No rigidbodies found on ragdoll");
+                    LibraryLabAPI.LogWarn(nameof(ProcessRagdollPhysics), "No rigidbodies found on ragdoll");
                     yield break;
                 }
 
@@ -326,13 +326,13 @@ namespace SCP_575.Systems
 
             try
             {
-                LibraryExiledAPI.LogDebug(nameof(ReplaceRagdoll),
+                LibraryLabAPI.LogDebug(nameof(ReplaceRagdoll),
                     $"Replacing ragdoll for {player.Nickname ?? "null"} at position: {originalRagdoll.Position}");
 
                 // Check ragdoll validity
                 if (originalRagdoll.Base == null || !originalRagdoll.Base.isActiveAndEnabled)
                 {
-                    LibraryExiledAPI.LogWarn(nameof(ReplaceRagdoll), "Original ragdoll is invalid or not spawned");
+                    LibraryLabAPI.LogWarn(nameof(ReplaceRagdoll), "Original ragdoll is invalid or not spawned");
                     return null;
                 }
 
@@ -351,7 +351,7 @@ namespace SCP_575.Systems
                 // Only destroy original if new ragdoll was successfully created
                 if (newRagdoll == null)
                 {
-                    LibraryExiledAPI.LogError(nameof(ReplaceRagdoll), "Ragdoll.SpawnRagdoll returned null");
+                    LibraryLabAPI.LogError(nameof(ReplaceRagdoll), "Ragdoll.SpawnRagdoll returned null");
                     return null;
                 }
 
@@ -360,7 +360,7 @@ namespace SCP_575.Systems
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(ReplaceRagdoll),
+                LibraryLabAPI.LogError(nameof(ReplaceRagdoll),
                     $"Failed to replace ragdoll for {player.UserId} ({player.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                 return null;
             }
@@ -370,7 +370,7 @@ namespace SCP_575.Systems
         {
             if (rigidbodies == null || rigidbodies.Count == 0)
             {
-                LibraryExiledAPI.LogWarn(nameof(ApplyStandardRagdollPhysics), $"No rigidbodies found on ragdoll");
+                LibraryLabAPI.LogWarn(nameof(ApplyStandardRagdollPhysics), $"No rigidbodies found on ragdoll");
                 return;
             }
             foreach (Rigidbody rb in rigidbodies)
@@ -389,7 +389,7 @@ namespace SCP_575.Systems
                 }
                 catch (Exception ex)
                 {
-                    LibraryExiledAPI.LogError(nameof(ApplyStandardRagdollPhysics),
+                    LibraryLabAPI.LogError(nameof(ApplyStandardRagdollPhysics),
                         $"Failed to apply physics to rigidbody {rb.name}: {ex.Message}");
                 }
             }
@@ -399,7 +399,7 @@ namespace SCP_575.Systems
         {
             if (ragdoll?.Base == null)
             {
-                LibraryExiledAPI.LogWarn(nameof(ConvertToBones), "Ragdoll is null or destroyed - bone conversion aborted");
+                LibraryLabAPI.LogWarn(nameof(ConvertToBones), "Ragdoll is null or destroyed - bone conversion aborted");
                 return;
             }
 
@@ -409,12 +409,12 @@ namespace SCP_575.Systems
                 if (IsDynamicRagdoll(ragdoll) && ragdoll.Base.TryGetComponent<DynamicRagdoll>(out var dr))
                 {
                     Scp3114RagdollToBonesConverter.ConvertExisting(dr);
-                    LibraryExiledAPI.LogDebug(nameof(ConvertToBones), "Ragdoll successfully converted to bones");
+                    LibraryLabAPI.LogDebug(nameof(ConvertToBones), "Ragdoll successfully converted to bones");
                 }
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("ConvertToBones", $"Failed to convert ragdoll to bones: {ex.Message}, StackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("ConvertToBones", $"Failed to convert ragdoll to bones: {ex.Message}, StackTrace: {ex.StackTrace}");
             }
         }
 
@@ -431,7 +431,7 @@ namespace SCP_575.Systems
         {
             if (player == null || !player.IsReady || player.IsHost)
             {
-                LibraryExiledAPI.LogDebug(nameof(DropAndPushItems), "Aborted: Invalid player state");
+                LibraryLabAPI.LogDebug(nameof(DropAndPushItems), "Aborted: Invalid player state");
                 yield break;
             }
 
@@ -441,12 +441,12 @@ namespace SCP_575.Systems
 
             try
             {
-                LibraryExiledAPI.LogDebug(nameof(DropAndPushItems), $"Dropping all items from {player.Nickname ?? "null"}'s inventory");
+                LibraryLabAPI.LogDebug(nameof(DropAndPushItems), $"Dropping all items from {player.Nickname ?? "null"}'s inventory");
                 droppedPickups = player.DropAllItems();
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError(nameof(DropAndPushItems), $"Failed to drop items: {ex.Message}");
+                LibraryLabAPI.LogError(nameof(DropAndPushItems), $"Failed to drop items: {ex.Message}");
                 yield break;
             }
 
@@ -461,7 +461,7 @@ namespace SCP_575.Systems
             {
                 if (pickup?.Rigidbody == null || pickup.IsDestroyed || !pickup.IsSpawned)
                 {
-                    LibraryExiledAPI.LogWarn(nameof(DropAndPushItems), $"Invalid pickup {pickup?.Serial ?? 0} - skipping");
+                    LibraryLabAPI.LogWarn(nameof(DropAndPushItems), $"Invalid pickup {pickup?.Serial ?? 0} - skipping");
                     continue;
                 }
 
@@ -477,12 +477,12 @@ namespace SCP_575.Systems
                     pickup.Rigidbody.linearVelocity = direction * magnitude;
                     pickup.Rigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
 
-                    LibraryExiledAPI.LogDebug(nameof(DropAndPushItems),
+                    LibraryLabAPI.LogDebug(nameof(DropAndPushItems),
                         $"Applied physics to item {pickup.Serial} ({pickup.Type}) with velocity {direction * magnitude}");
                 }
                 catch (Exception ex)
                 {
-                    LibraryExiledAPI.LogError(nameof(DropAndPushItems),
+                    LibraryLabAPI.LogError(nameof(DropAndPushItems),
                         $"Failed to apply physics to item {pickup.Serial} ({pickup.Type}): {ex.Message}");
                 }
 
@@ -543,7 +543,7 @@ namespace SCP_575.Systems
             // If the vector points more than 45° downward, reflect it upward  
             if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f) // cos(45°) ≈ 0.707  
             {
-                LibraryExiledAPI.LogDebug("GetRandomUnitSphereVelocity", "Vector pointing downward, reflecting upward.");
+                LibraryLabAPI.LogDebug("GetRandomUnitSphereVelocity", "Vector pointing downward, reflecting upward.");
                 randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
             }
 

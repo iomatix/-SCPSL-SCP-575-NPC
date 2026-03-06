@@ -58,17 +58,17 @@
             {
                 if (Plugin.Singleton.Config.NpcConfig == null)
                 {
-                    LibraryExiledAPI.LogError("OnWaitingForPlayers", "NpcConfig is null. Cannot initialize SCP-575.");
+                    LibraryLabAPI.LogError("OnWaitingForPlayers", "NpcConfig is null. Cannot initialize SCP-575.");
                     return;
                 }
 
-                LibraryExiledAPI.LogInfo("OnWaitingForPlayers", "SCP-575 initialized.");
+                LibraryLabAPI.LogInfo("OnWaitingForPlayers", "SCP-575 initialized.");
                 Methods.Init();
 
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("OnWaitingForPlayers", $"Failed to handle WaitingForPlayers event: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("OnWaitingForPlayers", $"Failed to handle WaitingForPlayers event: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -79,12 +79,12 @@
         {
             try
             {
-                LibraryExiledAPI.LogDebug("OnRoundStarted", "Round started. No specific actions defined for SCP-575.");
+                LibraryLabAPI.LogDebug("OnRoundStarted", "Round started. No specific actions defined for SCP-575.");
 
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("OnRoundStarted", $"Failed to handle RoundStarted event: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("OnRoundStarted", $"Failed to handle RoundStarted event: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -101,11 +101,11 @@
                     Timing.KillCoroutines(handle);
                 }
                 Coroutines.Clear();
-                LibraryExiledAPI.LogInfo("OnRoundEnded", "Stopped global ambience, cleaned up speakers, and cleared coroutines on round end.");
+                LibraryLabAPI.LogInfo("OnRoundEnded", "Stopped global ambience, cleaned up speakers, and cleared coroutines on round end.");
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("OnRoundEnded", $"Failed to handle RoundEnded event: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("OnRoundEnded", $"Failed to handle RoundEnded event: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -124,23 +124,23 @@
             {
                 if (ev?.Player == null || ev.DamageHandler == null)
                 {
-                    LibraryExiledAPI.LogDebug("OnPlayerHurting", "Event arguments or player is null. Skipping.");
+                    LibraryLabAPI.LogDebug("OnPlayerHurting", "Event arguments or player is null. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnPlayerHurting", $"Player {ev.Player.Nickname} is being hurt by {ev.Attacker?.Nickname ?? "SCP-575 NPC"}.");
+                LibraryLabAPI.LogDebug("OnPlayerHurting", $"Player {ev.Player.Nickname} is being hurt by {ev.Attacker?.Nickname ?? "SCP-575 NPC"}.");
 
                 if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
                 {
-                    LibraryExiledAPI.LogDebug("OnPlayerHurting", "Damage not caused by SCP-575. Skipping.");
+                    LibraryLabAPI.LogDebug("OnPlayerHurting", "Damage not caused by SCP-575. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnPlayerHurting", $"Damage confirmed from {Scp575DamageSystem.IdentifierName}.");
+                LibraryLabAPI.LogDebug("OnPlayerHurting", $"Damage confirmed from {Scp575DamageSystem.IdentifierName}.");
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("OnPlayerHurting", $"Failed to handle PlayerHurting event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("OnPlayerHurting", $"Failed to handle PlayerHurting event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -155,23 +155,23 @@
             {
                 if (ev?.Player == null || ev.DamageHandler == null)
                 {
-                    LibraryExiledAPI.LogDebug("OnPlayerHurt", "Event arguments or player is null. Skipping.");
+                    LibraryLabAPI.LogDebug("OnPlayerHurt", "Event arguments or player is null. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnPlayerHurt", $"Player {ev.Player.Nickname} was hurt by {ev.Attacker?.Nickname ?? "SCP-575 NPC"}.");
+                LibraryLabAPI.LogDebug("OnPlayerHurt", $"Player {ev.Player.Nickname} was hurt by {ev.Attacker?.Nickname ?? "SCP-575 NPC"}.");
 
                 if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
                 {
-                    LibraryExiledAPI.LogDebug("OnPlayerHurt", "Damage not caused by SCP-575. Skipping.");
+                    LibraryLabAPI.LogDebug("OnPlayerHurt", "Damage not caused by SCP-575. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnPlayerHurt", $"Damage confirmed from {Scp575DamageSystem.IdentifierName}.");
+                LibraryLabAPI.LogDebug("OnPlayerHurt", $"Damage confirmed from {Scp575DamageSystem.IdentifierName}.");
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("OnPlayerHurt", $"Failed to handle PlayerHurt event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("OnPlayerHurt", $"Failed to handle PlayerHurt event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -186,24 +186,24 @@
             {
                 if (ev?.Player == null || ev.DamageHandler == null)
                 {
-                    LibraryExiledAPI.LogDebug("OnPlayerDying", "Event arguments or player is null. Skipping.");
+                    LibraryLabAPI.LogDebug("OnPlayerDying", "Event arguments or player is null. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnPlayerDying", $"Player {ev.Player.Nickname} is dying.");
+                LibraryLabAPI.LogDebug("OnPlayerDying", $"Player {ev.Player.Nickname} is dying.");
 
                 if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
                 {
-                    LibraryExiledAPI.LogDebug("OnPlayerDying", "Damage not caused by SCP-575. Skipping.");
+                    LibraryLabAPI.LogDebug("OnPlayerDying", "Damage not caused by SCP-575. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnPlayerDying", $"Death confirmed from {Scp575DamageSystem.IdentifierName}.");
+                LibraryLabAPI.LogDebug("OnPlayerDying", $"Death confirmed from {Scp575DamageSystem.IdentifierName}.");
                 Coroutines.Add(Timing.RunCoroutine(Scp575DamageSystem.DropAndPushItems(ev.Player)));
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("OnPlayerDying", $"Failed to handle PlayerDying event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("OnPlayerDying", $"Failed to handle PlayerDying event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -218,23 +218,23 @@
             {
                 if (ev?.Player == null || ev.DamageHandler == null)
                 {
-                    LibraryExiledAPI.LogDebug("OnPlayerDeath", "Event arguments or player is null. Skipping.");
+                    LibraryLabAPI.LogDebug("OnPlayerDeath", "Event arguments or player is null. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnPlayerDeath", $"Player {ev.Player.Nickname} died.");
+                LibraryLabAPI.LogDebug("OnPlayerDeath", $"Player {ev.Player.Nickname} died.");
 
                 if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
                 {
-                    LibraryExiledAPI.LogDebug("OnPlayerDeath", "Death not caused by SCP-575. Skipping.");
+                    LibraryLabAPI.LogDebug("OnPlayerDeath", "Death not caused by SCP-575. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnPlayerDeath", $"Death confirmed from {Scp575DamageSystem.IdentifierName}.");
+                LibraryLabAPI.LogDebug("OnPlayerDeath", $"Death confirmed from {Scp575DamageSystem.IdentifierName}.");
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("OnPlayerDeath", $"Failed to handle PlayerDeath event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("OnPlayerDeath", $"Failed to handle PlayerDeath event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -253,34 +253,34 @@
             {
                 if (ev?.Player == null || ev.Ragdoll == null || ev.DamageHandler == null)
                 {
-                    LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", "Event arguments, player, or ragdoll is null. Skipping.");
+                    LibraryLabAPI.LogDebug("OnSpawnedRagdoll", "Event arguments, player, or ragdoll is null. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", $"Ragdoll spawned for player: {ev.Player.Nickname} at {ev.Ragdoll.Position}.");
+                LibraryLabAPI.LogDebug("OnSpawnedRagdoll", $"Ragdoll spawned for player: {ev.Player.Nickname} at {ev.Ragdoll.Position}.");
 
                 if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
                 {
-                    LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll not caused by SCP-575. Skipping.");
+                    LibraryLabAPI.LogDebug("OnSpawnedRagdoll", "Ragdoll not caused by SCP-575. Skipping.");
                     return;
                 }
 
-                LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", $"Ragdoll caused by {Scp575DamageSystem.IdentifierName}.");
+                LibraryLabAPI.LogDebug("OnSpawnedRagdoll", $"Ragdoll caused by {Scp575DamageSystem.IdentifierName}.");
 
                 if (_plugin.Config.NpcConfig.DisableRagdolls)
                 {
-                    LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", "DisableRagdolls is true. Destroying ragdoll.");
+                    LibraryLabAPI.LogDebug("OnSpawnedRagdoll", "DisableRagdolls is true. Destroying ragdoll.");
                     ev.Ragdoll.Destroy();
                 }
                 else
                 {
-                    LibraryExiledAPI.LogDebug("OnSpawnedRagdoll", "DisableRagdolls is false. Processing ragdoll for skeleton spawn.");
+                    LibraryLabAPI.LogDebug("OnSpawnedRagdoll", "DisableRagdolls is false. Processing ragdoll for skeleton spawn.");
                     Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
                 }
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("OnSpawnedRagdoll", $"Failed to handle SpawnedRagdoll event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("OnSpawnedRagdoll", $"Failed to handle SpawnedRagdoll event for {ev?.Player?.Nickname ?? "unknown"}: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 

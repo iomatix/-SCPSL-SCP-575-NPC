@@ -137,7 +137,7 @@ namespace SCP_575.Shared
         {
             if (string.IsNullOrEmpty(message))
             {
-                LogWarn("SendGlitchyCassieMessage", "Message is null or empty");
+                LibraryLabAPI.LogWarn("SendGlitchyCassieMessage", "Message is null or empty");
                 return;
             }
 
@@ -155,7 +155,7 @@ namespace SCP_575.Shared
         {
             if (string.IsNullOrEmpty(message))
             {
-                LogWarn("SendCleanCassieMessage", "Message is null or empty");
+                LibraryLabAPI.LogWarn("SendCleanCassieMessage", "Message is null or empty");
                 return;
             }
 
@@ -175,7 +175,7 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                LogWarn("IsRoomFreeOfEngagedGenerators", "Room instance is null");
+                LibraryLabAPI.LogWarn("IsRoomFreeOfEngagedGenerators", "Room instance is null");
                 return false;
             }
 
@@ -191,7 +191,7 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                LogWarn("IsRoomAndNeighborsFreeOfEngagedGenerators", "Room instance is null");
+                LibraryLabAPI.LogWarn("IsRoomAndNeighborsFreeOfEngagedGenerators", "Room instance is null");
                 return false;
             }
 
@@ -206,7 +206,7 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                LogWarn("EnableAndFlickerRoomAndNeighbors", "Room instance is null");
+                LibraryLabAPI.LogWarn("EnableAndFlickerRoomAndNeighbors", "Room instance is null");
                 return;
             }
 
@@ -219,7 +219,7 @@ namespace SCP_575.Shared
 
             foreach (var targetRoom in roomSet)
             {
-                LogDebug("EnableAndFlickerRoomAndNeighbors", 
+                LibraryLabAPI.LogDebug("EnableAndFlickerRoomAndNeighbors", 
                     "Flickering lights in " + (targetRoom == room ? "the room" : "neighbor room") + ": " + targetRoom.Name);
                 targetRoom.AreLightsOff = false;
                 targetRoom.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
@@ -235,7 +235,7 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                LogWarn("TriggerBlackoutInRoomAndNeighbors", "Room instance is null");
+                LibraryLabAPI.LogWarn("TriggerBlackoutInRoomAndNeighbors", "Room instance is null");
                 return;
             }
 
@@ -251,13 +251,13 @@ namespace SCP_575.Shared
 
             foreach (var targetRoom in roomSet)
             {
-                LogDebug("TriggerBlackoutInRoomAndNeighbors", 
+                LibraryLabAPI.LogDebug("TriggerBlackoutInRoomAndNeighbors", 
                     "Attempting blackout in " + (targetRoom == room ? "the room" : "neighbor room") + ": " + targetRoom.Name);
 
                 var labApiRoom = ToLabApiRoom(targetRoom);
                 if (labApiRoom == null)
                 {
-                    LogWarn("TriggerBlackoutInRoomAndNeighbors", "Failed to convert room to LabAPI: " + targetRoom.Name);
+                    LibraryLabAPI.LogWarn("TriggerBlackoutInRoomAndNeighbors", "Failed to convert room to LabAPI: " + targetRoom.Name);
                     continue;
                 }
 
@@ -280,55 +280,11 @@ namespace SCP_575.Shared
         {
             if (player == null)
             {
-                LogWarn("IsPlayerInDarkRoom", "Player instance is null");
+                LibraryLabAPI.LogWarn("IsPlayerInDarkRoom", "Player instance is null");
                 return false;
             }
 
             return player.CurrentRoom != null && player.CurrentRoom.AreLightsOff;
-        }
-
-        #endregion
-
-        #region Logging
-
-        /// <summary>
-        /// Logs a debug message with a module identifier.
-        /// </summary>
-        /// <param name="moduleId">The module identifier.</param>
-        /// <param name="message">The message to log.</param>
-        public static void LogDebug(string moduleId, string message)
-        {
-            Log.Debug("[" + moduleId + "] " + message);
-        }
-
-        /// <summary>
-        /// Logs a warning message with a module identifier.
-        /// </summary>
-        /// <param name="moduleId">The module identifier.</param>
-        /// <param name="message">The message to log.</param>
-        public static void LogWarn(string moduleId, string message)
-        {
-            Log.Warn("[" + moduleId + "] " + message);
-        }
-
-        /// <summary>
-        /// Logs an info message with a module identifier.
-        /// </summary>
-        /// <param name="moduleId">The module identifier.</param>
-        /// <param name="message">The message to log.</param>
-        public static void LogInfo(string moduleId, string message)
-        {
-            Log.Info("[" + moduleId + "] " + message);
-        }
-
-        /// <summary>
-        /// Logs an error message with a module identifier.
-        /// </summary>
-        /// <param name="moduleId">The module identifier.</param>
-        /// <param name="message">The message to log.</param>
-        public static void LogError(string moduleId, string message)
-        {
-            Log.Error("[" + moduleId + "] " + message);
         }
 
         #endregion
@@ -344,7 +300,7 @@ namespace SCP_575.Shared
         {
             if (labApiPlayer == null || labApiPlayer.ReferenceHub == null)
             {
-                LogWarn("ToExiledPlayer", "LabAPI player or ReferenceHub is null");
+                LibraryLabAPI.LogWarn("ToExiledPlayer", "LabAPI player or ReferenceHub is null");
                 return null;
             }
 
@@ -360,7 +316,7 @@ namespace SCP_575.Shared
         {
             if (labApiRagdoll == null || labApiRagdoll.Base == null)
             {
-                LogWarn("ToExiledRagdoll", "LabAPI ragdoll or Base is null");
+                LibraryLabAPI.LogWarn("ToExiledRagdoll", "LabAPI ragdoll or Base is null");
                 return null;
             }
 
@@ -376,7 +332,7 @@ namespace SCP_575.Shared
         {
             if (labApiRoom == null)
             {
-                LogWarn("ToExiledRoom", "LabAPI room is null");
+                LibraryLabAPI.LogWarn("ToExiledRoom", "LabAPI room is null");
                 return null;
             }
 
@@ -388,7 +344,7 @@ namespace SCP_575.Shared
                 }
             }
 
-            LogWarn("ToExiledRoom", "No Exiled room found for LabAPI room at position: " + labApiRoom.Position);
+            LibraryLabAPI.LogWarn("ToExiledRoom", "No Exiled room found for LabAPI room at position: " + labApiRoom.Position);
             return null;
         }
 
@@ -412,7 +368,7 @@ namespace SCP_575.Shared
         {
             if (room == null)
             {
-                LogWarn("ToLabApiRoom", "Room instance is null");
+                LibraryLabAPI.LogWarn("ToLabApiRoom", "Room instance is null");
                 return null;
             }
 

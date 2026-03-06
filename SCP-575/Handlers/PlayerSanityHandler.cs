@@ -63,7 +63,7 @@
                 if (stages[i].MaxThreshold != stages[i + 1].MinThreshold)
                     throw new InvalidOperationException("SanityStages have gaps or overlaps.");
             }
-            LibraryExiledAPI.LogDebug("PlayerSanityHandler.Constructor", $"Instance ID={_instanceId}, Loaded {stages.Count} sanity stages: {string.Join(", ", stages.Select(s => $"[Min={s.MinThreshold}, Max={s.MaxThreshold}, Damage={s.DamageOnStrike}, Effects={s.Effects?.Count}]"))}");
+            LibraryLabAPI.LogDebug("PlayerSanityHandler.Constructor", $"Instance ID={_instanceId}, Loaded {stages.Count} sanity stages: {string.Join(", ", stages.Select(s => $"[Min={s.MinThreshold}, Max={s.MaxThreshold}, Damage={s.DamageOnStrike}, Effects={s.Effects?.Count}]"))}");
         }
 
         #region Lifecycle Management
@@ -98,7 +98,7 @@
 
             _isDisposed = true;
 
-            LibraryExiledAPI.LogInfo("PlayerSanityHandler.Dispose", $"Instance ID={_instanceId}, Disposed PlayerSanityHandler and cleaned up resources.");
+            LibraryLabAPI.LogInfo("PlayerSanityHandler.Dispose", $"Instance ID={_instanceId}, Disposed PlayerSanityHandler and cleaned up resources.");
         }
 
 
@@ -163,7 +163,7 @@
             float newSanity = ChangeSanityValue(ev.Player, restoreAmount);
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint) SendSanityHint(ev.Player, _plugin.Config.HintsConfig.SanityIncreasedHint, newSanity);
 
-            LibraryExiledAPI.LogDebug("PlayerSanityHandler.OnPlayerUsedItem", $"Instance ID={_instanceId}, Restored {restoreAmount} sanity to {ev.Player.UserId} ({ev.Player.Nickname}) with {ev.UsableItem.Type}. New sanity: {newSanity}");
+            LibraryLabAPI.LogDebug("PlayerSanityHandler.OnPlayerUsedItem", $"Instance ID={_instanceId}, Restored {restoreAmount} sanity to {ev.Player.UserId} ({ev.Player.Nickname}) with {ev.UsableItem.Type}. New sanity: {newSanity}");
         }
 
 
@@ -188,7 +188,7 @@
                 {
                     sanity = _sanityConfig.InitialSanity;
                     _sanityCache[userId] = sanity;
-                    LibraryExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, No sanity value for {userId}, defaulting to {sanity} (InitialSanity from config), Cache count={_sanityCache.Count}");
+                    LibraryLabAPI.LogWarn("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, No sanity value for {userId}, defaulting to {sanity} (InitialSanity from config), Cache count={_sanityCache.Count}");
                 }
                 string nickname = "Unknown";
                 bool isAlive = false;
@@ -201,9 +201,9 @@
                 }
                 catch (Exception ex)
                 {
-                    LibraryExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, Failed to access player properties for {userId}: {ex.Message}");
+                    LibraryLabAPI.LogWarn("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, Failed to access player properties for {userId}: {ex.Message}");
                 }
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, Cache state for {userId} ({nickname}): {sanity}, IsAlive={isAlive}, IsHuman={isHuman}, Cache count={_sanityCache.Count}");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.GetCurrentSanity", $"Instance ID={_instanceId}, Cache state for {userId} ({nickname}): {sanity}, IsAlive={isAlive}, IsHuman={isHuman}, Cache count={_sanityCache.Count}");
                 return sanity;
             }
         }
@@ -231,9 +231,9 @@
                 }
                 catch (Exception ex)
                 {
-                    LibraryExiledAPI.LogWarn("PlayerSanityHandler.SetSanity", $"Instance ID={_instanceId}, Failed to access nickname for {userId}: {ex.Message}");
+                    LibraryLabAPI.LogWarn("PlayerSanityHandler.SetSanity", $"Instance ID={_instanceId}, Failed to access nickname for {userId}: {ex.Message}");
                 }
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.SetSanity", $"Instance ID={_instanceId}, Set sanity for {userId} ({nickname}) to {clampedSanity}, Cache count={_sanityCache.Count}");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.SetSanity", $"Instance ID={_instanceId}, Set sanity for {userId} ({nickname}) to {clampedSanity}, Cache count={_sanityCache.Count}");
             }
             return clampedSanity;
         }
@@ -253,12 +253,12 @@
                 string userId = NormalizeUserId(player.UserId);
                 float currentSanity = GetCurrentSanity(player);
                 float newSanity = SetSanity(player, currentSanity + amount);
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.ChangeSanityValue", $"Instance ID={_instanceId}, Changed sanity for {userId} ({player.Nickname ?? "null"}) by {amount}. New value: {newSanity}");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.ChangeSanityValue", $"Instance ID={_instanceId}, Changed sanity for {userId} ({player.Nickname ?? "null"}) by {amount}. New value: {newSanity}");
                 return newSanity;
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("PlayerSanityHandler.ChangeSanityValue", $"Instance ID={_instanceId}, Failed to change sanity for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
+                LibraryLabAPI.LogError("PlayerSanityHandler.ChangeSanityValue", $"Instance ID={_instanceId}, Failed to change sanity for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
                 return 0f;
             }
         }
@@ -272,18 +272,18 @@
         {
             if (_sanityConfig.SanityStages == null || !_sanityConfig.SanityStages.Any())
             {
-                LibraryExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, SanityStages is null or empty");
+                LibraryLabAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, SanityStages is null or empty");
                 return null;
             }
-            LibraryExiledAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, SanityStages: {string.Join(", ", _sanityConfig.SanityStages.Select(s => $"[Min={s.MinThreshold}, Max={s.MaxThreshold}, Damage={s.DamageOnStrike}, Effects={s.Effects?.Count}]"))}");
+            LibraryLabAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, SanityStages: {string.Join(", ", _sanityConfig.SanityStages.Select(s => $"[Min={s.MinThreshold}, Max={s.MaxThreshold}, Damage={s.DamageOnStrike}, Effects={s.Effects?.Count}]"))}");
             var orderedStages = _sanityConfig.SanityStages.OrderByDescending(s => s.MaxThreshold);
             foreach (var s in orderedStages)
             {
                 bool matches = sanity <= s.MaxThreshold && (sanity > s.MinThreshold || (sanity == 0 && s.MinThreshold == 0));
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Checking stage [Min={s.MinThreshold}, Max={s.MaxThreshold}]: sanity={sanity}, matches={matches}");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Checking stage [Min={s.MinThreshold}, Max={s.MaxThreshold}]: sanity={sanity}, matches={matches}");
                 if (matches) return s;
             }
-            LibraryExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, No stage found for sanity {sanity}");
+            LibraryLabAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, No stage found for sanity {sanity}");
             return null;
         }
 
@@ -296,12 +296,12 @@
         {
             if (!IsValidPlayer(player))
             {
-                LibraryExiledAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Invalid player: {player?.UserId ?? "null"} ({player?.Nickname ?? "null"})");
+                LibraryLabAPI.LogWarn("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Invalid player: {player?.UserId ?? "null"} ({player?.Nickname ?? "null"})");
                 return null;
             }
             string userId = NormalizeUserId(player.UserId);
             float sanity = GetCurrentSanity(player);
-            LibraryExiledAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Player: {userId} ({player.Nickname ?? "null"}), Sanity: {sanity}");
+            LibraryLabAPI.LogDebug("PlayerSanityHandler.GetCurrentSanityStage", $"Instance ID={_instanceId}, Player: {userId} ({player.Nickname ?? "null"}), Sanity: {sanity}");
             return GetCurrentSanityStage(sanity);
         }
 
@@ -313,7 +313,7 @@
         {
             if (!IsValidPlayer(player))
             {
-                LibraryExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Invalid player: {player?.UserId ?? "null"} ({player?.Nickname ?? "null"})");
+                LibraryLabAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Invalid player: {player?.UserId ?? "null"} ({player?.Nickname ?? "null"})");
                 return;
             }
             string userId = NormalizeUserId(player.UserId);
@@ -325,24 +325,24 @@
                 nickname = player.Nickname ?? "null";
                 isAlive = player.IsAlive;
                 isHuman = player.IsHuman;
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Starting ApplyStageEffects for {userId} ({nickname}), IsAlive={isAlive}, IsHuman={isHuman}");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Starting ApplyStageEffects for {userId} ({nickname}), IsAlive={isAlive}, IsHuman={isHuman}");
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to access player properties for {userId}: {ex.Message}");
+                LibraryLabAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to access player properties for {userId}: {ex.Message}");
                 return;
             }
             try
             {
                 float sanity = GetCurrentSanity(player);
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Retrieved sanity {sanity} for {userId} ({nickname})");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Retrieved sanity {sanity} for {userId} ({nickname})");
                 var stage = GetCurrentSanityStage(player);
                 if (stage == null)
                 {
-                    LibraryExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, No stage found for {userId} ({nickname}), sanity: {sanity}, StackTrace: {Environment.StackTrace}");
+                    LibraryLabAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, No stage found for {userId} ({nickname}), sanity: {sanity}, StackTrace: {Environment.StackTrace}");
                     return;
                 }
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applying stage for {userId} ({nickname}), Sanity: {sanity}, Stage: Min={stage.MinThreshold}, Max={stage.MaxThreshold}, Damage={stage.DamageOnStrike}, Effects={stage.Effects?.Count ?? 0}, StackTrace: {Environment.StackTrace}");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applying stage for {userId} ({nickname}), Sanity: {sanity}, Stage: Min={stage.MinThreshold}, Max={stage.MaxThreshold}, Damage={stage.DamageOnStrike}, Effects={stage.Effects?.Count ?? 0}, StackTrace: {Environment.StackTrace}");
 
                 if (Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection)
                 {
@@ -352,11 +352,11 @@
                         try
                         {
                             Scp575DamageSystem.DamagePlayer(player, culmDamage);
-                            LibraryExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied damage {culmDamage} to {userId} ({nickname})");
+                            LibraryLabAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied damage {culmDamage} to {userId} ({nickname})");
                         }
                         catch (Exception ex)
                         {
-                            LibraryExiledAPI.LogError("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply damage to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                            LibraryLabAPI.LogError("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply damage to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
                         }
                     }
 
@@ -367,11 +367,11 @@
                             try
                             {
                                 ApplyEffect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
-                                LibraryExiledAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied effect {effectConfig.EffectType} to {userId} ({nickname}) with intensity {effectConfig.Intensity}, duration {effectConfig.Duration}");
+                                LibraryLabAPI.LogDebug("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Applied effect {effectConfig.EffectType} to {userId} ({nickname}) with intensity {effectConfig.Intensity}, duration {effectConfig.Duration}");
                             }
                             catch (Exception ex)
                             {
-                                LibraryExiledAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply effect {effectConfig.EffectType} to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                                LibraryLabAPI.LogWarn("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Failed to apply effect {effectConfig.EffectType} to {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
                             }
                         }
                     }
@@ -379,7 +379,7 @@
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Unexpected error for {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("PlayerSanityHandler.ApplyStageEffects", $"Instance ID={_instanceId}, Unexpected error for {userId} ({nickname}): {ex.Message}, StackTrace: {ex.StackTrace}");
             }
         }
 
@@ -419,7 +419,7 @@
                     }
                     catch (Exception ex)
                     {
-                        LibraryExiledAPI.LogError("PlayerSanityHandler.HandleSanityDecay", $"Instance ID={_instanceId}, Failed to process sanity decay for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                        LibraryLabAPI.LogError("PlayerSanityHandler.HandleSanityDecay", $"Instance ID={_instanceId}, Failed to process sanity decay for {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                     }
                 }
             }
@@ -453,18 +453,18 @@
         {
             if (player == null || player.UserId == null)
             {
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Player or UserId is null.");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Player or UserId is null.");
                 return false;
             }
             try
             {
                 bool isValid = player.IsAlive && player.IsHuman && player.Nickname != null;
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Player: {player.UserId} ({player.Nickname}), IsAlive={player.IsAlive}, IsHuman={player.IsHuman}, Nickname={(player.Nickname != null ? "non-null" : "null")}, IsValid={isValid}");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Player: {player.UserId} ({player.Nickname}), IsAlive={player.IsAlive}, IsHuman={player.IsHuman}, Nickname={(player.Nickname != null ? "non-null" : "null")}, IsValid={isValid}");
                 return isValid;
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogWarn("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Error validating player {player.UserId} ({player.Nickname ?? "null"}): {ex.Message}");
+                LibraryLabAPI.LogWarn("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Error validating player {player.UserId} ({player.Nickname ?? "null"}): {ex.Message}");
                 return false;
             }
         }
@@ -489,12 +489,12 @@
             try
             {
                 string normalized = userId?.ToLowerInvariant() ?? throw new ArgumentNullException(nameof(userId), "UserId cannot be null.");
-                LibraryExiledAPI.LogDebug("PlayerSanityHandler.NormalizeUserId", $"Instance ID={_instanceId}, Normalized UserId: {normalized}");
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.NormalizeUserId", $"Instance ID={_instanceId}, Normalized UserId: {normalized}");
                 return normalized;
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("PlayerSanityHandler.NormalizeUserId", $"Instance ID={_instanceId}, Failed to normalize UserId {userId ?? "null"}: {ex.Message}");
+                LibraryLabAPI.LogError("PlayerSanityHandler.NormalizeUserId", $"Instance ID={_instanceId}, Failed to normalize UserId {userId ?? "null"}: {ex.Message}");
                 throw;
             }
         }
@@ -540,7 +540,7 @@
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogWarn("PlayerSanityHandler.SendSanityHint", $"Instance ID={_instanceId}, Failed to send hint to {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
+                LibraryLabAPI.LogWarn("PlayerSanityHandler.SendSanityHint", $"Instance ID={_instanceId}, Failed to send hint to {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}");
             }
         }
 
@@ -596,7 +596,7 @@
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("PlayerSanityHandler.ApplyEffect", $"Failed to apply effect {effectType} to {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("PlayerSanityHandler.ApplyEffect", $"Failed to apply effect {effectType} to {player?.UserId ?? "null"} ({player?.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
                 throw;
             }
         }

@@ -48,13 +48,13 @@ namespace SCP_575.Npc
 
 
                 float roll = UnityEngine.Random.Range(0f, 100f);
-                LibraryExiledAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}");
+                LibraryLabAPI.LogDebug("SCP-575.Npc.EventHandlers", $"OnRoundStart: SpawnChance Roll = {roll}");
 
                 _plugin.Npc.Methods.Init(roll);
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("EventHandler.OnRoundStart", $"Failed to handle RoundStarted event: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("EventHandler.OnRoundStart", $"Failed to handle RoundStarted event: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -62,7 +62,7 @@ namespace SCP_575.Npc
         {
             this.Coroutines.ForEach(handle =>
             {
-                LibraryExiledAPI.LogDebug("OnRoundStart", $"Killing coroutine: {(string.IsNullOrEmpty(handle.Tag) ? "SCP575-NotTagged" : handle.Tag)}");
+                LibraryLabAPI.LogDebug("OnRoundStart", $"Killing coroutine: {(string.IsNullOrEmpty(handle.Tag) ? "SCP575-NotTagged" : handle.Tag)}");
                 Timing.KillCoroutines(handle);
             });
             this.Coroutines.Clear();
@@ -77,7 +77,7 @@ namespace SCP_575.Npc
             _plugin.IsEventActive = false;
             _plugin.Npc.Methods.Disable();
             this.CleanCoroutines();
-            LibraryExiledAPI.LogInfo("OnRoundEnd", "SCP-575 event disabled, coroutines cleared.");
+            LibraryLabAPI.LogInfo("OnRoundEnd", "SCP-575 event disabled, coroutines cleared.");
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace SCP_575.Npc
             _plugin.IsEventActive = false;
             _plugin.Npc.Methods.Disable();
             this.CleanCoroutines();
-            LibraryExiledAPI.LogInfo("OnWaitingPlayers", "SCP-575 event disabled, coroutines cleared.");
+            LibraryLabAPI.LogInfo("OnWaitingPlayers", "SCP-575 event disabled, coroutines cleared.");
         }
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace SCP_575.Npc
             {
                 if (ev?.Generator == null)
                 {
-                    LibraryExiledAPI.LogDebug("EventHandler.OnGeneratorActivated", "Generator event or generator is null. Skipping.");
+                    LibraryLabAPI.LogDebug("EventHandler.OnGeneratorActivated", "Generator event or generator is null. Skipping.");
                     return;
                 }
 
@@ -110,18 +110,18 @@ namespace SCP_575.Npc
                 Room room = _libraryLabAPI.GetRoomAtPosition(ev.Generator.Position);
                 if (room == null)
                 {
-                    LibraryExiledAPI.LogDebug("EventHandler.OnGeneratorActivated", "No room data found for generator position.");
+                    LibraryLabAPI.LogDebug("EventHandler.OnGeneratorActivated", "No room data found for generator position.");
                     return;
                 }
 
                 bool isScp575Present = _plugin.Npc.Methods.IsBlackoutActive;
                 if (!isScp575Present)
                 {
-                    LibraryExiledAPI.LogDebug("EventHandler.OnGeneratorActivated", $"Generator activated in room {room.Name}, but no blackout is active.");
+                    LibraryLabAPI.LogDebug("EventHandler.OnGeneratorActivated", $"Generator activated in room {room.Name}, but no blackout is active.");
                     return;
                 }
 
-                LibraryExiledAPI.LogInfo("EventHandler.OnGeneratorActivated", $"Generator activated in SCP-575 room: {room.Name}");
+                LibraryLabAPI.LogInfo("EventHandler.OnGeneratorActivated", $"Generator activated in SCP-575 room: {room.Name}");
                 _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room, _config.BlackoutConfig.ElevatorLockdownProbability);
 
                 // Play a global angry sound as a creepy audio cue
@@ -146,7 +146,7 @@ namespace SCP_575.Npc
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("EventHandler.OnGeneratorActivated", $"Failed to handle GeneratorActivated event: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("EventHandler.OnGeneratorActivated", $"Failed to handle GeneratorActivated event: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
 
@@ -188,46 +188,46 @@ namespace SCP_575.Npc
                 {
                     if (explosionEv.Position == null)
                     {
-                        LibraryExiledAPI.LogDebug("EventHandler.OnExplosionSpawned", "Explosion event position is null. Skipping.");
+                        LibraryLabAPI.LogDebug("EventHandler.OnExplosionSpawned", "Explosion event position is null. Skipping.");
                         return;
                     }
                     if (explosionEv.ExplosionType == null)
                     {
-                        LibraryExiledAPI.LogWarn("EventHandler.OnExplosionSpawned", "Explosion event had no explosion type data.");
+                        LibraryLabAPI.LogWarn("EventHandler.OnExplosionSpawned", "Explosion event had no explosion type data.");
                         return;
                     }
 
                     position = explosionEv.Position;
                     impactType = ScpProjectileImpactType.ClassifyExplosionImpact(explosionEv.ExplosionType);
-                    LibraryExiledAPI.LogDebug("EventHandler.OnExplosionSpawned", $"Impact type: {impactType}");
+                    LibraryLabAPI.LogDebug("EventHandler.OnExplosionSpawned", $"Impact type: {impactType}");
                 }
                 else if (projectileEv != null)
                 {
                     if (projectileEv.Position == null)
                     {
-                        LibraryExiledAPI.LogDebug("EventHandler.OnProjectileExploded", "Explosion event position is null. Skipping.");
+                        LibraryLabAPI.LogDebug("EventHandler.OnProjectileExploded", "Explosion event position is null. Skipping.");
                         return;
                     }
                     if (projectileEv.TimedGrenade == null)
                     {
-                        LibraryExiledAPI.LogDebug("EventHandler.OnProjectileExploded", "Explosion event had no grenade data.");
+                        LibraryLabAPI.LogDebug("EventHandler.OnProjectileExploded", "Explosion event had no grenade data.");
                         return;
                     }
 
                     position = projectileEv.Position;
                     impactType = ScpProjectileImpactType.ClassifyProjectileImpact(projectileEv.TimedGrenade);
-                    LibraryExiledAPI.LogDebug("EventHandler.OnProjectileExploded", $"Impact type: {impactType} (int={(int)impactType})");
+                    LibraryLabAPI.LogDebug("EventHandler.OnProjectileExploded", $"Impact type: {impactType} (int={(int)impactType})");
                 }
                 else
                 {
-                    LibraryExiledAPI.LogWarn("EventHandler.HandleExplosionEvent", "Both explosion and projectile event arguments are null. Skipping.");
+                    LibraryLabAPI.LogWarn("EventHandler.HandleExplosionEvent", "Both explosion and projectile event arguments are null. Skipping.");
                     return;
                 }
 
                 Room room = _libraryLabAPI.GetRoomAtPosition(position);
                 if (room == null)
                 {
-                    LibraryExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", "Explosion event had no room data.");
+                    LibraryLabAPI.LogDebug("EventHandler.HandleExplosionEvent", "Explosion event had no room data.");
                     return;
                 }
 
@@ -235,7 +235,7 @@ namespace SCP_575.Npc
                 switch (impactType)
                 {
                     case ScpProjectileImpactType.ProjectileImpactType.Helpful:
-                        LibraryExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Helpful impact type used in room: {room.Name}");
+                        LibraryLabAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Helpful impact type used in room: {room.Name}");
 
                         _libraryLabAPI.DisableRoomAndNeighborLights(room);
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.WhispersBang, lifespan: 25f);
@@ -245,28 +245,28 @@ namespace SCP_575.Npc
                     case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
                         if ((room.LightController != null && room.LightController.LightsEnabled) || !isScp575Present)
                         {
-                            LibraryExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Event in safe room, Lights are On or SCP-575 is not active. LightsEnabled: {room.LightController.LightsEnabled}, IsBlackoutActive: {isScp575Present}");
+                            LibraryLabAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Event in safe room, Lights are On or SCP-575 is not active. LightsEnabled: {room.LightController.LightsEnabled}, IsBlackoutActive: {isScp575Present}");
                             return;
                         }
-                        LibraryExiledAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
+                        LibraryLabAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
                         _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room, _config.BlackoutConfig.ElevatorLockdownProbability);
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
                         break;
 
                     case ScpProjectileImpactType.ProjectileImpactType.Neutral:
                     case ScpProjectileImpactType.ProjectileImpactType.Unknown:
-                        LibraryExiledAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Non-dangerous or unknown impact type: {impactType}");
+                        LibraryLabAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Non-dangerous or unknown impact type: {impactType}");
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Whispers, lifespan: 25f);
                         break;
 
                     default:
-                        LibraryExiledAPI.LogWarn("EventHandler.HandleExplosionEvent", $"Unhandled impact type: {impactType} (int={(int)impactType})");
+                        LibraryLabAPI.LogWarn("EventHandler.HandleExplosionEvent", $"Unhandled impact type: {impactType} (int={(int)impactType})");
                         break;
                 }
             }
             catch (Exception ex)
             {
-                LibraryExiledAPI.LogError("EventHandler.HandleExplosionEvent", $"Failed to handle explosion event: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("EventHandler.HandleExplosionEvent", $"Failed to handle explosion event: {ex.Message}\nStackTrace: {ex.StackTrace}");
             }
         }
     }

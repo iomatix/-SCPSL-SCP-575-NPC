@@ -80,7 +80,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override System.Version Version => new(8,9,2);
+        public override System.Version Version => new(8,9,3);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.
@@ -111,12 +111,12 @@ namespace SCP_575
 
                 RegisterEvents();
 
-                LibraryExiledAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
+                LibraryLabAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
                 base.OnEnabled();
             }
             catch (System.Exception ex)
             {
-                LibraryExiledAPI.LogError("Plugin.OnEnabled", $"Failed to enable SCP-575 plugin: {ex.Message}");
+                LibraryLabAPI.LogError("Plugin.OnEnabled", $"Failed to enable SCP-575 plugin: {ex.Message}");
                 throw;
             }
         }
@@ -149,12 +149,12 @@ namespace SCP_575
                 _audioManager = null;
                 _config = null;
 
-                LibraryExiledAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");
+                LibraryLabAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");
                 base.OnDisabled();
             }
             catch (System.Exception ex)
             {
-                LibraryExiledAPI.LogError("Plugin.OnDisabled", $"Failed to disable SCP-575 plugin: {ex.Message}");
+                LibraryLabAPI.LogError("Plugin.OnDisabled", $"Failed to disable SCP-575 plugin: {ex.Message}");
                 throw;
             }
         }
@@ -174,7 +174,7 @@ namespace SCP_575
             LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll += _eventHandler.OnSpawnedRagdoll;
             CustomHandlersManager.RegisterEventsHandler(_lightsourceHandler);
             CustomHandlersManager.RegisterEventsHandler(_sanityHandler);
-            LibraryExiledAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
+            LibraryLabAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace SCP_575
                 LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll -= _eventHandler.OnSpawnedRagdoll;
                 CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
                 CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
-                LibraryExiledAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
+                LibraryLabAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
             }
         }
     }
