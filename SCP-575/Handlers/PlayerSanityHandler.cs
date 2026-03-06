@@ -536,7 +536,8 @@
         {
             try
             {
-                player.SendHint(hintMessage, new[] { new FloatHintParameter(sanity, "F1") });
+                string formatted = string.Format(hintMessage, sanity.ToString("F1"));
+                player.SendHint(formatted, 5f);
             }
             catch (Exception ex)
             {
