@@ -124,9 +124,6 @@ namespace SCP_575.Npc
                 LibraryLabAPI.LogInfo("EventHandler.OnGeneratorActivated", $"Generator activated in SCP-575 room: {room.Name}");
                 _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room, _config.BlackoutConfig.ElevatorLockdownProbability);
 
-                // Play a global angry sound as a creepy audio cue
-                _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
-
                 // Check if all generators are engaged to trigger SCP-575 behavior
                 if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
                 {
@@ -143,6 +140,12 @@ namespace SCP_575.Npc
                         _plugin.Npc.Methods.Reset575();
                     }
                 }
+                else
+                {
+                    // Play a global angry sound as a creepy audio cue
+                    _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
+                }
+
             }
             catch (Exception ex)
             {
@@ -238,7 +241,7 @@ namespace SCP_575.Npc
                         LibraryLabAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Helpful impact type used in room: {room.Name}");
 
                         _libraryLabAPI.DisableRoomAndNeighborLights(room);
-                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.WhispersBang, lifespan: 25f);
+                        _plugin.AudioManager.PlayAudioAutoManaged(null, AudioKey.WhispersBang, position: position, hearableForAllPlayers: true, lifespan: 25f);
                         _plugin.AudioManager.PlayAmbience();
                         break;
 
@@ -250,13 +253,13 @@ namespace SCP_575.Npc
                         }
                         LibraryLabAPI.LogInfo("EventHandler.HandleExplosionEvent", $"Dangerous explosive used in dark SCP-575 room: {room.Name}");
                         _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(room, _config.BlackoutConfig.ElevatorLockdownProbability);
-                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamAngry, lifespan: 25f);
+                        _plugin.AudioManager.PlayAudioAutoManaged(null, AudioKey.ScreamAngry, position: position, hearableForAllPlayers: true, lifespan: 25f);
                         break;
 
                     case ScpProjectileImpactType.ProjectileImpactType.Neutral:
                     case ScpProjectileImpactType.ProjectileImpactType.Unknown:
                         LibraryLabAPI.LogDebug("EventHandler.HandleExplosionEvent", $"Non-dangerous or unknown impact type: {impactType}");
-                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Whispers, lifespan: 25f);
+                        _plugin.AudioManager.PlayAudioAutoManaged(null, AudioKey.Whispers, position: position, hearableForAllPlayers: true, lifespan: 25f);
                         break;
 
                     default:
