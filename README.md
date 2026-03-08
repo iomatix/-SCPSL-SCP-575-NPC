@@ -38,47 +38,49 @@ This is the very first official build of the SCP-575 NPC mod, hosted in its own 
 # Enable or disable SCP-575.
 is_enabled: true
 # Enable debug logging.
-debug: true
+debug: false
 # Configuration settings for blackout mechanics.
 blackout_config:
 # The chance that a Round even has SCP-575 blackouts
-  event_chance: 58
+  event_chance: 55
   # Enable or disable randomly timed blackout events.
   random_events: true
   # Delay before first event of each round.
-  initial_delay: 95
+  initial_delay: 300
   # Minimum blackout duration in seconds.
-  duration_min: 120
+  duration_min: 30
   # Maximum blackout duration in seconds.
-  duration_max: 280
+  duration_max: 90
   # Minimum delay between events in seconds.
   delay_min: 180
   # Maximum delay between events in seconds.
-  delay_max: 435
+  delay_max: 500
   # Enable facility-wide blackout if no zones selected.
   enable_facility_blackout: true
   # Chance (%) of outage in Heavy Containment Zone.
-  chance_heavy: 75
+  chance_heavy: 99
   # Chance (%) of outage in Light Containment Zone.
-  chance_light: 15
+  chance_light: 45
   # Chance (%) of outage in Entrance Zone.
-  chance_entrance: 45
+  chance_entrance: 65
   # Chance (%) of outage in Surface Zone.
-  chance_surface: 10
+  chance_surface: 25
   # Chance (%) of outage in unspecified zones.
-  chance_other: 15
+  chance_other: 0
+  # Elevator lockdown probability (%) when a connected room loses power
+  elevator_lockdown_probability: 35
   # Use per-room chance settings instead of per-zone.
-  use_per_room_chances: true
+  use_per_room_chances: false
   # Disable Tesla gates during blackout.
   disable_teslas: true
   # Cancel nuke detonation during blackout.
-  disable_nuke: false
+  disable_nuke: true
   # Flicker lights when blackout starts.
   flicker_lights: true
   # Duration of initial light flickering in seconds.
-  flicker_duration: 3.5
+  flicker_duration: 1.5
   # Frequency of light flickering.
-  flicker_frequency: 1.25
+  flicker_frequency: 1.5
   # Red channel of lights color during blackout.
   lights_color_r: 0.899999976
   # Green channel of lights color during blackout.
@@ -92,27 +94,27 @@ npc_config:
   # Determines whether to disable ragdolls for SCP-575 kills.
   disable_ragdolls: false
   # The delay of receiving damage.
-  keter_action_delay: 12.75
+  keter_action_delay: 13.8500004
   # Penetration modifier same as in FirearmsDamageHandler.
-  keter_damage_penetration: 0.670000017
+  keter_damage_penetration: 0.75
   # The modifier applied to velocity when players are damaged by SCP-575.
   keter_damage_velocity_modifier: 1.25
   # The minimum modifier applied to ragdolls when they were damaged by SCP-575.
   keter_force_min_modifier: 0.75
   # The maximum modifier applied to ragdolls when they were damaged by SCP-575.
-  keter_force_max_modifier: 2.45000005
+  keter_force_max_modifier: 2.3499999
 # Sanity system configuration.
 sanity_config:
 # Initial sanity value (0–100) on spawn.
   initial_sanity: 100
   # Base sanity decay rate per second.
-  decay_rate_base: 0.115000002
+  decay_rate_base: 0.119999997
   # Decay multiplier when SCP-575 is active.
-  decay_multiplier_blackout: 1.54999995
+  decay_multiplier_blackout: 1.45000005
   # Decay multiplier when player has no light source.
-  decay_multiplier_darkness: 1.64999998
+  decay_multiplier_darkness: 1.45000005
   # Passive sanity regen rate per second.
-  passive_regen_rate: 0.0820000023
+  passive_regen_rate: 0.075000003
   # Minimum sanity restore percent from medical pills.
   pills_restore_min: 15
   # Maximum sanity restore percent from medical pills.
@@ -154,7 +156,7 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Blurred
       # Duration of the effect in seconds.
-      duration: 0.25
+      duration: 1
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -237,7 +239,7 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Blurred
       # Duration of the effect in seconds.
-      duration: 0.449999988
+      duration: 2
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -320,14 +322,14 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Blurred
       # Duration of the effect in seconds.
-      duration: 1.25
+      duration: 5
       # Intensity level of the status effect.
       intensity: 1
     -
     # Specifies the status effect type to apply.
       effect_type: Concussed
       # Duration of the effect in seconds.
-      duration: 6
+      duration: 8
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -403,14 +405,14 @@ sanity_config:
     # Specifies the status effect type to apply.
       effect_type: Blurred
       # Duration of the effect in seconds.
-      duration: 1.75
+      duration: 7
       # Intensity level of the status effect.
       intensity: 1
     -
     # Specifies the status effect type to apply.
       effect_type: Concussed
       # Duration of the effect in seconds.
-      duration: 8
+      duration: 10
       # Intensity level of the status effect.
       intensity: 1
     -
@@ -438,6 +440,14 @@ sanity_config:
 lightsource_config:
 # Cooldown on the light source triggered on hit by SCP-575.
   keter_lightsource_cooldown: 7.25
+  # Minimum number of flickers caused by SCP-575.
+  min_flicker_count: 3
+  # Maximum number of flickers caused by SCP-575.
+  max_flicker_count: 11
+  # Minimum duration of the flicker effect in milliseconds.
+  min_flicker_duration_ms: 1500
+  # Maximum duration of the flicker effect in milliseconds.
+  max_flicker_duration_ms: 2500
 # Hints configuration settings.
 hints_config:
 # Inform players when affected by SCP-575 via hint messages.
@@ -445,9 +455,13 @@ hints_config:
   # Inform players when thier sanity is affected.
   is_enabled_sanity_hint: true
   # Hint shown when player's sanity level decreases. {0} = current sanity value
-  sanity_decreased_hint: 'Your sanity is decreasing!\n Sanity: {0}. Find light sources or medical items to recover.'
+  sanity_decreased_hint: |-
+    Your sanity is decreasing!
+     Sanity: {0}. Find light sources or medical items to recover.
   # Hint shown when player's sanity recovers from medical treatment. {0} = new sanity value
-  sanity_increased_hint: 'Your sanity is recovering!\n Sanity: {0} thanks to medical treatment!'
+  sanity_increased_hint: |-
+    Your sanity is recovering!
+     Sanity: {0} thanks to medical treatment!
   # Hint shown when player is affected by SCP-575.
   keter_hint: 'You were affected by actions of SCP-575! Equip a flashlight!'
   # Inform players about cooldown of light emitter.
@@ -468,36 +482,38 @@ cassie_config:
   is_countdown_enabled: true
   # Clear message queue before important messages.
   cassie_message_clear_before_important: true
+  # Priority for important Cassie messages.
+  cassie_message_priority: 3.0999999
   # Cassie countdown before blackout.
   cassie_message_countdown: 'pitch_0.2 .g4 . .g4 pitch_1 door control system pitch_0.25 .g1 pitch_0.9 malfunction pitch_1 . initializing repair'
   # Time between sentence and countdown.
-  time_between_sentence_and_start: 48.5999985
+  time_between_sentence_and_start: 8.60000038
   # Time between blackout end and end message.
   time_between_sentence_and_end: 7
   # Cassie message at blackout start.
-  cassie_message_start: 'pitch_0.25 .g4 . pitch_0.45 .g3 pitch_0.95 . ATTENTION . AN IMPORTANT . MESSAGE . pitch_0.98 the facility control system pitch_0.25 .g1 pitch_0.93 critical failure'
+  cassie_message_start: 'facility power system outage in 3 . 2 . 1 .'
   # Cassie post-blackout-start message.
-  cassie_post_message: 'pitch_0.72 jam_043_3 .g4 pitch_0.95 . ATTENTION . ATTENTION . please supply with light source or the results pitch_0.85 go in to be . pitch_0.8 grave'
+  cassie_post_message: 'facility power system malfunction has been detected at .'
   # Cassie message if no blackout occurs.
-  cassie_message_wrong: '.g5 . Avoided the malfunction of the control system . .g3'
+  cassie_message_wrong: '. I have prevented the system failure . .g5 Sorry for a .g3 . false alert .'
   # Cassie message at blackout end.
-  cassie_message_end: 'pitch_0.45 .g4 pitch_0.65 . .g3 .g1 pitch_1.0 . IMPORTANT MESSAGE . pitch_0.98 the facility . door control system . is now . pitch_0.95 operational'
+  cassie_message_end: 'facility power system now operational'
   # Message for facility-wide blackout.
-  cassie_message_facility: 'The Facility black out .'
+  cassie_message_facility: 'The Facility .'
   # Message for Entrance Zone blackout.
-  cassie_message_entrance: ''
+  cassie_message_entrance: 'The Entrance Zone .'
   # Message for Light Containment Zone blackout.
-  cassie_message_light: ''
+  cassie_message_light: 'The Light Containment Zone .'
   # Message for Heavy Containment Zone blackout.
-  cassie_message_heavy: ''
+  cassie_message_heavy: 'The Heavy Containment Zone.'
   # Message for Surface Zone blackout.
-  cassie_message_surface: ''
+  cassie_message_surface: 'The Surface .'
   # Message for unspecified zone blackout.
-  cassie_message_other: 'pitch_0.75 .g6 pitch_0.25 jam_027_4 .g1 pitch_1.75 .g2 pitch_0.33 .g4 . .g4 . .g4 . pitch_0.25 S pitch_0.65 .g3'
+  cassie_message_other: '. pitch_0.35 .g6 pitch_0.95 the malfunction is Unspecified .'
   # Glitch chance per word in Cassie messages.
-  glitch_chance: 4
+  glitch_chance: 10
   # Jam chance per word in Cassie messages.
-  jam_chance: 3
+  jam_chance: 5
   # Cassie Keter sound during blackout.
   cassie_keter: 'pitch_0.15 .g7'
 # Audio system configuration.
