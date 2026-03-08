@@ -8,7 +8,7 @@
     using UnityEngine;
 
     /// <summary>
-    /// Manages explosion-related interactions, including light manipulation and acoustic responses 
+    /// Manages explosion-related interactions, including light manipulation and acoustic responses
     /// when grenades or special items are used during a blackout.
     /// </summary>
     public class ExplosionHandler : CustomEventsHandler
@@ -24,97 +24,67 @@
 
         public override void OnServerExplosionSpawned(ExplosionSpawnedEventArgs ev)
         {
-            if (!_plugin.IsEventActive)
-                return;
+            if (!_plugin.IsEventActive || ev == null) return;
 
-            HandleExplosionEvent(ev, null);
+            var impactType = ScpProjectileImpactType.ClassifyExplosionImpact(ev.ExplosionType);
+            ProcessImpact(ev.Position, impactType);
         }
 
         public override void OnServerProjectileExploded(ProjectileExplodedEventArgs ev)
         {
-            if (!_plugin.IsEventActive)
-                return;
+            if (!_plugin.IsEventActive || ev?.TimedGrenade == null) return;
 
-            HandleExplosionEvent(null, ev);
+            var impactType = ScpProjectileImpactType.ClassifyProjectileImpact(ev.TimedGrenade);
+            ProcessImpact(ev.Position, impactType);
         }
 
-        private void HandleExplosionEvent(
-            ExplosionSpawnedEventArgs explosionEv,
-            ProjectileExplodedEventArgs projectileEv)
+        private void ProcessImpact(Vector3 position, ScpProjectileImpactType.ProjectileImpactType impactType)
         {
-            Vector3 position;
-            ScpProjectileImpactType.ProjectileImpactType impactType;
+            bool blackout = _plugin.Npc.Methods.IsBlackoutActive;
 
-            if (explosionEv != null)
-            {
-                position = explosionEv.Position;
-
-                impactType =
-                    ScpProjectileImpactType.ClassifyExplosionImpact(
-                        explosionEv.ExplosionType);
-            }
-            else
-            {
-                position = projectileEv.Position;
-
-                impactType =
-                    ScpProjectileImpactType.ClassifyProjectileImpact(
-                        projectileEv.TimedGrenade);
-            }
-
-            var room = _lib.GetRoomAtPosition(position);
-
-            if (room == null)
+            // Early exit for dangerous impacts if there is no blackout,
+            // saving the cost of a spatial room query.
+            if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && !blackout)
                 return;
 
-            bool blackout = _plugin.Npc.Methods.IsBlackoutActive;
+            var room = _lib.GetRoomAtPosition(position);
+            if (room == null) return;
 
             switch (impactType)
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
-
                     _lib.DisableRoomAndNeighborLights(room);
-
-                    _plugin.AudioManager.PlayAudioAutoManaged(
-                        null,
-                        AudioKey.WhispersBang,
-                        position: position,
-                        hearableForAllPlayers: true,
-                        lifespan: 25f);
-
+                    PlayAudioAtPosition(AudioKey.WhispersBang, position);
                     _plugin.AudioManager.PlayAmbience();
-
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-
-                    if (!blackout || room.LightController.LightsEnabled)
-                        return;
+                    // We already checked !blackout earlier, so we only need to check lights now.
+                    if (room.LightController.LightsEnabled) return;
 
                     _lib.EnableAndFlickerRoomAndNeighborLights(
                         room,
                         _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-
-                    _plugin.AudioManager.PlayAudioAutoManaged(
-                        null,
-                        AudioKey.ScreamAngry,
-                        position: position,
-                        hearableForAllPlayers: true,
-                        lifespan: 25f);
-
+                    PlayAudioAtPosition(AudioKey.ScreamAngry, position);
                     break;
 
                 default:
-
-                    _plugin.AudioManager.PlayAudioAutoManaged(
-                        null,
-                        AudioKey.Whispers,
-                        position: position,
-                        hearableForAllPlayers: true,
-                        lifespan: 25f);
-
+                    PlayAudioAtPosition(AudioKey.Whispers, position);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Helper method to standardize audio playback parameters.
+        /// </summary>
+        private void PlayAudioAtPosition(AudioKey key, Vector3 position)
+        {
+            _plugin.AudioManager.PlayAudioAutoManaged(
+                null,
+                key,
+                position: position,
+                hearableForAllPlayers: true,
+                lifespan: 25f);
         }
     }
 }

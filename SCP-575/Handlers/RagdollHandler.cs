@@ -20,57 +20,31 @@
 
         public override void OnPlayerSpawnedRagdoll(PlayerSpawnedRagdollEventArgs ev)
         {
-            if (!_plugin.IsEventActive)
-                return;
+            if (!_plugin.IsEventActive) return;
 
             try
             {
+                // Early return for invalid data or non-SCP-575 related deaths to prevent log spam
                 if (ev?.Player == null || ev.Ragdoll == null || ev.DamageHandler == null)
-                {
-                    LibraryLabAPI.LogDebug(
-                        "RagdollHandler",
-                        "Invalid ragdoll event arguments.");
                     return;
-                }
-
-                LibraryLabAPI.LogDebug(
-                    "RagdollHandler",
-                    $"Ragdoll spawned for player {ev.Player.Nickname} at {ev.Ragdoll.Position}");
 
                 if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
-                {
-                    LibraryLabAPI.LogDebug(
-                        "RagdollHandler",
-                        "Ragdoll not caused by SCP-575.");
                     return;
-                }
-
-                LibraryLabAPI.LogDebug(
-                    "RagdollHandler",
-                    $"Ragdoll caused by {Scp575DamageSystem.IdentifierName}");
 
                 if (_plugin.Config.NpcConfig.DisableRagdolls)
                 {
-                    LibraryLabAPI.LogDebug(
-                        "RagdollHandler",
-                        "DisableRagdolls enabled. Destroying ragdoll.");
-
+                    LibraryLabAPI.LogDebug("RagdollHandler", "DisableRagdolls enabled. Destroying ragdoll.");
                     ev.Ragdoll.Destroy();
                 }
                 else
                 {
-                    LibraryLabAPI.LogDebug(
-                        "RagdollHandler",
-                        "Processing ragdoll for SCP-575 skeleton spawn.");
-
+                    LibraryLabAPI.LogDebug("RagdollHandler", $"Processing SCP-575 ragdoll for {ev.Player.Nickname}.");
                     Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
                 }
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError(
-                    "RagdollHandler",
-                    $"Failed to process ragdoll event: {ex}");
+                LibraryLabAPI.LogError("RagdollHandler", $"Failed to process ragdoll event: {ex}");
             }
         }
     }

@@ -25,14 +25,15 @@ namespace SCP_575.Npc
         private readonly PlayerSanityHandler _sanityHandler;
         private readonly LibraryLabAPI _libraryLabAPI;
 
-        // Tracks active coroutines for potential cleanup, though most are managed by unique IDs for easier termination.
-        private readonly List<CoroutineHandle> _activeCoroutines = new();
-
         private bool _isInitialized = false;
         private readonly HashSet<FacilityZone> _triggeredZones = new();
         private static readonly object BlackoutLock = new();
         private static int _blackoutStacks = 0;
         private CassieStatus _cassieState = CassieStatus.Idle;
+
+        // Note: Removed _activeCoroutines list to prevent memory leaks from short-lived coroutines.
+        // We now rely strictly on MEC's native tagging system for memory safety and cleanup.
+        private const string TempCoroutineTag = "SCP575-Temp";
 
         private enum CassieStatus
         {
@@ -98,16 +99,12 @@ namespace SCP_575.Npc
             _isInitialized = false;
             _plugin.IsEventActive = false;
 
-            foreach (var handle in _activeCoroutines)
-            {
-                if (handle.IsRunning)
-                    Timing.KillCoroutines(handle);
-            }
-            _activeCoroutines.Clear();
-
+            // Clean up all coroutines via tags instead of iterating a potentially massive list
+            Timing.KillCoroutines(TempCoroutineTag);
             Timing.KillCoroutines("SCP575-BlackoutLoop");
             Timing.KillCoroutines("SCP575-ActionLoop");
             Timing.KillCoroutines("SCP575-SanityHandler");
+            Timing.KillCoroutines("SCP575-CassieCd");
 
             _sanityHandler.Clean();
             LibraryLabAPI.LogInfo(nameof(Disable), "SCP-575 NPC logic and all coroutines terminated.");
@@ -117,32 +114,6 @@ namespace SCP_575.Npc
         {
             Timing.KillCoroutines("SCP575-CassieCd");
             Reset575();
-        }
-
-        /// <summary>
-        /// Runs a coroutine and tracks its handle for potential cleanup.
-        /// </summary>
-        /// <param name="coroutine">The coroutine to run.</param>
-        /// <param name="tag">An optional tag for easier identification and management of the coroutine.</param>
-        public CoroutineHandle RunTrackedCoroutine(IEnumerator<float> coroutine, string tag = null)
-        {
-            CoroutineHandle handle = string.IsNullOrEmpty(tag)
-                ? Timing.RunCoroutine(coroutine)
-                : Timing.RunCoroutine(coroutine, tag);
-
-            _activeCoroutines.Add(handle);
-
-            return handle;
-        }
-
-        /// <summary>
-        /// Registers an externally created coroutine handle for tracking. Useful for coroutines started outside of this class that still need to be managed.
-        /// </summary>
-        /// <param name="coroutineHandle">The handle of the coroutine to track.</param>
-        public CoroutineHandle TrackCoroutine(CoroutineHandle coroutineHandle)
-        {
-            _activeCoroutines.Add(coroutineHandle);
-            return coroutineHandle;
         }
 
         #endregion
@@ -166,7 +137,7 @@ namespace SCP_575.Npc
                     : _config.BlackoutConfig.InitialDelay;
 
                 yield return Timing.WaitForSeconds(delay);
-                RunTrackedCoroutine(ExecuteBlackoutEvent(), "SCP575-BlackoutExec");
+                Timing.RunCoroutine(ExecuteBlackoutEvent(), TempCoroutineTag);
             }
         }
 
@@ -193,7 +164,7 @@ namespace SCP_575.Npc
                 ? HandleRoomSpecificBlackout(duration)
                 : HandleZoneSpecificBlackout(duration);
 
-            RunTrackedCoroutine(FinalizeBlackoutEvent(occurred, duration), "SCP575-BlackoutFin");
+            Timing.RunCoroutine(FinalizeBlackoutEvent(occurred, duration), TempCoroutineTag);
         }
 
         private void FlickerAffectedZones(float duration)
@@ -202,7 +173,7 @@ namespace SCP_575.Npc
 
             var zones = GetZonesToFlicker();
             foreach (var zone in zones)
-                RunTrackedCoroutine(FlickerZoneLightsCoroutine(zone), "SCP575-FlickerZoneTask");
+                Timing.RunCoroutine(FlickerZoneLightsCoroutine(zone), TempCoroutineTag);
         }
 
         private List<FacilityZone> GetZonesToFlicker()
@@ -452,24 +423,28 @@ namespace SCP_575.Npc
         public void StartBlackoutEventLoop()
         {
             Timing.KillCoroutines("SCP575-BlackoutLoop");
-            RunTrackedCoroutine(RunBlackoutLoop(), "SCP575-BlackoutLoop");
+            Timing.RunCoroutine(RunBlackoutLoop(), "SCP575-BlackoutLoop");
         }
 
         public void StartKeterActionLoop()
         {
             Timing.KillCoroutines("SCP575-ActionLoop");
-            RunTrackedCoroutine(KeterActionLoop(), "SCP575-ActionLoop");
+            Timing.RunCoroutine(KeterActionLoop(), "SCP575-ActionLoop");
         }
 
         public void StartSanityHandlerLoop()
         {
-            if (_sanityHandler.SanityDecayCoroutine.IsRunning)
-                Timing.KillCoroutines(_sanityHandler.SanityDecayCoroutine);
+            Timing.KillCoroutines("SCP575-SanityHandler");
 
-            _sanityHandler.SanityDecayCoroutine = RunTrackedCoroutine(_sanityHandler.HandleSanityDecay(), "SCP575-SanityHandler");
+            // Assigning to _sanityHandler allows external access if needed, but MEC handles execution
+            _sanityHandler.SanityDecayCoroutine = Timing.RunCoroutine(_sanityHandler.HandleSanityDecay(), "SCP575-SanityHandler");
         }
 
-        public void StartCassieCooldown() => RunTrackedCoroutine(CassieCooldownRoutine(), "SCP575-CassieCd");
+        public void StartCassieCooldown()
+        {
+            Timing.KillCoroutines("SCP575-CassieCd");
+            Timing.RunCoroutine(CassieCooldownRoutine(), "SCP575-CassieCd");
+        }
 
         public void IncrementBlackoutStack() { lock (BlackoutLock) _blackoutStacks++; }
 

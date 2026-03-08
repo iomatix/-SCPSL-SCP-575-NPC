@@ -5,6 +5,7 @@
     using MEC;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
+    using System;
 
     /// <summary>
     /// Handles generator activations. Manages SCP-575's vulnerability and defensive audio cues 
@@ -15,29 +16,43 @@
         private readonly Plugin _plugin;
         private readonly LibraryLabAPI _lib;
 
+        private const string GeneratorAudioTag = "SCP575-GeneratorAudio";
+
         public GeneratorHandler(Plugin plugin)
         {
-            _plugin = plugin;
-            _lib = plugin.LibraryLabAPI;
+            _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
+            _lib = _plugin.LibraryLabAPI;
         }
+
+        #region Lifecycle Cleanup
+
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev)
+        {
+            Timing.KillCoroutines(GeneratorAudioTag);
+        }
+
+        public override void OnServerWaitingForPlayers()
+        {
+            Timing.KillCoroutines(GeneratorAudioTag);
+        }
+
+        #endregion
 
         public override void OnServerGeneratorActivated(GeneratorActivatedEventArgs ev)
         {
-            if (!_plugin.IsEventActive)
+            // 1. Cheap checks first: Ensure plugin and blackout events are active
+            if (!_plugin.IsEventActive || !_plugin.Npc.Methods.IsBlackoutActive)
                 return;
 
             if (ev?.Generator == null)
                 return;
 
+            // 2. Expensive spatial query last
             var room = _lib.GetRoomAtPosition(ev.Generator.Position);
-
             if (room == null)
                 return;
 
-            if (!_plugin.Npc.Methods.IsBlackoutActive)
-                return;
-
-            LibraryLabAPI.LogInfo("Generator", $"Generator activated in {room.Name}");
+            LibraryLabAPI.LogInfo("GeneratorHandler", $"Generator activated in {room.Name}");
 
             _lib.EnableAndFlickerRoomAndNeighborLights(
                 room,
@@ -45,13 +60,16 @@
 
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
-                _plugin.Npc.Methods.TrackCoroutine(
-                Timing.CallDelayed(3.75f, () =>
+                // Replaced deprecated TrackCoroutine with MEC tag system
+
+                CoroutineHandle coroutine = Timing.CallDelayed(3.75f, () =>
                 {
                     _plugin.AudioManager.PlayGlobalAudioAutoManaged(
                         AudioKey.ScreamDying,
                         lifespan: 25f);
-                }));
+                });
+
+                coroutine.Tag = GeneratorAudioTag;
 
                 if (_plugin.Config.NpcConfig.IsNpcKillable)
                     _plugin.Npc.Methods.Kill575();
