@@ -107,6 +107,7 @@ namespace SCP_575.Npc
             Timing.KillCoroutines("SCP575-CassieCd");
             Timing.KillCoroutines("SCP575-ElevatorLocks");
             Timing.KillCoroutines("SCP575-BlackoutStacks");
+            Timing.KillCoroutines("SCP575-RagdollPhys");
 
             _plugin.AudioManager?.Clean();
             _sanityHandler?.Clean();

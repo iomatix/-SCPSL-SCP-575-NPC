@@ -56,6 +56,11 @@ namespace SCP_575.Handlers
         {
             Timing.KillCoroutines(CleanupTag);
 
+            foreach (var userId in _flickeringPlayers)
+            {
+                Timing.KillCoroutines($"{FlickerTagPrefix}{userId}");
+            }
+
             _cooldownUntil.Clear();
             _flickeringPlayers.Clear();
         }
