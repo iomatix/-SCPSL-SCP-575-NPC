@@ -485,19 +485,19 @@ cassie_config:
   # Priority for important Cassie messages.
   cassie_message_priority: 3.0999999
   # Cassie countdown before blackout.
-  cassie_message_countdown: 'pitch_0.2 .g4 . .g4 pitch_1 door control system pitch_0.25 .g1 pitch_0.9 malfunction pitch_1 . initializing repair'
+  cassie_message_countdown: 'pitch_0.9 power failure . pitch_1'
   # Time between sentence and countdown.
-  time_between_sentence_and_start: 8.60000038
+  time_between_sentence_and_start: 5
   # Time between blackout end and end message.
-  time_between_sentence_and_end: 7
+  time_between_sentence_and_end: 3
   # Cassie message at blackout start.
-  cassie_message_start: 'facility power system outage in 3 . 2 . 1 .'
+  cassie_message_start: 'warning . facility power grid failure imminent . anomalous activity detected .'
   # Cassie post-blackout-start message.
-  cassie_post_message: 'facility power system malfunction has been detected at .'
+  cassie_post_message: 'pitch_0.8 darkness is no longer safe . stay in light areas . pitch_1'
   # Cassie message if no blackout occurs.
-  cassie_message_wrong: '. I have prevented the system failure . .g5 Sorry for a .g3 . false alert .'
+  cassie_message_wrong: 'pitch_1.1 . power grid stabilized . false alert detected . pitch_1'
   # Cassie message at blackout end.
-  cassie_message_end: 'facility power system now operational'
+  cassie_message_end: 'pitch_1.15 facility power system now operational . pitch_1'
   # Message for facility-wide blackout.
   cassie_message_facility: 'The Facility .'
   # Message for Entrance Zone blackout.
@@ -511,9 +511,9 @@ cassie_config:
   # Message for unspecified zone blackout.
   cassie_message_other: '. pitch_0.35 .g6 pitch_0.95 the malfunction is Unspecified .'
   # Glitch chance per word in Cassie messages.
-  glitch_chance: 10
+  glitch_chance: 15
   # Jam chance per word in Cassie messages.
-  jam_chance: 5
+  jam_chance: 10
   # Cassie Keter sound during blackout.
   cassie_keter: 'pitch_0.15 .g7'
 # Audio system configuration.
