@@ -23,6 +23,8 @@ namespace SCP_575.Npc
         private readonly PlayerLightsourceHandler _lightsourceHandler;
         private readonly PlayerSanityHandler _sanityHandler;
         private readonly LibraryLabAPI _libraryLabAPI;
+
+        private bool _isInitialized = false;
         private readonly HashSet<FacilityZone> _triggeredZones = new();
         private static readonly object BlackoutLock = new();
         private static int _blackoutStacks = 0;
@@ -77,12 +79,34 @@ namespace SCP_575.Npc
         /// </summary>
         public void Init(float roll = -1f)
         {
-            LibraryLabAPI.LogInfo("Init", "SCP-575 NPC methods initialized.");
-            RegisterEventHandlers();
+            
+            if (_isInitialized)
+            {
+                LibraryLabAPI.LogDebug(nameof(Init), "Methods already initialized for this round. Skipping.");
+                return;
+            }
+
+            LibraryLabAPI.LogDebug(nameof(Init), $"Roll: {roll}, Event Chance: {_config.BlackoutConfig.EventChance}");
             if (roll <= _config.BlackoutConfig.EventChance)
             {
+                LibraryLabAPI.LogInfo(nameof(Init), "SCP-575 NPC methods initialized.");
+                LibraryLabAPI.LogDebug(nameof(Init), $"Registering Event Handlers...");
+                try
+                {
+                    RegisterEventHandlers();
+                    _isInitialized = true;
+
+                }
+                catch (Exception ex)
+                {
+                    LibraryLabAPI.LogError(nameof(Init), $"Failed to register event handlers: {ex}");
+                    _isInitialized = false;
+                    return;
+                }
+
                 _plugin.IsEventActive = true;
                 LibraryLabAPI.LogInfo(nameof(Init), "SCP-575 NPC spawning due to roll being within spawn chance.");
+                LibraryLabAPI.LogDebug(nameof(Init), $"Starting Coroutines...");
 
                 _plugin.Npc.Methods.StartBlackoutEventLoop();
                 _plugin.Npc.Methods.StartKeterActionLoop();
@@ -107,7 +131,8 @@ namespace SCP_575.Npc
         /// </summary>
         public void Disable()
         {
-            LibraryLabAPI.LogInfo("Disable", "SCP-575 NPC methods disabled.");
+            _isInitialized = false;
+            LibraryLabAPI.LogInfo("Disable", "Disabling SCP-575 NPC methods.");
             Clean();
             _plugin.IsEventActive = false;
             Timing.KillCoroutines("SCP575-BlackoutLoop");
