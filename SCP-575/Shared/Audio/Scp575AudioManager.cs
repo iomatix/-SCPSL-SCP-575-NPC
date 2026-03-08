@@ -273,18 +273,29 @@
             Log.Debug($"[Scp575AudioManager][SkipAudio] Skipped {count} audio clips for Session ID {sessionId}.");
         }
 
+        /// <summary>
+        /// Registers SCP-575 audio resources from the assembly's embedded resources.
+        /// Fixed mapping to handle keys with dots correctly.
+        /// </summary>
         private void RegisterAudioResources()
         {
             var assembly = Assembly.GetExecutingAssembly();
             foreach (var pair in audioConfig)
             {
-                string resourceName = $"SCP_575.Shared.Audio.Files.{pair.Value.key}.wav";
+                // We extract the part after the dot if it exists, or use the whole key.
+                // Example: "scp575.scream" becomes "scream.wav"
+                string fileName = pair.Value.key.Contains(".")
+                    ? pair.Value.key.Substring(pair.Value.key.LastIndexOf('.') + 1)
+                    : pair.Value.key;
+
+                string resourceName = $"SCP_575.Shared.Audio.Files.{fileName}.wav";
+
                 sharedAudioManager.RegisterAudio(pair.Value.key, () =>
                 {
                     var stream = assembly.GetManifestResourceStream(resourceName);
                     if (stream == null || stream.Length == 0)
                     {
-                        Log.Error($"[Scp575AudioManager][RegisterAudioResources] Failed to load audio resource: {resourceName}. Stream is null or empty.");
+                        Log.Error($"[Scp575AudioManager][RegisterAudioResources] Failed to load audio resource: {resourceName}. Stream is null or empty. (Full Key: {pair.Value.key})");
                     }
                     else
                     {
@@ -292,7 +303,7 @@
                     }
                     return stream;
                 });
-                Log.Debug($"[Scp575AudioManager][RegisterAudioResources] Registered audio resource: {pair.Value.key}");
+                Log.Debug($"[Scp575AudioManager][RegisterAudioResources] Registered audio resource: {pair.Value.key} using resource path: {resourceName}");
             }
         }
     }
