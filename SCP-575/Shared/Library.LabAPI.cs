@@ -169,7 +169,8 @@ namespace SCP_575.Shared
             {
                 elevator.LockAllDoors();
                 LibraryLabAPI.LogDebug(nameof(TurnOffRoomLights), "Locked elevator doors due to room blackout");
-                _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(duration, () => elevator.UnlockAllDoors()));
+                var coroutine = Timing.CallDelayed(duration, () => elevator.UnlockAllDoors());
+                coroutine.Tag = "SCP575-ElevatorLocks";
             });
 
             LibraryLabAPI.LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
@@ -226,7 +227,8 @@ namespace SCP_575.Shared
                 HandleElevatorsForRoom(r, elevatorAffectChance, Config.BlackoutConfig.FlickerDuration, elevator =>
                 {
                     elevator.LockAllDoors();
-                    _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(Config.BlackoutConfig.FlickerDuration, () => elevator.UnlockAllDoors()));
+                    var coroutine = Timing.CallDelayed(Config.BlackoutConfig.FlickerDuration, () => elevator.UnlockAllDoors());
+                    coroutine.Tag = "SCP575-ElevatorLocks";
                 });
             }
         }
@@ -259,7 +261,8 @@ namespace SCP_575.Shared
                 if (attemptResult && !attemptFirstSuccess)
                 {
                     Methods.IncrementBlackoutStack();
-                    _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack()));
+                    var coroutine = Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
+                    coroutine.Tag = "SCP575-BlackoutStacks";
                     attemptFirstSuccess = true;
                 }
             }

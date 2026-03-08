@@ -17,17 +17,8 @@ namespace SCP_575.Systems
     {
         #region Constants and Static Properties  
 
-        /// <summary>  
-        /// Gets the unique identifier name for this class.
-        /// </summary>  
         public static string IdentifierName => nameof(Scp575DamageSystem);
 
-        /// <summary>  
-        /// Defines force multipliers applied to different hitbox types during ragdoll processing.
-        /// </summary>  
-        /// <remarks>  
-        /// These values are currently unused due to ragdoll position restoration but maintained for future use.
-        /// </remarks>  
         public static readonly IReadOnlyDictionary<HitboxType, float> HitboxToForce = new Dictionary<HitboxType, float>
         {
             [HitboxType.Body] = 0.08f,
@@ -35,9 +26,6 @@ namespace SCP_575.Systems
             [HitboxType.Limb] = 0.016f
         };
 
-        /// <summary>  
-        /// Defines damage multipliers for different hitbox types to simulate realistic damage scaling.
-        /// </summary>  
         public static readonly IReadOnlyDictionary<HitboxType, float> HitboxDamageMultipliers = new Dictionary<HitboxType, float>
         {
             [HitboxType.Body] = 1.0f,
@@ -49,261 +37,91 @@ namespace SCP_575.Systems
 
         #region Properties  
 
-        /// <summary>  
-        /// Gets the DamagePenetration factor for further damage processing.
-        /// </summary>  
         public static float DamagePenetration => Plugin.Singleton.Config.NpcConfig.KeterDamagePenetration;
-
-        /// <summary>  
-        /// Gets the Reason text displayed on the player's death screen.
-        /// </summary>  
         public static string DeathScreenText => Plugin.Singleton.Config.HintsConfig.KilledByMessage;
-
-        /// <summary>  
-        /// Gets the text displayed when inspecting a ragdoll killed by this handler.
-        /// </summary>  
         public static string RagdollInspectText => Plugin.Singleton.Config.HintsConfig.RagdollInspectText;
-
-        /// <summary>  
-        /// Gets the CASSIE announcement for deaths caused by this handler.
-        /// SCP-575 deaths do not trigger CASSIE announcements.
-        /// </summary>  
         public static string CassieDeathAnnouncement => "";
 
         #endregion
 
         #region Damage Processing 
 
-        /// <summary>  
-        /// Applies damage to the specified player with hitbox-based multipliers and armor penetration calculations.  
-        /// </summary>  
-        /// <param name="target">The player receiving damage.</param>  
-        /// <param name="damage">The base damage amount to apply.</param>  
-        /// <param name="hitbox">The hitbox type that determines damage multipliers.</param>  
-        /// <returns><c>true</c> if damage was successfully applied; otherwise, <c>false</c>.</returns>  
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="target"/> is null.</exception>  
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="damage"/> is negative.</exception>  
         public static bool DamagePlayer(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox = HitboxType.Body)
         {
-            if (target == null)
-                throw new ArgumentNullException(nameof(target));
+            if (target?.ReferenceHub == null) return false;
+            if (damage < 0f) return false;
 
-            if (damage < 0f)
-                throw new ArgumentOutOfRangeException(nameof(damage), "Damage cannot be negative.");
-
-            try
-            {
-                if (target.ReferenceHub == null)
-                {
-                    LibraryLabAPI.LogWarn(nameof(DamagePlayer), $"ReferenceHub is null for player {target.UserId} ({target.Nickname ?? "null"})");
-                    return false;
-                }
-
-                LibraryLabAPI.LogDebug(nameof(DamagePlayer),
-                    $"Processing damage for {target.Nickname ?? "null"} with Hitbox: {hitbox} and Damage: {damage:F1}");
-
-                float processedDamage = DamageProcessor(target, damage, hitbox);
-
-                bool succeeded = target.Damage(processedDamage, DeathScreenText);
-
-                if (succeeded)
-                {
-                    LibraryLabAPI.LogDebug(nameof(DamagePlayer),
-                        target.IsAlive ? "Damage applied successfully - player survived" : "Damage applied successfully - player died");
-                }
-                else
-                {
-                    LibraryLabAPI.LogDebug(nameof(DamagePlayer), "Failed to apply damage");
-                }
-
-                return succeeded;
-            }
-            catch (Exception ex)
-            {
-                LibraryLabAPI.LogError(nameof(DamagePlayer),
-                    $"Failed to process damage for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
-                return false;
-            }
+            float processedDamage = DamageProcessor(target, damage, hitbox);
+            return target.Damage(processedDamage, DeathScreenText);
         }
 
-        /// <summary>  
-        /// Processes damage by applying hitbox multipliers and armor penetration calculations.  
-        /// </summary>  
-        /// <param name="target">The target player.</param>  
-        /// <param name="damage">The base damage amount.</param>  
-        /// <param name="hitbox">The hitbox type for multiplier calculations.</param>  
-        /// <returns>The final processed damage amount after all calculations.</returns>  
         private static float DamageProcessor(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
         {
-            if (damage <= 0f)
-                return damage;
+            if (damage <= 0f) return damage;
 
-            try
+            float processedDamage = damage;
+            if (HitboxDamageMultipliers.TryGetValue(hitbox, out var damageMul))
             {
-                LibraryLabAPI.LogDebug(nameof(DamageProcessor),
-                    $"Processing damage for {target.Nickname ?? "null"} with Hitbox: {hitbox} and Damage: {damage:F1}");
-
-                float processedDamage = damage; // Initialize with base damage  
-
-                // Apply hitbox-specific damage multipliers    
-                if (HitboxDamageMultipliers.TryGetValue(hitbox, out var damageMul))
-                {
-                    processedDamage *= damageMul;
-                    LibraryLabAPI.LogDebug(nameof(DamageProcessor),
-                        $"Applied hitbox multiplier {damageMul:F2} for {hitbox}. Damage: {damage:F1} -> {processedDamage:F1}");
-                }
-
-                // Handle armor interactions for armored roles - use the multiplied damage  
-                processedDamage = ProcessArmorInteraction(target, processedDamage, hitbox);
-
-                return processedDamage;
+                processedDamage *= damageMul;
             }
-            catch (Exception ex)
-            {
-                LibraryLabAPI.LogError(nameof(DamageProcessor),
-                    $"Failed to process damage for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
-                return damage;
-            }
+
+            processedDamage = ProcessArmorInteraction(target, processedDamage, hitbox);
+            return processedDamage;
         }
 
-        /// <summary>  
-        /// Processes armor interactions by calculating penetration effects on damage.  
-        /// Handles both Hume Shield and body armor calculations.  
-        /// </summary>  
-        /// <param name="target">The target player with potential armor.</param>  
-        /// <param name="damage">The damage amount to process through armor.</param>  
-        /// <param name="hitbox">The hitbox type for armor efficacy calculations.</param>  
-        /// <returns>The final damage amount after armor processing.</returns>  
         private static float ProcessArmorInteraction(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
         {
-            if (damage <= 0f)
+            if (damage <= 0f || target.ReferenceHub == null) return damage;
+
+            if (target.RoleBase is not IArmoredRole armoredRole)
                 return damage;
 
-            try
-            {
-                if (target.RoleBase is not IArmoredRole armoredRole)
-                {
-                    LibraryLabAPI.LogDebug(nameof(ProcessArmorInteraction),
-                        $"Player {target.Nickname ?? "null"} has no armored role, returning damage: {damage:F1}");
-                    return damage;
-                }
+            int armorEfficacy = armoredRole.GetArmorEfficacy(hitbox);
+            int penetrationPercent = Mathf.RoundToInt(DamagePenetration * 100f);
 
-                if (target.ReferenceHub == null)
-                {
-                    LibraryLabAPI.LogWarn(nameof(ProcessArmorInteraction),
-                        $"ReferenceHub is null for player {target.UserId} ({target.Nickname ?? "null"})");
-                    return damage;
-                }
+            float humeShield = target.ReferenceHub.playerStats.GetModule<HumeShieldStat>().CurValue;
+            float shieldDamage = Mathf.Clamp(humeShield, 0f, damage);
+            float armorDamage = Mathf.Max(0f, damage - shieldDamage);
+            float postArmorDamage = BodyArmorUtils.ProcessDamage(armorEfficacy, armorDamage, penetrationPercent);
 
-                LibraryLabAPI.LogDebug(nameof(ProcessArmorInteraction),
-                    $"Player {target.Nickname ?? "null"} has armor role: {armoredRole.GetType().Name}");
-
-                int armorEfficacy = armoredRole.GetArmorEfficacy(hitbox);
-                int penetrationPercent = Mathf.RoundToInt(DamagePenetration * 100f);
-
-                // Calculate Hume Shield absorption  
-                float humeShield = target.ReferenceHub.playerStats.GetModule<HumeShieldStat>().CurValue;
-                float shieldDamage = Mathf.Clamp(humeShield, 0f, damage);
-
-                // Calculate damage that goes through to armor  
-                float armorDamage = Mathf.Max(0f, damage - shieldDamage);
-
-                // Apply armor penetration calculation  
-                float postArmorDamage = BodyArmorUtils.ProcessDamage(armorEfficacy, armorDamage, penetrationPercent);
-
-                // Final damage is shield damage (always full) plus penetrated armor damage  
-                float finalDamage = shieldDamage + postArmorDamage;
-
-                LibraryLabAPI.LogDebug(nameof(ProcessArmorInteraction),
-                    $"Armor calculation for {target.Nickname ?? "null"}: " +
-                    $"Efficacy={armorEfficacy}, Penetration={penetrationPercent}%, " +
-                    $"Shield={shieldDamage:F1}, Armor={armorDamage:F1}->{postArmorDamage:F1}, " +
-                    $"Final={finalDamage:F1}");
-
-                return finalDamage;
-            }
-            catch (Exception ex)
-            {
-                LibraryLabAPI.LogError("ProcessArmorInteraction",
-                    $"Failed to process armor for {target.UserId} ({target.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
-                return damage;
-            }
+            return shieldDamage + postArmorDamage;
         }
 
         #endregion
 
         #region Ragdoll Processing  
 
-        #region Pooling Infrastructure  
-        /// <summary>  
-        /// Shared pool for rigidbody arrays to reduce garbage collection during ragdoll physics processing.  
-        /// </summary>  
         private static readonly NorthwoodLib.Pools.ListPool<Rigidbody> RigidbodyPool = NorthwoodLib.Pools.ListPool<Rigidbody>.Shared;
-        #endregion
 
-        /// <summary>
-        /// Processes an SCP-575 ragdoll with visual effects and validation using LabAPI synchronization.
-        /// </summary>
-        /// <param name="ragdoll">The LabAPI ragdoll wrapper to process.</param>
-        /// <exception cref="ArgumentNullException">Thrown when ragdoll or handler is null.</exception>
         public static void RagdollProcessor(Player player, Ragdoll ragdoll)
         {
-            if (ragdoll == null)
-            {
-                LibraryLabAPI.LogWarn(nameof(RagdollProcessor), "Aborted: Null ragdoll received");
-                return;
-            }
+            if (ragdoll == null || player == null || !player.IsReady) return;
 
-            if (player == null || !player.IsReady)
-            {
-                LibraryLabAPI.LogWarn(nameof(RagdollProcessor),
-                    $"Invalid player state for ragdoll at {ragdoll.Position}");
-                return;
-            }
-
-            LibraryLabAPI.LogDebug(nameof(RagdollProcessor), $"Processing SCP-575 ragdoll for {player.Nickname} at position: {ragdoll.Position}");
             try
             {
                 Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll);
-                if (newRagdoll == null)
-                {
-                    LibraryLabAPI.LogError(nameof(RagdollProcessor), "Failed to create replacement ragdoll");
-                    return;
-                }
+                if (newRagdoll == null) return;
 
-                // Apply physics in a coroutine to ensure proper frame timing
-                Plugin.Singleton.Npc.Methods.RunTrackedCoroutine(ProcessRagdollPhysics(newRagdoll), "SCP575-RagdollPhys");
-                LibraryLabAPI.LogDebug(nameof(RagdollProcessor), $"SCP-575 ragdoll processing completed");
+                Timing.RunCoroutine(ProcessRagdollPhysics(newRagdoll), "SCP575-RagdollPhys");
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError(nameof(RagdollProcessor), $"Critical ragdoll error: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
+                LibraryLabAPI.LogError(nameof(RagdollProcessor), $"Critical ragdoll error: {ex.Message}");
             }
         }
+
         private static IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll)
         {
-            if (ragdoll?.Base?.gameObject == null)
-            {
-                LibraryLabAPI.LogWarn(nameof(ProcessRagdollPhysics), "Ragdoll destroyed before physics could be applied");
-                yield break;
-            }
+            if (ragdoll?.Base?.gameObject == null) yield break;
 
-            // Wait for ragdoll to be fully initialized    
             yield return Timing.WaitForOneFrame;
             yield return Timing.WaitForOneFrame;
 
-            // Rent a list from the pool instead of creating array  
             List<Rigidbody> rigidbodies = RigidbodyPool.Rent();
-
             try
             {
-                // Get all rigidbodies and add to pooled list  
                 Rigidbody[] ragdollRigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
-                if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0)
-                {
-                    LibraryLabAPI.LogWarn(nameof(ProcessRagdollPhysics), "No rigidbodies found on ragdoll");
-                    yield break;
-                }
+                if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0) yield break;
 
                 rigidbodies.AddRange(ragdollRigidbodies);
 
@@ -314,33 +132,21 @@ namespace SCP_575.Systems
             }
             finally
             {
-                // Always return the list to the pool
                 RigidbodyPool.Return(rigidbodies);
             }
         }
 
         private static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll)
         {
-            if (player == null || originalRagdoll == null)
-                return null;
+            if (player == null || originalRagdoll?.Base == null) return null;
 
             try
             {
-                LibraryLabAPI.LogDebug(nameof(ReplaceRagdoll),
-                    $"Replacing ragdoll for {player.Nickname ?? "null"} at position: {originalRagdoll.Position}");
-
-                // Check ragdoll validity
-                if (originalRagdoll.Base == null || !originalRagdoll.Base.isActiveAndEnabled)
-                {
-                    LibraryLabAPI.LogWarn(nameof(ReplaceRagdoll), "Original ragdoll is invalid or not spawned");
-                    return null;
-                }
-
                 Vector3 spawnPosition = originalRagdoll.Position;
                 Quaternion spawnRotation = originalRagdoll.Rotation;
 
-                // Prepare RagdollData
                 var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
+
                 Ragdoll newRagdoll = Ragdoll.SpawnRagdoll(
                     RoleTypeId.Scp3114,
                     spawnPosition,
@@ -348,11 +154,24 @@ namespace SCP_575.Systems
                     customHandler,
                     player.Nickname);
 
-                // Only destroy original if new ragdoll was successfully created
-                if (newRagdoll == null)
+                if (newRagdoll?.Base != null)
                 {
-                    LibraryLabAPI.LogError(nameof(ReplaceRagdoll), "Ragdoll.SpawnRagdoll returned null");
-                    return null;
+                    var basicRagdoll = newRagdoll.Base;
+                    var oldInfo = basicRagdoll.NetworkInfo;
+
+                    var newInfo = new PlayerRoles.Ragdolls.RagdollData(
+                        oldInfo.OwnerHub,
+                        oldInfo.Handler,
+                        RoleTypeId.None,
+                        oldInfo.StartRelativePosition,
+                        oldInfo.StartRelativeRotation,
+                        oldInfo.Scale,
+                        oldInfo.Nickname,
+                        oldInfo.CreationTime,
+                        oldInfo.Serial
+                    );
+
+                    basicRagdoll.NetworkInfo = newInfo;
                 }
 
                 originalRagdoll.Destroy();
@@ -360,64 +179,46 @@ namespace SCP_575.Systems
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError(nameof(ReplaceRagdoll),
-                    $"Failed to replace ragdoll for {player.UserId} ({player.Nickname ?? "null"}): {ex.Message}, StackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError(nameof(ReplaceRagdoll), $"Failed to replace ragdoll: {ex.Message}");
                 return null;
             }
         }
 
         private static void ApplyStandardRagdollPhysics(List<Rigidbody> rigidbodies, Vector3 upwardForce, Vector3 randomForce)
         {
-            if (rigidbodies == null || rigidbodies.Count == 0)
-            {
-                LibraryLabAPI.LogWarn(nameof(ApplyStandardRagdollPhysics), $"No rigidbodies found on ragdoll");
-                return;
-            }
+            if (rigidbodies == null || rigidbodies.Count == 0) return;
+
             foreach (Rigidbody rb in rigidbodies)
             {
                 if (rb == null) continue;
 
-                try
-                {
-                    // Scale force based on rigidbody mass  
-                    float massMultiplier = Mathf.Max(1f, rb.mass / 1f);
-                    Vector3 scaledUpwardForce = upwardForce * massMultiplier;
-                    Vector3 scaledRandomForce = randomForce * massMultiplier;
+                rb.isKinematic = false;
 
-                    rb.linearVelocity = scaledUpwardForce + scaledRandomForce;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
-                }
-                catch (Exception ex)
-                {
-                    LibraryLabAPI.LogError(nameof(ApplyStandardRagdollPhysics),
-                        $"Failed to apply physics to rigidbody {rb.name}: {ex.Message}");
-                }
+                float massMultiplier = Mathf.Max(1f, rb.mass);
+                Vector3 scaledUpwardForce = upwardForce * massMultiplier;
+                Vector3 scaledRandomForce = randomForce * massMultiplier;
+
+                rb.AddForce(scaledUpwardForce + scaledRandomForce, ForceMode.Impulse);
+                rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
             }
         }
 
         private static void ConvertToBones(Ragdoll ragdoll)
         {
-            if (ragdoll?.Base == null)
-            {
-                LibraryLabAPI.LogWarn(nameof(ConvertToBones), "Ragdoll is null or destroyed - bone conversion aborted");
-                return;
-            }
-
+            if (ragdoll?.Base == null) return;
 
             try
             {
                 if (IsDynamicRagdoll(ragdoll) && ragdoll.Base.TryGetComponent<DynamicRagdoll>(out var dr))
                 {
                     Scp3114RagdollToBonesConverter.ConvertExisting(dr);
-                    LibraryLabAPI.LogDebug(nameof(ConvertToBones), "Ragdoll successfully converted to bones");
                 }
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("ConvertToBones", $"Failed to convert ragdoll to bones: {ex.Message}, StackTrace: {ex.StackTrace}");
+                LibraryLabAPI.LogError("ConvertToBones", $"Failed to convert ragdoll to bones: {ex.Message}");
             }
         }
-
         #endregion
 
         #region Utility Methods  
@@ -429,11 +230,7 @@ namespace SCP_575.Systems
 
         public static IEnumerator<float> DropAndPushItems(Player player)
         {
-            if (player == null || !player.IsReady || player.IsHost)
-            {
-                LibraryLabAPI.LogDebug(nameof(DropAndPushItems), "Aborted: Invalid player state");
-                yield break;
-            }
+            if (player == null || !player.IsReady || player.IsHost) yield break;
 
             const int maxWaitFrames = 6;
             int waitFrames = 0;
@@ -441,7 +238,6 @@ namespace SCP_575.Systems
 
             try
             {
-                LibraryLabAPI.LogDebug(nameof(DropAndPushItems), $"Dropping all items from {player.Nickname ?? "null"}'s inventory");
                 droppedPickups = player.DropAllItems();
             }
             catch (Exception ex)
@@ -450,46 +246,32 @@ namespace SCP_575.Systems
                 yield break;
             }
 
-            // Wait until items are properly spawned  
             while (player.Inventory.UserInventory.Items.Count > 0 && waitFrames++ < maxWaitFrames)
             {
                 yield return Timing.WaitForOneFrame;
             }
 
-            // Apply physics to all valid pickups  
             foreach (Pickup pickup in droppedPickups)
             {
-                if (pickup?.Rigidbody == null || pickup.IsDestroyed || !pickup.IsSpawned)
-                {
-                    LibraryLabAPI.LogWarn(nameof(DropAndPushItems), $"Invalid pickup {pickup?.Serial ?? 0} - skipping");
-                    continue;
-                }
+                if (pickup?.Rigidbody == null || pickup.IsDestroyed || !pickup.IsSpawned) continue;
 
                 try
                 {
-                    // Ensure rigidbody can receive physics  
                     pickup.Rigidbody.isKinematic = false;
 
                     var direction = GetRandomUnitSphereVelocity(5.75f);
                     var magnitude = CalculateForcePush(7.35f);
 
-                    // Apply physics directly  
                     pickup.Rigidbody.linearVelocity = direction * magnitude;
                     pickup.Rigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
-
-                    LibraryLabAPI.LogDebug(nameof(DropAndPushItems),
-                        $"Applied physics to item {pickup.Serial} ({pickup.Type}) with velocity {direction * magnitude}");
                 }
                 catch (Exception ex)
                 {
-                    LibraryLabAPI.LogError(nameof(DropAndPushItems),
-                        $"Failed to apply physics to item {pickup.Serial} ({pickup.Type}): {ex.Message}");
+                    LibraryLabAPI.LogError(nameof(DropAndPushItems), $"Failed to apply physics to item {pickup.Serial}: {ex.Message}");
                 }
 
-                // Stagger physics application
                 yield return Timing.WaitForOneFrame;
             }
-
         }
 
         public static bool IsScp575Damage(DamageHandlerBase handler)
@@ -504,15 +286,6 @@ namespace SCP_575.Systems
                    customHandler.RagdollInspectText == RagdollInspectText;
         }
 
-        /// <summary>
-        /// Calculates a randomized force push multiplier within configured bounds.
-        /// </summary>  
-        /// <param name="baseValue">The base value to multiply by the random factor.</param>
-        /// <returns>A randomized force multiplier value.</returns>
-        /// <remarks>
-        /// This method is currently unused due to ragdoll position restoration but maintained  
-        /// for potential future use in item physics or other SCP-575 effects.
-        /// </remarks>
         private static float CalculateForcePush(float baseValue = 1.0f)
         {
             float randomFactor = UnityEngine.Random.Range(
@@ -522,30 +295,15 @@ namespace SCP_575.Systems
             return baseValue * randomFactor;
         }
 
-        /// <summary>
-        /// Generates a random unit sphere velocity vector with damage-based scaling.
-        /// </summary>  
-        /// <param name="baseValue">The base velocity multiplier.</param>
-        /// <returns>A scaled random velocity vector.</returns>
-        /// <remarks>
-        /// This method includes logic to prevent downward-pointing vectors that could cause  
-        /// items to fall through the floor. The velocity is scaled logarithmically based on  
-        /// damage amount to provide realistic physics effects.
-        /// Currently unused for ragdolls due to position restoration.
-        /// </remarks>
         private static Vector3 GetRandomUnitSphereVelocity(float baseVelocityValue = 1.0f)
         {
             Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
 
-            // Prevent downward vectors that could cause items to clip through floors  
-            // If the vector points more than 45° downward, reflect it upward  
-            if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f) // cos(45°) ≈ 0.707  
+            if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f)
             {
-                LibraryLabAPI.LogDebug("GetRandomUnitSphereVelocity", "Vector pointing downward, reflecting upward.");
                 randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
             }
 
-            // Apply logarithmic scaling based on damage for realistic force distribution  
             float modifier = baseVelocityValue *
                            Mathf.Log(Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier) *
                            CalculateForcePush(Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier);

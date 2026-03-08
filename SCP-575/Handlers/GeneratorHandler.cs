@@ -62,7 +62,7 @@
             {
                 // Replaced deprecated TrackCoroutine with MEC tag system
 
-                CoroutineHandle coroutine = Timing.CallDelayed(3.75f, () =>
+                var coroutine = Timing.CallDelayed(3.75f, () =>
                 {
                     _plugin.AudioManager.PlayGlobalAudioAutoManaged(
                         AudioKey.ScreamDying,

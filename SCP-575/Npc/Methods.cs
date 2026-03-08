@@ -105,8 +105,13 @@ namespace SCP_575.Npc
             Timing.KillCoroutines("SCP575-ActionLoop");
             Timing.KillCoroutines("SCP575-SanityHandler");
             Timing.KillCoroutines("SCP575-CassieCd");
+            Timing.KillCoroutines("SCP575-ElevatorLocks");
+            Timing.KillCoroutines("SCP575-BlackoutStacks");
 
-            _sanityHandler.Clean();
+            _plugin.AudioManager?.Clean();
+            _sanityHandler?.Clean();
+            _plugin.LightsourceHandler?.Clean();
+
             LibraryLabAPI.LogInfo(nameof(Disable), "SCP-575 NPC logic and all coroutines terminated.");
         }
 
@@ -437,7 +442,7 @@ namespace SCP_575.Npc
             Timing.KillCoroutines("SCP575-SanityHandler");
 
             // Assigning to _sanityHandler allows external access if needed, but MEC handles execution
-            _sanityHandler.SanityDecayCoroutine = Timing.RunCoroutine(_sanityHandler.HandleSanityDecay(), "SCP575-SanityHandler");
+            Timing.RunCoroutine(_sanityHandler.HandleSanityDecay(), "SCP575-SanityHandler");
         }
 
         public void StartCassieCooldown()

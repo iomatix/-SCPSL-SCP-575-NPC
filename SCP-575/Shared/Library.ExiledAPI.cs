@@ -265,7 +265,8 @@ namespace SCP_575.Shared
                 if (attemptResult && !isFirstSuccess)
                 {
                     NpcMethods.IncrementBlackoutStack();
-                    NpcMethods.TrackCoroutine(Timing.CallDelayed(blackoutDuration, () => NpcMethods.DecrementBlackoutStack()));
+                    var coroutine = Timing.CallDelayed(blackoutDuration, () => NpcMethods.DecrementBlackoutStack());
+                    coroutine.Tag = "SCP575-BlackoutStacks";
                     isFirstSuccess = true;
                 }
             }

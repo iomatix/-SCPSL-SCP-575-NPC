@@ -4,8 +4,6 @@
     using AudioManagerAPI.Features.Enums;
     using AudioManagerAPI.Features.Filters;
     using AudioManagerAPI.Features.Management;
-    using AudioManagerAPI.Features.Speakers;
-    using AudioManagerAPI.Features.Static;
     using LabApi.Features.Wrappers;
     using MEC;
     using SCP_575.ConfigObjects;
@@ -27,9 +25,11 @@
         private static IAudioManager sharedAudioManager;
         private DateTime lastGlobalScreamTime = DateTime.MinValue;
 
-        // byte -> int (Session ID update)
         private int _ambienceAudioSessionId;
         private readonly HashSet<int> _pluginSessionIds = new();
+
+        // MEC Tag for all coroutines started by this audio manager, allowing for easy cleanup on round end or plugin disable.
+        private const string AudioCoroutineTag = "SCP575-AudioCoroutines";
 
         private readonly Dictionary<AudioKey, (string key, float volume, float minDistance, float maxDistance, bool isSpatial, AudioPriority priority, float defaultLifespan)> audioConfig = new()
         {
@@ -58,30 +58,34 @@
             _ambienceAudioSessionId = 0;
         }
 
+        /// <summary>
+        /// Cleans up all active audio coroutines and sessions.
+        /// Call this when the round ends or the plugin is disabled.
+        /// </summary>
+        public void Clean()
+        {
+            Timing.KillCoroutines(AudioCoroutineTag);
+            StopAmbience();
+            _pluginSessionIds.Clear();
+            Log.Debug("[Scp575AudioManager] Audio manager cleaned up.");
+        }
+
         public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false)
         {
-            if (!audioConfig.ContainsKey(audioKey))
+            if (!audioConfig.TryGetValue(audioKey, out var config))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration.", nameof(audioKey));
 
             if (!hearableForAllPlayers && player == null && !isNonSpatial)
                 throw new ArgumentNullException(nameof(player), "Player cannot be null when hearableForAllPlayers is false and audio is spatial.");
 
-            var config = audioConfig[audioKey];
             Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
-
-            if (!isNonSpatial && player != null)
-            {
-                float distance = Vector3.Distance(player.Position, playPosition);
-                Log.Debug($"[Scp575AudioManager] Player {player.Nickname} position: {player.Position}, audio position: {playPosition}, distance: {distance:F2}, maxDistance: {config.maxDistance}");
-            }
 
             if (isNonSpatial && (audioKey == AudioKey.Scream || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
                 double secondsSinceLastScream = (DateTime.UtcNow - lastGlobalScreamTime).TotalSeconds;
                 if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown)
                 {
-                    Log.Warn($"[Scp575AudioManager] Scream audio {audioKey} blocked due to global cooldown. Time since last scream: {secondsSinceLastScream:F2}s.");
-                    return 0;
+                    return 0; // Silently block due to cooldown to avoid log spam
                 }
                 lastGlobalScreamTime = DateTime.UtcNow;
             }
@@ -106,8 +110,6 @@
 
             int sessionId;
 
-
-            // zero-allocation player filter - only create if needed, otherwise pass null to play for all players
             Func<Player, bool> targetPlayerFilter = (!hearableForAllPlayers && player != null && !isNonSpatial)
                 ? (p => p != null && p.UserId == player.UserId)
                 : null;
@@ -115,37 +117,23 @@
             if (isNonSpatial)
             {
                 sessionId = sharedAudioManager.PlayGlobalAudio(
-                    config.key,
-                    loop: false,
-                    volume: config.volume,
-                    priority: config.priority,
-                    validPlayersFilter: targetPlayerFilter,
-                    queue: queue,
-                    fadeInDuration: fadeInDuration,
-                    lifespan: lifespan,
-                    autoCleanup: true);
+                    config.key, loop: false, volume: config.volume, priority: config.priority,
+                    validPlayersFilter: targetPlayerFilter, queue: queue, fadeInDuration: fadeInDuration,
+                    lifespan: lifespan, autoCleanup: true);
             }
             else
             {
                 sessionId = sharedAudioManager.PlayAudio(
-                    config.key,
-                    playPosition,
-                    loop: false,
-                    volume: config.volume,
-                    minDistance: config.minDistance,
-                    maxDistance: config.maxDistance,
-                    isSpatial: config.isSpatial,
-                    priority: config.priority,
-                    validPlayersFilter: targetPlayerFilter,
-                    queue: queue,
-                    fadeInDuration: fadeInDuration,
-                    lifespan: lifespan,
-                    autoCleanup: true);
+                    config.key, playPosition, loop: false, volume: config.volume,
+                    minDistance: config.minDistance, maxDistance: config.maxDistance,
+                    isSpatial: config.isSpatial, priority: config.priority,
+                    validPlayersFilter: targetPlayerFilter, queue: queue,
+                    fadeInDuration: fadeInDuration, lifespan: lifespan, autoCleanup: true);
             }
 
             if (sessionId == 0)
             {
-                Log.Warn($"[Scp575AudioManager] Failed to play audio {audioKey} {(isNonSpatial ? "globally (non-spatial)" : hearableForAllPlayers ? "for all nearby players" : $"for player {player?.Nickname ?? "unknown"}")} at {playPosition}. Possible reasons: audio file missing or session allocation failed.");
+                Log.Warn($"[Scp575AudioManager] Failed to play audio {audioKey}. Possible reasons: audio file missing or session allocation failed.");
                 return 0;
             }
 
@@ -159,36 +147,21 @@
             float effectiveLifespan = lifespan ?? config.defaultLifespan;
             if (effectiveLifespan > 0)
             {
-                if (effectiveLifespan <= 0)
-                {
-                    Log.Warn($"[Scp575AudioManager] Invalid lifespan for audio {audioKey}: {effectiveLifespan}. Must be positive.");
-                    if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
-                    {
-                        StopAmbience();
-                    }
-                    else
-                    {
-                        sharedAudioManager.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
-                    }
-                    return 0;
-                }
-
-                _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(effectiveLifespan, () =>
-                {
-                    if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
-                    {
-                        StopAmbience();
-                    }
-                    else
-                    {
-                        sharedAudioManager.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
-                        Log.Debug($"[Scp575AudioManager] Stopped audio {audioKey} with session ID {sessionId} after lifespan of {effectiveLifespan} seconds.");
-                    }
-                    _pluginSessionIds.Remove(sessionId);
-                }));
+                var coroutine = Timing.CallDelayed(effectiveLifespan, () =>
+                 {
+                     if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
+                     {
+                         StopAmbience();
+                     }
+                     else
+                     {
+                         sharedAudioManager.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                     }
+                     _pluginSessionIds.Remove(sessionId);
+                 });
+                coroutine.Tag = AudioCoroutineTag;
             }
 
-            Log.Debug($"[Scp575AudioManager] Played audio {audioKey} {(isNonSpatial ? "globally (non-spatial)" : hearableForAllPlayers ? "for all nearby players" : $"for player {player?.Nickname ?? "unknown"}")} at {playPosition} with Session ID {sessionId}{(queue ? " (queued)" : "")}.");
             return sessionId;
         }
 
@@ -212,27 +185,15 @@
                 StopAmbience();
             }
 
-            // Const filter to avoid allocations in loop - checks if player is in a dark room and if blackout is active
             var isDarkRoomFilter = AudioFilters.IsInRoomWhereLightsAre(false);
             Func<Player, bool> blackoutFilter = p => isDarkRoomFilter(p) && _plugin.Npc.Methods.IsBlackoutActive;
 
             int sessionId = sharedAudioManager.PlayGlobalAudio(
-                key: config.key,
-                loop: loop,
-                volume: config.volume,
-                priority: config.priority,
-                validPlayersFilter: blackoutFilter,
-                queue: queue,
-                fadeInDuration: fadeInDuration,
-                persistent: true,
-                lifespan: null,
-                autoCleanup: true);
+                key: config.key, loop: loop, volume: config.volume, priority: config.priority,
+                validPlayersFilter: blackoutFilter, queue: queue, fadeInDuration: fadeInDuration,
+                persistent: true, lifespan: null, autoCleanup: true);
 
-            if (sessionId == 0)
-            {
-                Log.Warn($"[Scp575AudioManager][PlayAmbience] Failed to play ambience. Possible reasons: audio file missing or session allocation failed.");
-                return 0;
-            }
+            if (sessionId == 0) return 0;
 
             _ambienceAudioSessionId = sessionId;
 
@@ -240,15 +201,14 @@
             {
                 if (lifespan.Value <= 0)
                 {
-                    Log.Warn($"[Scp575AudioManager][PlayAmbience] Invalid lifespan: {lifespan.Value}. Must be positive.");
                     StopAmbience();
                     return 0;
                 }
-                
-                _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(lifespan.Value, StopAmbience));
+
+                var coroutine = Timing.CallDelayed(lifespan.Value, StopAmbience);
+                coroutine.Tag = AudioCoroutineTag;
             }
 
-            Log.Debug($"[Scp575AudioManager][PlayAmbience] Started ambience with Session ID {sessionId} (loop: {loop}, queue: {queue}).");
             return sessionId;
         }
 
@@ -257,26 +217,16 @@
             if (_ambienceAudioSessionId != 0)
             {
                 sharedAudioManager.FadeOutAudio(_ambienceAudioSessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
-                Log.Debug($"[Scp575AudioManager] Stopped ambience audio with Session ID {_ambienceAudioSessionId}.");
                 _ambienceAudioSessionId = 0;
             }
         }
 
         public void SkipAudio(int sessionId, int count)
         {
-            if (sessionId == 0)
-            {
-                Log.Warn($"[Scp575AudioManager][SkipAudio] Invalid session ID 0 for skipping audio.");
-                return;
-            }
-
+            if (sessionId == 0) return;
             sharedAudioManager.SkipAudio(sessionId, count);
-            Log.Debug($"[Scp575AudioManager][SkipAudio] Skipped {count} audio clips for Session ID {sessionId}.");
         }
 
-        /// <summary>
-        /// Registers SCP-575 audio resources with robust resource path detection.
-        /// </summary>
         private void RegisterAudioResources()
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -285,20 +235,13 @@
             foreach (var pair in audioConfig)
             {
                 string key = pair.Value.key;
-
-                // We will try several common naming conventions for SCP:SL plugins
-                // 1. Precise path from the previous version (with hyphen)
-                // 2. Path with underscore
-                // 3. Fallback: Search the assembly for any resource ending with the key + .wav
-
                 string resourceName = allResourceNames.FirstOrDefault(r =>
                     r.EndsWith($"{key}.wav", StringComparison.OrdinalIgnoreCase) ||
                     r.EndsWith($"{key.Replace(".", "_")}.wav", StringComparison.OrdinalIgnoreCase));
 
                 if (string.IsNullOrEmpty(resourceName))
                 {
-                    Log.Error($"[Scp575AudioManager] CRITICAL: Could not find any embedded resource matching key '{key}'. " +
-                              $"Available resources in assembly: {string.Join(", ", allResourceNames)}");
+                    Log.Error($"[Scp575AudioManager] CRITICAL: Could not find any embedded resource matching key '{key}'.");
                     continue;
                 }
 
@@ -311,8 +254,6 @@
                     }
                     return stream;
                 });
-
-                Log.Debug($"[Scp575AudioManager] Successfully mapped key '{key}' to resource: {resourceName}");
             }
         }
     }
