@@ -32,7 +32,7 @@
         /// </summary>
         [Description("Cassie countdown before blackout.")]
         public string CassieMessageCountdown { get; set; } =
-            "pitch_0.2 .g4 . .g4 pitch_1 door control system pitch_0.25 .g1 pitch_0.9 malfunction pitch_1 . initializing repair";
+            "pitch_0.9 power failure . pitch_1";
 
         #endregion
 
@@ -47,7 +47,7 @@
             get => _timeBetweenSentenceAndStart;
             set => _timeBetweenSentenceAndStart = value < 0f ? 0f : value;
         }
-        private float _timeBetweenSentenceAndStart = 8.6f;
+        private float _timeBetweenSentenceAndStart = 5.0f;
 
         /// <summary>
         /// Seconds between blackout end and Cassie’s end message.
@@ -58,7 +58,7 @@
             get => _timeBetweenSentenceAndEnd;
             set => _timeBetweenSentenceAndEnd = value < 0f ? 0f : value;
         }
-        private float _timeBetweenSentenceAndEnd = 7.0f;
+        private float _timeBetweenSentenceAndEnd = 3.0f;
 
         #endregion
 
@@ -69,28 +69,28 @@
         /// </summary>
         [Description("Cassie message at blackout start.")]
         public string CassieMessageStart { get; set; } =
-            "facility power system outage in 3 . 2 . 1 .";
+            "warning . facility power grid failure imminent . anomalous activity detected .";
 
         /// <summary>
         /// Cassie’s follow-up message immediately after blackout begins.
         /// </summary>
         [Description("Cassie post-blackout-start message.")]
         public string CassiePostMessage { get; set; } =
-            "facility power system malfunction has been detected at .";
+            "pitch_0.8 darkness is no longer safe . stay in light areas . pitch_1";
 
         /// <summary>
         /// Cassie’s message if no blackout occurs.
         /// </summary>
         [Description("Cassie message if no blackout occurs.")]
         public string CassieMessageWrong { get; set; } =
-            ". I have prevented the system failure . .g5 Sorry for a .g3 . false alert .";
+            "pitch_1.1 . power grid stabilized . false alert detected . pitch_1";
 
         /// <summary>
         /// Cassie’s message when blackout ends.
         /// </summary>
         [Description("Cassie message at blackout end.")]
         public string CassieMessageEnd { get; set; } =
-            "facility power system now operational";
+            "pitch_1.15 facility power system now operational . pitch_1";
 
         #endregion
 
@@ -146,7 +146,7 @@
             get => _glitchChance;
             private set => _glitchChance = value < 0f ? 0f : value > 100f ? 100f : value;
         }
-        private float _glitchChance = 10f;
+        private float _glitchChance = 15f;
 
         /// <summary>
         /// Chance (%) of jamming per word in Cassie’s speech.
@@ -157,7 +157,7 @@
             get => _jamChance;
             private set => _jamChance = value < 0f ? 0f : value > 100f ? 100f : value;
         }
-        private float _jamChance = 5f;
+        private float _jamChance = 10f;
 
         /// <summary>
         /// The “Keter” sound Cassie plays during blackout.
