@@ -1,9 +1,5 @@
 ﻿namespace SCP_575.Shared.Audio
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Reflection;
-    using UnityEngine;
     using AudioManagerAPI.Defaults;
     using AudioManagerAPI.Features.Enums;
     using AudioManagerAPI.Features.Filters;
@@ -12,8 +8,13 @@
     using AudioManagerAPI.Features.Static;
     using LabApi.Features.Wrappers;
     using MEC;
-    using SCP_575.Shared.Audio.Enums;
     using SCP_575.ConfigObjects;
+    using SCP_575.Shared.Audio.Enums;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using UnityEngine;
     using Log = LabApi.Features.Console.Logger;
 
     /// <summary>
@@ -274,36 +275,44 @@
         }
 
         /// <summary>
-        /// Registers SCP-575 audio resources from the assembly's embedded resources.
-        /// Fixed mapping to handle keys with dots correctly.
+        /// Registers SCP-575 audio resources with robust resource path detection.
         /// </summary>
         private void RegisterAudioResources()
         {
             var assembly = Assembly.GetExecutingAssembly();
+            string[] allResourceNames = assembly.GetManifestResourceNames();
+
             foreach (var pair in audioConfig)
             {
-                // We extract the part after the dot if it exists, or use the whole key.
-                // Example: "scp575.scream" becomes "scream.wav"
-                string fileName = pair.Value.key.Contains(".")
-                    ? pair.Value.key.Substring(pair.Value.key.LastIndexOf('.') + 1)
-                    : pair.Value.key;
+                string key = pair.Value.key;
 
-                string resourceName = $"SCP_575.Shared.Audio.Files.{fileName}.wav";
+                // We will try several common naming conventions for SCP:SL plugins
+                // 1. Precise path from the previous version (with hyphen)
+                // 2. Path with underscore
+                // 3. Fallback: Search the assembly for any resource ending with the key + .wav
 
-                sharedAudioManager.RegisterAudio(pair.Value.key, () =>
+                string resourceName = allResourceNames.FirstOrDefault(r =>
+                    r.EndsWith($"{key}.wav", StringComparison.OrdinalIgnoreCase) ||
+                    r.EndsWith($"{key.Replace(".", "_")}.wav", StringComparison.OrdinalIgnoreCase));
+
+                if (string.IsNullOrEmpty(resourceName))
+                {
+                    Log.Error($"[Scp575AudioManager] CRITICAL: Could not find any embedded resource matching key '{key}'. " +
+                              $"Available resources in assembly: {string.Join(", ", allResourceNames)}");
+                    continue;
+                }
+
+                sharedAudioManager.RegisterAudio(key, () =>
                 {
                     var stream = assembly.GetManifestResourceStream(resourceName);
                     if (stream == null || stream.Length == 0)
                     {
-                        Log.Error($"[Scp575AudioManager][RegisterAudioResources] Failed to load audio resource: {resourceName}. Stream is null or empty. (Full Key: {pair.Value.key})");
-                    }
-                    else
-                    {
-                        Log.Debug($"[Scp575AudioManager][RegisterAudioResources] Loaded audio resource: {resourceName}, size: {stream.Length} bytes");
+                        Log.Error($"[Scp575AudioManager] Failed to load stream for: {resourceName}");
                     }
                     return stream;
                 });
-                Log.Debug($"[Scp575AudioManager][RegisterAudioResources] Registered audio resource: {pair.Value.key} using resource path: {resourceName}");
+
+                Log.Debug($"[Scp575AudioManager] Successfully mapped key '{key}' to resource: {resourceName}");
             }
         }
     }
