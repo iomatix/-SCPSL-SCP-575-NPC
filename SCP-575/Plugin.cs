@@ -12,9 +12,14 @@ namespace SCP_575
     /// </summary>
     public class Plugin : Exiled.API.Features.Plugin<Config>
     {
-        private EventHandler _eventHandler;
+        private LifecycleHandler _lifecycleHandler;
+        private GeneratorHandler _generatorHandler;
+        private ExplosionHandler _explosionHandler;
+        private PlayerDamageHandler _damageHandler;
+        private RagdollHandler _ragdollHandler;
         private PlayerSanityHandler _sanityHandler;
         private PlayerLightsourceHandler _lightsourceHandler;
+
         private NestingObjects.Npc _npc;
         private Scp575AudioManager _audioManager;
         private LibraryLabAPI _libraryLabAPI;
@@ -26,11 +31,6 @@ namespace SCP_575
         /// Gets the singleton instance of the SCP-575 plugin.
         /// </summary>
         public static Plugin Singleton { get; private set; }
-
-        /// <summary>
-        /// Gets the event handler instance for managing server and player events.
-        /// </summary>
-        public EventHandler EventHandler => _eventHandler;
 
         /// <summary>
         /// Gets the event handler of the player sanity mechanics.
@@ -80,7 +80,7 @@ namespace SCP_575
         /// <summary>
         /// Gets the version of the plugin.
         /// </summary>
-        public override System.Version Version => new(8,9,10);
+        public override System.Version Version => new(9, 0, 0);
 
         /// <summary>
         /// Gets the minimum required Exiled version for compatibility.
@@ -95,21 +95,27 @@ namespace SCP_575
             try
             {
                 Singleton = this;
-                _eventHandler = new EventHandler(this);
                 _audioManager = new Scp575AudioManager(this);
                 _libraryLabAPI = new LibraryLabAPI(this);
                 _config = new Config();
 
                 // Initialize the custom handlers BEFORE registering events
+                _lifecycleHandler = new LifecycleHandler(this);
+                _generatorHandler = new GeneratorHandler(this);
+                _explosionHandler = new ExplosionHandler(this);
+                _damageHandler = new PlayerDamageHandler(this);
+                _ragdollHandler = new RagdollHandler(this);
                 _sanityHandler = new PlayerSanityHandler(this);
                 _lightsourceHandler = new PlayerLightsourceHandler(this);
-                _sanityHandler?.Initialize();
-                _lightsourceHandler?.Initialize();
 
                 // Nexting Objects
                 _npc = new NestingObjects.Npc(this);
 
-                RegisterEvents();
+                _sanityHandler?.Initialize();
+                _lightsourceHandler?.Initialize();
+
+                // Register event handlers after all components are initialized
+                RegisterEvents();             
 
                 LibraryLabAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
                 base.OnEnabled();
@@ -129,11 +135,6 @@ namespace SCP_575
             try
             {
                 _isEventActive = false;
-                foreach (CoroutineHandle handle in _eventHandler?.Coroutines ?? new List<CoroutineHandle>())
-                {
-                    Timing.KillCoroutines(handle);
-                }
-                _eventHandler?.Coroutines.Clear();
 
                 UnregisterEvents();
 
@@ -142,7 +143,6 @@ namespace SCP_575
                 _lightsourceHandler?.Dispose();
 
                 Singleton = null;
-                _eventHandler = null;
                 _sanityHandler = null;
                 _lightsourceHandler = null;
                 _npc = null;
@@ -164,14 +164,11 @@ namespace SCP_575
         /// </summary>
         private void RegisterEvents()
         {
-            LabApi.Events.Handlers.ServerEvents.RoundStarted += _eventHandler.OnRoundStarted;
-            LabApi.Events.Handlers.ServerEvents.RoundEnded += _eventHandler.OnRoundEnded;
-            LabApi.Events.Handlers.ServerEvents.WaitingForPlayers += _eventHandler.OnWaitingForPlayers;
-            LabApi.Events.Handlers.PlayerEvents.Hurting += _eventHandler.OnPlayerHurting;
-            LabApi.Events.Handlers.PlayerEvents.Hurt += _eventHandler.OnPlayerHurt;
-            LabApi.Events.Handlers.PlayerEvents.Dying += _eventHandler.OnPlayerDying;
-            LabApi.Events.Handlers.PlayerEvents.Death += _eventHandler.OnPlayerDeath;
-            LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll += _eventHandler.OnSpawnedRagdoll;
+            CustomHandlersManager.RegisterEventsHandler(_lifecycleHandler);
+            CustomHandlersManager.RegisterEventsHandler(_generatorHandler);
+            CustomHandlersManager.RegisterEventsHandler(_explosionHandler);
+            CustomHandlersManager.RegisterEventsHandler(_damageHandler);
+            CustomHandlersManager.RegisterEventsHandler(_ragdollHandler);
             CustomHandlersManager.RegisterEventsHandler(_lightsourceHandler);
             CustomHandlersManager.RegisterEventsHandler(_sanityHandler);
             LibraryLabAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
@@ -182,20 +179,15 @@ namespace SCP_575
         /// </summary>
         private void UnregisterEvents()
         {
-            if (_eventHandler != null)
-            {
-                LabApi.Events.Handlers.ServerEvents.RoundStarted -= _eventHandler.OnRoundStarted;
-                LabApi.Events.Handlers.ServerEvents.RoundEnded -= _eventHandler.OnRoundEnded;
-                LabApi.Events.Handlers.ServerEvents.WaitingForPlayers -= _eventHandler.OnWaitingForPlayers;
-                LabApi.Events.Handlers.PlayerEvents.Hurting -= _eventHandler.OnPlayerHurting;
-                LabApi.Events.Handlers.PlayerEvents.Hurt -= _eventHandler.OnPlayerHurt;
-                LabApi.Events.Handlers.PlayerEvents.Dying -= _eventHandler.OnPlayerDying;
-                LabApi.Events.Handlers.PlayerEvents.Death -= _eventHandler.OnPlayerDeath;
-                LabApi.Events.Handlers.PlayerEvents.SpawnedRagdoll -= _eventHandler.OnSpawnedRagdoll;
-                CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
-                CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
-                LibraryLabAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
-            }
+
+            CustomHandlersManager.UnregisterEventsHandler(_lifecycleHandler);
+            CustomHandlersManager.UnregisterEventsHandler(_generatorHandler);
+            CustomHandlersManager.UnregisterEventsHandler(_explosionHandler);
+            CustomHandlersManager.UnregisterEventsHandler(_damageHandler);
+            CustomHandlersManager.UnregisterEventsHandler(_ragdollHandler);
+            CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
+            CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
+            LibraryLabAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
         }
     }
 }

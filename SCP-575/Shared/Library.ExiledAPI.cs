@@ -261,11 +261,11 @@ namespace SCP_575.Shared
                     continue;
                 }
 
-                bool attemptResult = NpcMethods.AttemptRoomBlackout(labApiRoom, blackoutDuration, isCassieSilent: true, isForced: true);
+                bool attemptResult = NpcMethods.AttemptRoomBlackout(labApiRoom, blackoutDuration, silent: true, forced: true);
                 if (attemptResult && !isFirstSuccess)
                 {
                     NpcMethods.IncrementBlackoutStack();
-                    Timing.CallDelayed(blackoutDuration, () => NpcMethods.DecrementBlackoutStack());
+                    NpcMethods.TrackCoroutine(Timing.CallDelayed(blackoutDuration, () => NpcMethods.DecrementBlackoutStack()));
                     isFirstSuccess = true;
                 }
             }

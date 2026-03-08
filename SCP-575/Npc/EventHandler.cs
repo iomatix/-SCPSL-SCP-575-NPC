@@ -127,10 +127,10 @@ namespace SCP_575.Npc
                 // Check if all generators are engaged to trigger SCP-575 behavior
                 if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
                 {
-                    Timing.CallDelayed(3.75f, () =>
+                    _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(3.75f, () =>
                     {
                         _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.ScreamDying, lifespan: 25f);
-                    });
+                    }));
                     if (_plugin.Config.NpcConfig.IsNpcKillable)
                     {
                         _plugin.Npc.Methods.Kill575();

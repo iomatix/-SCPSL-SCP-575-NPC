@@ -458,8 +458,8 @@
             }
             try
             {
-                bool isValid = player.IsAlive && player.IsHuman && player.Nickname != null;
-                LibraryLabAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Player: {player.UserId} ({player.Nickname}), IsAlive={player.IsAlive}, IsHuman={player.IsHuman}, Nickname={(player.Nickname != null ? "non-null" : "null")}, IsValid={isValid}");
+                bool isValid = player.IsAlive && player.IsHuman && player.Nickname != null && player.Room.Name != MapGeneration.RoomName.Pocket;
+                LibraryLabAPI.LogDebug("PlayerSanityHandler.IsValidPlayer", $"Instance ID={_instanceId}, Player: {player.UserId} ({player.Nickname}), IsAlive={player.IsAlive}, IsHuman={player.IsHuman}, Room={player.Room.Name}, Nickname={(player.Nickname != null ? "non-null" : "null")}, IsValid={isValid}");
                 return isValid;
             }
             catch (Exception ex)

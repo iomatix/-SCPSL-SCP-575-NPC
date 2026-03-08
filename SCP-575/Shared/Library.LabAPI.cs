@@ -169,7 +169,7 @@ namespace SCP_575.Shared
             {
                 elevator.LockAllDoors();
                 LibraryLabAPI.LogDebug(nameof(TurnOffRoomLights), "Locked elevator doors due to room blackout");
-                Timing.CallDelayed(duration, () => elevator.UnlockAllDoors());
+                _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(duration, () => elevator.UnlockAllDoors()));
             });
 
             LibraryLabAPI.LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
@@ -226,7 +226,7 @@ namespace SCP_575.Shared
                 HandleElevatorsForRoom(r, elevatorAffectChance, Config.BlackoutConfig.FlickerDuration, elevator =>
                 {
                     elevator.LockAllDoors();
-                    Timing.CallDelayed(Config.BlackoutConfig.FlickerDuration, () => elevator.UnlockAllDoors());
+                    _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(Config.BlackoutConfig.FlickerDuration, () => elevator.UnlockAllDoors()));
                 });
             }
         }
@@ -255,11 +255,11 @@ namespace SCP_575.Shared
                 LogDebug(nameof(DisableRoomAndNeighborLights),
                     $"Flickering lights in {(r == room ? "the room" : "neighbor room")}: {r.Name}");
 
-                bool attemptResult = Methods.AttemptRoomBlackout(r, blackoutDuration, isCassieSilent: true, isForced: true);
+                bool attemptResult = Methods.AttemptRoomBlackout(r, blackoutDuration, silent: true, forced: true);
                 if (attemptResult && !attemptFirstSuccess)
                 {
                     Methods.IncrementBlackoutStack();
-                    Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
+                    _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack()));
                     attemptFirstSuccess = true;
                 }
             }

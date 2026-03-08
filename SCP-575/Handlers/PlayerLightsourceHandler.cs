@@ -56,7 +56,16 @@ namespace SCP_575.Handlers
         {
             if (_isDisposed) return;
 
-            if (!_cleanupCoroutine.IsRunning) _cleanupCoroutine = Timing.RunCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
+            if (_plugin.Npc?.Methods == null)
+            {
+                LibraryLabAPI.LogError("Initialize", "Cannot initialize PlayerLightsourceHandler: NPC Methods system is null!");
+                return;
+            }
+
+            if (!_cleanupCoroutine.IsRunning)
+            {
+                _cleanupCoroutine = _plugin.Npc.Methods.RunTrackedCoroutine(CleanupCoroutine(), "SCP575LightCleanup");
+            }
             LibraryLabAPI.LogInfo("PlayerLightsourceHandler.Initialize", "Initialized lightsource handler.");
         }
 
@@ -111,11 +120,12 @@ namespace SCP_575.Handlers
             if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player) || ev.NewItem is not LightItem lightItem || !lightItem.IsEmitting) return;
 
-            Timing.CallDelayed(0.05f, () =>
+
+            _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(0.05f, () =>
             {
                 lightItem.IsEmitting = false;
                 LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Disabled flashlight for {ev.Player.Nickname}.");
-            });
+            }));
         }
 
         /// <summary>
@@ -160,7 +170,10 @@ namespace SCP_575.Handlers
             if (!_plugin.IsEventActive) return;
             if (!IsValidPlayer(ev?.Player) || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
 
-            _ = StartFlickerEffectAsync(ev.Player.UserId, "Flashlight", () => ev.LightItem.IsEmitting, state => ev.LightItem.IsEmitting = state);
+            _ = _plugin.Npc.Methods.RunTrackedCoroutine(
+                FlickerCoroutine(ev.Player.UserId, "Flashlight", () => ev.LightItem.IsEmitting, state => ev.LightItem.IsEmitting = state),
+                $"Flicker-{ev.Player.UserId}"
+            );
         }
 
         /// <summary>
@@ -179,7 +192,10 @@ namespace SCP_575.Handlers
 
             if (!ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
 
-            _ = StartFlickerEffectAsync(ev.Player.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(ev.FirearmItem), state => ToggleWeaponFlashlight(ev.FirearmItem, state, nameof(OnPlayerToggledWeaponFlashlight)));
+            _ = _plugin.Npc.Methods.RunTrackedCoroutine(
+            FlickerCoroutine(ev.Player.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(ev.FirearmItem), state => ToggleWeaponFlashlight(ev.FirearmItem, state, nameof(OnPlayerToggledWeaponFlashlight))),
+            $"Flicker-{ev.Player.UserId}"
+            );
         }
 
         #endregion
@@ -199,13 +215,22 @@ namespace SCP_575.Handlers
             {
                 case LightItem lightItem:
                     lightItem.IsEmitting = false;
-                    LibraryLabAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off flashlight for {target.Nickname}");
-                    _ = StartFlickerEffectAsync(target.UserId, "Flashlight", () => lightItem.IsEmitting, state => lightItem.IsEmitting = state, forceOff: true);
+                    LibraryLabAPI.LogDebug("OnScp575AttacksPlayer", $"Forcing off flashlight for {target.Nickname}");
+
+                    _ = _plugin.Npc.Methods.RunTrackedCoroutine(
+                    FlickerCoroutine(target.UserId, "Flashlight", () => lightItem.IsEmitting, state => lightItem.IsEmitting = state, forceOff: true),
+                    $"Flicker-{target.UserId}"
+                    );
+
                     break;
                 case FirearmItem firearm when HasFlashlight(firearm):
+                    LibraryLabAPI.LogDebug("OnScp575AttacksPlayer", $"Forcing off weapon flashlight for {target.Nickname}");
+
                     ToggleWeaponFlashlight(firearm, false, nameof(ApplyLightsourceEffects));
-                    LibraryLabAPI.LogDebug("OnScp575AttacksPlayer", $"Forced off weapon flashlight for {target.Nickname}");
-                    _ = StartFlickerEffectAsync(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(ApplyLightsourceEffects)), forceOff: true);
+                    _ = _plugin.Npc.Methods.RunTrackedCoroutine(
+                    FlickerCoroutine(target.UserId, "WeaponFlashlight", () => GetWeaponFlashlightState(firearm), state => ToggleWeaponFlashlight(firearm, state, nameof(ApplyLightsourceEffects)), forceOff: true),
+                    $"Flicker-{target.UserId}"
+                    );
                     break;
             }
         }
@@ -262,6 +287,7 @@ namespace SCP_575.Handlers
 
         private bool IsPlayerInDarkRoom(Player player)
         {
+            if (player.Room.Name == MapGeneration.RoomName.Pocket) return false;
             return _libraryLabAPI.IsPlayerInDarkRoom(player);
         }
 
@@ -299,54 +325,33 @@ namespace SCP_575.Handlers
             return (isAllowed, newState);
         }
 
-        private async Task StartFlickerEffectAsync(string userId, string lightType, Func<bool> getState, Action<bool> setState, bool forceOff = false)
+        private IEnumerator<float> FlickerCoroutine(string userId, string lightType, Func<bool> getState, Action<bool> setState, bool forceOff = false)
         {
-            if (!_flickeringPlayers.Add(userId))
-            {
-                LibraryLabAPI.LogDebug("StartFlickerEffectAsync", $"Flicker already active for {userId}. Skipping.");
-                return;
-            }
-
-            using var cts = new CancellationTokenSource();
-            _flickerTokens[userId] = cts;
-            LibraryLabAPI.LogDebug("StartFlickerEffectAsync", $"Started {lightType} flicker for {userId}");
+            if (!_flickeringPlayers.Add(userId)) yield break;
 
             try
             {
                 int flickerCount = Math.Max(2, _random.Next(_config.MinFlickerCount, _config.MaxFlickerCount));
                 int totalDurationMs = _random.Next(_config.MinFlickerDurationMs, _config.MaxFlickerDurationMs + 1);
-                int delayPerFlicker = totalDurationMs / flickerCount;
+                float delayPerFlicker = (totalDurationMs / 1000f) / flickerCount;
 
-                LibraryLabAPI.LogDebug("StartFlickerEffectAsync", $"x{flickerCount} flickers over {totalDurationMs}ms for {userId}");
-                for (int i = 0; i < flickerCount && !cts.Token.IsCancellationRequested; i++)
+                for (int i = 0; i < flickerCount; i++)
                 {
-                    // Validate FirearmItem before accessing
                     if (lightType == "WeaponFlashlight")
                     {
-                        var player = Player.Get(userId);
-                        if (player?.CurrentItem is not FirearmItem firearm || !HasFlashlight(firearm))
-                        {
-                            LibraryLabAPI.LogDebug("StartFlickerEffectAsync", $"Invalid firearm or no flashlight for {userId}. Cancelling flicker.");
-                            break;
-                        }
+                        var p = Player.Get(userId);
+                        if (p?.CurrentItem is not FirearmItem f || !HasFlashlight(f)) break;
                     }
 
                     setState(!getState());
-                    await Task.Delay(delayPerFlicker, cts.Token);
+                    yield return Timing.WaitForSeconds(delayPerFlicker);
                 }
 
                 if (forceOff) setState(false);
             }
-            catch (OperationCanceledException) // More specific than TaskCanceledException
-            {
-                if (forceOff) setState(false);
-                LibraryLabAPI.LogDebug("StartFlickerEffectAsync", $"Flicker cancelled for {userId}.");
-            }
             finally
             {
                 _flickeringPlayers.Remove(userId);
-                _flickerTokens.TryRemove(userId, out _); // CTS disposed by using statement
-                LibraryLabAPI.LogDebug("StartFlickerEffectAsync", $"Ended {lightType} flicker for {userId}");
             }
         }
 
@@ -357,7 +362,7 @@ namespace SCP_575.Handlers
                 LibraryLabAPI.LogDebug("HasFlashlight", $"Invalid firearm.");
                 return false;
             }
-            
+
             Attachment[] attachments = firearm.Attachments;
             bool hasFlashlight = attachments != null && attachments.Any(a => a.Name == AttachmentName.Flashlight);
             if (!hasFlashlight)

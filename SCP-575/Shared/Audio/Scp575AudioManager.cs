@@ -173,7 +173,7 @@
                     return 0;
                 }
 
-                Timing.CallDelayed(effectiveLifespan, () =>
+                _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(effectiveLifespan, () =>
                 {
                     if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
                     {
@@ -185,7 +185,7 @@
                         Log.Debug($"[Scp575AudioManager] Stopped audio {audioKey} with session ID {sessionId} after lifespan of {effectiveLifespan} seconds.");
                     }
                     _pluginSessionIds.Remove(sessionId);
-                });
+                }));
             }
 
             Log.Debug($"[Scp575AudioManager] Played audio {audioKey} {(isNonSpatial ? "globally (non-spatial)" : hearableForAllPlayers ? "for all nearby players" : $"for player {player?.Nickname ?? "unknown"}")} at {playPosition} with Session ID {sessionId}{(queue ? " (queued)" : "")}.");
@@ -244,8 +244,8 @@
                     StopAmbience();
                     return 0;
                 }
-
-                Timing.CallDelayed(lifespan.Value, StopAmbience);
+                
+                _plugin.Npc.Methods.TrackCoroutine(Timing.CallDelayed(lifespan.Value, StopAmbience));
             }
 
             Log.Debug($"[Scp575AudioManager][PlayAmbience] Started ambience with Session ID {sessionId} (loop: {loop}, queue: {queue}).");

@@ -272,7 +272,7 @@ namespace SCP_575.Systems
                 }
 
                 // Apply physics in a coroutine to ensure proper frame timing
-                Timing.RunCoroutine(ProcessRagdollPhysics(newRagdoll));
+                Plugin.Singleton.Npc.Methods.RunTrackedCoroutine(ProcessRagdollPhysics(newRagdoll), "SCP575-RagdollPhys");
                 LibraryLabAPI.LogDebug(nameof(RagdollProcessor), $"SCP-575 ragdoll processing completed");
             }
             catch (Exception ex)
@@ -486,12 +486,10 @@ namespace SCP_575.Systems
                         $"Failed to apply physics to item {pickup.Serial} ({pickup.Type}): {ex.Message}");
                 }
 
-                // Stagger physics application  
+                // Stagger physics application
                 yield return Timing.WaitForOneFrame;
             }
 
-            // Return the pooled list  
-            NorthwoodLib.Pools.ListPool<Pickup>.Shared.Return(droppedPickups);
         }
 
         public static bool IsScp575Damage(DamageHandlerBase handler)
