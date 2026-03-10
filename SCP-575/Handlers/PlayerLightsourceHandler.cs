@@ -27,6 +27,7 @@ namespace SCP_575.Handlers
         // Replaced ConcurrentDictionary with standard Dictionary (MEC runs on the Main Thread)
         private readonly Dictionary<string, DateTime> _cooldownUntil = new();
         private readonly HashSet<string> _flickeringPlayers = new();
+        private readonly HashSet<string> _pendingItemChanges = new();
         private readonly Random _random = new();
 
         private bool _isDisposed;
@@ -63,8 +64,14 @@ namespace SCP_575.Handlers
                 Timing.KillCoroutines($"{FlickerTagPrefix}{userId}");
             }
 
+            foreach (var userId in _pendingItemChanges.ToList())
+            {
+                Timing.KillCoroutines($"{ItemChangePrefix}{userId}");
+            }
+
             _cooldownUntil.Clear();
             _flickeringPlayers.Clear();
+            _pendingItemChanges.Clear();
         }
 
         public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
@@ -88,15 +95,25 @@ namespace SCP_575.Handlers
             if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev.NewItem is not LightItem lightItem || !lightItem.IsEmitting)
                 return;
 
-            string coroutineTag = $"{ItemChangePrefix}{ev.Player.UserId}";
+            string userId = ev.Player.UserId;
+            string coroutineTag = $"{ItemChangePrefix}{userId}";
+
             Timing.KillCoroutines(coroutineTag);
+            _pendingItemChanges.Add(userId);
 
             var coroutine = Timing.CallDelayed(0.05f, () =>
             {
-                if (lightItem != null)
+                try
                 {
-                    lightItem.IsEmitting = false;
-                    LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Disabled flashlight for {ev.Player.Nickname}.");
+                    if (lightItem != null)
+                    {
+                        lightItem.IsEmitting = false;
+                        LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Disabled flashlight for {ev.Player.Nickname}.");
+                    }
+                }
+                finally
+                {
+                    _pendingItemChanges.Remove(userId);
                 }
             });
             coroutine.Tag = coroutineTag;
