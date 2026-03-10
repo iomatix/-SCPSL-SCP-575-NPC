@@ -37,6 +37,11 @@
         public const string FlickerPrefix = "SCP575-Flicker-";
 
         /// <summary>
+        /// This prefix can be used for dynamically generated coroutine tags related to item changes, such as when items are dropped or pushed due to SCP-575's effects. For example, you could create tags like "SCP575-ItemChange-Player1" or "SCP575-ItemChange-RoomA" to manage specific item-related coroutines.
+        /// </summary>
+        public const string ItemChangePrefix = "SCP575-ItemChange-";
+
+        /// <summary>
         /// Returns an array of all static coroutine tags for bulk cleanup operations. This can be used in lifecycle handlers to ensure all relevant coroutines are stopped when the round ends or resets.
         /// </summary>
         public static readonly string[] AllStaticTags =

@@ -87,7 +87,10 @@ namespace SCP_575.Handlers
             if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev.NewItem is not LightItem lightItem || !lightItem.IsEmitting)
                 return;
 
-            Timing.CallDelayed(0.05f, () =>
+            string coroutineTag = $"{CoroutineTags.ItemChangePrefix}{ev.Player.UserId}";
+            Timing.KillCoroutines(coroutineTag);
+
+            var coroutine = Timing.CallDelayed(0.05f, () =>
             {
                 if (lightItem != null)
                 {
@@ -95,6 +98,7 @@ namespace SCP_575.Handlers
                     LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Disabled flashlight for {ev.Player.Nickname}.");
                 }
             });
+            coroutine.Tag = coroutineTag;
         }
 
         public override void OnPlayerTogglingFlashlight(PlayerTogglingFlashlightEventArgs ev)
