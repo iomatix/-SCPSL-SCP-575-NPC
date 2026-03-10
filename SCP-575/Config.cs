@@ -1,6 +1,7 @@
 namespace SCP_575
 {
     using System.ComponentModel;
+    using Exiled.API.Features;
     using Exiled.API.Interfaces;
     using SCP_575.ConfigObjects;
 
@@ -12,15 +13,9 @@ namespace SCP_575
     {
         #region General Settings
 
-        /// <summary>
-        /// Gets or sets a value indicating whether the SCP-575 plugin is enabled.
-        /// </summary>
         [Description("Enable or disable SCP-575.")]
         public bool IsEnabled { get; set; } = true;
 
-        /// <summary>
-        /// Gets or sets a value indicating whether debug logging is enabled.
-        /// </summary>
         [Description("Enable debug logging.")]
         public bool Debug { get; set; } = false;
 
@@ -28,9 +23,6 @@ namespace SCP_575
 
         #region Blackout Settings
 
-        /// <summary>
-        /// Gets or sets the configuration for blackout event mechanics.
-        /// </summary>
         [Description("Configuration settings for blackout mechanics.")]
         public BlackoutConfig BlackoutConfig { get; set; } = new BlackoutConfig();
 
@@ -38,9 +30,6 @@ namespace SCP_575
 
         #region NPC Settings
 
-        /// <summary>
-        /// Gets or sets the configuration for SCP-575 NPC behaviors.
-        /// </summary>
         [Description("Configuration settings for SCP-575 NPC behaviors.")]
         public NpcConfig NpcConfig { get; set; } = new NpcConfig();
 
@@ -48,15 +37,9 @@ namespace SCP_575
 
         #region Player Settings
 
-        /// <summary>
-        /// Gets or sets the configuration for the player sanity system.
-        /// </summary>
         [Description("Sanity system configuration.")]
         public PlayerSanityConfig SanityConfig { get; set; } = new PlayerSanityConfig();
 
-        /// <summary>
-        /// Gets or sets the configuration for the player light source system.
-        /// </summary>
         [Description("Light source system configuration.")]
         public PlayerLightsourceConfig LightsourceConfig { get; set; } = new PlayerLightsourceConfig();
 
@@ -64,15 +47,9 @@ namespace SCP_575
 
         #region Hint and Message Settings
 
-        /// <summary>
-        /// Gets or sets the configuration for player hints.
-        /// </summary>
         [Description("Hints configuration settings.")]
         public HintsConfig HintsConfig { get; set; } = new HintsConfig();
 
-        /// <summary>
-        /// Gets or sets the configuration for Cassie announcement messages.
-        /// </summary>
         [Description("Cassie announcement configuration settings.")]
         public CassieConfig CassieConfig { get; set; } = new CassieConfig();
 
@@ -80,9 +57,6 @@ namespace SCP_575
 
         #region Audio
 
-        /// <summary>
-        /// Gets or sets the audio configuration.
-        /// </summary>
         [Description("Audio system configuration.")]
         public AudioConfig AudioConfig { get; set; } = new AudioConfig();
 
@@ -90,28 +64,30 @@ namespace SCP_575
 
         #region Utilities
 
-        /// <summary>
-        /// Gets or sets the interval, in seconds, for automatic cleanup of event handlers.
-        /// </summary>
         [Description("Interval for automatic cleanup of event handlers (seconds).")]
-        public float HandlerCleanupInterval
-        {
-            get => _handlerCleanupInterval;
-            set => _handlerCleanupInterval = value < 0f ? 0f : value;
-        }
-        private float _handlerCleanupInterval = 90f;
+        public float HandlerCleanupInterval { get; set; } = 90f;
 
         #endregion
 
         #region Validation
+
         public void Validate()
         {
+            if (HandlerCleanupInterval < 0f)
+            {
+                Log.Warn("[Config] HandlerCleanupInterval cannot be negative. Resetting to default (90f).");
+                HandlerCleanupInterval = 90f;
+            }
+
             AudioConfig?.Validate();
             BlackoutConfig?.Validate();
             CassieConfig?.Validate();
             HintsConfig?.Validate();
             NpcConfig?.Validate();
+            LightsourceConfig?.Validate();
+            SanityConfig?.Validate();
         }
+
         #endregion
     }
 }

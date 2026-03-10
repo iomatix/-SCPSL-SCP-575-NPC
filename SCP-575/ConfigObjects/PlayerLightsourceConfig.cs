@@ -1,6 +1,7 @@
 ﻿namespace SCP_575.ConfigObjects
 {
     using System.ComponentModel;
+    using Exiled.API.Features;
 
     public sealed class PlayerLightsourceConfig
     {
@@ -8,57 +9,64 @@
         /// Gets or sets the cooldown duration (in seconds) for light sources after being hit by SCP-575.
         /// </summary>
         [Description("Cooldown on the light source triggered on hit by SCP-575.")]
-        public float KeterLightsourceCooldown
-        {
-            get => _keterLightsourceCooldown;
-            private set => _keterLightsourceCooldown = value < 0f ? 0f : value;
-        }
-        private float _keterLightsourceCooldown = 7.25f;
+        public float KeterLightsourceCooldown { get; set; } = 7.25f;
 
         /// <summary>
         /// Gets or sets the minimum number of flickers triggered by SCP-575.
         /// </summary>
         [Description("Minimum number of flickers caused by SCP-575.")]
-        public int MinFlickerCount
-        {
-            get => _minFlickerCount;
-            private set => _minFlickerCount = value < 0 ? 0 : value;
-        }
-        private int _minFlickerCount = 3;
-
+        public int MinFlickerCount { get; set; } = 3;
 
         /// <summary>
         /// Gets or sets the maximum number of flickers triggered by SCP-575.
         /// </summary>
         [Description("Maximum number of flickers caused by SCP-575.")]
-        public int MaxFlickerCount
-        {
-            get => _maxFlickerCount;
-            private set => _maxFlickerCount = value < _minFlickerCount ? _minFlickerCount : value;
-        }
-        private int _maxFlickerCount = 11;
+        public int MaxFlickerCount { get; set; } = 11;
 
         /// <summary>
         /// Gets or sets the minimum duration of the flicker effect in milliseconds.
         /// </summary>
         [Description("Minimum duration of the flicker effect in milliseconds.")]
-        public int MinFlickerDurationMs
-        {
-            get => _minFlickerDurationMs;
-            private set => _minFlickerDurationMs = value < 0 ? 0 : value;
-        }
-        private int _minFlickerDurationMs = 1500;
+        public int MinFlickerDurationMs { get; set; } = 1500;
 
         /// <summary>
         /// Gets or sets the maximum duration of the flicker effect in milliseconds.
         /// </summary>
         [Description("Maximum duration of the flicker effect in milliseconds.")]
-        public int MaxFlickerDurationMs
-        {
-            get => _maxFlickerDurationMs;
-            private set => _maxFlickerDurationMs = value < _minFlickerDurationMs ? _minFlickerDurationMs : value;
-        }
-        private int _maxFlickerDurationMs = 2500;
-    }
+        public int MaxFlickerDurationMs { get; set; } = 2500;
 
+        /// <summary>
+        /// Validates the player lightsource configuration parameters and corrects invalid input.
+        /// </summary>
+        public void Validate()
+        {
+            if (KeterLightsourceCooldown < 0f)
+            {
+                Log.Warn("[PlayerLightsourceConfig] KeterLightsourceCooldown cannot be negative. Resetting to 0.");
+                KeterLightsourceCooldown = 0f;
+            }
+
+            if (MinFlickerCount < 0) MinFlickerCount = 0;
+            if (MaxFlickerCount < 0) MaxFlickerCount = 0;
+
+            if (MinFlickerCount > MaxFlickerCount)
+            {
+                int temp = MinFlickerCount;
+                MinFlickerCount = MaxFlickerCount;
+                MaxFlickerCount = temp;
+                Log.Warn("[PlayerLightsourceConfig] MinFlickerCount was greater than MaxFlickerCount. Values have been swapped.");
+            }
+
+            if (MinFlickerDurationMs < 0) MinFlickerDurationMs = 0;
+            if (MaxFlickerDurationMs < 0) MaxFlickerDurationMs = 0;
+
+            if (MinFlickerDurationMs > MaxFlickerDurationMs)
+            {
+                int temp = MinFlickerDurationMs;
+                MinFlickerDurationMs = MaxFlickerDurationMs;
+                MaxFlickerDurationMs = temp;
+                Log.Warn("[PlayerLightsourceConfig] MinFlickerDurationMs was greater than MaxFlickerDurationMs. Values have been swapped.");
+            }
+        }
+    }
 }

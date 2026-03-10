@@ -1,56 +1,28 @@
 ﻿namespace SCP_575.ConfigObjects
 {
+    using CustomPlayerEffects;
+    using Exiled.API.Features;
     using System;
     using System.ComponentModel;
-
 
     public enum SanityEffectType
     {
         // Visual Effects  
-        Blurred,
-        Blindness,
-        Flashed,
-
+        Blurred, Blindness, Flashed,
         // Audio Effects  
         Deafened,
-
         // Movement Effects  
-        Slowness,
-        SilentWalk,
-        Exhausted,
-        Disabled,
-
+        Slowness, SilentWalk, Exhausted, Disabled,
         // Health Effects  
-        Bleeding,
-        Poisoned,
-        Burned,
-        Corroding,
-
+        Bleeding, Poisoned, Burned, Corroding,
         // Mental Effects  
-        Concussed,
-        Traumatized,
-
+        Concussed, Traumatized,
         // Special Effects  
-        Invisible,
-        Scp207,
-        AntiScp207,
-        MovementBoost,
-        DamageReduction,
-        RainbowTaste,
-        BodyshotReduction,
-        Scp1853,
-        CardiacArrest,
-        InsufficientLighting,
-        SoundtrackMute,
-        SpawnProtected,
-        Ensnared,
-        Ghostly,
-        SeveredHands,
-        Stained,
-        Vitality,
-        Asphyxiated,
-        Decontaminating,
-        PocketCorroding
+        Invisible, Scp207, AntiScp207, MovementBoost, DamageReduction,
+        RainbowTaste, BodyshotReduction, Scp1853, CardiacArrest,
+        InsufficientLighting, SoundtrackMute, SpawnProtected, Ensnared,
+        Ghostly, SeveredHands, Stained, Vitality, Asphyxiated,
+        Decontaminating, PocketCorroding
     }
 
     /// <summary>
@@ -72,31 +44,20 @@
         {
             return effectType switch
             {
-                // Visual Effects  
                 SanityEffectType.Blurred => typeof(CustomPlayerEffects.Blurred),
                 SanityEffectType.Blindness => typeof(CustomPlayerEffects.Blindness),
                 SanityEffectType.Flashed => typeof(CustomPlayerEffects.Flashed),
-
-                // Audio Effects  
                 SanityEffectType.Deafened => typeof(CustomPlayerEffects.Deafened),
-
-                // Movement Effects  
                 SanityEffectType.Slowness => typeof(CustomPlayerEffects.Slowness),
                 SanityEffectType.SilentWalk => typeof(CustomPlayerEffects.SilentWalk),
                 SanityEffectType.Exhausted => typeof(CustomPlayerEffects.Exhausted),
                 SanityEffectType.Disabled => typeof(CustomPlayerEffects.Disabled),
-
-                // Health Effects  
                 SanityEffectType.Bleeding => typeof(CustomPlayerEffects.Bleeding),
                 SanityEffectType.Poisoned => typeof(CustomPlayerEffects.Poisoned),
                 SanityEffectType.Burned => typeof(CustomPlayerEffects.Burned),
                 SanityEffectType.Corroding => typeof(CustomPlayerEffects.Corroding),
-
-                // Mental Effects  
                 SanityEffectType.Concussed => typeof(CustomPlayerEffects.Concussed),
                 SanityEffectType.Traumatized => typeof(CustomPlayerEffects.Traumatized),
-
-                // Special Effects  
                 SanityEffectType.Invisible => typeof(CustomPlayerEffects.Invisible),
                 SanityEffectType.Scp207 => typeof(CustomPlayerEffects.Scp207),
                 SanityEffectType.AntiScp207 => typeof(CustomPlayerEffects.AntiScp207),
@@ -117,12 +78,25 @@
                 SanityEffectType.Asphyxiated => typeof(CustomPlayerEffects.Asphyxiated),
                 SanityEffectType.Decontaminating => typeof(CustomPlayerEffects.Decontaminating),
                 SanityEffectType.PocketCorroding => typeof(CustomPlayerEffects.PocketCorroding),
-
                 _ => throw new ArgumentException($"Unknown effect type: {effectType}")
             };
         }
 
-        // Add a convenience method to get the actual Type for this config  
         public Type GetActualEffectType() => GetEffectType(EffectType);
+
+        public void Validate()
+        {
+            if (Duration < 0f)
+            {
+                Log.Warn($"[SanityEffectConfig] Effect {EffectType} duration cannot be negative. Resetting to 0.");
+                Duration = 0f;
+            }
+
+            if (Intensity < 1)
+            {
+                Log.Warn($"[SanityEffectConfig] Effect {EffectType} intensity cannot be less than 1. Resetting to 1.");
+                Intensity = 1;
+            }
+        }
     }
 }
