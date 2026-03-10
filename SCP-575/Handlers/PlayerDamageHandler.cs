@@ -6,6 +6,7 @@
     using MEC;
     using SCP_575.Shared;
     using SCP_575.Systems;
+    using SCP575.Shared;
     using System;
 
     /// <summary>
@@ -16,7 +17,7 @@
     public class PlayerDamageHandler : CustomEventsHandler
     {
         private readonly Plugin _plugin;
-        private const string ItemPhysicsTag = "SCP575-ItemPhysics";
+        private const string ItemPhysicsTag = CoroutineTags.ItemPhysics;
 
         public PlayerDamageHandler(Plugin plugin)
         {

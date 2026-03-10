@@ -5,6 +5,7 @@
     using MEC;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
+    using SCP575.Shared;
     using System;
 
     /// <summary>
@@ -16,7 +17,7 @@
         private readonly Plugin _plugin;
         private readonly LibraryLabAPI _lib;
 
-        private const string GeneratorAudioTag = "SCP575-GeneratorAudio";
+        private const string GeneratorAudioTag = CoroutineTags.GeneratorAudio;
 
         public GeneratorHandler(Plugin plugin)
         {

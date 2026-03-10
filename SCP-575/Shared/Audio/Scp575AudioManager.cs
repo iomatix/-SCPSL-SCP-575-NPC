@@ -8,6 +8,7 @@
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared.Audio.Enums;
+    using SCP575.Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -29,7 +30,7 @@
         private readonly HashSet<int> _pluginSessionIds = new();
 
         // MEC Tag for all coroutines started by this audio manager, allowing for easy cleanup on round end or plugin disable.
-        private const string AudioCoroutineTag = "SCP575-AudioCoroutines";
+        private const string AudioCoroutineTag = CoroutineTags.AudioCoroutines;
 
         private readonly Dictionary<AudioKey, (string key, float volume, float minDistance, float maxDistance, bool isSpatial, AudioPriority priority, float defaultLifespan)> audioConfig = new()
         {

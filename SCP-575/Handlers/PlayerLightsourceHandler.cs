@@ -13,6 +13,7 @@ namespace SCP_575.Handlers
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
+    using SCP575.Shared;
 
     /// <summary>
     /// Manages restrictions on player flashlights and weapon flashlights affected by SCP-575, including cooldowns, flickering effects, and forced disables during attacks.
@@ -30,8 +31,8 @@ namespace SCP_575.Handlers
 
         private bool _isDisposed;
 
-        private const string LightCleanupTag = "SCP575-LightCleanup";
-        private const string FlickerTagPrefix = "SCP575-Flicker-";
+        private const string LightCleanupTag = CoroutineTags.LightCleanup;
+        private const string FlickerTagPrefix = CoroutineTags.FlickerPrefix;
 
         public PlayerLightsourceHandler(Plugin plugin)
         {

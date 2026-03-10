@@ -6,6 +6,7 @@ namespace SCP_575.Npc
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared.Audio.Enums;
+    using SCP575.Shared;
     using Shared;
     using System;
     using System.Collections.Generic;
@@ -33,7 +34,7 @@ namespace SCP_575.Npc
 
         // Note: Removed _activeCoroutines list to prevent memory leaks from short-lived coroutines.
         // We now rely strictly on MEC's native tagging system for memory safety and cleanup.
-        private const string TempCoroutineTag = "SCP575-Temp";
+        private const string TempCoroutineTag = CoroutineTags.Temp;
 
         private enum CassieStatus
         {
@@ -99,15 +100,11 @@ namespace SCP_575.Npc
             _isInitialized = false;
             _plugin.IsEventActive = false;
 
-            // Clean up all coroutines via tags instead of iterating a potentially massive list
-            Timing.KillCoroutines(TempCoroutineTag);
-            Timing.KillCoroutines("SCP575-BlackoutLoop");
-            Timing.KillCoroutines("SCP575-ActionLoop");
-            Timing.KillCoroutines("SCP575-SanityHandler");
-            Timing.KillCoroutines("SCP575-CassieCd");
-            Timing.KillCoroutines("SCP575-ElevatorLocks");
-            Timing.KillCoroutines("SCP575-BlackoutStacks");
-            Timing.KillCoroutines("SCP575-RagdollPhys");
+            // Clean up all static coroutines via predefined array
+            foreach (string tag in CoroutineTags.AllStaticTags)
+            {
+                Timing.KillCoroutines(tag);
+            }
 
             _plugin.AudioManager?.Clean();
             _sanityHandler?.Clean();
@@ -118,7 +115,7 @@ namespace SCP_575.Npc
 
         public void Clean()
         {
-            Timing.KillCoroutines("SCP575-CassieCd");
+            Timing.KillCoroutines(CoroutineTags.CassieCooldown);
             Reset575();
         }
 
@@ -428,28 +425,28 @@ namespace SCP_575.Npc
 
         public void StartBlackoutEventLoop()
         {
-            Timing.KillCoroutines("SCP575-BlackoutLoop");
-            Timing.RunCoroutine(RunBlackoutLoop(), "SCP575-BlackoutLoop");
+            Timing.KillCoroutines(CoroutineTags.BlackoutLoop);
+            Timing.RunCoroutine(RunBlackoutLoop(), CoroutineTags.BlackoutLoop);
         }
 
         public void StartKeterActionLoop()
         {
-            Timing.KillCoroutines("SCP575-ActionLoop");
-            Timing.RunCoroutine(KeterActionLoop(), "SCP575-ActionLoop");
+            Timing.KillCoroutines(CoroutineTags.ActionLoop);
+            Timing.RunCoroutine(KeterActionLoop(), CoroutineTags.ActionLoop);
         }
 
         public void StartSanityHandlerLoop()
         {
-            Timing.KillCoroutines("SCP575-SanityHandler");
+            Timing.KillCoroutines(CoroutineTags.SanityHandler);
 
             // Assigning to _sanityHandler allows external access if needed, but MEC handles execution
-            Timing.RunCoroutine(_sanityHandler.HandleSanityDecay(), "SCP575-SanityHandler");
+            Timing.RunCoroutine(_sanityHandler.HandleSanityDecay(), CoroutineTags.SanityHandler);
         }
 
         public void StartCassieCooldown()
         {
-            Timing.KillCoroutines("SCP575-CassieCd");
-            Timing.RunCoroutine(CassieCooldownRoutine(), "SCP575-CassieCd");
+            Timing.KillCoroutines(CoroutineTags.CassieCooldown);
+            Timing.RunCoroutine(CassieCooldownRoutine(), CoroutineTags.CassieCooldown);
         }
 
         public void IncrementBlackoutStack() { lock (BlackoutLock) _blackoutStacks++; }

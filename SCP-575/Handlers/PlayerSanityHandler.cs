@@ -9,6 +9,7 @@
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
     using SCP_575.Systems;
+    using SCP575.Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -33,7 +34,7 @@
         private bool _isDisposed;
         private readonly object _cacheLock = new();
 
-        private const string SanityCoroutineTag = "SCP575-SanityHandler";
+        private const string SanityCoroutineTag = CoroutineTags.SanityHandler;
 
         public IReadOnlyDictionary<string, float> SanityCache => _sanityCache;
 
