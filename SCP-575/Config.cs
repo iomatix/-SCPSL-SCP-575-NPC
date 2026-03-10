@@ -102,5 +102,16 @@ namespace SCP_575
         private float _handlerCleanupInterval = 90f;
 
         #endregion
+
+        #region Validation
+        public void Validate()
+        {
+            // TODO: Implement validation logic for each config section to ensure values are within expected ranges and formats.
+            // BlackoutConfig?.Validate();
+            // NpcConfig?.Validate();
+            // SanityConfig?.Validate();
+            // LightsourceConfig?.Validate();
+        }
+        #endregion
     }
 }
