@@ -1,8 +1,9 @@
-using System;
-using System.ComponentModel;
-
 namespace SCP_575.ConfigObjects
 {
+    using System.ComponentModel;
+    using Exiled.API.Features;
+    using UnityEngine;
+
     public sealed class NpcConfig
     {
         #region NPC Termination Behavior
@@ -12,7 +13,7 @@ namespace SCP_575.ConfigObjects
         /// If false, generator activation only halts SCP-575's behavior and resets its event state.
         /// </summary>
         [Description("Specifies whether SCP-575 can be terminated when all generators are engaged.")]
-        public bool IsNpcKillable { get; private set; } = false;
+        public bool IsNpcKillable { get; set; } = false;
 
         #endregion
 
@@ -24,7 +25,7 @@ namespace SCP_575.ConfigObjects
         /// If true, no ragdoll is created upon death.
         /// </summary>
         [Description("Determines whether to disable ragdolls for SCP-575 kills.")]
-        public bool DisableRagdolls { get; private set; } = false;
+        public bool DisableRagdolls { get; set; } = false;
 
         #endregion
 
@@ -34,12 +35,7 @@ namespace SCP_575.ConfigObjects
         /// Delay in seconds between SCP-575 action ticks.
         /// </summary>
         [Description("The delay of receiving damage.")]
-        public float KeterActionDelay
-        {
-            get => _keterActionDelay;
-            private set => _keterActionDelay = value < 0f ? 0f : value;
-        }
-        private float _keterActionDelay = 13.85f;
+        public float KeterActionDelay { get; set; } = 13.85f;
 
         #endregion
 
@@ -49,23 +45,13 @@ namespace SCP_575.ConfigObjects
         /// Penetration modifier for SCP-575 damage (0.0 to 1.0).
         /// </summary>
         [Description("Penetration modifier same as in FirearmsDamageHandler.")]
-        public float KeterDamagePenetration
-        {
-            get => _keterDamagePenetration;
-            set => _keterDamagePenetration = value < 0f ? 0f : value > 1f ? 1f : value;
-        }
-        private float _keterDamagePenetration = 0.75f;
+        public float KeterDamagePenetration { get; set; } = 0.75f;
 
         /// <summary>
         /// Modifier applied to player velocity when damaged by SCP-575.
         /// </summary>
         [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
-        public float KeterDamageVelocityModifier
-        {
-            get => _keterDamageVelocityModifier;
-            set => _keterDamageVelocityModifier = value < 0f ? 0f : value;
-        }
-        private float _keterDamageVelocityModifier = 1.25f;
+        public float KeterDamageVelocityModifier { get; set; } = 1.25f;
 
         #endregion
 
@@ -75,24 +61,45 @@ namespace SCP_575.ConfigObjects
         /// Minimum force modifier applied to ragdolls damaged by SCP-575.
         /// </summary>
         [Description("The minimum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMinModifier
-        {
-            get => _keterForceMinModifier;
-            set => _keterForceMinModifier = value < 0f ? 0f : value;
-        }
-        private float _keterForceMinModifier = 0.75f;
+        public float KeterForceMinModifier { get; set; } = 0.75f;
 
         /// <summary>
         /// Maximum force modifier applied to ragdolls damaged by SCP-575.
         /// </summary>
         [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMaxModifier
-        {
-            get => _keterForceMaxModifier;
-            set => _keterForceMaxModifier = value < 0f ? 0f : value;
-        }
-        private float _keterForceMaxModifier = 2.35f;
+        public float KeterForceMaxModifier { get; set; } = 2.35f;
 
         #endregion
+
+        /// <summary>
+        /// Validates the NPC configuration parameters and corrects invalid input.
+        /// </summary>
+        public void Validate()
+        {
+            if (KeterActionDelay < 0f)
+            {
+                Log.Warn("[NpcConfig] KeterActionDelay cannot be negative. Resetting to 0.");
+                KeterActionDelay = 0f;
+            }
+
+            KeterDamagePenetration = Mathf.Clamp(KeterDamagePenetration, 0f, 1f);
+
+            if (KeterDamageVelocityModifier < 0f)
+            {
+                Log.Warn("[NpcConfig] KeterDamageVelocityModifier cannot be negative. Resetting to 0.");
+                KeterDamageVelocityModifier = 0f;
+            }
+
+            if (KeterForceMinModifier < 0f) KeterForceMinModifier = 0f;
+            if (KeterForceMaxModifier < 0f) KeterForceMaxModifier = 0f;
+
+            if (KeterForceMinModifier > KeterForceMaxModifier)
+            {
+                float temp = KeterForceMinModifier;
+                KeterForceMinModifier = KeterForceMaxModifier;
+                KeterForceMaxModifier = temp;
+                Log.Warn("[NpcConfig] KeterForceMinModifier was greater than KeterForceMaxModifier. Values have been swapped.");
+            }
+        }
     }
 }

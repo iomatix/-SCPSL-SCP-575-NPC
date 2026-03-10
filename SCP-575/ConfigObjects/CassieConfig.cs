@@ -1,6 +1,9 @@
 ﻿namespace SCP_575.ConfigObjects
 {
     using System.ComponentModel;
+    using Exiled.API.Features;
+    using UnityEngine;
+
     public sealed class CassieConfig
     {
         #region General Options
@@ -31,8 +34,7 @@
         /// Cassie’s countdown just before blackout (3…2…1).
         /// </summary>
         [Description("Cassie countdown before blackout.")]
-        public string CassieMessageCountdown { get; set; } =
-            "pitch_0.9 power failure . pitch_1";
+        public string CassieMessageCountdown { get; set; } = "pitch_0.9 power failure . pitch_1";
 
         #endregion
 
@@ -42,23 +44,13 @@
         /// Seconds between Cassie’s pre-countdown sentence and the countdown.
         /// </summary>
         [Description("Time between sentence and countdown.")]
-        public float TimeBetweenSentenceAndStart
-        {
-            get => _timeBetweenSentenceAndStart;
-            set => _timeBetweenSentenceAndStart = value < 0f ? 0f : value;
-        }
-        private float _timeBetweenSentenceAndStart = 5.0f;
+        public float TimeBetweenSentenceAndStart { get; set; } = 5.0f;
 
         /// <summary>
         /// Seconds between blackout end and Cassie’s end message.
         /// </summary>
         [Description("Time between blackout end and end message.")]
-        public float TimeBetweenSentenceAndEnd
-        {
-            get => _timeBetweenSentenceAndEnd;
-            set => _timeBetweenSentenceAndEnd = value < 0f ? 0f : value;
-        }
-        private float _timeBetweenSentenceAndEnd = 3.0f;
+        public float TimeBetweenSentenceAndEnd { get; set; } = 3.0f;
 
         #endregion
 
@@ -68,29 +60,25 @@
         /// Cassie’s message at blackout start.
         /// </summary>
         [Description("Cassie message at blackout start.")]
-        public string CassieMessageStart { get; set; } =
-            "warning . facility power grid failure imminent . anomalous activity detected .";
+        public string CassieMessageStart { get; set; } = "warning . facility power grid failure imminent . anomalous activity detected .";
 
         /// <summary>
         /// Cassie’s follow-up message immediately after blackout begins.
         /// </summary>
         [Description("Cassie post-blackout-start message.")]
-        public string CassiePostMessage { get; set; } =
-            "pitch_0.8 darkness is no longer safe . stay in light areas . pitch_1";
+        public string CassiePostMessage { get; set; } = "pitch_0.8 darkness is no longer safe . stay in light areas . pitch_1";
 
         /// <summary>
         /// Cassie’s message if no blackout occurs.
         /// </summary>
         [Description("Cassie message if no blackout occurs.")]
-        public string CassieMessageWrong { get; set; } =
-            "pitch_1.1 . power grid stabilized . false alert detected . pitch_1";
+        public string CassieMessageWrong { get; set; } = "pitch_1.1 . power grid stabilized . false alert detected . pitch_1";
 
         /// <summary>
         /// Cassie’s message when blackout ends.
         /// </summary>
         [Description("Cassie message at blackout end.")]
-        public string CassieMessageEnd { get; set; } =
-            "pitch_1.15 facility power system now operational . pitch_1";
+        public string CassieMessageEnd { get; set; } = "pitch_1.15 facility power system now operational . pitch_1";
 
         #endregion
 
@@ -130,8 +118,7 @@
         /// Announcement for unspecified/other zones.
         /// </summary>
         [Description("Message for unspecified zone blackout.")]
-        public string CassieMessageOther { get; set; } =
-            ". pitch_0.35 .g6 pitch_0.95 the malfunction is Unspecified .";
+        public string CassieMessageOther { get; set; } = ". pitch_0.35 .g6 pitch_0.95 the malfunction is Unspecified .";
 
         #endregion
 
@@ -141,23 +128,13 @@
         /// Chance (%) of a glitch per word in Cassie’s speech.
         /// </summary>
         [Description("Glitch chance per word in Cassie messages.")]
-        public float GlitchChance
-        {
-            get => _glitchChance;
-            private set => _glitchChance = value < 0f ? 0f : value > 100f ? 100f : value;
-        }
-        private float _glitchChance = 15f;
+        public float GlitchChance { get; set; } = 15f;
 
         /// <summary>
         /// Chance (%) of jamming per word in Cassie’s speech.
         /// </summary>
         [Description("Jam chance per word in Cassie messages.")]
-        public float JamChance
-        {
-            get => _jamChance;
-            private set => _jamChance = value < 0f ? 0f : value > 100f ? 100f : value;
-        }
-        private float _jamChance = 10f;
+        public float JamChance { get; set; } = 10f;
 
         /// <summary>
         /// The “Keter” sound Cassie plays during blackout.
@@ -166,5 +143,27 @@
         public string CassieKeter { get; set; } = "pitch_0.15 .g7";
 
         #endregion
+
+        /// <summary>
+        /// Validates the Cassie configuration parameters and corrects invalid input.
+        /// </summary>
+        public void Validate()
+        {
+            if (TimeBetweenSentenceAndStart < 0f)
+            {
+                Log.Warn("[CassieConfig] TimeBetweenSentenceAndStart cannot be negative. Resetting to 0.");
+                TimeBetweenSentenceAndStart = 0f;
+            }
+
+            if (TimeBetweenSentenceAndEnd < 0f)
+            {
+                Log.Warn("[CassieConfig] TimeBetweenSentenceAndEnd cannot be negative. Resetting to 0.");
+                TimeBetweenSentenceAndEnd = 0f;
+            }
+
+            // Clamp probabilities between 0% and 100%
+            GlitchChance = Mathf.Clamp(GlitchChance, 0f, 100f);
+            JamChance = Mathf.Clamp(JamChance, 0f, 100f);
+        }
     }
 }

@@ -106,11 +106,11 @@ namespace SCP_575
         #region Validation
         public void Validate()
         {
-            // TODO: Implement validation logic for each config section to ensure values are within expected ranges and formats.
-            // BlackoutConfig?.Validate();
-            // NpcConfig?.Validate();
-            // SanityConfig?.Validate();
-            // LightsourceConfig?.Validate();
+            AudioConfig?.Validate();
+            BlackoutConfig?.Validate();
+            CassieConfig?.Validate();
+            HintsConfig?.Validate();
+            NpcConfig?.Validate();
         }
         #endregion
     }
