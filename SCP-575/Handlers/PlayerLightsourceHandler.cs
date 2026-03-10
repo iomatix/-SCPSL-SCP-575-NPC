@@ -33,6 +33,7 @@ namespace SCP_575.Handlers
 
         private const string LightCleanupTag = CoroutineTags.LightCleanup;
         private const string FlickerTagPrefix = CoroutineTags.FlickerPrefix;
+        private const string ItemChangePrefix = CoroutineTags.ItemChangePrefix;
 
         public PlayerLightsourceHandler(Plugin plugin)
         {
@@ -87,7 +88,7 @@ namespace SCP_575.Handlers
             if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev.NewItem is not LightItem lightItem || !lightItem.IsEmitting)
                 return;
 
-            string coroutineTag = $"{CoroutineTags.ItemChangePrefix}{ev.Player.UserId}";
+            string coroutineTag = $"{ItemChangePrefix}{ev.Player.UserId}";
             Timing.KillCoroutines(coroutineTag);
 
             var coroutine = Timing.CallDelayed(0.05f, () =>
