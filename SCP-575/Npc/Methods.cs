@@ -105,6 +105,7 @@ namespace SCP_575.Npc
             {
                 Timing.KillCoroutines(tag);
             }
+            LibraryLabAPI.LogDebug(nameof(Disable),"Killed all static SCP-575 coroutines via tags.");
 
             _plugin.AudioManager?.Clean();
             _sanityHandler?.Clean();
