@@ -30,7 +30,7 @@ namespace SCP_575.Handlers
 
         private bool _isDisposed;
 
-        private const string CleanupTag = "SCP575-LightCleanup";
+        private const string LightCleanupTag = "SCP575-LightCleanup";
         private const string FlickerTagPrefix = "SCP575-Flicker-";
 
         public PlayerLightsourceHandler(Plugin plugin)
@@ -46,15 +46,15 @@ namespace SCP_575.Handlers
         {
             if (_isDisposed) return;
 
-            Timing.KillCoroutines(CleanupTag);
-            Timing.RunCoroutine(CleanupCoroutine(), CleanupTag);
+            Timing.KillCoroutines(LightCleanupTag);
+            Timing.RunCoroutine(CleanupCoroutine(), LightCleanupTag);
 
             LibraryLabAPI.LogInfo("PlayerLightsourceHandler", "Initialized lightsource handler.");
         }
 
         public void Clean()
         {
-            Timing.KillCoroutines(CleanupTag);
+            Timing.KillCoroutines(LightCleanupTag);
 
             foreach (var userId in _flickeringPlayers)
             {
