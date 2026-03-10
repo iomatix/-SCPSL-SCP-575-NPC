@@ -4,6 +4,7 @@ namespace SCP_575
     using SCP_575.Handlers;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio;
+    using System;
 
     /// <summary>
     /// The main plugin class for the SCP-575 NPC, responsible for managing event handlers and NPC behaviors.
@@ -41,18 +42,31 @@ namespace SCP_575
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
         public override string Prefix => "SCP575";
-        public override System.Version Version => new(9, 1, 1);
+        public override System.Version Version => new(9, 2, 0);
         public override System.Version RequiredExiledVersion => new(9, 9, 2);
 
         public override void OnEnabled()
         {
+            Singleton = this;
+
+            // Initialize the logging API first to ensure we can log any validation errors
+            _libraryLabAPI = new LibraryLabAPI(this);
+
             try
             {
-                Singleton = this;
+                // There making sure the config makes sense before loading any mechanics.
+                Config.Validate();
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogError("Plugin.OnEnabled", $"Failed to validate config: {ex.Message}");
+                LibraryLabAPI.LogError("Plugin.OnEnabled", "SCP-575 initialization aborted due to invalid configuration.");
+                return;
+            }
 
-                // Note: _config = new Config(); was removed. Exiled populates the Config property automatically.
+            try
+            {
                 _audioManager = new Scp575AudioManager(this);
-                _libraryLabAPI = new LibraryLabAPI(this);
 
                 _lifecycleHandler = new LifecycleHandler(this);
                 _generatorHandler = new GeneratorHandler(this);
@@ -72,7 +86,7 @@ namespace SCP_575
                 LibraryLabAPI.LogInfo("Plugin.OnEnabled", "SCP-575 plugin enabled successfully.");
                 base.OnEnabled();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 LibraryLabAPI.LogError("Plugin.OnEnabled", $"Failed to enable SCP-575 plugin: {ex.Message}");
                 throw;
@@ -81,37 +95,50 @@ namespace SCP_575
 
         public override void OnDisabled()
         {
+            _isEventActive = false;
+
             try
             {
-                _isEventActive = false;
-
                 UnregisterEvents();
-
-                _sanityHandler?.Dispose();
-                _lightsourceHandler?.Dispose();
-
-                // Nullify in reverse order of initialization
-                _npc = null;
-                _lightsourceHandler = null;
-                _sanityHandler = null;
-                _ragdollHandler = null;
-                _damageHandler = null;
-                _explosionHandler = null;
-                _generatorHandler = null;
-                _lifecycleHandler = null;
-
-                _libraryLabAPI = null;
-                _audioManager = null;
-                Singleton = null;
-
-                LibraryLabAPI.LogInfo("Plugin.OnDisabled", "SCP-575 plugin disabled successfully.");
-                base.OnDisabled();
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                LibraryLabAPI.LogError("Plugin.OnDisabled", $"Failed to disable SCP-575 plugin: {ex.Message}");
-                throw;
+                LibraryLabAPI.LogError("Plugin.OnDisabled", $"Error while unregistering events: {ex.Message}");
             }
+
+            try
+            {
+                _sanityHandler?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogError("Plugin.OnDisabled", $"Error while disposing SanityHandler: {ex.Message}");
+            }
+
+            try
+            {
+                _lightsourceHandler?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogError("Plugin.OnDisabled", $"Error while disposing LightsourceHandler: {ex.Message}");
+            }
+
+            // Nullify in reverse order of initialization
+            _npc = null;
+            _lightsourceHandler = null;
+            _sanityHandler = null;
+            _ragdollHandler = null;
+            _damageHandler = null;
+            _explosionHandler = null;
+            _generatorHandler = null;
+            _lifecycleHandler = null;
+
+            _audioManager = null;
+            _libraryLabAPI = null;
+            Singleton = null;
+
+            base.OnDisabled();
         }
 
         private void RegisterEvents()
