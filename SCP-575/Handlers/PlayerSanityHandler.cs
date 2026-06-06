@@ -194,12 +194,6 @@
 
             if (Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection)
             {
-                float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
-                if (culmDamage > 0)
-                {
-                    Scp575DamageSystem.DamagePlayer(player, culmDamage);
-                }
-
                 if (stage.Effects != null)
                 {
                     foreach (var effectConfig in stage.Effects)
@@ -217,13 +211,39 @@
             }
         }
 
+        public void ApplyDamageToPlayer(Player player)
+        {
+            if (!IsValidPlayer(player)) return;
+
+            var stage = GetCurrentSanityStage(player);
+            if (stage == null) return;
+
+            if (Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection)
+            {
+                float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
+                if (culmDamage > 0)
+                {
+                    Scp575DamageSystem.DamagePlayer(player, culmDamage);
+                }
+            }
+            else
+            {
+                float culmDamage = stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
+                if (culmDamage > 0)
+                {
+                    Scp575DamageSystem.DamagePlayer(player, culmDamage);
+                }
+            }
+        }
+
+
         #endregion
 
-        #region Sanity Decay
+            #region Sanity Decay
 
-        /// <summary>
-        /// Periodically reduces sanity for eligible players based on game conditions.
-        /// </summary>
+            /// <summary>
+            /// Periodically reduces sanity for eligible players based on game conditions.
+            /// </summary>
         public IEnumerator<float> HandleSanityDecay()
         {
             while (true)

@@ -401,6 +401,7 @@ namespace SCP_575.Npc
                         if (!_libraryLabAPI.IsPlayerInDarkRoom(player)) continue;
                         if (!_sanityHandler.IsValidPlayer(player)) continue;
 
+                        _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
                         PlayRandomAudioEffect(player);
                         _lightsourceHandler.ApplyLightsourceEffects(player);

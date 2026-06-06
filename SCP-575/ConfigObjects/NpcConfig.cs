@@ -35,7 +35,7 @@ namespace SCP_575.ConfigObjects
         /// Delay in seconds between SCP-575 action ticks.
         /// </summary>
         [Description("The delay of receiving damage.")]
-        public float KeterActionDelay { get; set; } = 13.85f;
+        public float KeterActionDelay { get; set; } = 17.485f;
 
         #endregion
 

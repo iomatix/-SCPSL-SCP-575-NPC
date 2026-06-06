@@ -24,25 +24,25 @@
         /// Base rate at which sanity naturally decays per second.
         /// </summary>
         [Description("Base sanity decay rate per second.")]
-        public float DecayRateBase { get; set; } = 0.12f;
+        public float DecayRateBase { get; set; } = 0.1075f;
 
         /// <summary>
         /// Additional decay multiplier applied when SCP-575 is active (i.e. during blackout).
         /// </summary>
         [Description("Decay multiplier when SCP-575 is active.")]
-        public float DecayMultiplierBlackout { get; set; } = 1.45f;
+        public float DecayMultiplierBlackout { get; set; } = 1.33f;
 
         /// <summary>
         /// Extra multiplier applied when player is in darkness (without active light source).
         /// </summary>
         [Description("Decay multiplier when player has no light source.")]
-        public float DecayMultiplierDarkness { get; set; } = 1.45f;
+        public float DecayMultiplierDarkness { get; set; } = 1.55f;
 
         /// <summary>
         /// Amount of sanity regained passively per second outside blackout or danger zones.
         /// </summary>
         [Description("Passive sanity regen rate per second.")]
-        public float PassiveRegenRate { get; set; } = 0.075f;
+        public float PassiveRegenRate { get; set; } = 0.081f;
 
         #endregion
 
@@ -58,13 +58,13 @@
         /// Maximum sanity percentage restored from consuming Painkillers.
         /// </summary>
         [Description("Maximum sanity restore percent from medical pills.")]
-        public float PillsRestoreMax { get; set; } = 35f;
+        public float PillsRestoreMax { get; set; } = 45f;
 
         /// <summary>
         /// Minimum sanity percentage restored by SCP-500 pills.
         /// </summary>
         [Description("Minimum sanity restore percent from SCP-500.")]
-        public float Scp500RestoreMin { get; set; } = 75f;
+        public float Scp500RestoreMin { get; set; } = 85f;
 
         /// <summary>
         /// Maximum sanity percentage restored by SCP-500 pills.
@@ -84,10 +84,32 @@
         {
             new PlayerSanityStageConfig
             {
-                MinThreshold = 75f,
+                MinThreshold = 90f,
                 MaxThreshold = 100f,
                 DamageOnStrike = 0f,
                 AdditionalDamagePerStack = 0f,
+                DamageOnStrikeWhenLightsourceActive = 0f,
+                AdditionalDamagePerStackWhenLightsourceActive = 0f,
+                OverrideLightSourceSanityProtection = false,
+                Effects = new()
+                {
+                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 3 },
+                    new() { EffectType = SanityEffectType.Slowness, Duration = 1.25f, Intensity = 30 },
+                    new() { EffectType = SanityEffectType.Blurred, Duration = 1f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Concussed, Duration = 2f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.45f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Deafened, Duration = 0.55f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.15f, Intensity = 1 },
+                }
+            },
+            new PlayerSanityStageConfig
+            {
+                MinThreshold = 75f,
+                MaxThreshold = 90f,
+                DamageOnStrike = 3f,
+                AdditionalDamagePerStack = 2f,
+                DamageOnStrikeWhenLightsourceActive = 2f,
+                AdditionalDamagePerStackWhenLightsourceActive = 1f,
                 OverrideLightSourceSanityProtection = false,
                 Effects = new()
                 {
@@ -104,8 +126,10 @@
             {
                 MinThreshold = 50f,
                 MaxThreshold = 75f,
-                DamageOnStrike = 3f,
-                AdditionalDamagePerStack = 2f,
+                DamageOnStrike = 5f,
+                AdditionalDamagePerStack = 3f,
+                DamageOnStrikeWhenLightsourceActive = 3f,
+                AdditionalDamagePerStackWhenLightsourceActive = 2f,
                 OverrideLightSourceSanityProtection = false,
                 Effects = new()
                 {
@@ -127,6 +151,8 @@
                 MaxThreshold = 50f,
                 DamageOnStrike = 6f,
                 AdditionalDamagePerStack = 5f,
+                DamageOnStrikeWhenLightsourceActive = 4f,
+                AdditionalDamagePerStackWhenLightsourceActive = 3f,
                 OverrideLightSourceSanityProtection = false,
                 Effects = new()
                 {
@@ -144,10 +170,35 @@
             },
             new PlayerSanityStageConfig
             {
-                MinThreshold = 0f,
+                MinThreshold = 10f,
                 MaxThreshold = 25f,
+                DamageOnStrike = 8f,
+                AdditionalDamagePerStack = 7f,
+                DamageOnStrikeWhenLightsourceActive = 5f,
+                AdditionalDamagePerStackWhenLightsourceActive = 5f,
+                OverrideLightSourceSanityProtection = false,
+                Effects = new()
+                {
+                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 10 },
+                    new() { EffectType = SanityEffectType.Slowness, Duration = 3.25f, Intensity = 70 },
+                    new() { EffectType = SanityEffectType.Disabled, Duration = 15f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Traumatized, Duration = 15f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Exhausted, Duration = 4.75f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blurred, Duration = 7f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Concussed, Duration = 10f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blindness, Duration = 1.45f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Deafened, Duration = 3.5f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.65f, Intensity = 1 },
+                }
+            },
+            new PlayerSanityStageConfig
+            {
+                MinThreshold = 0f,
+                MaxThreshold = 10f,
                 DamageOnStrike = 9f,
                 AdditionalDamagePerStack = 8f,
+                DamageOnStrikeWhenLightsourceActive = 6f,
+                AdditionalDamagePerStackWhenLightsourceActive = 6f,
                 OverrideLightSourceSanityProtection = true,
                 Effects = new()
                 {

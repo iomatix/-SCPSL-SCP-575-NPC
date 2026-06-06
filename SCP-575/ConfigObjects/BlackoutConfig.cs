@@ -64,13 +64,13 @@
         /// Chance (%) of a blackout in the Heavy Containment Zone.
         /// </summary>
         [Description("Chance (%) of outage in Heavy Containment Zone.")]
-        public float ChanceHeavy { get; set; } = 99f;
+        public float ChanceHeavy { get; set; } = 85f;
 
         /// <summary>
         /// Chance (%) of a blackout in the Light Containment Zone.
         /// </summary>
         [Description("Chance (%) of outage in Light Containment Zone.")]
-        public float ChanceLight { get; set; } = 45f;
+        public float ChanceLight { get; set; } = 35f;
 
         /// <summary>
         /// Chance (%) of a blackout in the Entrance Zone.
@@ -100,7 +100,7 @@
         /// Use per-room probability settings instead of per-zone.
         /// </summary>
         [Description("Use per-room chance settings instead of per-zone.")]
-        public bool UsePerRoomChances { get; set; } = false;
+        public bool UsePerRoomChances { get; set; } = true;
 
         #endregion
 
@@ -128,13 +128,13 @@
         /// Duration of initial light flickering, in seconds.
         /// </summary>
         [Description("Duration of initial light flickering in seconds.")]
-        public float FlickerDuration { get; set; } = 1.5f;
+        public float FlickerDuration { get; set; } = 2.35f;
 
         /// <summary>
         /// Frequency of light flickering during a blackout.
         /// </summary>
         [Description("Frequency of light flickering.")]
-        public float FlickerFrequency { get; set; } = 1.5f;
+        public float FlickerFrequency { get; set; } = 1.35f;
 
         /// <summary>
         /// Red channel of lights color during blackout.

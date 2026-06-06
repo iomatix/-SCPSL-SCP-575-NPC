@@ -22,7 +22,13 @@
         [Description("Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.")]
         public float AdditionalDamagePerStack { get; set; }
 
-        [Description("Determines whether negative sanity effects should be applied even when the player is holding a lightsource in the room with lights off.")]
+        [Description("Damage to apply on SCP-575 strike at this sanity level when the player is holding a lightsource ON in the room with lights off.")]
+        public float DamageOnStrikeWhenLightsourceActive { get; set; }
+
+        [Description("Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event when the player is holding a lightsource ON in the room with lights off.")]
+        public float AdditionalDamagePerStackWhenLightsourceActive { get; set; }
+
+        [Description("Determines whether negative sanity effects and full damage should be applied even when the player is holding a lightsource in the room with lights off.")]
         public bool OverrideLightSourceSanityProtection { get; set; }
 
         [Description("List of effects to apply to the player during this sanity stage.")]
@@ -40,6 +46,28 @@
             {
                 Log.Warn($"[SanityStageConfig] AdditionalDamagePerStack cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
                 AdditionalDamagePerStack = 0f;
+            }
+
+            if (DamageOnStrikeWhenLightsourceActive < 0f)
+            {
+                Log.Warn($"[SanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                DamageOnStrikeWhenLightsourceActive = 0f;
+            }
+            else if (DamageOnStrikeWhenLightsourceActive >= DamageOnStrike)
+            {
+                Log.Warn($"[SanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be greater than or equal to DamageOnStrike for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                DamageOnStrikeWhenLightsourceActive = 0f;
+            }
+
+            if (AdditionalDamagePerStackWhenLightsourceActive < 0f)
+            {
+                Log.Warn($"[SanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                AdditionalDamagePerStackWhenLightsourceActive = 0f;
+            }
+            else if (AdditionalDamagePerStackWhenLightsourceActive >= AdditionalDamagePerStack)
+            {
+                Log.Warn($"[SanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be greater than or equal to AdditionalDamagePerStack for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                AdditionalDamagePerStackWhenLightsourceActive = 0f;
             }
 
             if (Effects != null)
