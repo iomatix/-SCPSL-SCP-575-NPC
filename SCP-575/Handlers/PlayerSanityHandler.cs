@@ -8,6 +8,7 @@
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
+    using SCP_575.Shared.Audio.Enums;
     using SCP_575.Systems;
     using SCP575.Shared;
     using System;
@@ -16,7 +17,8 @@
     using UnityEngine;
 
     /// <summary>
-    /// Manages player sanity mechanics, including tracking, decay, and applying effects based on sanity thresholds.
+    /// Manages the internal psychological state of human actors, governing neurological decay vectors, 
+    /// systemic affliction mapping, and panic-induced defensive feedback loops under absolute darkness.
     /// </summary>
     public class PlayerSanityHandler : CustomEventsHandler, IDisposable
     {
@@ -26,8 +28,6 @@
 
         private readonly Dictionary<string, float> _sanityCache = new();
         private readonly Dictionary<string, DateTime> _lastHintTime = new();
-
-        // Cache sorted stages to avoid memory allocation every tick
         private readonly List<PlayerSanityStageConfig> _orderedStages;
 
         private readonly float _hintCooldown;
@@ -36,6 +36,9 @@
 
         private const string SanityCoroutineTag = CoroutineTags.SanityHandler;
 
+        /// <summary>
+        /// Exposes a read-only view of runtime psychological metrics for external integration tracking.
+        /// </summary>
         public IReadOnlyDictionary<string, float> SanityCache => _sanityCache;
 
         public PlayerSanityHandler(Plugin plugin)
@@ -48,7 +51,6 @@
             if (_sanityConfig.SanityStages == null || !_sanityConfig.SanityStages.Any())
                 throw new InvalidOperationException("SanityStages is null or empty.");
 
-            // Sort and cache stages ascending for validation, descending for evaluation
             var stages = _sanityConfig.SanityStages.OrderBy(s => s.MinThreshold).ToList();
 
             if (stages[0].MinThreshold > 0 || stages[stages.Count - 1].MaxThreshold < 100)
@@ -60,23 +62,28 @@
                     throw new InvalidOperationException("SanityStages have gaps or overlaps.");
             }
 
-            // Cache descending order for fast evaluation during gameplay
+            // Descending sort optimizes linear scanning loops by assessing critical 
+            // breakdown states before lower-tier cognitive baselines.
             _orderedStages = stages.OrderByDescending(s => s.MaxThreshold).ToList();
-
             LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Loaded {stages.Count} sanity stages.");
         }
 
         #region Lifecycle Management
 
+        /// <summary>
+        /// Provisions state machinery and prepares core collections for operational initialization.
+        /// </summary>
         public void Initialize()
         {
             if (_isDisposed) return;
         }
 
+        /// <summary>
+        /// Dissolves all internal execution tokens and purges cached tracking data to preserve allocation overhead.
+        /// </summary>
         public void Clean()
         {
             Timing.KillCoroutines(SanityCoroutineTag);
-
             lock (_cacheLock)
             {
                 _sanityCache.Clear();
@@ -84,6 +91,9 @@
             }
         }
 
+        /// <summary>
+        /// Explicitly terminates active execution routines and flags internal collections for garbage collection.
+        /// </summary>
         public void Dispose()
         {
             if (_isDisposed) return;
@@ -102,14 +112,17 @@
         public override void OnPlayerSpawned(PlayerSpawnedEventArgs ev) => ResetPlayerSanity(ev?.Player);
         public override void OnPlayerChangedRole(PlayerChangedRoleEventArgs ev) => ResetPlayerSanity(ev?.Player);
 
-        private void ResetPlayerSanity(Player player)
+        public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(player)) return;
+            if (ev?.Player == null) return;
+            string userId = NormalizeUserId(ev.Player.UserId);
 
-            string userId = NormalizeUserId(player.UserId);
+            // Prevent heap stagnation and memory fragmentation during persistent server sessions 
+            // by purging historical references of disconnected clients.
             lock (_cacheLock)
             {
-                _sanityCache[userId] = _sanityConfig.InitialSanity;
+                _sanityCache.Remove(userId);
+                _lastHintTime.Remove(userId);
             }
         }
 
@@ -131,6 +144,9 @@
 
         #region Sanity Management
 
+        /// <summary>
+        /// Resolves the current psychological metric for a given target, initializing a standard baseline if untracked.
+        /// </summary>
         public float GetCurrentSanity(Player player)
         {
             if (!IsValidPlayer(player)) return _sanityConfig.InitialSanity;
@@ -147,6 +163,9 @@
             }
         }
 
+        /// <summary>
+        /// Forces an absolute overwrite on an actor's psychological metric, bounded by standard operational limits.
+        /// </summary>
         public float SetSanity(Player player, float sanity)
         {
             if (!IsValidPlayer(player)) return 0f;
@@ -161,6 +180,9 @@
             return clampedSanity;
         }
 
+        /// <summary>
+        /// Applies a relative variance to an actor's psychological metric, computing bounds-safe limits.
+        /// </summary>
         public float ChangeSanityValue(Player player, float amount)
         {
             if (!IsValidPlayer(player)) return 0f;
@@ -169,6 +191,9 @@
             return SetSanity(player, currentSanity + amount);
         }
 
+        /// <summary>
+        /// Maps an abstract numerical sanity score to its corresponding structural profile.
+        /// </summary>
         public PlayerSanityStageConfig GetCurrentSanityStage(float sanity)
         {
             foreach (var s in _orderedStages)
@@ -179,12 +204,18 @@
             return null;
         }
 
+        /// <summary>
+        /// Resolves the structural impairment profile currently governing the targeted actor.
+        /// </summary>
         public PlayerSanityStageConfig GetCurrentSanityStage(Player player)
         {
             if (!IsValidPlayer(player)) return null;
             return GetCurrentSanityStage(GetCurrentSanity(player));
         }
 
+        /// <summary>
+        /// Translates cognitive decay milestones into tangible gameplay sensory impairments and physical restrictions.
+        /// </summary>
         public void ApplyStageEffects(Player player)
         {
             if (!IsValidPlayer(player)) return;
@@ -211,6 +242,10 @@
             }
         }
 
+        /// <summary>
+        /// inflicts physical structural integrity decay on human actors caught vulnerable in active threat sectors, 
+        /// accounting for atmospheric stack multipliers and defensive gear status.
+        /// </summary>
         public void ApplyDamageToPlayer(Player player)
         {
             if (!IsValidPlayer(player)) return;
@@ -223,6 +258,8 @@
                 float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
+                    // Sudden, sharp transients replace repetitive vocalizations to reinforce physical trauma feedback.
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position);
                     Scp575DamageSystem.DamagePlayer(player, culmDamage);
                 }
             }
@@ -231,19 +268,20 @@
                 float culmDamage = stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position);
                     Scp575DamageSystem.DamagePlayer(player, culmDamage);
                 }
             }
         }
 
-
         #endregion
 
-            #region Sanity Decay
+        #region Sanity Decay
 
-            /// <summary>
-            /// Periodically reduces sanity for eligible players based on game conditions.
-            /// </summary>
+        /// <summary>
+        /// Maintains the background structural loop that gradually saps cognitive resilience 
+        /// from actors exposed to high-stress environmental hazards.
+        /// </summary>
         public IEnumerator<float> HandleSanityDecay()
         {
             while (true)
@@ -256,6 +294,10 @@
 
                 yield return Timing.WaitForSeconds(1f);
 
+                // Capturing temporal telemetry out-of-loop minimizes allocation noise 
+                // and system clock evaluation overhead across large player volumes.
+                DateTime now = DateTime.Now;
+
                 foreach (var player in Player.ReadyList)
                 {
                     if (!IsValidPlayer(player) || !_libraryLabAPI.IsPlayerInDarkRoom(player))
@@ -264,10 +306,14 @@
                     float decayRate = CalculateDecayRate(player);
                     float newSanity = ChangeSanityValue(player, -decayRate);
 
-                    if (_plugin.Config.HintsConfig.IsEnabledSanityHint && ShouldSendHint(player.UserId))
+                    if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
                     {
-                        SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
-                        _lastHintTime[NormalizeUserId(player.UserId)] = DateTime.Now;
+                        string userId = NormalizeUserId(player.UserId);
+                        if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
+                        {
+                            SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
+                            _lastHintTime[userId] = now;
+                        }
                     }
                 }
             }
@@ -287,6 +333,9 @@
 
         #region Helper Methods
 
+        /// <summary>
+        /// Validates if an actor is currently eligible for psychological processing loops and environmental interactions.
+        /// </summary>
         public bool IsValidPlayer(Player player)
         {
             return player != null &&
@@ -310,13 +359,6 @@
                 ItemType.Painkillers => UnityEngine.Random.Range(_sanityConfig.PillsRestoreMin, _sanityConfig.PillsRestoreMax),
                 _ => 0f
             };
-        }
-
-        private bool ShouldSendHint(string userId)
-        {
-            string normalizedUserId = NormalizeUserId(userId);
-            return !_lastHintTime.TryGetValue(normalizedUserId, out var lastTime) ||
-                   (DateTime.Now - lastTime).TotalSeconds >= _hintCooldown;
         }
 
         private void SendSanityHint(Player player, string hintMessage, float sanity)

@@ -7,7 +7,8 @@
     using System;
 
     /// <summary>
-    /// Handles ragdoll spawning logic for SCP-575 related kills.
+    /// Intercepts physical corpse serialization processes to execute advanced anatomical modifications 
+    /// or clean up physical remains upon lethal event executions.
     /// </summary>
     public class RagdollHandler : CustomEventsHandler
     {
@@ -18,13 +19,17 @@
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         }
 
+        /// <summary>
+        /// Inspects structural ragdoll telemetry upon player expiration, verifying source vectors 
+        /// before applying configured visual suppression or advanced anatomical configurations.
+        /// </summary>
+        /// <param name="ev">Operational structural details concerning the newly initialized corpse physics matrix.</param>
         public override void OnPlayerSpawnedRagdoll(PlayerSpawnedRagdollEventArgs ev)
         {
             if (!_plugin.IsEventActive) return;
 
             try
             {
-                // Early return for invalid data or non-SCP-575 related deaths to prevent log spam
                 if (ev?.Player == null || ev.Ragdoll == null || ev.DamageHandler == null)
                     return;
 

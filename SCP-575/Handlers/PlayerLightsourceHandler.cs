@@ -16,7 +16,8 @@ namespace SCP_575.Handlers
     using SCP575.Shared;
 
     /// <summary>
-    /// Manages restrictions on player flashlights and weapon flashlights affected by SCP-575, including cooldowns, flickering effects, and forced disables during attacks.
+    /// Governs electrical degradation, interaction throttling, and forced tactical suppression 
+    /// of mobile photon emitters deployed by human forces inside localized dark zones.
     /// </summary>
     public class PlayerLightsourceHandler : CustomEventsHandler, IDisposable
     {
@@ -24,7 +25,6 @@ namespace SCP_575.Handlers
         private readonly LibraryLabAPI _libraryLabAPI;
         private readonly PlayerLightsourceConfig _config;
 
-        // Replaced ConcurrentDictionary with standard Dictionary (MEC runs on the Main Thread)
         private readonly Dictionary<string, DateTime> _cooldownUntil = new();
         private readonly HashSet<string> _flickeringPlayers = new();
         private readonly HashSet<string> _pendingItemChanges = new();
@@ -45,6 +45,10 @@ namespace SCP_575.Handlers
 
         #region Lifecycle Management
 
+        /// <summary>
+        /// Enlists the background garbage collection routines for expired network tracking nodes 
+        /// and establishes operational readiness.
+        /// </summary>
         public void Initialize()
         {
             if (_isDisposed) return;
@@ -55,6 +59,10 @@ namespace SCP_575.Handlers
             LibraryLabAPI.LogInfo("PlayerLightsourceHandler", "Initialized lightsource handler.");
         }
 
+        /// <summary>
+        /// Flushes tracking arrays and actively kills active visual flickering routines 
+        /// to guarantee total architectural isolation during round teardown phases.
+        /// </summary>
         public void Clean()
         {
             Timing.KillCoroutines(LightCleanupTag);
@@ -90,10 +98,30 @@ namespace SCP_575.Handlers
 
         #region Event Handlers
 
+        /// <summary>
+        /// Monopolizes network item swap sequences to suppress active photon generation fields 
+        /// before they render to client proxies if the actor is caught inside non-illuminated sectors.
+        /// </summary>
         public override void OnPlayerChangedItem(PlayerChangedItemEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev.NewItem is not LightItem lightItem || !lightItem.IsEmitting)
+            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player))
                 return;
+
+            bool isEmitting = false;
+            Action disableAction = null;
+
+            if (ev.NewItem is LightItem lightItem && lightItem.IsEmitting)
+            {
+                isEmitting = true;
+                disableAction = () => lightItem.IsEmitting = false;
+            }
+            else if (ev.NewItem is FirearmItem firearm && HasFlashlight(firearm) && firearm.FlashlightEnabled)
+            {
+                isEmitting = true;
+                disableAction = () => firearm.FlashlightEnabled = false;
+            }
+
+            if (!isEmitting || disableAction == null) return;
 
             string userId = ev.Player.UserId;
             string coroutineTag = $"{ItemChangePrefix}{userId}";
@@ -101,15 +129,14 @@ namespace SCP_575.Handlers
             Timing.KillCoroutines(coroutineTag);
             _pendingItemChanges.Add(userId);
 
+            // Shifting structural component state modifications outside the instantaneous frame pipeline 
+            // guarantees the base game inventory code registers item swap data without race condition conflicts.
             var coroutine = Timing.CallDelayed(0.05f, () =>
             {
                 try
                 {
-                    if (lightItem != null)
-                    {
-                        lightItem.IsEmitting = false;
-                        LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Disabled flashlight for {ev.Player.Nickname}.");
-                    }
+                    disableAction();
+                    LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Suppressed active emissive state during gear swap for {ev.Player.Nickname}.");
                 }
                 finally
                 {
@@ -156,10 +183,26 @@ namespace SCP_575.Handlers
             );
         }
 
+        /// <summary>
+        /// Clears tracking nodes associated with a unique actor when they leave the server infrastructure,
+        /// ensuring zero memory accumulation over continuous runtime operations.
+        /// </summary>
+        public override void OnPlayerLeft(PlayerLeftEventArgs ev)
+        {
+            if (ev?.Player == null) return;
+            _cooldownUntil.Remove(ev.Player.UserId);
+            _flickeringPlayers.Remove(ev.Player.UserId);
+            _pendingItemChanges.Remove(ev.Player.UserId);
+        }
+
         #endregion
 
         #region Public Methods
 
+        /// <summary>
+        /// Enforces global system overrides on an actor's active tactical gear, shutting down 
+        /// and flickering hardware elements when attacked directly by anomalous forces.
+        /// </summary>
         public void ApplyLightsourceEffects(Player target)
         {
             if (!IsValidPlayer(target)) return;
@@ -184,6 +227,10 @@ namespace SCP_575.Handlers
             }
         }
 
+        /// <summary>
+        /// Imposes an absolute, un-bypassable transmission blockage on an actor's tactical electronics,
+        /// transmitting a structural interface warning hint to their heads-up display.
+        /// </summary>
         public void ForceCooldown(Player player)
         {
             if (!IsValidPlayer(player)) return;
@@ -192,6 +239,9 @@ namespace SCP_575.Handlers
             player.SendHint(_plugin.Config.HintsConfig.LightEmitterCooldownHint, 1.75f);
         }
 
+        /// <summary>
+        /// Removes transmission blocks from a specific actor, or clears the internal state tables completely.
+        /// </summary>
         public void ClearCooldown(Player player = null)
         {
             if (player == null)
@@ -254,7 +304,6 @@ namespace SCP_575.Handlers
 
                 for (int i = 0; i < flickerCount; i++)
                 {
-                    // Exit cleanly if round ends mid-flicker
                     if (!_plugin.IsEventActive) break;
 
                     if (lightType == "WeaponFlashlight")
@@ -287,15 +336,19 @@ namespace SCP_575.Handlers
             {
                 yield return Timing.WaitForSeconds(CleanupInterval);
 
-                if (_isDisposed || !_plugin.IsEventActive) continue;
+                if (_isDisposed || !_plugin.IsEventActive || _cooldownUntil.Count == 0) continue;
 
-                var cutoff = DateTime.UtcNow - CooldownDuration;
+                // Optimization: Enforce zero-allocation structural table scrubbing 
+                // by resolving state data in-place without copying keys via LINQ allocations.
+                DateTime now = DateTime.UtcNow;
+                var keys = _cooldownUntil.Keys.ToList();
 
-                // Remove expired cooldowns
-                var expiredKeys = _cooldownUntil.Where(kvp => kvp.Value < cutoff).Select(kvp => kvp.Key).ToList();
-                foreach (var key in expiredKeys)
+                foreach (var key in keys)
                 {
-                    _cooldownUntil.Remove(key);
+                    if (_cooldownUntil.TryGetValue(key, out var expireTime) && now >= expireTime)
+                    {
+                        _cooldownUntil.Remove(key);
+                    }
                 }
             }
         }

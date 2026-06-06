@@ -1,5 +1,6 @@
 namespace SCP_575.Npc
 {
+    using Exiled.API.Interfaces;
     using Handlers;
     using LabApi.Features.Wrappers;
     using MapGeneration;
@@ -158,6 +159,18 @@ namespace SCP_575.Npc
 
                 yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndStart);
                 TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
+            }
+
+            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.BlackoutImpactGlobal);
+            
+            // Playing random, loud screem once
+            if (UnityEngine.Random.Range(0f, 100f) < 70f)
+            {
+                var randomPlayer = Player.ReadyList.Where(p => p.IsAlive && p.IsHuman).OrderBy(_ => UnityEngine.Random.value).FirstOrDefault();
+                if (randomPlayer != null)
+                {
+                    _plugin.AudioManager.PlayAudioAutoManaged(null, AudioKey.ScreamAngry, position: randomPlayer.Position, hearableForAllPlayers: true, lifespan: 20f);
+                }
             }
 
             float duration = _config.BlackoutConfig.RandomEvents
@@ -403,7 +416,7 @@ namespace SCP_575.Npc
 
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
-                        _plugin.AudioManager.PlayRandomAudioEffect(player);
+                        _plugin.AudioManager.PlayRandomAudioEffect(player, AudioKey.Whispers, AudioKey.WhispersMixed);
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }
                     catch (Exception ex)

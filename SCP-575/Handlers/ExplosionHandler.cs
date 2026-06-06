@@ -8,8 +8,8 @@
     using UnityEngine;
 
     /// <summary>
-    /// Manages explosion-related interactions, including light manipulation and acoustic responses
-    /// when grenades or special items are used during a blackout.
+    /// Coordinates environmental reactions to explosive payloads, adjusting local facility lighting 
+    /// and spatial acoustic tension based on the tactical utility of the detonated projectile.
     /// </summary>
     public class ExplosionHandler : CustomEventsHandler
     {
@@ -42,8 +42,8 @@
         {
             bool blackout = _plugin.Npc.Methods.IsBlackoutActive;
 
-            // Early exit for dangerous impacts if there is no blackout,
-            // saving the cost of a spatial room query.
+            // Prevent executing expensive spatial queries if a tactical threat 
+            // is introduced while the entity is dormant or unable to react.
             if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && !blackout)
                 return;
 
@@ -54,18 +54,23 @@
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
                     _lib.DisableRoomAndNeighborLights(room);
+
+                    // Heavy auditory feedback simulates the oppressive materialization of shadows 
+                    // when power grids fail catastrophically in the local sector.
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.BlackoutImpactGlobal, position);
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, position);
-                    _plugin.AudioManager.PlayAmbience();
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-                    // We already checked !blackout earlier, so we only need to check lights now.
                     if (room.LightController.LightsEnabled) return;
 
                     _lib.EnableAndFlickerRoomAndNeighborLights(
                         room,
                         _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamAngry, position);
+
+                    // High-intensity spatialized audio signals the entity's hostile territorial 
+                    // regression when human forces successfully force illumination back online.
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.MonsterRoarGlobal, position);
                     break;
 
                 default:

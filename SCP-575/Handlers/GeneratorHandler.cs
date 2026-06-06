@@ -9,8 +9,8 @@
     using System;
 
     /// <summary>
-    /// Handles generator activations. Manages SCP-575's vulnerability and defensive audio cues 
-    /// as the facility's power systems are restored.
+    /// Orchestrates the entity's defensive reactions and containment mechanics as human forces 
+    /// restore power sub-stations across the facility infrastructure.
     /// </summary>
     public class GeneratorHandler : CustomEventsHandler
     {
@@ -27,28 +27,24 @@
 
         #region Lifecycle Cleanup
 
-        public override void OnServerRoundEnded(RoundEndedEventArgs ev)
-        {
-            Timing.KillCoroutines(GeneratorAudioTag);
-        }
-
-        public override void OnServerWaitingForPlayers()
-        {
-            Timing.KillCoroutines(GeneratorAudioTag);
-        }
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Timing.KillCoroutines(GeneratorAudioTag);
+        public override void OnServerWaitingForPlayers() => Timing.KillCoroutines(GeneratorAudioTag);
 
         #endregion
 
+        /// <summary>
+        /// Evaluates overall facility power status upon sub-station activation, triggering 
+        /// structural lighting overrides and localized or map-wide acoustic defensive behaviors.
+        /// </summary>
+        /// <param name="ev">The event arguments containing generator telemetry and location.</param>
         public override void OnServerGeneratorActivated(GeneratorActivatedEventArgs ev)
         {
-            // 1. Cheap checks first: Ensure plugin and blackout events are active
             if (!_plugin.IsEventActive || !_plugin.Npc.Methods.IsBlackoutActive)
                 return;
 
             if (ev?.Generator == null)
                 return;
 
-            // 2. Expensive spatial query last
             var room = _lib.GetRoomAtPosition(ev.Generator.Position);
             if (room == null)
                 return;
@@ -61,8 +57,8 @@
 
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
-                // Replaced deprecated TrackCoroutine with MEC tag system
-
+                // Delay the termination audio sequence slightly to allow the structural 
+                // power restoration soundscapes to establish narrative precedence.
                 var coroutine = Timing.CallDelayed(3.75f, () =>
                 {
                     _plugin.AudioManager.PlayGlobalAudioAutoManaged(
@@ -79,9 +75,9 @@
             }
             else
             {
-                _plugin.AudioManager.PlayGlobalAudioAutoManaged(
-                    AudioKey.ScreamAngry,
-                    lifespan: 25f);
+                // Spatializing the roar at the activation site alerts human teams to the exact 
+                // point of friction, emphasizing local threat presence rather than a global event.
+                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamAngry, ev.Generator.Position);
             }
         }
     }

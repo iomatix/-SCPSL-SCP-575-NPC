@@ -10,9 +10,8 @@
     using System;
 
     /// <summary>
-    /// Handles all SCP-575 related player damage events.
-    /// Responsible for validating SCP-575 damage and triggering
-    /// additional effects when players are hurt or killed.
+    /// Intercepts severe structural trauma vectors directed at human actors to evaluate 
+    /// if the source matches anomalous physical manifestations, governing post-mortem kinetic overrides.
     /// </summary>
     public class PlayerDamageHandler : CustomEventsHandler
     {
@@ -26,20 +25,18 @@
 
         #region Lifecycle Cleanup
 
-        public override void OnServerRoundEnded(RoundEndedEventArgs ev)
-        {
-            Timing.KillCoroutines(ItemPhysicsTag);
-        }
-
-        public override void OnServerWaitingForPlayers()
-        {
-            Timing.KillCoroutines(ItemPhysicsTag);
-        }
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Timing.KillCoroutines(ItemPhysicsTag);
+        public override void OnServerWaitingForPlayers() => Timing.KillCoroutines(ItemPhysicsTag);
 
         #endregion
 
         #region Event Handlers
 
+        /// <summary>
+        /// Intercepts the final physiological state of a human actor before death confirmation,
+        /// triggering asynchronous inventory propulsion calculations if the kill vector belongs to the entity.
+        /// </summary>
+        /// <param name="ev">The operational state arguments containing player data and lethal damage tracking signatures.</param>
         public override void OnPlayerDying(PlayerDyingEventArgs ev)
         {
             if (!_plugin.IsEventActive) return;
@@ -54,6 +51,8 @@
 
                 LibraryLabAPI.LogDebug("PlayerDamageHandler", $"Death confirmed from {Scp575DamageSystem.IdentifierName} for {ev.Player.Nickname}. Triggering item physics.");
 
+                // Offloading item kinetic scatter behavior to an isolated coroutine guarantees 
+                // the main physics thread is not blocked during complex kinematic evaluations.
                 Timing.RunCoroutine(Scp575DamageSystem.DropAndPushItems(ev.Player), ItemPhysicsTag);
             }
             catch (Exception ex)
