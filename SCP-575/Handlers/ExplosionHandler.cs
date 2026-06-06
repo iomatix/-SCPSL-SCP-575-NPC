@@ -54,7 +54,7 @@
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
                     _lib.DisableRoomAndNeighborLights(room);
-                    PlayAudioAtPosition(AudioKey.WhispersBang, position);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, position);
                     _plugin.AudioManager.PlayAmbience();
                     break;
 
@@ -65,26 +65,13 @@
                     _lib.EnableAndFlickerRoomAndNeighborLights(
                         room,
                         _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-                    PlayAudioAtPosition(AudioKey.ScreamAngry, position);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamAngry, position);
                     break;
 
                 default:
-                    PlayAudioAtPosition(AudioKey.Whispers, position);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers, position);
                     break;
             }
-        }
-
-        /// <summary>
-        /// Helper method to standardize audio playback parameters.
-        /// </summary>
-        private void PlayAudioAtPosition(AudioKey key, Vector3 position)
-        {
-            _plugin.AudioManager.PlayAudioAutoManaged(
-                null,
-                key,
-                position: position,
-                hearableForAllPlayers: true,
-                lifespan: 25f);
         }
     }
 }

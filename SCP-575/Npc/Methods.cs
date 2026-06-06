@@ -403,7 +403,7 @@ namespace SCP_575.Npc
 
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
-                        PlayRandomAudioEffect(player);
+                        _plugin.AudioManager.PlayRandomAudioEffect(player);
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }
                     catch (Exception ex)
@@ -414,12 +414,7 @@ namespace SCP_575.Npc
             }
         }
 
-        private void PlayRandomAudioEffect(Player player)
-        {
-            var options = new[] { AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.Whispers };
-            var selected = options[UnityEngine.Random.Range(0, options.Length)];
-            _plugin.AudioManager.PlayAudioAutoManaged(player, selected, hearableForAllPlayers: true, lifespan: 16f);
-        }
+
 
         #endregion
 

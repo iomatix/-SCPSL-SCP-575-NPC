@@ -257,5 +257,32 @@
                 });
             }
         }
+
+        /// <summary>
+        /// Helper method to standardize audio playback parameters.
+        /// </summary>
+        public void PlayAudioAtPosition(AudioKey key, Vector3 position)
+        {
+            _plugin.AudioManager.PlayAudioAutoManaged(
+                null,
+                key,
+                position: position,
+                hearableForAllPlayers: true,
+                lifespan: 25f);
+        }
+
+        /// <summary>
+        /// Plays random audio effect for player. If no arguments are provided, selects from pool of AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.Whispers.
+        /// </summary>
+        public void PlayRandomAudioEffect(Player player, params AudioKey[] options)
+        {
+            if (options == null || options.Length == 0)
+            {
+                options = new[] { AudioKey.WhispersMixed, AudioKey.Scream, AudioKey.ScreamAngry, AudioKey.Whispers };
+            }
+
+            var selected = options[UnityEngine.Random.Range(0, options.Length)];
+            _plugin.AudioManager.PlayAudioAutoManaged(player, selected, hearableForAllPlayers: true, lifespan: 16f);
+        }
     }
 }
