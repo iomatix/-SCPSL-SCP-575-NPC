@@ -53,7 +53,7 @@
             { AudioKey.Whispers_2, ("scp575.whispers_2", 0.65f, 3f, 25f, true, AudioPriority.Medium, 15f) },
             { AudioKey.WhispersBang, ("scp575.whispers_bang", 0.75f, 2f, 15f, true, AudioPriority.High, 5f) },
             { AudioKey.WhispersMixed, ("scp575.whispers_mixed", 0.8f, 2f, 25f, true, AudioPriority.Medium, 20f) },
-            { AudioKey.MonsterBreathLocal, ("scp575.monster_breathe_local", 0.85f, 1f, 8f, true, AudioPriority.High, 8f) },
+            { AudioKey.MonsterBreathLocal, ("scp575.monster_breath_local", 0.85f, 1f, 8f, true, AudioPriority.High, 8f) },
             { AudioKey.ShadowClicking, ("scp575.shadow_clicking", 0.7f, 1f, 12f, true, AudioPriority.Medium, 5f) },
 
             // ===================================================================
