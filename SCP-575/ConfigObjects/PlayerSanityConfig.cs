@@ -24,7 +24,7 @@
         /// Base rate at which sanity naturally decays per second.
         /// </summary>
         [Description("Base sanity decay rate per second.")]
-        public float DecayRateBase { get; set; } = 0.1075f;
+        public float DecayRateBase { get; set; } = 0.1125f;
 
         /// <summary>
         /// Additional decay multiplier applied when SCP-575 is active (i.e. during blackout).
@@ -42,7 +42,7 @@
         /// Amount of sanity regained passively per second outside blackout or danger zones.
         /// </summary>
         [Description("Passive sanity regen rate per second.")]
-        public float PassiveRegenRate { get; set; } = 0.081f;
+        public float PassiveRegenRate { get; set; } = 0.0457f;
 
         /// <summary>
         /// Gets or sets the amount of sanity lost immediately upon taking damage from any SCP entity.
