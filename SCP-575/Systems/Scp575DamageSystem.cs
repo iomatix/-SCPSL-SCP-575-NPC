@@ -206,7 +206,7 @@ namespace SCP_575.Shared
                     var newInfo = new PlayerRoles.Ragdolls.RagdollData(
                         oldInfo.OwnerHub,
                         oldInfo.Handler,
-                        originalPlayerRole,
+                        oldRole,
                         oldInfo.StartRelativePosition,
                         oldInfo.StartRelativeRotation,
                         oldInfo.Scale,
