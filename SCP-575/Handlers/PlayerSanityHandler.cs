@@ -351,7 +351,7 @@
             var stage = GetCurrentSanityStage(newSanity);
             if (stage != null)
             {
-                if (UnityEngine.Random.value < 0.015f) // 1.5% chance per tick
+                if (UnityEngine.Random.value < 0.035f) // 3.5% chance per tick
                 {
                     AudioKey? whisperToPlay = null;
 

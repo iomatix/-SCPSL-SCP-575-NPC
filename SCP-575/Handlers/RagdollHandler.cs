@@ -45,8 +45,6 @@
                 {
                     LibraryLabAPI.LogDebug("RagdollHandler", $"Processing SCP-575 ragdoll for {ev.Player.Nickname}. Triggering post-mortem acoustic feedback.");
 
-                    // High-frequency chittering structures emit directly from the corpse grid to emphasize
-                    // the active anomalous transformation and material stress being applied to the remains.
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, ev.Ragdoll.Position);
 
                     Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
