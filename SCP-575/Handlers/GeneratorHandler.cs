@@ -6,7 +6,6 @@
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
     using System;
-    using UnityEngine;
 
     /// <summary>
     /// Orchestrates the entity's defensive reactions and containment mechanics as human forces 
@@ -54,7 +53,7 @@
             // 1. If it's the final generator, execute standard death sequence
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
-                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamDying, ev.Generator.Position);
+                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamDying, ev.Generator.Position, isTransient: true);
 
                 var coroutine = Timing.CallDelayed(3.75f, () =>
                 {
@@ -85,7 +84,7 @@
                 _lib.DisableRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.DurationMin);
 
                 // Play a high-priority angry scream directly at the source of the provocation
-                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamAngry, ev.Generator.Position);
+                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamAngry, ev.Generator.Position, isTransient: true);
 
                 LibraryLabAPI.LogInfo("GeneratorHandler", $"SCP-575 retaliated! Generator activation at {room.Name} triggered rage stack expansion.");
             }
@@ -97,7 +96,7 @@
 
                 // Normal warning scream
                 var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.ScreamHurt + 1);
-                _plugin.AudioManager.PlayAudioAtPosition(randomScream, ev.Generator.Position);
+                _plugin.AudioManager.PlayAudioAtPosition(randomScream, ev.Generator.Position, isTransient: true);
             }
         }
     }

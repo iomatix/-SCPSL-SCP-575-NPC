@@ -56,7 +56,7 @@
                     _lib.DisableRoomAndNeighborLights(room);
 
                     // Local tactical blackout only triggers the close-up psychological node.
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, position);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, position, isTransient: true);
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
@@ -68,7 +68,7 @@
 
                     // Randomly select between defensive rage or acute pain feedback to avoid overlapping artifacts.
                     AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
-                    _plugin.AudioManager.PlayAudioAtPosition(selectedScream, position);
+                    _plugin.AudioManager.PlayAudioAtPosition(selectedScream, position, isTransient: true);
                     break;
 
                 default:

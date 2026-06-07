@@ -106,7 +106,7 @@
             Log.Debug($"[Scp575AudioManager] Clean executed. (FullShutdown: {fullShutdown})");
         }
 
-        public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false)
+        public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false, bool isTransient = false)
         {
             if (!_audioRegistry.TryGetValue(audioKey, out var config))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration.", nameof(audioKey));
@@ -165,7 +165,10 @@
             }
 
             if (isGeneratorHum) _generatorSessionIds.Add(sessionId);
-            else _pluginSessionIds.Add(sessionId);
+            else if (!isTransient)
+            {
+                _pluginSessionIds.Add(sessionId);
+            }
 
             float effectiveLifespan = lifespan ?? config.DefaultLifespan;
             if (effectiveLifespan > 0)
@@ -230,19 +233,19 @@
 
         public void SkipAudio(int sessionId, int count) => _audioEngine.SkipAudio(sessionId, count);
 
-        public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null)
+        public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null, bool isTransient = false)
         {
-            PlayAudioAutoManaged(null, key, position, lifespan, hearableForAllPlayers: true, isNonSpatial: false);
+            PlayAudioAutoManaged(null, key, position, lifespan: lifespan, hearableForAllPlayers: true, isNonSpatial: false, isTransient: isTransient);
         }
 
-        public int PlayLocalAudio(Player player, AudioKey audioKey, float? lifespan = null, float fadeInDuration = 0f)
+        public int PlayLocalAudio(Player player, AudioKey audioKey, float? lifespan = null, float fadeInDuration = 0f, bool isTransient = false)
         {
-            return PlayAudioAutoManaged(player, audioKey, null, lifespan, false, false, fadeInDuration, true);
+            return PlayAudioAutoManaged(player, audioKey, position: null, lifespan: lifespan, hearableForAllPlayers: false, queue: false, fadeInDuration: fadeInDuration, isNonSpatial: true, isTransient: isTransient);
         }
 
-        public int PlayIsolatedSpatialAudio(Player player, AudioKey audioKey, Vector3 position, float? lifespan = null, float fadeInDuration = 0f)
+        public int PlayIsolatedSpatialAudio(Player player, AudioKey audioKey, Vector3 position, float? lifespan = null, float fadeInDuration = 0f, bool isTransient = false)
         {
-            return PlayAudioAutoManaged(player, audioKey, position, lifespan, false, false, fadeInDuration, false);
+            return PlayAudioAutoManaged(player, audioKey, position: position, lifespan: lifespan, hearableForAllPlayers: false, queue: false, fadeInDuration: fadeInDuration, isNonSpatial: false, isTransient: isTransient);
         }
 
         public void PlayRandomAudioEffect(Player player, params AudioKey[] options)

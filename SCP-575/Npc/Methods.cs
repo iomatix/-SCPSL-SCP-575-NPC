@@ -1,6 +1,5 @@
 namespace SCP_575.Npc
 {
-    using Exiled.API.Interfaces;
     using Handlers;
     using LabApi.Features.Wrappers;
     using MapGeneration;
@@ -8,7 +7,6 @@ namespace SCP_575.Npc
     using SCP_575.ConfigObjects;
     using SCP_575.Shared.Audio.Enums;
     using SCP_575.Shared;
-    using Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
