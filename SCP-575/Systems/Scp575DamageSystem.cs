@@ -19,13 +19,6 @@ namespace SCP_575.Systems
 
         public static string IdentifierName => nameof(Scp575DamageSystem);
 
-        public static readonly IReadOnlyDictionary<HitboxType, float> HitboxToForce = new Dictionary<HitboxType, float>
-        {
-            [HitboxType.Body] = 0.08f,
-            [HitboxType.Headshot] = 0.085f,
-            [HitboxType.Limb] = 0.016f
-        };
-
         public static readonly IReadOnlyDictionary<HitboxType, float> HitboxDamageMultipliers = new Dictionary<HitboxType, float>
         {
             [HitboxType.Body] = 1.0f,
@@ -40,7 +33,6 @@ namespace SCP_575.Systems
         public static float DamagePenetration => Plugin.Singleton.Config.NpcConfig.KeterDamagePenetration;
         public static string DeathScreenText => Plugin.Singleton.Config.HintsConfig.KilledByMessage;
         public static string RagdollInspectText => Plugin.Singleton.Config.HintsConfig.RagdollInspectText;
-        public static string CassieDeathAnnouncement => "";
 
         #endregion
 
@@ -79,7 +71,13 @@ namespace SCP_575.Systems
             int armorEfficacy = armoredRole.GetArmorEfficacy(hitbox);
             int penetrationPercent = Mathf.RoundToInt(DamagePenetration * 100f);
 
-            float humeShield = target.ReferenceHub.playerStats.GetModule<HumeShieldStat>().CurValue;
+            // FIXED: Added safe null-check for HumeShieldStat module to prevent critical NREs on human roles.
+            float humeShield = 0f;
+            if (target.ReferenceHub.playerStats.TryGetModule<HumeShieldStat>(out var shieldStat))
+            {
+                humeShield = shieldStat.CurValue;
+            }
+
             float shieldDamage = Mathf.Clamp(humeShield, 0f, damage);
             float armorDamage = Mathf.Max(0f, damage - shieldDamage);
             float postArmorDamage = BodyArmorUtils.ProcessDamage(armorEfficacy, armorDamage, penetrationPercent);
@@ -114,6 +112,7 @@ namespace SCP_575.Systems
         {
             if (ragdoll?.Base?.gameObject == null) yield break;
 
+            // Wait for frames to allow Unity to fully initialize the physics bones layout.
             yield return Timing.WaitForOneFrame;
             yield return Timing.WaitForOneFrame;
 
@@ -129,6 +128,9 @@ namespace SCP_575.Systems
                 Vector3 randomForce = GetRandomUnitSphereVelocity(4.75f);
 
                 ApplyStandardRagdollPhysics(rigidbodies, upwardForce, randomForce);
+
+                // FIXED: Embedded the dormant ConvertToBones method directly into the logic lifecycle here.
+                ConvertToBones(ragdoll);
             }
             finally
             {
@@ -148,7 +150,7 @@ namespace SCP_575.Systems
                 var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
 
                 Ragdoll newRagdoll = Ragdoll.SpawnRagdoll(
-                    RoleTypeId.Scp3114,
+                    player.Role,
                     spawnPosition,
                     spawnRotation,
                     customHandler,
@@ -162,7 +164,7 @@ namespace SCP_575.Systems
                     var newInfo = new PlayerRoles.Ragdolls.RagdollData(
                         oldInfo.OwnerHub,
                         oldInfo.Handler,
-                        RoleTypeId.None,
+                        oldInfo.RoleType,
                         oldInfo.StartRelativePosition,
                         oldInfo.StartRelativeRotation,
                         oldInfo.Scale,
@@ -188,17 +190,16 @@ namespace SCP_575.Systems
         {
             if (rigidbodies == null || rigidbodies.Count == 0) return;
 
+            Vector3 combinedForce = upwardForce + randomForce;
+
             foreach (Rigidbody rb in rigidbodies)
             {
                 if (rb == null) continue;
 
                 rb.isKinematic = false;
 
-                float massMultiplier = Mathf.Max(1f, rb.mass);
-                Vector3 scaledUpwardForce = upwardForce * massMultiplier;
-                Vector3 scaledRandomForce = randomForce * massMultiplier;
-
-                rb.AddForce(scaledUpwardForce + scaledRandomForce, ForceMode.Impulse);
+                // FIXED: Removed manual mass multiplier to avoid extreme explosive launches caused by double-mass scaling in Impulse mode.
+                rb.AddForce(combinedForce, ForceMode.Impulse);
                 rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
             }
         }
@@ -219,6 +220,7 @@ namespace SCP_575.Systems
                 LibraryLabAPI.LogError("ConvertToBones", $"Failed to convert ragdoll to bones: {ex.Message}");
             }
         }
+
         #endregion
 
         #region Utility Methods  
@@ -251,6 +253,7 @@ namespace SCP_575.Systems
                 yield return Timing.WaitForOneFrame;
             }
 
+            // FIXED: Moved the WaitForOneFrame outside the loop to execute the physics impulse for all items instantly in a single frame.
             foreach (Pickup pickup in droppedPickups)
             {
                 if (pickup?.Rigidbody == null || pickup.IsDestroyed || !pickup.IsSpawned) continue;
@@ -269,9 +272,9 @@ namespace SCP_575.Systems
                 {
                     LibraryLabAPI.LogError(nameof(DropAndPushItems), $"Failed to apply physics to item {pickup.Serial}: {ex.Message}");
                 }
-
-                yield return Timing.WaitForOneFrame;
             }
+
+            yield return Timing.WaitForOneFrame;
         }
 
         public static bool IsScp575Damage(DamageHandlerBase handler)

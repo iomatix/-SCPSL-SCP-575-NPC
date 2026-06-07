@@ -10,7 +10,7 @@
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
     using SCP_575.Systems;
-    using SCP575.Shared;
+    using SCP_575.Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -164,6 +164,18 @@
         }
 
         /// <summary>
+        /// Resets an actor's psychological metric to a standard baseline.
+        /// </summary>
+        /// <param name="player"></param>
+        private void ResetPlayerSanity(Player player)
+        {
+            if (IsValidPlayer(player))
+            {
+                SetSanity(player, _sanityConfig.InitialSanity);
+            }
+        }
+
+        /// <summary>
         /// Forces an absolute overwrite on an actor's psychological metric, bounded by standard operational limits.
         /// </summary>
         public float SetSanity(Player player, float sanity)
@@ -280,7 +292,7 @@
 
         /// <summary>
         /// Maintains the background structural loop that gradually saps cognitive resilience 
-        /// from actors exposed to high-stress environmental hazards.
+        /// from actors exposed to high-stress environmental hazards, triggering spatialized paranoia audio layers.
         /// </summary>
         public IEnumerator<float> HandleSanityDecay()
         {
@@ -294,8 +306,6 @@
 
                 yield return Timing.WaitForSeconds(1f);
 
-                // Capturing temporal telemetry out-of-loop minimizes allocation noise 
-                // and system clock evaluation overhead across large player volumes.
                 DateTime now = DateTime.Now;
 
                 foreach (var player in Player.ReadyList)
@@ -304,7 +314,36 @@
                         continue;
 
                     float decayRate = CalculateDecayRate(player);
+                    float oldSanity = GetCurrentSanity(player);
                     float newSanity = ChangeSanityValue(player, -decayRate);
+
+                    // ===================================================================
+                    // DYNAMIC PSYCHOACOUSTIC REACTION SYSTEM
+                    // ===================================================================
+                    var stage = GetCurrentSanityStage(newSanity);
+                    if (stage != null)
+                    {
+                        if (newSanity <= 35f && oldSanity > 35f)
+                        {
+                            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.SanityLowDrone, player.Position);
+                        }
+                        
+                        if (UnityEngine.Random.value < 0.05f)
+                        {
+                            if (newSanity <= 20f)
+                            {
+                                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersMixed, player.Position);
+                            }
+                            else if (newSanity <= 50f)
+                            {
+                                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_2, player.Position);
+                            }
+                            else if (newSanity <= 80f)
+                            {
+                                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_1, player.Position);
+                            }
+                        }
+                    }
 
                     if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
                     {

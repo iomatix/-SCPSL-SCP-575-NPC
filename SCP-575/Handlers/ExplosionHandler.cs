@@ -55,9 +55,7 @@
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
                     _lib.DisableRoomAndNeighborLights(room);
 
-                    // Heavy auditory feedback simulates the oppressive materialization of shadows 
-                    // when power grids fail catastrophically in the local sector.
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.BlackoutImpactGlobal, position);
+                    // Local tactical blackout only triggers the close-up psychological node.
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, position);
                     break;
 
@@ -68,13 +66,16 @@
                         room,
                         _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
 
-                    // High-intensity spatialized audio signals the entity's hostile territorial 
-                    // regression when human forces successfully force illumination back online.
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.MonsterRoarGlobal, position);
+                    // Randomly select between defensive rage or acute pain feedback to avoid overlapping artifacts.
+                    var selectedScream = Random.Range(0, 2) == 0 ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
+                    _plugin.AudioManager.PlayAudioAtPosition(selectedScream, position);
                     break;
 
                 default:
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers, position);
+                    if (room.LightController.LightsEnabled) return;
+
+                    // Default baseline paranoia feedback for non-tactical explosive events.
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_1, position);
                     break;
             }
         }

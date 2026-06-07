@@ -42,26 +42,25 @@ namespace SCP_575
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
         public override string Prefix => "SCP575";
-        public override System.Version Version => new(9, 3, 0);
+        public override System.Version Version => new(9, 4, 1);
         public override System.Version RequiredExiledVersion => new(9, 9, 3);
 
         public override void OnEnabled()
         {
             Singleton = this;
 
-            // Initialize the logging API first to ensure we can log any validation errors
-            _libraryLabAPI = new LibraryLabAPI(this);
-
             try
             {
-                // There making sure the config makes sense before loading any mechanics.
+                _libraryLabAPI = new LibraryLabAPI(this);
                 Config.Validate();
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("Plugin.OnEnabled", $"Failed to validate config: {ex.Message}");
-                LibraryLabAPI.LogError("Plugin.OnEnabled", "SCP-575 initialization aborted due to invalid configuration.");
-                return;
+                _libraryLabAPI = null;
+                Singleton = null;
+
+                Exiled.API.Features.Log.Error($"[SCP-575 Startup Aborted] Configuration validation failed: {ex.Message}");
+                throw new InvalidOperationException("SCP-575 initialization aborted due to invalid plugin configuration.", ex);
             }
 
             try
@@ -88,7 +87,7 @@ namespace SCP_575
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("Plugin.OnEnabled", $"Failed to enable SCP-575 plugin: {ex.Message}");
+                LibraryLabAPI.LogError("Plugin.OnEnabled", $"Critical failure during handler initialization: {ex.Message}");
                 throw;
             }
         }
@@ -104,6 +103,15 @@ namespace SCP_575
             catch (Exception ex)
             {
                 LibraryLabAPI.LogError("Plugin.OnDisabled", $"Error while unregistering events: {ex.Message}");
+            }
+
+            try
+            {
+                _audioManager?.Clean();
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogError("Plugin.OnDisabled", $"Error while cleaning up Scp575AudioManager: {ex.Message}");
             }
 
             try

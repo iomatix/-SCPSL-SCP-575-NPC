@@ -79,13 +79,29 @@ namespace SCP_575
                 HandlerCleanupInterval = 90f;
             }
 
-            AudioConfig?.Validate();
-            BlackoutConfig?.Validate();
-            CassieConfig?.Validate();
-            HintsConfig?.Validate();
-            NpcConfig?.Validate();
-            LightsourceConfig?.Validate();
-            SanityConfig?.Validate();
+            // FIXED: Added defensive fallback instantiation pattern during validation loop executions.
+            // If the YAML parser deserializes a section as null due to formatting errors or omissions,
+            // we force-rebuild the object configuration layout using standard default parameters to eliminate downstream NRE crashes.
+            if (AudioConfig == null) AudioConfig = new AudioConfig();
+            else AudioConfig.Validate();
+
+            if (BlackoutConfig == null) BlackoutConfig = new BlackoutConfig();
+            else BlackoutConfig.Validate();
+
+            if (CassieConfig == null) CassieConfig = new CassieConfig();
+            else CassieConfig.Validate();
+
+            if (HintsConfig == null) HintsConfig = new HintsConfig();
+            else HintsConfig.Validate();
+
+            if (NpcConfig == null) NpcConfig = new NpcConfig();
+            else NpcConfig.Validate();
+
+            if (LightsourceConfig == null) LightsourceConfig = new PlayerLightsourceConfig();
+            else LightsourceConfig.Validate();
+
+            if (SanityConfig == null) SanityConfig = new PlayerSanityConfig();
+            else SanityConfig.Validate();
         }
 
         #endregion

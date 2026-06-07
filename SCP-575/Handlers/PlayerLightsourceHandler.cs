@@ -1,8 +1,5 @@
 namespace SCP_575.Handlers
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using InventorySystem.Items.Firearms;
     using InventorySystem.Items.Firearms.Attachments;
     using InventorySystem.Items.ToggleableLights;
@@ -13,7 +10,11 @@ namespace SCP_575.Handlers
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
-    using SCP575.Shared;
+    using SCP_575.Shared.Audio.Enums;
+    using SCP_575.Shared;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Governs electrical degradation, interaction throttling, and forced tactical suppression 
@@ -298,6 +299,19 @@ namespace SCP_575.Handlers
 
             try
             {
+                var player = Player.Get(userId);
+                if (player != null)
+                {
+                    if (forceOff)
+                    {
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, player.Position);
+                    }
+                    else
+                    {
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position);
+                    }
+                }
+
                 int flickerCount = Math.Max(2, _random.Next(_config.MinFlickerCount, _config.MaxFlickerCount));
                 int totalDurationMs = _random.Next(_config.MinFlickerDurationMs, _config.MaxFlickerDurationMs + 1);
                 float delayPerFlicker = (totalDurationMs / 1000f) / flickerCount;

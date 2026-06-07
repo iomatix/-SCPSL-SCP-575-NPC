@@ -5,8 +5,9 @@
     using LabApi.Events.CustomHandlers;
     using MEC;
     using SCP_575.Shared;
+    using SCP_575.Shared.Audio.Enums;
     using SCP_575.Systems;
-    using SCP575.Shared;
+    using SCP_575.Shared;
     using System;
 
     /// <summary>
@@ -17,6 +18,10 @@
     {
         private readonly Plugin _plugin;
         private const string ItemPhysicsTag = CoroutineTags.ItemPhysics;
+
+        // Anti-spam protection: tracks the exact timestamp of the last executed non-lethal attack audio.
+        private DateTime _lastAttackAudioTime = DateTime.MinValue;
+        private readonly TimeSpan _attackAudioCooldown = TimeSpan.FromSeconds(1.5);
 
         public PlayerDamageHandler(Plugin plugin)
         {
@@ -34,7 +39,7 @@
 
         /// <summary>
         /// Intercepts the final physiological state of a human actor before death confirmation,
-        /// triggering asynchronous inventory propulsion calculations if the kill vector belongs to the entity.
+        /// triggering asynchronous inventory propulsion calculations and execution of the signature lethal strike audio.
         /// </summary>
         /// <param name="ev">The operational state arguments containing player data and lethal damage tracking signatures.</param>
         public override void OnPlayerDying(PlayerDyingEventArgs ev)
@@ -49,7 +54,11 @@
                 if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
                     return;
 
-                LibraryLabAPI.LogDebug("PlayerDamageHandler", $"Death confirmed from {Scp575DamageSystem.IdentifierName} for {ev.Player.Nickname}. Triggering item physics.");
+                LibraryLabAPI.LogDebug("PlayerDamageHandler", $"Death confirmed from {Scp575DamageSystem.IdentifierName} for {ev.Player.Nickname}. Triggering item physics and lethal soundscape.");
+
+                // Executing ShadowStrike exactly on death provides a clean, deterministic acoustic punctuation
+                // to the kill event, syncing perfectly with the physical item scattering.
+                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, ev.Player.Position);
 
                 // Offloading item kinetic scatter behavior to an isolated coroutine guarantees 
                 // the main physics thread is not blocked during complex kinematic evaluations.
@@ -59,6 +68,19 @@
             {
                 LibraryLabAPI.LogError("PlayerDamageHandler", $"Error while processing PlayerDying: {ex}");
             }
+        }
+
+        /// <summary>
+        /// Optonal implementation layout for standard hurting events. 
+        /// Uses a hard temporal cooldown to strictly prevent acoustic repetition and audio driver clipping.
+        /// </summary>
+        public void ProcessHurtAudioAntiSpam(UnityEngine.Vector3 targetPosition)
+        {
+            if (DateTime.UtcNow - _lastAttackAudioTime < _attackAudioCooldown)
+                return;
+
+            _lastAttackAudioTime = DateTime.UtcNow;
+            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, targetPosition);
         }
 
         #endregion

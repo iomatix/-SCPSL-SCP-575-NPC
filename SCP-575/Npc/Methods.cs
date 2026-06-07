@@ -7,17 +7,14 @@ namespace SCP_575.Npc
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared.Audio.Enums;
-    using SCP575.Shared;
+    using SCP_575.Systems;
+    using SCP_575.Shared;
     using Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
 
-    /// <summary>
-    /// Manages core SCP-575 NPC behaviors, including blackout orchestration, 
-    /// CASSIE announcements, and the Keter-class attack logic.
-    /// </summary>
     public class Methods
     {
         private readonly Plugin _plugin;
@@ -33,8 +30,6 @@ namespace SCP_575.Npc
         private static int _blackoutStacks = 0;
         private CassieStatus _cassieState = CassieStatus.Idle;
 
-        // Note: Removed _activeCoroutines list to prevent memory leaks from short-lived coroutines.
-        // We now rely strictly on MEC's native tagging system for memory safety and cleanup.
         private const string TempCoroutineTag = CoroutineTags.Temp;
 
         private enum CassieStatus
@@ -62,10 +57,6 @@ namespace SCP_575.Npc
 
         #region Lifecycle Management
 
-        /// <summary>
-        /// Prepares the SCP-575 NPC for the current round, rolling for spawn chance
-        /// and initializing all relevant loops and sanity values for players.
-        /// </summary>
         public void Init(float roll = -1f)
         {
             if (_isInitialized) return;
@@ -93,20 +84,16 @@ namespace SCP_575.Npc
             }
         }
 
-        /// <summary>
-        /// Disables all SCP-575 logic, stops coroutines, and cleans up active event states.
-        /// </summary>
         public void Disable()
         {
             _isInitialized = false;
             _plugin.IsEventActive = false;
 
-            // Clean up all static coroutines via predefined array
             foreach (string tag in CoroutineTags.AllStaticTags)
             {
                 Timing.KillCoroutines(tag);
             }
-            LibraryLabAPI.LogDebug(nameof(Disable),"Killed all static SCP-575 coroutines via tags.");
+            LibraryLabAPI.LogDebug(nameof(Disable), "Killed all static SCP-575 coroutines via tags.");
 
             _plugin.AudioManager?.Clean();
             _sanityHandler?.Clean();
@@ -161,15 +148,21 @@ namespace SCP_575.Npc
                 TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
             }
 
+            // ===================================================================
+            // CORRECTED GLOBAL AUDIO ROUTING
+            // ===================================================================
+            // Using dedicated global methods for non-spatial environmental tracks instead of dummy vectors.
             _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.BlackoutImpactGlobal);
-            
-            // Playing random, loud screem once
+            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterRoarGlobal);
+
+            // Spatialized cue for a specific vulnerable target to anchor localized direction.
             if (UnityEngine.Random.Range(0f, 100f) < 70f)
             {
                 var randomPlayer = Player.ReadyList.Where(p => p.IsAlive && p.IsHuman).OrderBy(_ => UnityEngine.Random.value).FirstOrDefault();
                 if (randomPlayer != null)
                 {
-                    _plugin.AudioManager.PlayAudioAutoManaged(null, AudioKey.ScreamAngry, position: randomPlayer.Position, hearableForAllPlayers: true, lifespan: 20f);
+                    var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.Scream_3 + 1);
+                    _plugin.AudioManager.PlayAudioAtPosition(randomScream, randomPlayer.Position);
                 }
             }
 
@@ -342,7 +335,8 @@ namespace SCP_575.Npc
 
             IncrementBlackoutStack();
             TriggerCassieMessage(_config.CassieConfig.CassieKeter);
-            _plugin.AudioManager.PlayAmbience();
+
+            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Ambience);
 
             yield return Timing.WaitForSeconds(duration);
 
@@ -354,7 +348,7 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(_config.CassieConfig.TimeBetweenSentenceAndEnd);
                 ResetTeslaGates();
                 _triggeredZones.Clear();
-                _plugin.AudioManager.StopAmbience();
+                _plugin.AudioManager.Clean();
             }
         }
 
@@ -416,7 +410,9 @@ namespace SCP_575.Npc
 
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
-                        _plugin.AudioManager.PlayRandomAudioEffect(player, AudioKey.Whispers, AudioKey.WhispersMixed);
+
+                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterBreathLocal);
+
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }
                     catch (Exception ex)
@@ -426,8 +422,6 @@ namespace SCP_575.Npc
                 }
             }
         }
-
-
 
         #endregion
 
@@ -448,8 +442,6 @@ namespace SCP_575.Npc
         public void StartSanityHandlerLoop()
         {
             Timing.KillCoroutines(CoroutineTags.SanityHandler);
-
-            // Assigning to _sanityHandler allows external access if needed, but MEC handles execution
             Timing.RunCoroutine(_sanityHandler.HandleSanityDecay(), CoroutineTags.SanityHandler);
         }
 
@@ -474,7 +466,7 @@ namespace SCP_575.Npc
 
         public void Reset575()
         {
-            _plugin.AudioManager.StopAmbience();
+            _plugin.AudioManager.Clean();
             _blackoutStacks = 0;
             Map.ResetColorOfLights();
             Map.TurnOnLights();
@@ -482,10 +474,6 @@ namespace SCP_575.Npc
             ResetTeslaGates();
         }
 
-        /// <summary>
-        /// Determines if an explosion is dangerous to SCP-575.
-        /// Based on a strict whitelist to avoid issues with non-standard explosion types.
-        /// </summary>
         public bool IsDangerousToScp575(ExplosionType explosionType)
         {
             return explosionType switch

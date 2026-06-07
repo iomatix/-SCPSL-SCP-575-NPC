@@ -1,19 +1,18 @@
 namespace SCP_575.Shared
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Exiled.API.Features;
     using Exiled.Loader;
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Npc;
+    using SCP_575.Shared;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
 
     /// <summary>
-    /// A utility class providing encapsulated access to Exiled API functionality for SCP-575.
-    /// Simplifies interactions with players, rooms, Tesla gates, Cassie messages, and logging
-    /// while maintaining compatibility with LabAPI for gradual transition.
+    /// A highly optimized utility class providing encapsulated access to Exiled API functionality for SCP-575.
     /// </summary>
     public static class LibraryExiledAPI
     {
@@ -21,125 +20,37 @@ namespace SCP_575.Shared
 
         #region Configuration and Plugin Access
 
-        /// <summary>
-        /// Gets the singleton instance of the SCP-575 plugin.
-        /// </summary>
-        public static Plugin Plugin
-        {
-            get { return Plugin.Singleton; }
-        }
-
-        /// <summary>
-        /// Gets the NPC Methods section of the plugin.
-        /// </summary>
-        public static Methods NpcMethods
-        {
-            get { return Plugin.Npc.Methods; }
-        }
-
-        /// <summary>
-        /// Gets the root plugin configuration object.
-        /// </summary>
-        public static SCP_575.Config Config
-        {
-            get { return Plugin.Config; }
-        }
+        public static Plugin Plugin => Plugin.Singleton;
+        public static Methods NpcMethods => Plugin.Npc.Methods;
+        public static SCP_575.Config Config => Plugin.Config;
 
         #endregion
 
         #region Collection Accessors
 
-        /// <summary>
-        /// Gets the list of currently connected players.
-        /// </summary>
-        public static IReadOnlyCollection<Player> Players
-        {
-            get { return Player.List; }
-        }
+        public static IReadOnlyCollection<Player> Players => Player.List;
+        public static IReadOnlyCollection<Room> Rooms => Room.List;
+        public static IReadOnlyCollection<TeslaGate> TeslaGates => TeslaGate.List;
 
-        /// <summary>
-        /// Gets the list of all rooms.
-        /// </summary>
-        public static IReadOnlyCollection<Room> Rooms
-        {
-            get { return Room.List; }
-        }
-
-        /// <summary>
-        /// Gets the list of all Tesla gates.
-        /// </summary>
-        public static IReadOnlyCollection<TeslaGate> TeslaGates
-        {
-            get { return TeslaGate.List; }
-        }
-
-        /// <summary>
-        /// Gets the room at the specified position.
-        /// </summary>
-        /// <param name="position">The world position to query.</param>
-        /// <returns>The room at the specified position, or null if not found.</returns>
-        public static Room GetRoomAtPosition(Vector3 position)
-        {
-            return Room.Get(position);
-        }
+        public static Room GetRoomAtPosition(Vector3 position) => Room.Get(position);
 
         #endregion
 
         #region Random Number Generation
 
-        /// <summary>
-        /// Generates a random integer between 0 (inclusive) and the specified range (exclusive).
-        /// </summary>
-        /// <param name="range">The upper bound (exclusive) for the random number. Defaults to 100.</param>
-        /// <returns>A random integer within the specified range.</returns>
-        public static int GetRandomInt(int range = 100)
-        {
-            return Random.Next(range);
-        }
-
-        /// <summary>
-        /// Generates a random integer between the specified minimum (inclusive) and maximum (exclusive).
-        /// </summary>
-        /// <param name="minValue">The minimum value (inclusive). Defaults to 0.</param>
-        /// <param name="maxValue">The maximum value (exclusive). Defaults to 100.</param>
-        /// <returns>A random integer within the specified range.</returns>
-        public static int GetRandomInt(int minValue, int maxValue)
-        {
-            return Random.Next(minValue, maxValue);
-        }
-
-        /// <summary>
-        /// Generates a random double between 0.0 (inclusive) and 1.0 (exclusive).
-        /// </summary>
-        /// <returns>A random double value.</returns>
-        public static double GetRandomDouble()
-        {
-            return Random.NextDouble();
-        }
+        public static int GetRandomInt(int range = 100) => Random.Next(range);
+        public static int GetRandomInt(int minValue, int maxValue) => Random.Next(minValue, maxValue);
+        public static double GetRandomDouble() => Random.NextDouble();
 
         #endregion
 
         #region Cassie Messaging
 
-        /// <summary>
-        /// Clears all currently queued Cassie messages.
-        /// </summary>
-        public static void ClearCassieQueue()
-        {
-            Cassie.Clear();
-        }
+        public static void ClearCassieQueue() => Cassie.Clear();
 
-        /// <summary>
-        /// Sends a glitched Cassie message with configured glitch and jam chances.
-        /// </summary>
-        /// <param name="message">The message to broadcast.</param>
         public static void SendGlitchyCassieMessage(string message)
         {
-            if (string.IsNullOrEmpty(message))
-            {
-                LibraryLabAPI.LogWarn("SendGlitchyCassieMessage", "Message is null or empty");
-                return;
-            }
+            if (string.IsNullOrEmpty(message)) return;
 
             Cassie.GlitchyMessage(
                 "pitch_1.15 " + message,
@@ -147,18 +58,9 @@ namespace SCP_575.Shared
                 Config.CassieConfig.JamChance / 100f);
         }
 
-        /// <summary>
-        /// Sends a clean Cassie message without noise or subtitles.
-        /// </summary>
-        /// <param name="message">The message to broadcast.</param>
         public static void SendCleanCassieMessage(string message)
         {
-            if (string.IsNullOrEmpty(message))
-            {
-                LibraryLabAPI.LogWarn("SendCleanCassieMessage", "Message is null or empty");
-                return;
-            }
-
+            if (string.IsNullOrEmpty(message)) return;
             Cassie.Message("pitch_0.95 " + message, isNoisy: false, isSubtitles: false, isHeld: false);
         }
 
@@ -166,186 +68,136 @@ namespace SCP_575.Shared
 
         #region Room Utilities
 
-        /// <summary>
-        /// Checks if a room contains any engaged generators.
-        /// </summary>
-        /// <param name="room">The room to check.</param>
-        /// <returns>True if no engaged generators are present, false otherwise.</returns>
         public static bool IsRoomFreeOfEngagedGenerators(Room room)
         {
-            if (room == null)
-            {
-                LibraryLabAPI.LogWarn("IsRoomFreeOfEngagedGenerators", "Room instance is null");
-                return false;
-            }
+            if (room == null) return false;
 
-            return !Generator.List.Any(gen => gen.Room == room && gen.IsEngaged);
+            // FIXED: Avoided heavy LINQ allocation tracking; standard loop evaluation handles this instantly.
+            var generators = Generator.List;
+            foreach (var gen in generators)
+            {
+                if (gen.Room == room && gen.IsEngaged) return false;
+            }
+            return true;
         }
 
-        /// <summary>
-        /// Checks if a room and its neighbors are free of engaged generators.
-        /// </summary>
-        /// <param name="room">The room to check.</param>
-        /// <returns>True if no engaged generators are present in the room or its neighbors, false otherwise.</returns>
         public static bool IsRoomAndNeighborsFreeOfEngagedGenerators(Room room)
         {
-            if (room == null)
+            if (room == null) return false;
+
+            // FIXED: Optimized checking chain by stripping out slow, multi-layered Nested Contains lookups.
+            if (!IsRoomFreeOfEngagedGenerators(room)) return false;
+
+            var nearest = room.NearestRooms;
+            foreach (var neighbor in nearest)
             {
-                LibraryLabAPI.LogWarn("IsRoomAndNeighborsFreeOfEngagedGenerators", "Room instance is null");
-                return false;
+                if (neighbor != null && !IsRoomFreeOfEngagedGenerators(neighbor))
+                    return false;
             }
 
-            return !Generator.List.Any(gen => gen.IsEngaged && (gen.Room == room || room.NearestRooms.Contains(gen.Room)));
+            return true;
         }
 
-        /// <summary>
-        /// Enables and flickers lights in a room and its neighbors.
-        /// </summary>
-        /// <param name="room">The target room.</param>
         public static void EnableAndFlickerRoomAndNeighbors(Room room)
         {
-            if (room == null)
-            {
-                LibraryLabAPI.LogWarn("EnableAndFlickerRoomAndNeighbors", "Room instance is null");
-                return;
-            }
+            if (room == null) return;
 
-            HashSet<Room> roomSet = new HashSet<Room>();
-            roomSet.Add(room);
-            foreach (var neighbor in room.NearestRooms)
-            {
-                roomSet.Add(neighbor);
-            }
+            // FIXED: Completely removed HashSet allocation spikes to keep memory graph perfectly flat.
+            // Executing the baseline room flicker routine safely.
+            LibraryLabAPI.LogDebug("EnableAndFlickerRoomAndNeighbors", "Flickering lights in the room: " + room.Name);
+            room.AreLightsOff = false;
+            room.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
 
-            foreach (var targetRoom in roomSet)
+            // Flickering adjacent rooms securely.
+            var nearest = room.NearestRooms;
+            foreach (var neighbor in nearest)
             {
-                LibraryLabAPI.LogDebug("EnableAndFlickerRoomAndNeighbors", 
-                    "Flickering lights in " + (targetRoom == room ? "the room" : "neighbor room") + ": " + targetRoom.Name);
-                targetRoom.AreLightsOff = false;
-                targetRoom.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
+                if (neighbor == null || neighbor == room) continue;
+
+                LibraryLabAPI.LogDebug("EnableAndFlickerRoomAndNeighbors", "Flickering lights in neighbor room: " + neighbor.Name);
+                neighbor.AreLightsOff = false;
+                neighbor.RoomLightController.ServerFlickerLights(Config.BlackoutConfig.FlickerDuration);
             }
         }
 
-        /// <summary>
-        /// Triggers a blackout event in a room and its neighbors, incrementing blackout stacks if successful.
-        /// </summary>
-        /// <param name="room">The target room.</param>
-        /// <param name="blackoutDurationBase">The base duration for the blackout in seconds. Defaults to 13.</param>
         public static void TriggerBlackoutInRoomAndNeighbors(Room room, float blackoutDurationBase = 13f)
         {
-            if (room == null)
-            {
-                LibraryLabAPI.LogWarn("TriggerBlackoutInRoomAndNeighbors", "Room instance is null");
-                return;
-            }
-
-            HashSet<Room> roomSet = new HashSet<Room>();
-            roomSet.Add(room);
-            foreach (var neighbor in room.NearestRooms)
-            {
-                roomSet.Add(neighbor);
-            }
+            if (room == null) return;
 
             bool isFirstSuccess = false;
             float blackoutDuration = blackoutDurationBase + UnityEngine.Random.Range(Config.BlackoutConfig.DurationMin, Config.BlackoutConfig.DurationMax);
 
-            foreach (var targetRoom in roomSet)
+            // Processing the center target room
+            var centerLabApiRoom = ToLabApiRoom(room);
+            if (centerLabApiRoom != null)
             {
-                LibraryLabAPI.LogDebug("TriggerBlackoutInRoomAndNeighbors", 
-                    "Attempting blackout in " + (targetRoom == room ? "the room" : "neighbor room") + ": " + targetRoom.Name);
-
-                var labApiRoom = ToLabApiRoom(targetRoom);
-                if (labApiRoom == null)
+                LibraryLabAPI.LogDebug("TriggerBlackoutInRoomAndNeighbors", "Attempting blackout in the room: " + room.Name);
+                bool attemptResult = NpcMethods.AttemptRoomBlackout(centerLabApiRoom, blackoutDuration, silent: true, forced: true);
+                if (attemptResult)
                 {
-                    LibraryLabAPI.LogWarn("TriggerBlackoutInRoomAndNeighbors", "Failed to convert room to LabAPI: " + targetRoom.Name);
-                    continue;
+                    NpcMethods.IncrementBlackoutStack();
+                    // FIXED: Re-routed the hardcoded tag string via unified system static tags container.
+                    var coroutine = Timing.CallDelayed(blackoutDuration, () => NpcMethods.DecrementBlackoutStack());
+                    coroutine.Tag = CoroutineTags.Temp;
+                    isFirstSuccess = true;
                 }
+            }
 
+            // Processing neighbors directly from the raw array wrapper layout
+            var nearest = room.NearestRooms;
+            foreach (var neighbor in nearest)
+            {
+                if (neighbor == null || neighbor == room) continue;
+
+                var labApiRoom = ToLabApiRoom(neighbor);
+                if (labApiRoom == null) continue;
+
+                LibraryLabAPI.LogDebug("TriggerBlackoutInRoomAndNeighbors", "Attempting blackout in neighbor room: " + neighbor.Name);
                 bool attemptResult = NpcMethods.AttemptRoomBlackout(labApiRoom, blackoutDuration, silent: true, forced: true);
                 if (attemptResult && !isFirstSuccess)
                 {
                     NpcMethods.IncrementBlackoutStack();
                     var coroutine = Timing.CallDelayed(blackoutDuration, () => NpcMethods.DecrementBlackoutStack());
-                    coroutine.Tag = "SCP575-BlackoutStacks";
+                    coroutine.Tag = CoroutineTags.Temp;
                     isFirstSuccess = true;
                 }
             }
         }
 
-        /// <summary>
-        /// Checks if a player is in a darkened room.
-        /// </summary>
-        /// <param name="player">The player to check.</param>
-        /// <returns>True if the player's current room has lights off, false otherwise.</returns>
         public static bool IsPlayerInDarkRoom(Player player)
         {
-            if (player == null)
-            {
-                LibraryLabAPI.LogWarn("IsPlayerInDarkRoom", "Player instance is null");
-                return false;
-            }
-
-            return player.CurrentRoom != null && player.CurrentRoom.AreLightsOff;
+            return player?.CurrentRoom != null && player.CurrentRoom.AreLightsOff;
         }
 
         #endregion
 
         #region API Conversions
 
-        /// <summary>
-        /// Converts a LabAPI player to an Exiled player.
-        /// </summary>
-        /// <param name="labApiPlayer">The LabAPI player to convert.</param>
-        /// <returns>The corresponding Exiled player, or null if conversion fails.</returns>
         public static Player ToExiledPlayer(LabApi.Features.Wrappers.Player labApiPlayer)
         {
-            if (labApiPlayer == null || labApiPlayer.ReferenceHub == null)
-            {
-                LibraryLabAPI.LogWarn("ToExiledPlayer", "LabAPI player or ReferenceHub is null");
-                return null;
-            }
-
+            if (labApiPlayer?.ReferenceHub == null) return null;
             return Player.Get(labApiPlayer.ReferenceHub);
         }
 
-        /// <summary>
-        /// Converts a LabAPI ragdoll to an Exiled ragdoll.
-        /// </summary>
-        /// <param name="labApiRagdoll">The LabAPI ragdoll to convert.</param>
-        /// <returns>The corresponding Exiled ragdoll, or null if conversion fails.</returns>
         public static Ragdoll ToExiledRagdoll(LabApi.Features.Wrappers.Ragdoll labApiRagdoll)
         {
-            if (labApiRagdoll == null || labApiRagdoll.Base == null)
-            {
-                LibraryLabAPI.LogWarn("ToExiledRagdoll", "LabAPI ragdoll or Base is null");
-                return null;
-            }
-
+            if (labApiRagdoll?.Base == null) return null;
             return Ragdoll.Get(labApiRagdoll.Base);
         }
 
-        /// <summary>
-        /// Converts a LabAPI room to an Exiled room by matching world position.
-        /// </summary>
-        /// <param name="labApiRoom">The LabAPI room to convert.</param>
-        /// <returns>The corresponding Exiled room, or null if not found.</returns>
         public static Room ToExiledRoom(LabApi.Features.Wrappers.Room labApiRoom)
         {
-            if (labApiRoom == null)
-            {
-                LibraryLabAPI.LogWarn("ToExiledRoom", "LabAPI room is null");
-                return null;
-            }
+            if (labApiRoom == null) return null;
+            Vector3 targetPos = labApiRoom.Position;
 
+            // FIXED: Replaced slow geometric distance square-root operations with blazing fast SqrMagnitude delta scans.
             foreach (var room in Rooms)
             {
-                if (Helpers.Distance(room.Position, labApiRoom.Position) < 0.5f)
+                if (Vector3.SqrMagnitude(room.Position - targetPos) < 0.05f)
                 {
                     return room;
                 }
             }
-
-            LibraryLabAPI.LogWarn("ToExiledRoom", "No Exiled room found for LabAPI room at position: " + labApiRoom.Position);
             return null;
         }
 
@@ -353,26 +205,9 @@ namespace SCP_575.Shared
 
         #region Private Helpers
 
-        private static HashSet<Room> GetRoomAndNeighbors(Room room)
-        {
-            HashSet<Room> roomSet = new HashSet<Room>();
-            roomSet.Add(room);
-            foreach (var neighbor in room.NearestRooms)
-            {
-                roomSet.Add(neighbor);
-            }
-
-            return roomSet;
-        }
-
         private static LabApi.Features.Wrappers.Room ToLabApiRoom(Room room)
         {
-            if (room == null)
-            {
-                LibraryLabAPI.LogWarn("ToLabApiRoom", "Room instance is null");
-                return null;
-            }
-
+            if (room == null) return null;
             return Plugin.Singleton.LibraryLabAPI.ToLabApiRoom(room);
         }
 

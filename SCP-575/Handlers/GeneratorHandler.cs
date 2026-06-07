@@ -5,8 +5,9 @@
     using MEC;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
-    using SCP575.Shared;
+    using SCP_575.Shared;
     using System;
+    using UnityEngine;
 
     /// <summary>
     /// Orchestrates the entity's defensive reactions and containment mechanics as human forces 
@@ -55,15 +56,18 @@
                 room,
                 _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
 
+            // Trigger environmental feedback indicating that this specific sub-station has synchronized.
+            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.GeneratorHumDefense, ev.Generator.Position);
+
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
                 // Delay the termination audio sequence slightly to allow the structural 
                 // power restoration soundscapes to establish narrative precedence.
                 var coroutine = Timing.CallDelayed(3.75f, () =>
                 {
-                    _plugin.AudioManager.PlayGlobalAudioAutoManaged(
-                        AudioKey.ScreamDying,
-                        lifespan: 25f);
+                    // Keeping it spatialized at the final generator position with a massive distance roll-off
+                    // ensures structural echo and multi-layered directionality across adjacent zones.
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamDying, ev.Generator.Position);
                 });
 
                 coroutine.Tag = GeneratorAudioTag;
@@ -75,9 +79,10 @@
             }
             else
             {
-                // Spatializing the roar at the activation site alerts human teams to the exact 
-                // point of friction, emphasizing local threat presence rather than a global event.
-                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamAngry, ev.Generator.Position);
+                // Dynamic acoustic rotation: pick randomly between behavioral screams and acute hurt feedback
+                // to signal that the sudden influx of structural power is physically disrupting the entity.
+                var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.ScreamHurt + 1);
+                _plugin.AudioManager.PlayAudioAtPosition(randomScream, ev.Generator.Position);
             }
         }
     }

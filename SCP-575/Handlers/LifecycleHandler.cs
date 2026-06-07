@@ -2,6 +2,7 @@
 {
     using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
+    using MEC;
     using SCP_575.Shared;
     using System;
 
@@ -24,23 +25,46 @@
         /// </summary>
         public override void OnServerWaitingForPlayers()
         {
-            _plugin.IsEventActive = false;
             _plugin.Npc?.Methods?.Disable();
-
-            LibraryLabAPI.LogInfo("Lifecycle", "Round reset. SCP-575 ready.");
+            LibraryLabAPI.LogInfo("Lifecycle", "Round reset. SCP-575 ready for next session.");
         }
 
         /// <summary>
         /// Computes initialization probabilities at the precise instant the gameplay loop activates,
-        /// injecting seed variables into the primary orchestration systems.
+        /// introducing a safety temporal buffer before injecting seed variables into active subsystems.
         /// </summary>
         public override void OnServerRoundStarted()
         {
             float roll = UnityEngine.Random.Range(0f, 100f);
 
-            LibraryLabAPI.LogDebug("Lifecycle", $"Spawn roll: {roll}");
+            // ===================================================================
+            // DEBUG CONDITIONAL OVERRIDE
+            // ===================================================================
+#if DEBUG
+            // Forcing the roll to -1f guarantees success in Methods.Init (since -1f is always <= EventChance, even if chance is 0%).
+            roll = -1f; 
+            
+            LibraryLabAPI.LogInfo("Lifecycle", "========================================================================");
+            LibraryLabAPI.LogInfo("Lifecycle", "       [DEVELOPER ENVIRONMENT DETECTED - FORCING 100% SPAWN CHANCE]     ");
+            LibraryLabAPI.LogInfo("Lifecycle", "  SCP-575 event roll has been bypassed. Blackout loop will trigger automatically. ");
+            LibraryLabAPI.LogInfo("Lifecycle", "========================================================================");
+#endif
 
-            _plugin.Npc?.Methods?.Init(roll);
+            LibraryLabAPI.LogDebug("Lifecycle", $"Spawn roll calculated: {roll}%. Scheduling safe initialization buffer.");
+
+            // Introduced a 1-second delay execution layout to completely mitigate Frame-0 race conditions.
+            Timing.CallDelayed(1.0f, () =>
+            {
+                try
+                {
+                    if (_plugin.IsEventActive || _plugin.Npc?.Methods == null) return;
+                    _plugin.Npc.Methods.Init(roll);
+                }
+                catch (Exception ex)
+                {
+                    LibraryLabAPI.LogError("Lifecycle.RoundStarted", $"Asynchronous initialization buffer failed: {ex.Message}");
+                }
+            });
         }
 
         /// <summary>
@@ -50,10 +74,8 @@
         /// <param name="ev">Telemetry data regarding the round finalization state.</param>
         public override void OnServerRoundEnded(RoundEndedEventArgs ev)
         {
-            _plugin.IsEventActive = false;
             _plugin.Npc?.Methods?.Disable();
-
-            LibraryLabAPI.LogInfo("Lifecycle", "Round ended. SCP-575 disabled.");
+            LibraryLabAPI.LogInfo("Lifecycle", "Round ended confirmed. SCP-575 systems safely disabled.");
         }
     }
 }
