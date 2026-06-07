@@ -67,7 +67,7 @@
                         _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
 
                     // Randomly select between defensive rage or acute pain feedback to avoid overlapping artifacts.
-                    var selectedScream = Random.Range(0, 2) == 0 ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
+                    AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
                     _plugin.AudioManager.PlayAudioAtPosition(selectedScream, position);
                     break;
 
