@@ -27,17 +27,14 @@
         private DateTime _lastGlobalScreamTime = DateTime.MinValue;
 
         private int _ambienceAudioSessionId;
+        private readonly Dictionary<string, int> _activeDroneSessions = new(); // FIXED: Tracks UserID -> Audio SessionID
         private readonly HashSet<int> _generatorSessionIds = new();
         private readonly HashSet<int> _pluginSessionIds = new();
 
         private const string AudioCoroutineTag = CoroutineTags.AudioCoroutines;
 
-        // FIXED: Replaced ugly structural tuples with a clean, strongly-typed profile design layout.
         private readonly Dictionary<AudioKey, AudioTrackProfile> _audioRegistry = new()
         {
-            // ===================================================================
-            // TRANSIENT VOCALIZATIONS & VOCAL ATTACKS
-            // ===================================================================
             { AudioKey.Scream_1, new("scp575.scream_1", 0.85f, 5f, 150f, true, AudioPriority.High, 9f) },
             { AudioKey.Scream_2, new("scp575.scream_2", 0.85f, 5f, 150f, true, AudioPriority.High, 9f) },
             { AudioKey.Scream_3, new("scp575.scream_3", 0.85f, 5f, 150f, true, AudioPriority.High, 9f) },
@@ -46,26 +43,17 @@
             { AudioKey.ScreamDying, new("scp575.scream_dying", 1.0f, 15f, 280f, true, AudioPriority.High, 20f) },
             { AudioKey.MonsterRoarGlobal, new("scp575.monster_roar_global", 0.95f, 0f, 999.99f, false, AudioPriority.High, 40f) },
 
-            // ===================================================================
-            // SPATIALIZED PSYCHOLOGICAL FEEDBACK & PARANOIA
-            // ===================================================================
             { AudioKey.Whispers_1, new("scp575.whispers_1", 0.5f, 2f, 35f, true, AudioPriority.Medium, 11f) },
             { AudioKey.Whispers_2, new("scp575.whispers_2", 0.65f, 3f, 45f, true, AudioPriority.Medium, 19f) },
-            { AudioKey.Whispers_2, new("scp575.whispers_3", 0.65f, 3f, 52f, true, AudioPriority.Medium, 14f) },
+            { AudioKey.Whispers_3, new("scp575.whispers_3", 0.65f, 3f, 52f, true, AudioPriority.Medium, 14f) },
             { AudioKey.WhispersBang, new("scp575.whispers_bang", 0.75f, 2f, 65f, true, AudioPriority.High, 20f) },
             { AudioKey.WhispersMixed, new("scp575.whispers_mixed", 0.8f, 2f, 55f, true, AudioPriority.Medium, 25f) },
             { AudioKey.MonsterBreathLocal, new("scp575.monster_breath_local", 0.85f, 1f, 16f, true, AudioPriority.High, 11f) },
             { AudioKey.ShadowClicking, new("scp575.shadow_clicking", 0.7f, 1f, 22f, true, AudioPriority.Medium, 9f) },
 
-            // ===================================================================
-            // KINETIC TRAUMA & TACTICAL INTERACTION FEEDBACK
-            // ===================================================================
             { AudioKey.ShadowStrike, new("scp575.shadow_strike", 0.9f, 3f, 35f, true, AudioPriority.High, 5f) },
             { AudioKey.GeneratorHumDefense, new("scp575.generator_hum_defense", 0.75f, 5f, 40f, true, AudioPriority.Medium, 0f) },
 
-            // ===================================================================
-            // ENVIRONMENTAL ACOUSTIC BACKGROUNDS & ZONE STATE TRANSITIONS
-            // ===================================================================
             { AudioKey.Ambience, new("scp575.ambience", 0.45f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
             { AudioKey.SanityLowDrone, new("scp575.sanity_low_drone", 0.6f, 0f, 999.99f, false, AudioPriority.Medium, 0f) },
             { AudioKey.BlackoutImpactGlobal, new("scp575.blackout_impact_global", 1.0f, 0f, 999.99f, false, AudioPriority.High, 13f) },
@@ -74,25 +62,11 @@
         public Scp575AudioManager(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
-
-            if (_plugin.Config?.AudioConfig == null)
-                throw new ArgumentNullException(nameof(_plugin.Config.AudioConfig), "Audio configuration cannot be null.");
-            if (_plugin.Config.AudioConfig.GlobalScreamCooldown <= 0)
-                throw new ArgumentException("GlobalScreamCooldown must be positive.", nameof(_plugin.Config.AudioConfig));
-            if (_plugin.Config.AudioConfig.DefaultFadeDuration < 0)
-                throw new ArgumentException("DefaultFadeDuration must be non-negative.", nameof(_plugin.Config.AudioConfig));
-
-            // FIXED: Removed misleading static instantiation layer pattern
             _audioEngine = DefaultAudioManager.Instance;
             RegisterAudioResources();
-
             _ambienceAudioSessionId = 0;
         }
 
-        /// <summary>
-        /// Cleans up all active audio coroutines, flushes running loops, and terminates 
-        /// active sound sessions across round boundaries or plugin reloads.
-        /// </summary>
         public void Clean(bool fullShutdown = false)
         {
             Timing.KillCoroutines(AudioCoroutineTag);
@@ -118,6 +92,17 @@
                 _generatorSessionIds.Clear();
             }
 
+            // FIXED: Clean iteration loop utilizing the stored session IDs natively
+            if (fullShutdown && _activeDroneSessions.Count > 0)
+            {
+                foreach (int sessionId in _activeDroneSessions.Values.ToList())
+                {
+                    if (sessionId == 0) continue;
+                    try { _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration); } catch { }
+                }
+                _activeDroneSessions.Clear();
+            }
+
             Log.Debug($"[Scp575AudioManager] Clean executed. (FullShutdown: {fullShutdown})");
         }
 
@@ -131,28 +116,16 @@
 
             Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
 
-            // Global scream throttling map
             if (isNonSpatial && (audioKey == AudioKey.Scream_1 || audioKey == AudioKey.Scream_2 || audioKey == AudioKey.Scream_3 || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
                 double secondsSinceLastScream = (DateTime.UtcNow - _lastGlobalScreamTime).TotalSeconds;
-                if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown)
-                {
-                    return 0;
-                }
+                if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown) return 0;
                 _lastGlobalScreamTime = DateTime.UtcNow;
             }
 
-            if (!isNonSpatial && (float.IsNaN(playPosition.x) || float.IsNaN(playPosition.y) || float.IsNaN(playPosition.z) ||
-                float.IsInfinity(playPosition.x) || float.IsInfinity(playPosition.y) || float.IsInfinity(playPosition.z)))
+            if (!isNonSpatial && (float.IsNaN(playPosition.x) || float.IsNaN(playPosition.y) || float.IsNaN(playPosition.z) || float.IsInfinity(playPosition.x) || float.IsInfinity(playPosition.y) || float.IsInfinity(playPosition.z)))
             {
-                Log.Warn($"[Scp575AudioManager] Invalid position for audio {audioKey}. Falling back to Vector3.zero.");
                 playPosition = Vector3.zero;
-            }
-
-            if (!isNonSpatial && config.MinDistance > config.MaxDistance)
-            {
-                Log.Warn($"[Scp575AudioManager] Invalid distances for audio {audioKey}: minDistance > maxDistance.");
-                return 0;
             }
 
             if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers) && _ambienceAudioSessionId != 0)
@@ -160,8 +133,6 @@
                 StopAmbience();
             }
 
-            // FIXED: Removed the buggy `&& !isNonSpatial` filter bypass.
-            // This ensures both local 2D sounds and isolated 3D spatial tracks securely attach the target lambda block.
             Func<Player, bool> targetPlayerFilter = (!hearableForAllPlayers && player != null)
                 ? (p => p != null && p.UserId == player.UserId)
                 : null;
@@ -257,64 +228,79 @@
             }
         }
 
-        public void SkipAudio(int sessionId, int count)
-        {
-            if (sessionId == 0) return;
-            _audioEngine.SkipAudio(sessionId, count);
-        }
+        public void SkipAudio(int sessionId, int count) => _audioEngine.SkipAudio(sessionId, count);
 
         public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null)
         {
-            // FIXED: Removed the slow internal instance call redirection loop
-            PlayAudioAutoManaged(
-                player: null,
-                audioKey: key,
-                position: position,
-                lifespan: lifespan,
-                hearableForAllPlayers: true,
-                isNonSpatial: false);
+            PlayAudioAutoManaged(null, key, position, lifespan, hearableForAllPlayers: true, isNonSpatial: false);
         }
 
         public int PlayLocalAudio(Player player, AudioKey audioKey, float? lifespan = null, float fadeInDuration = 0f)
         {
-            // FIXED: Clean invocation flow mapped locally
-            return PlayAudioAutoManaged(
-                player: player,
-                audioKey: audioKey,
-                position: null,
-                lifespan: lifespan,
-                hearableForAllPlayers: false,
-                queue: false,
-                fadeInDuration: fadeInDuration,
-                isNonSpatial: true);
+            return PlayAudioAutoManaged(player, audioKey, null, lifespan, false, false, fadeInDuration, true);
         }
 
         public int PlayIsolatedSpatialAudio(Player player, AudioKey audioKey, Vector3 position, float? lifespan = null, float fadeInDuration = 0f)
         {
-            // FIXED: Secure 3D network isolation routing mapped natively
-            return PlayAudioAutoManaged(
-                player: player,
-                audioKey: audioKey,
-                position: position,
-                lifespan: lifespan,
-                hearableForAllPlayers: false,
-                queue: false,
-                fadeInDuration: fadeInDuration,
-                isNonSpatial: false);
+            return PlayAudioAutoManaged(player, audioKey, position, lifespan, false, false, fadeInDuration, false);
         }
 
         public void PlayRandomAudioEffect(Player player, params AudioKey[] options)
         {
             if (options == null || options.Length == 0)
             {
-                // FIXED: Filtered paranoia pool out of screams to protect isolated context contracts.
                 options = new[] { AudioKey.WhispersMixed, AudioKey.Whispers_1, AudioKey.Whispers_2, AudioKey.ShadowClicking };
             }
-
             var selected = options[UnityEngine.Random.Range(0, options.Length)];
-
-            // FIXED: Stripped out forced global flag. Paranoia triggers strictly isolated for the victim unit.
             PlayAudioAutoManaged(player, selected, hearableForAllPlayers: false, lifespan: null);
+        }
+
+        /// <summary>
+        /// Orchestrates continuous 2D background ambience state transitions based on target sanity brackets.
+        /// </summary>
+        public void UpdatePlayerBackgroundAmbient(Player player, bool shouldPlayDrone)
+        {
+            if (player == null || string.IsNullOrEmpty(player.UserId)) return;
+
+            string userId = player.UserId.ToLowerInvariant();
+
+            if (shouldPlayDrone)
+            {
+                if (_activeDroneSessions.ContainsKey(userId)) return;
+
+                // Invokes your pre-existing PlayLocalAudio pipeline using a 2.0s immersive fade-in
+                int sessionId = PlayLocalAudio(player, AudioKey.SanityLowDrone, lifespan: null, fadeInDuration: 2.0f);
+                if (sessionId != 0)
+                {
+                    _activeDroneSessions[userId] = sessionId;
+                }
+            }
+            else
+            {
+                if (!_activeDroneSessions.TryGetValue(userId, out int sessionId)) return;
+
+                if (sessionId != 0)
+                {
+                    _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                    _pluginSessionIds.Remove(sessionId);
+                }
+                _activeDroneSessions.Remove(userId);
+            }
+        }
+
+        /// <summary>
+        /// Explicit emergency cutoff tracking hook linked to network disconnection lifecycles.
+        /// </summary>
+        public void ForceStopAllPlayerAudio(Player player)
+        {
+            if (player == null || string.IsNullOrEmpty(player.UserId)) return;
+
+            string userId = player.UserId.ToLowerInvariant();
+            if (_activeDroneSessions.TryGetValue(userId, out int sessionId))
+            {
+                if (sessionId != 0) _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                _activeDroneSessions.Remove(userId);
+            }
         }
 
         private void RegisterAudioResources()
@@ -335,9 +321,6 @@
             }
         }
 
-        // ===================================================================
-        // HIGHLY-TYPED DATA STRUCTURE PROFILES
-        // ===================================================================
         private sealed class AudioTrackProfile
         {
             public string Key { get; }
@@ -350,13 +333,7 @@
 
             public AudioTrackProfile(string key, float volume, float minDistance, float maxDistance, bool isSpatial, AudioPriority priority, float defaultLifespan)
             {
-                Key = key;
-                Volume = volume;
-                MinDistance = minDistance;
-                MaxDistance = maxDistance;
-                IsSpatial = isSpatial;
-                Priority = priority;
-                DefaultLifespan = defaultLifespan;
+                Key = key; Volume = volume; MinDistance = minDistance; MaxDistance = maxDistance; IsSpatial = isSpatial; Priority = priority; DefaultLifespan = defaultLifespan;
             }
         }
     }

@@ -73,6 +73,7 @@
         public void Initialize()
         {
             if (_isDisposed) return;
+            // Coroutine initialization can be triggered here or via server start events.
         }
 
         /// <summary>
@@ -107,20 +108,33 @@
         #region Event Handlers
 
         public override void OnPlayerSpawned(PlayerSpawnedEventArgs ev) => ResetPlayerSanity(ev?.Player);
-        public override void OnPlayerChangedRole(PlayerChangedRoleEventArgs ev) => ResetPlayerSanity(ev?.Player);
+        public override void OnPlayerChangedRole(PlayerChangedRoleEventArgs ev)
+        {
+            if (ev?.Player == null) return;
+
+            // Reset baseline metrics
+            ResetPlayerSanity(ev.Player);
+
+            // If their new role is invalid for sanity mechanics, silence active loops immediately
+            if (!IsValidPlayer(ev.Player))
+            {
+                _plugin.AudioManager.UpdatePlayerBackgroundAmbient(ev.Player, shouldPlayDrone: false);
+            }
+        }
 
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
             if (ev?.Player == null) return;
             string userId = NormalizeUserId(ev.Player.UserId);
 
-            // Prevent heap stagnation and memory fragmentation during persistent server sessions 
-            // by purging historical references of disconnected clients.
             lock (_cacheLock)
             {
                 _sanityCache.Remove(userId);
                 _lastHintTime.Remove(userId);
             }
+
+            // Explicitly notify the audio manager to release tracking keys upon network disconnect
+            _plugin.AudioManager.ForceStopAllPlayerAudio(ev.Player);
         }
 
         public override void OnPlayerUsedItem(PlayerUsedItemEventArgs ev)
@@ -163,7 +177,6 @@
         /// <summary>
         /// Resets an actor's psychological metric to a standard baseline.
         /// </summary>
-        /// <param name="player"></param>
         private void ResetPlayerSanity(Player player)
         {
             if (IsValidPlayer(player))
@@ -252,7 +265,7 @@
         }
 
         /// <summary>
-        /// inflicts physical structural integrity decay on human actors caught vulnerable in active threat sectors, 
+        /// Inflicts physical structural integrity decay on human actors caught vulnerable in active threat sectors, 
         /// accounting for atmospheric stack multipliers and defensive gear status.
         /// </summary>
         public void ApplyDamageToPlayer(Player player)
@@ -267,7 +280,6 @@
                 float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
-                    // Sudden, sharp transients replace repetitive vocalizations to reinforce physical trauma feedback.
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position);
                     Scp575DamageSystem.DamagePlayer(player, culmDamage);
                 }
@@ -285,77 +297,104 @@
 
         #endregion
 
-        #region Sanity Decay
+        #region Sanity Processing Loop
 
         /// <summary>
-        /// Maintains the background structural loop that gradually saps cognitive resilience 
-        /// from actors exposed to high-stress environmental hazards, triggering spatialized paranoia audio layers.
+        /// Main runtime engine managing both active environmental sanity decay and peaceful context-aware regeneration.
         /// </summary>
         public IEnumerator<float> HandleSanityDecay()
         {
             while (true)
             {
-                if (!_plugin.IsEventActive)
-                {
-                    yield return Timing.WaitForSeconds(1f);
-                    continue;
-                }
-
                 yield return Timing.WaitForSeconds(1f);
+
+                if (!_plugin.IsEventActive)
+                    continue;
 
                 DateTime now = DateTime.Now;
 
                 foreach (var player in Player.ReadyList)
                 {
-                    if (!IsValidPlayer(player) || !_libraryLabAPI.IsPlayerInDarkRoom(player))
-                        continue;
-
-                    float decayRate = CalculateDecayRate(player);
-                    float oldSanity = GetCurrentSanity(player);
-                    float newSanity = ChangeSanityValue(player, -decayRate);
-
-                    // ===================================================================
-                    // DYNAMIC PSYCHOACOUSTIC REACTION SYSTEM
-                    // ===================================================================
-                    var stage = GetCurrentSanityStage(newSanity);
-                    if (stage != null)
+                    // FIX: If a player becomes invalid (dies/spectator), explicitly strip their ambient sound loop
+                    if (!IsValidPlayer(player))
                     {
-                        // 1. Low Drone Handler (Triggers ONCE exactly when crossing the critical threshold)
-                        bool crossedCriticalThreshold = oldSanity > 35f && newSanity <= 35f;
-                        if (crossedCriticalThreshold)
-                        {
-                            _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.SanityLowDrone, player.Position);
-                        }
-
-                        // 2. Whispers Handler (5% chance to trigger on this tick)
-                        if (UnityEngine.Random.value < 0.05f)
-                        {
-                            AudioKey? whisperToPlay = null;
-
-                            // Select EXACTLY ONE audio key based on the current sanity bracket
-                            if (newSanity <= 10f) whisperToPlay = AudioKey.WhispersMixed; // Absolute madness
-                            else if (newSanity <= 25f) whisperToPlay = AudioKey.Whispers_3;     // Severe hallucinations
-                            else if (newSanity <= 55f) whisperToPlay = AudioKey.Whispers_2;     // Moderate paranoia
-                            else if (newSanity <= 85f) whisperToPlay = AudioKey.Whispers_1;     // Light murmurs
-
-                            // Only play if the player falls into one of the sanity danger zones
-                            if (whisperToPlay.HasValue)
-                            {
-                                _plugin.AudioManager.PlayIsolatedSpatialAudio(player, whisperToPlay.Value, player.Position);
-                            }
-                        }
+                        _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, shouldPlayDrone: false);
+                        continue;
                     }
 
-                    if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
+                    bool isInDarkness = _libraryLabAPI.IsPlayerInDarkRoom(player);
+                    bool isBlackoutActive = _plugin.Npc?.Methods?.IsBlackoutActive == true;
+
+                    if (isInDarkness || isBlackoutActive)
                     {
-                        string userId = NormalizeUserId(player.UserId);
-                        if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
-                        {
-                            SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
-                            _lastHintTime[userId] = now;
-                        }
+                        ProcessDecayTick(player, now);
+                    }
+                    else
+                    {
+                        ProcessRegenTick(player);
                     }
                 }
+            }
+        }
+
+        private void ProcessDecayTick(Player player, DateTime now)
+        {
+            float decayRate = CalculateDecayRate(player);
+            float oldSanity = GetCurrentSanity(player);
+            float newSanity = ChangeSanityValue(player, -decayRate);
+
+            // 1. Continuous Background State Evaluation (Non-Spatial Head-Space Ambience)
+            bool requiresLowDrone = newSanity <= 35f;
+            _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, requiresLowDrone);
+
+            // 2. Localized Hallucination Logic (3D Isolated Spatialized Auditory Jumpscares)
+            var stage = GetCurrentSanityStage(newSanity);
+            if (stage != null)
+            {
+                if (UnityEngine.Random.value < 0.015f) // 1.5% chance per second tick
+                {
+                    AudioKey? whisperToPlay = null;
+
+                    if (newSanity <= 10f) whisperToPlay = AudioKey.WhispersMixed;
+                    else if (newSanity <= 25f) whisperToPlay = AudioKey.Whispers_3;
+                    else if (newSanity <= 55f) whisperToPlay = AudioKey.Whispers_2;
+                    else if (newSanity <= 85f) whisperToPlay = AudioKey.Whispers_1;
+
+                    if (whisperToPlay.HasValue)
+                    {
+                        _plugin.AudioManager.PlayIsolatedSpatialAudio(player, whisperToPlay.Value, player.Position);
+                    }
+                }
+            }
+
+            // 3. Process UI alert prompt updates
+            if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
+            {
+                string userId = NormalizeUserId(player.UserId);
+                if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
+                {
+                    SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
+                    _lastHintTime[userId] = now;
+                }
+            }
+        }
+
+        private void ProcessRegenTick(Player player)
+        {
+            float oldSanity = GetCurrentSanity(player);
+
+            // 1. Edge-case safety block
+            if (oldSanity >= 100f)
+            {
+                _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, shouldPlayDrone: false);
+                return;
+            }
+
+            float newSanity = ChangeSanityValue(player, _sanityConfig.PassiveRegenRate);
+            if (oldSanity <= 35f || newSanity <= 35f)
+            {
+                bool requiresLowDrone = newSanity <= 35f;
+                _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, requiresLowDrone);
             }
         }
 
@@ -449,5 +488,4 @@
             }
         }
     }
-    #endregion
 }
