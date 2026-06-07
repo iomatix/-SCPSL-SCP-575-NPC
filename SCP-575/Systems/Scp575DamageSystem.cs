@@ -163,13 +163,15 @@ namespace SCP_575.Shared
             {
                 rigidbodies.AddRange(ragdollRigidbodies);
 
-                Vector3 upwardForce = Vector3.up * CalculateForcePush(8.5f);
-                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 5.0f);
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(35.0f);
+                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 12.5f);
             }
             finally
             {
                 RigidbodyPool.Return(rigidbodies);
             }
+
+            yield return Timing.WaitForSeconds(0.15f);
 
             if (player != null && player.IsReady)
             {
@@ -233,15 +235,14 @@ namespace SCP_575.Shared
             {
                 if (rb == null) continue;
 
-
                 rb.isKinematic = false;
                 Vector3 uniqueRandomForce = GetRandomUnitSphereVelocity(randomForceMagnitude);
                 Vector3 combinedForce = upwardForce + uniqueRandomForce;
 
-                rb.AddForce(combinedForce, ForceMode.VelocityChange);
+                rb.AddForce(combinedForce, ForceMode.Impulse);
 
                 float torqueModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
-                rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.VelocityChange);
+                rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.Impulse);
             }
         }
 
