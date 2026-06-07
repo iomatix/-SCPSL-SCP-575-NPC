@@ -63,11 +63,9 @@
         {
             if (!_plugin.IsEventActive || ev?.Player == null) return;
 
-            // Identify whether the damage vector originates from an active SCP player or the plugin's custom hazard system
-            bool isAnomalousAttack = (ev.Attacker != null && ev.Attacker.IsSCP) ||
-                                     (ev.DamageHandler != null && Scp575DamageSystem.IsScp575Damage(ev.DamageHandler));
+            bool isPhysicalScpAttack = ev.Attacker != null && ev.Attacker.IsSCP;
 
-            if (isAnomalousAttack)
+            if (isPhysicalScpAttack)
             {
                 // Pass the timestamp tracking variable by reference ('ref') so the sub-system can directly refresh the cooldown
                 Scp575DamageSystem.ProcessAnomalousTrauma(ev.Player, _plugin, ref _lastAttackAudioTime, _attackAudioCooldown);

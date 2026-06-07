@@ -245,9 +245,12 @@
         /// <summary>
         /// Translates cognitive decay milestones into tangible gameplay sensory impairments and physical restrictions.
         /// </summary>
-        public void ApplyStageEffects(Player player)
+        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false)
         {
             if (!IsValidPlayer(player)) return;
+
+            if (!_plugin.Npc.Methods.IsBlackoutActive && !bypassBlackoutGate)
+                return;
 
             var stage = GetCurrentSanityStage(player);
             if (stage == null) return;
