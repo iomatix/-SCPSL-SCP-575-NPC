@@ -44,7 +44,6 @@
             var room = _lib.GetRoomAtPosition(position);
             if (room == null) return;
 
-            // Pobieramy informację o aktywności blackoutu z silnika NPC
             bool isBlackoutActive = _plugin.Npc.Methods.IsBlackoutActive;
 
             if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && room.LightController.LightsEnabled)
