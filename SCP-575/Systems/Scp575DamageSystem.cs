@@ -139,7 +139,7 @@ namespace SCP_575.Shared
 
             try
             {
-                Timing.RunCoroutine(ProcessRagdollPhysics(ragdoll,player), CoroutineTags.RagdollPhysics);
+                Timing.RunCoroutine(ProcessRagdollPhysics(ragdoll,player, player.Role), CoroutineTags.RagdollPhysics);
 
             }
             catch (Exception ex)
@@ -148,14 +148,12 @@ namespace SCP_575.Shared
             }
         }
 
-        private static IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll, Player player)
+        private static IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll, Player player, RoleTypeId oldRole)
         {
             if (ragdoll?.Base?.gameObject == null) yield break;
 
             yield return Timing.WaitForSeconds(0.11f);
 
-
-            var originalPlayerRole = player.Role;
             Rigidbody[] ragdollRigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
             if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0) yield break;
 
@@ -176,7 +174,7 @@ namespace SCP_575.Shared
 
             if (player != null && player.IsReady)
             {
-                Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, originalPlayerRole);
+                Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, oldRole);
             }
         }
 
