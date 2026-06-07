@@ -170,7 +170,7 @@ namespace SCP_575.Shared
                 RigidbodyPool.Return(rigidbodies);
             }
 
-            yield return Timing.WaitForSeconds(0.45f);
+            yield return Timing.WaitForSeconds(0.175f);
 
             if (player != null && player.IsReady)
             {
@@ -233,21 +233,18 @@ namespace SCP_575.Shared
             foreach (Rigidbody rb in rigidbodies)
             {
                 if (rb == null) continue;
-
                 rb.isKinematic = false;
 
-                Vector3 horizontalDir = new Vector3(UnityEngine.Random.Range(-1f, 1f), 0f, UnityEngine.Random.Range(-1f, 1f));
-                if (horizontalDir == Vector3.zero) horizontalDir = Vector3.forward;
-                horizontalDir.Normalize();
+                Vector3 uniqueRandomForce = GetRandomUnitSphereVelocity(randomForceMagnitude);
 
-                float scaledHorizontalForce = CalculateForcePush(randomForceMagnitude);
-                Vector3 uniqueRandomForce = horizontalDir * scaledHorizontalForce;
+                float randomUpweight = UnityEngine.Random.Range(0.8f, 1.3f);
+                Vector3 randomizedUpward = upwardForce * randomUpweight;
 
-                Vector3 combinedForce = upwardForce + uniqueRandomForce;
+                Vector3 combinedForce = randomizedUpward + uniqueRandomForce;
 
                 rb.AddForce(combinedForce, ForceMode.Impulse);
 
-                float torqueModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier * 3.45f;
+                float torqueModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
                 rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.Impulse);
             }
         }
