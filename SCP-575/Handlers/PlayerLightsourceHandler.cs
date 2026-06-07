@@ -305,6 +305,7 @@ namespace SCP_575.Handlers
                 {
                     if (forceOff)
                     {
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position);
                         _plugin.AudioManager.PlayAudioAtPosition(AudioKey.MonsterBreathLocal, player.Position);
                     }
                     else
