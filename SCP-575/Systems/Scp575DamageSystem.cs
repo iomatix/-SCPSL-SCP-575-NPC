@@ -22,46 +22,6 @@ namespace SCP_575.Shared
 
     public static class Scp575DamageSystem
     {
-        // ===================================================================
-        // REFLECTION CACHE (Cached once during static initialization)
-        // ===================================================================
-        private static readonly MethodInfo PlaceLiquidMethod;
-        private static readonly object BloodEnumInstance;
-        private static readonly bool IsReflectionReady;
-
-        static Scp575DamageSystem()
-        {
-            try
-            {
-                // We extract the base game assembly securely using ReferenceHub as the anchor point
-                Assembly assemblyCSharp = typeof(ReferenceHub).Assembly;
-
-                Type liquidPlacementType = assemblyCSharp.GetType("Decals.LiquidPlacement");
-                Type liquidTypeEnum = assemblyCSharp.GetType("Decals.LiquidType");
-
-                if (liquidPlacementType != null && liquidTypeEnum != null)
-                {
-                    // Forcing extraction of static internal/private liquid injection layouts
-                    PlaceLiquidMethod = liquidPlacementType.GetMethod("PlaceLiquid",
-                        BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-
-                    if (PlaceLiquidMethod != null)
-                    {
-                        BloodEnumInstance = Enum.Parse(liquidTypeEnum, "Blood");
-                        IsReflectionReady = BloodEnumInstance != null;
-                    }
-                }
-
-                if (IsReflectionReady)
-                    LibraryLabAPI.LogDebug("Reflection.Init", "Successfully bridged internal Northwood Decal engine via Reflection.");
-                else
-                    LibraryLabAPI.LogWarn("Reflection.Init", "Failed to resolve internal Decal signatures. Blood generation will fallback.");
-            }
-            catch (Exception ex)
-            {
-                LibraryLabAPI.LogError("Reflection.Init", $"Critical hardware abstraction fault: {ex.Message}");
-            }
-        }
 
         #region Constants and Static Properties  
 
@@ -145,8 +105,6 @@ namespace SCP_575.Shared
 
             try
             {
-                // Spawn violent post-mortem environmental blood explosions around the body grid
-                TriggerDeathBloodSpill(ragdoll.Position, 6);
 
                 Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, player.Role);
                 if (newRagdoll == null) return;
@@ -248,39 +206,6 @@ namespace SCP_575.Shared
             }
         }
 
-
-        /// <summary>
-        /// Dynamically triggers native blood splatter system calls using performance-optimized cached reflection.
-        /// </summary>
-        private static void TriggerDeathBloodSpill(Vector3 centerPosition, int intensityCount)
-        {
-            if (!IsReflectionReady) return;
-
-            try
-            {
-                // PERFORMANCE OPTIMIZATION: We allocate the parameters array exactly ONCE outside the loop grid
-                // to achieve clean, zero-allocation behavior inside the iterative splatter block.
-                object[] invokeParameters = new object[3];
-                invokeParameters[1] = Vector3.down;         // Surface normal projection vector
-                invokeParameters[2] = BloodEnumInstance;    // LiquidType.Blood instance clone
-
-                for (int i = 0; i < intensityCount; i++)
-                {
-                    Vector3 dynamicOffset = UnityEngine.Random.insideUnitSphere * 1.5f;
-                    dynamicOffset.y = Mathf.Abs(dynamicOffset.y) * 0.1f; // Flatten splatters to focus on floor geometries
-
-                    // Swap out only the execution position index inside the reused array layout
-                    invokeParameters[0] = centerPosition + dynamicOffset;
-
-                    // Execute low-level internal method injection directly into Assembly-CSharp engine
-                    PlaceLiquidMethod.Invoke(null, invokeParameters);
-                }
-            }
-            catch (Exception ex)
-            {
-                LibraryLabAPI.LogWarn("TriggerDeathBloodSpill", $"Reflection pipeline failed to inject blood arrays: {ex.Message}");
-            }
-        }
 
         private static void ConvertToBones(Ragdoll ragdoll)
         {
