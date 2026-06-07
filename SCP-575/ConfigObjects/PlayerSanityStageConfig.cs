@@ -53,9 +53,9 @@
                 Log.Warn($"[SanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
                 DamageOnStrikeWhenLightsourceActive = 0f;
             }
-            else if (DamageOnStrikeWhenLightsourceActive >= DamageOnStrike)
+            else if (DamageOnStrikeWhenLightsourceActive > DamageOnStrike)
             {
-                Log.Warn($"[SanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be greater than or equal to DamageOnStrike for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                Log.Warn($"[SanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be greater than to DamageOnStrike for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
                 DamageOnStrikeWhenLightsourceActive = 0f;
             }
 
@@ -64,9 +64,9 @@
                 Log.Warn($"[SanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
                 AdditionalDamagePerStackWhenLightsourceActive = 0f;
             }
-            else if (AdditionalDamagePerStackWhenLightsourceActive >= AdditionalDamagePerStack)
+            else if (AdditionalDamagePerStackWhenLightsourceActive > AdditionalDamagePerStack)
             {
-                Log.Warn($"[SanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be greater than or equal to AdditionalDamagePerStack for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                Log.Warn($"[SanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be greater than AdditionalDamagePerStack for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
                 AdditionalDamagePerStackWhenLightsourceActive = 0f;
             }
 
