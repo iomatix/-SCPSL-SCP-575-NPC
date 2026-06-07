@@ -153,7 +153,7 @@
 
             float newSanity = ChangeSanityValue(ev.Player, restoreAmount);
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
-                SendSanityHint(ev.Player, _plugin.Config.HintsConfig.SanityIncreasedHint, newSanity);
+                SendSanityHint(ev.Player, _plugin.Config.HintsConfig.SanityIncreasedMedicalHint, newSanity);
 
             LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Restored {restoreAmount} sanity to {ev.Player.Nickname}. New sanity: {newSanity}");
         }
@@ -337,7 +337,7 @@
                     }
                     else
                     {
-                        ProcessRegenTick(player);
+                        ProcessRegenTick(player, now);
                     }
                 }
             }
@@ -385,22 +385,32 @@
             }
         }
 
-        private void ProcessRegenTick(Player player)
+        private void ProcessRegenTick(Player player, DateTime now)
         {
             float oldSanity = GetCurrentSanity(player);
 
             // 1. Edge-case safety block
             if (oldSanity >= 100f)
             {
-                _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, shouldPlayDrone: false);
+                SafeUpdateAmbient(player, shouldPlayDrone: false);
                 return;
             }
 
             float newSanity = ChangeSanityValue(player, _sanityConfig.PassiveRegenRate);
-            if (oldSanity <= 35f || newSanity <= 35f)
+
+            // 2. Continuous Background State Evaluation
+            bool requiresLowDrone = newSanity <= 35f;
+            SafeUpdateAmbient(player, requiresLowDrone);
+
+            // 3. Process UI alert prompt updates
+            if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
             {
-                bool requiresLowDrone = newSanity <= 35f;
-                SafeUpdateAmbient(player, requiresLowDrone);
+                string userId = NormalizeUserId(player.UserId);
+                if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
+                {
+                    SendSanityHint(player, _plugin.Config.HintsConfig.SanityIncreasedHint, newSanity);
+                    _lastHintTime[userId] = now; 
+                }
             }
         }
 
