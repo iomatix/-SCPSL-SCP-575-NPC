@@ -38,6 +38,11 @@
         /// </summary>
         public IReadOnlyDictionary<string, float> SanityCache => _sanityCache;
 
+        /// <summary>
+        /// Contains a flag indicating whether the player has an active drone (true) or not (false).
+        /// </summary>
+        private readonly Dictionary<string, bool> _activeAmbientState = new();
+
         public PlayerSanityHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
@@ -86,6 +91,7 @@
             {
                 _sanityCache.Clear();
                 _lastHintTime.Clear();
+                _activeAmbientState.Clear();
             }
         }
 
@@ -131,6 +137,7 @@
             {
                 _sanityCache.Remove(userId);
                 _lastHintTime.Remove(userId);
+                _activeAmbientState.Remove(userId);
             }
 
             // Explicitly notify the audio manager to release tracking keys upon network disconnect
@@ -318,7 +325,7 @@
                     // FIX: If a player becomes invalid (dies/spectator), explicitly strip their ambient sound loop
                     if (!IsValidPlayer(player))
                     {
-                        _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, shouldPlayDrone: false);
+                        SafeUpdateAmbient(player, shouldPlayDrone: false);
                         continue;
                     }
 
@@ -344,7 +351,7 @@
 
             // 1. Continuous Background State Evaluation (Non-Spatial Head-Space Ambience)
             bool requiresLowDrone = newSanity <= 35f;
-            _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, requiresLowDrone);
+            SafeUpdateAmbient(player, requiresLowDrone);
 
             // 2. Localized Hallucination Logic (3D Isolated Spatialized Auditory Jumpscares)
             var stage = GetCurrentSanityStage(newSanity);
@@ -393,7 +400,7 @@
             if (oldSanity <= 35f || newSanity <= 35f)
             {
                 bool requiresLowDrone = newSanity <= 35f;
-                _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, requiresLowDrone);
+                SafeUpdateAmbient(player, requiresLowDrone);
             }
         }
 
@@ -437,6 +444,23 @@
                 ItemType.Painkillers => UnityEngine.Random.Range(_sanityConfig.PillsRestoreMin, _sanityConfig.PillsRestoreMax),
                 _ => 0f
             };
+        }
+
+        private void SafeUpdateAmbient(Player player, bool shouldPlayDrone)
+        {
+            string userId = NormalizeUserId(player.UserId);
+
+            lock (_cacheLock)
+            {
+                if (_activeAmbientState.TryGetValue(userId, out bool currentState) && currentState == shouldPlayDrone)
+                {
+                    return;
+                }
+                _activeAmbientState[userId] = shouldPlayDrone;
+            }
+
+            _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, shouldPlayDrone);
+            LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Ambient state changed for {player.Nickname} to: {shouldPlayDrone}");
         }
 
         private void SendSanityHint(Player player, string hintMessage, float sanity)
