@@ -280,7 +280,7 @@
                 float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
                     Scp575DamageSystem.DamagePlayer(player, culmDamage);
                 }
             }
@@ -289,7 +289,7 @@
                 float culmDamage = stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
                     Scp575DamageSystem.DamagePlayer(player, culmDamage);
                 }
             }

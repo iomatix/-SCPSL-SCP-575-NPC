@@ -159,7 +159,7 @@ namespace SCP_575.Npc
                 if (randomPlayer != null)
                 {
                     var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.Scream_3 + 1);
-                    _plugin.AudioManager.PlayAudioAtPosition(randomScream, randomPlayer.Position);
+                    _plugin.AudioManager.PlayAudioAtPosition(randomScream, randomPlayer.Position, isTransient: true);
                 }
             }
 

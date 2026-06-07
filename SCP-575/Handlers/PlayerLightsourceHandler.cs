@@ -305,12 +305,12 @@ namespace SCP_575.Handlers
                 {
                     if (forceOff)
                     {
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position);
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position, isTransient: true);
                         _plugin.AudioManager.PlayAudioAtPosition(AudioKey.MonsterBreathLocal, player.Position, 4.45f);
                     }
                     else
                     {
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position);
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position, isTransient: true);
                     }
                 }
 
