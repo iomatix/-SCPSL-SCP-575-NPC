@@ -487,5 +487,7 @@
                 default: throw new ArgumentException($"Unknown effect type: {effectType}");
             }
         }
+
+        #endregion
     }
 }
