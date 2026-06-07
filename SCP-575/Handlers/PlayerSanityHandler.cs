@@ -323,9 +323,8 @@
                     }
 
                     bool isInDarkness = _libraryLabAPI.IsPlayerInDarkRoom(player);
-                    bool isBlackoutActive = _plugin.Npc?.Methods?.IsBlackoutActive == true;
 
-                    if (isInDarkness || isBlackoutActive)
+                    if (isInDarkness)
                     {
                         ProcessDecayTick(player, now);
                     }
