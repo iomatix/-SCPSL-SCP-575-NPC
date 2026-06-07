@@ -71,6 +71,39 @@
         }
 
         /// <summary>
+        /// Intercepts physical attacks from both playable anomalous entities and environmental 
+        /// shadow manifestations, enforcing instant psychological trauma.
+        /// </summary>
+        public override void OnPlayerHurting(PlayerHurtingEventArgs ev)
+        {
+            if (!_plugin.IsEventActive || ev?.Player == null)
+                return;
+
+            bool isAnomalousAttack = false;
+
+            if (ev.Attacker != null && ev.Attacker.IsSCP)
+            {
+                isAnomalousAttack = true;
+            }
+            else if (ev.DamageHandler != null && Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
+            {
+                isAnomalousAttack = true;
+            }
+
+            if (isAnomalousAttack)
+            {
+                float dropAmount = _plugin.Config.SanityConfig.ScpHitSanityDrop;
+                if (dropAmount <= 0f) return;
+
+                float newSanity = _plugin.SanityEventHandler.ChangeSanityValue(ev.Player, -dropAmount);
+
+                LibraryLabAPI.LogDebug("PlayerDamageHandler", $"Anomalous trauma inflicted on {ev.Player.Nickname}. Sanity slashed by {dropAmount}. New sanity: {newSanity}");
+
+                _plugin.SanityEventHandler.ApplyStageEffects(ev.Player);
+            }
+        }
+
+        /// <summary>
         /// Optonal implementation layout for standard hurting events. 
         /// Uses a hard temporal cooldown to strictly prevent acoustic repetition and audio driver clipping.
         /// </summary>

@@ -44,6 +44,12 @@
         [Description("Passive sanity regen rate per second.")]
         public float PassiveRegenRate { get; set; } = 0.081f;
 
+        /// <summary>
+        /// Gets or sets the amount of sanity lost immediately upon taking damage from any SCP entity.
+        /// </summary>
+        [Description("Amount of sanity lost instantly when attacked/hit by any SCP entity.")]
+        public float ScpHitSanityDrop { get; set; } = 8f;
+
         #endregion
 
         #region Medical Recovery Settings
@@ -256,6 +262,8 @@
             {
                 throw new System.InvalidOperationException("[PlayerSanityConfig] SanityStages list cannot be null or empty.");
             }
+
+            if (ScpHitSanityDrop < 0f) ScpHitSanityDrop = 0f;
 
             // Sort stages by minimum threshold ascending to validate range coverage
             SanityStages.Sort((a, b) => a.MinThreshold.CompareTo(b.MinThreshold));

@@ -26,7 +26,10 @@
         private DateTime lastGlobalScreamTime = DateTime.MinValue;
 
         private int _ambienceAudioSessionId;
+        private readonly HashSet<int> _generatorSessionIds = new();
         private readonly HashSet<int> _pluginSessionIds = new();
+        
+
 
         private const string AudioCoroutineTag = CoroutineTags.AudioCoroutines;
 
@@ -87,32 +90,34 @@
         /// Cleans up all active audio coroutines, flushes running loops, and terminates 
         /// active sound sessions across round boundaries or plugin reloads.
         /// </summary>
-        public void Clean()
+        public void Clean(bool fullShutdown = false)
         {
             Timing.KillCoroutines(AudioCoroutineTag);
             StopAmbience();
 
-            // FIXED: Real structural cleanup of all running background loops (like GeneratorHumDefense).
-            // Instead of just clearing the ID tracking list from memory, we explicitly command the audio engine 
-            // to fade out every active sound session registered by this plugin to prevent audio bleeding into post-event phases.
+            // Czyszczenie standardowych efektów mroku (szepty, drony, ryki tymczasowe)
             if (_pluginSessionIds != null && _pluginSessionIds.Count > 0)
             {
                 foreach (int sessionId in _pluginSessionIds.ToList())
                 {
                     if (sessionId == 0) continue;
-                    try
-                    {
-                        sharedAudioManager.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Debug($"[Scp575AudioManager.Clean] Session {sessionId} already terminated: {ex.Message}");
-                    }
+                    try { sharedAudioManager.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration); } catch { }
                 }
                 _pluginSessionIds.Clear();
             }
 
-            Log.Debug("[Scp575AudioManager] Audio manager cleaned up and all active loops safely terminated.");
+            // FIXED: Generator humming jest gaszony TYLKO przy twardym restarcie wtyczki lub na koniec rundy
+            if (fullShutdown && _generatorSessionIds != null && _generatorSessionIds.Count > 0)
+            {
+                foreach (int sessionId in _generatorSessionIds.ToList())
+                {
+                    if (sessionId == 0) continue;
+                    try { sharedAudioManager.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration); } catch { }
+                }
+                _generatorSessionIds.Clear();
+            }
+
+            Log.Debug($"[Scp575AudioManager] Clean executed. (FullShutdown: {fullShutdown})");
         }
 
         public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false)
@@ -125,7 +130,6 @@
 
             Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
 
-            // FIXED: Expanded anti-spam check to accurately account for split scream keys.
             if (isNonSpatial && (audioKey == AudioKey.Scream_1 || audioKey == AudioKey.Scream_2 || audioKey == AudioKey.Scream_3 || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
                 double secondsSinceLastScream = (DateTime.UtcNow - lastGlobalScreamTime).TotalSeconds;
@@ -160,6 +164,9 @@
                 ? (p => p != null && p.UserId == player.UserId)
                 : null;
 
+
+            bool isGeneratorHum = audioKey == AudioKey.GeneratorHumDefense;
+
             if (isNonSpatial)
             {
                 sessionId = sharedAudioManager.PlayGlobalAudio(
@@ -169,8 +176,9 @@
             }
             else
             {
+    
                 sessionId = sharedAudioManager.PlayAudio(
-                    config.key, playPosition, loop: false, volume: config.volume,
+                    config.key, playPosition, loop: isGeneratorHum, volume: config.volume,
                     minDistance: config.minDistance, maxDistance: config.maxDistance,
                     isSpatial: config.isSpatial, priority: config.priority,
                     validPlayersFilter: targetPlayerFilter, queue: queue,
@@ -184,7 +192,14 @@
                 _ambienceAudioSessionId = sessionId;
             }
 
-            _pluginSessionIds.Add(sessionId);
+            if (isGeneratorHum)
+            {
+                _generatorSessionIds.Add(sessionId);
+            }
+            else
+            {
+                _pluginSessionIds.Add(sessionId);
+            }
 
             float effectiveLifespan = lifespan ?? config.defaultLifespan;
             if (effectiveLifespan > 0)

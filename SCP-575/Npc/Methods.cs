@@ -95,7 +95,7 @@ namespace SCP_575.Npc
             }
             LibraryLabAPI.LogDebug(nameof(Disable), "Killed all static SCP-575 coroutines via tags.");
 
-            _plugin.AudioManager?.Clean();
+            _plugin.AudioManager?.Clean(fullShutdown: true);
             _sanityHandler?.Clean();
             _plugin.LightsourceHandler?.Clean();
 
@@ -466,7 +466,7 @@ namespace SCP_575.Npc
 
         public void Reset575()
         {
-            _plugin.AudioManager.Clean();
+            _plugin.AudioManager.Clean(fullShutdown: false);
             _blackoutStacks = 0;
             Map.ResetColorOfLights();
             Map.TurnOnLights();

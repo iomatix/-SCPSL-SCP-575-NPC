@@ -237,7 +237,8 @@ namespace SCP_575.Handlers
             if (!IsValidPlayer(player)) return;
 
             ApplyCooldown(player);
-            player.SendHint(_plugin.Config.HintsConfig.LightEmitterCooldownHint, 1.75f);
+
+            if(_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint) player.SendHint(_plugin.Config.HintsConfig.LightEmitterCooldownHint, 1.75f);
         }
 
         /// <summary>
@@ -286,7 +287,7 @@ namespace SCP_575.Handlers
 
             if (_cooldownUntil.TryGetValue(player.UserId, out var until) && DateTime.UtcNow < until)
             {
-                player.SendHint(message, 1.0f);
+                if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint)  player.SendHint(message, 1.0f);
                 return (true, false);
             }
 
