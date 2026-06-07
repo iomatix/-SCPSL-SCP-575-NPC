@@ -33,6 +33,7 @@
 
         Whispers_1,
         Whispers_2,
+        Whispers_3,
         WhispersBang,
         WhispersMixed,
         MonsterBreathLocal,

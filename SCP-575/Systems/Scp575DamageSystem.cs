@@ -10,11 +10,10 @@ namespace SCP_575.Shared
     using PlayerRoles.PlayableScps.Scp3114;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
-
+    using SCP_575.Shared.Audio.Enums;
 
     public static class Scp575DamageSystem
     {
-
         #region Constants and Static Properties  
 
         public static string IdentifierName => nameof(Scp575DamageSystem);
@@ -38,6 +37,9 @@ namespace SCP_575.Shared
 
         #region Damage Processing 
 
+        /// <summary>
+        /// Inflicts processed damage onto a target player with custom death screen indicators.
+        /// </summary>
         public static bool DamagePlayer(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox = HitboxType.Body)
         {
             if (target?.ReferenceHub == null) return false;
@@ -85,6 +87,46 @@ namespace SCP_575.Shared
             return shieldDamage + postArmorDamage;
         }
 
+        /// <summary>
+        /// Processes non-lethal anomalous attacks by decreasing sanity and executing anti-spam soundscapes.
+        /// </summary>
+        public static void ProcessAnomalousTrauma(LabApi.Features.Wrappers.Player player, Plugin plugin, ref DateTime lastAttackAudioTime, TimeSpan cooldown)
+        {
+            if (player == null || plugin == null) return;
+
+            // 1. Process Sanity Reduction & Consequences
+            float dropAmount = plugin.Config.SanityConfig.ScpHitSanityDrop;
+            if (dropAmount > 0f)
+            {
+                float newSanity = plugin.SanityEventHandler.ChangeSanityValue(player, -dropAmount);
+                LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity slashed by {dropAmount}. New sanity: {newSanity}");
+                plugin.SanityEventHandler.ApplyStageEffects(player);
+            }
+
+            // 2. Play Mild/Lighter Hurt Audio Cues (With Rate Limiting)
+            if (DateTime.UtcNow - lastAttackAudioTime >= cooldown)
+            {
+                lastAttackAudioTime = DateTime.UtcNow;
+                plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position);
+            }
+        }
+
+        /// <summary>
+        /// Handles the definitive post-mortem execution logic, managing audio stingers and item scatters.
+        /// </summary>
+        public static void ProcessLethalStrike(LabApi.Features.Wrappers.Player player, Plugin plugin)
+        {
+            if (player == null || plugin == null) return;
+
+            LibraryLabAPI.LogDebug(IdentifierName, $"Death confirmed from {IdentifierName} for {player.Nickname}. Triggering item physics and lethal soundscape.");
+
+            // ShadowStrike is strictly reserved for lethal impact synchronization
+            plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position);
+
+            // Offload item kinetic scatter calculations to an isolated coroutine to prevent main-thread choking
+            Timing.RunCoroutine(DropAndPushItems(player), CoroutineTags.ItemPhysics);
+        }
+
         #endregion
 
         #region Ragdoll Processing  
@@ -97,7 +139,6 @@ namespace SCP_575.Shared
 
             try
             {
-
                 Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, player.Role);
                 if (newRagdoll == null) return;
 
@@ -197,7 +238,6 @@ namespace SCP_575.Shared
                 rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
             }
         }
-
 
         private static void ConvertToBones(Ragdoll ragdoll)
         {

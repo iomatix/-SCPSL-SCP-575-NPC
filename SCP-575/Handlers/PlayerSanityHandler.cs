@@ -320,24 +320,28 @@
                     var stage = GetCurrentSanityStage(newSanity);
                     if (stage != null)
                     {
-                        if (newSanity <= 35f && oldSanity > 35f)
+                        // 1. Low Drone Handler (Triggers ONCE exactly when crossing the critical threshold)
+                        bool crossedCriticalThreshold = oldSanity > 35f && newSanity <= 35f;
+                        if (crossedCriticalThreshold)
                         {
                             _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.SanityLowDrone, player.Position);
                         }
-                        
+
+                        // 2. Whispers Handler (5% chance to trigger on this tick)
                         if (UnityEngine.Random.value < 0.05f)
                         {
-                            if (newSanity <= 20f)
+                            AudioKey? whisperToPlay = null;
+
+                            // Select EXACTLY ONE audio key based on the current sanity bracket
+                            if (newSanity <= 10f) whisperToPlay = AudioKey.WhispersMixed; // Absolute madness
+                            else if (newSanity <= 25f) whisperToPlay = AudioKey.Whispers_3;     // Severe hallucinations
+                            else if (newSanity <= 55f) whisperToPlay = AudioKey.Whispers_2;     // Moderate paranoia
+                            else if (newSanity <= 85f) whisperToPlay = AudioKey.Whispers_1;     // Light murmurs
+
+                            // Only play if the player falls into one of the sanity danger zones
+                            if (whisperToPlay.HasValue)
                             {
-                                _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.WhispersMixed, player.Position);
-                            }
-                            else if (newSanity <= 50f)
-                            {
-                                _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.Whispers_2, player.Position);
-                            }
-                            else if (newSanity <= 80f)
-                            {
-                                _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.Whispers_1, player.Position);
+                                _plugin.AudioManager.PlayIsolatedSpatialAudio(player, whisperToPlay.Value, player.Position);
                             }
                         }
                     }

@@ -48,7 +48,7 @@
         /// Gets or sets the amount of sanity lost immediately upon taking damage from any SCP entity.
         /// </summary>
         [Description("Amount of sanity lost instantly when attacked/hit by any SCP entity.")]
-        public float ScpHitSanityDrop { get; set; } = 8f;
+        public float ScpHitSanityDrop { get; set; } = 4f;
 
         #endregion
 
