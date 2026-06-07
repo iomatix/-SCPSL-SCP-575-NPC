@@ -303,8 +303,8 @@ namespace SCP_575.Shared
                 {
                     pickup.Rigidbody.isKinematic = false;
 
-                    var direction = GetRandomUnitSphereVelocity(5.75f);
-                    var magnitude = CalculateForcePush(7.35f);
+                    var direction = GetRandomUnitSphereVelocity(2.25f);
+                    var magnitude = CalculateForcePush(3.45f);
 
                     pickup.Rigidbody.linearVelocity = direction * magnitude;
                     pickup.Rigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
