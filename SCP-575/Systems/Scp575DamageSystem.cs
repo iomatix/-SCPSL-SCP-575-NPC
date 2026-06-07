@@ -139,7 +139,7 @@ namespace SCP_575.Shared
 
             try
             {
-                Timing.RunCoroutine(ProcessRagdollPhysics(ragdoll,player, player.Role), CoroutineTags.RagdollPhysics);
+                Timing.RunCoroutine(ProcessRagdollPhysics(ragdoll, player, player.Role), CoroutineTags.RagdollPhysics);
 
             }
             catch (Exception ex)
@@ -162,8 +162,8 @@ namespace SCP_575.Shared
             {
                 rigidbodies.AddRange(ragdollRigidbodies);
 
-                Vector3 upwardForce = Vector3.up * CalculateForcePush(35.0f);
-                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 16.75f);
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(23.5f);
+                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 22.75f);
             }
             finally
             {
