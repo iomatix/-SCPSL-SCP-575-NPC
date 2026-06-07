@@ -227,19 +227,23 @@ namespace SCP_575.Shared
             }
         }
 
-        private static void ApplyStandardRagdollPhysics(List<Rigidbody> rigidbodies, Vector3 upwardForce, Vector3 randomForce)
+        private static void ApplyStandardRagdollPhysics(List<Rigidbody> rigidbodies, Vector3 upwardForce, float randomForceMagnitude)
         {
             if (rigidbodies == null || rigidbodies.Count == 0) return;
-
-            Vector3 combinedForce = upwardForce + randomForce;
 
             foreach (Rigidbody rb in rigidbodies)
             {
                 if (rb == null) continue;
 
+
                 rb.isKinematic = false;
+                Vector3 uniqueRandomForce = GetRandomUnitSphereVelocity(randomForceMagnitude);
+                Vector3 combinedForce = upwardForce + uniqueRandomForce;
+
                 rb.AddForce(combinedForce, ForceMode.Impulse);
-                rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+
+                float torqueModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+                rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.Impulse);
             }
         }
 
