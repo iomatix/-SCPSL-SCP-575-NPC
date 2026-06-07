@@ -40,11 +40,12 @@
 
         private void ProcessImpact(Vector3 position, ScpProjectileImpactType.ProjectileImpactType impactType)
         {
-            bool blackout = _plugin.Npc.Methods.IsBlackoutActive;
+            var room = _lib.GetRoomAtPosition(position);
+            if (room == null) return;
 
             // Prevent executing expensive spatial queries if a tactical threat 
             // is introduced while the entity is dormant or unable to react.
-            if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && !blackout)
+            if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && room.LightController.LightsEnabled)
                 return;
 
             var room = _lib.GetRoomAtPosition(position);
@@ -60,7 +61,6 @@
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-                    if (room.LightController.LightsEnabled) return;
 
                     // Randomly select between defensive rage or acute pain feedback to avoid overlapping artifacts.
                     AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
