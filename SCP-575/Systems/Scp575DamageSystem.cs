@@ -163,8 +163,8 @@ namespace SCP_575.Shared
             {
                 rigidbodies.AddRange(ragdollRigidbodies);
 
-                Vector3 upwardForce = Vector3.up * CalculateForcePush(5.5f);
-                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 3.8f);
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(8.5f);
+                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 5.0f);
             }
             finally
             {
@@ -238,10 +238,10 @@ namespace SCP_575.Shared
                 Vector3 uniqueRandomForce = GetRandomUnitSphereVelocity(randomForceMagnitude);
                 Vector3 combinedForce = upwardForce + uniqueRandomForce;
 
-                rb.AddForce(combinedForce, ForceMode.Impulse);
+                rb.AddForce(combinedForce, ForceMode.VelocityChange);
 
                 float torqueModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
-                rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.Impulse);
+                rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.VelocityChange);
             }
         }
 
