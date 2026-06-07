@@ -322,22 +322,22 @@
                     {
                         if (newSanity <= 35f && oldSanity > 35f)
                         {
-                            _plugin.AudioManager.PlayLocalAudio(player, AudioKey.SanityLowDrone);
+                            _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.SanityLowDrone, player.Position);
                         }
                         
                         if (UnityEngine.Random.value < 0.05f)
                         {
                             if (newSanity <= 20f)
                             {
-                                _plugin.AudioManager.PlayLocalAudio(player, AudioKey.WhispersMixed);
+                                _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.WhispersMixed, player.Position);
                             }
                             else if (newSanity <= 50f)
                             {
-                                _plugin.AudioManager.PlayLocalAudio(player, AudioKey.Whispers_2);
+                                _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.Whispers_2, player.Position);
                             }
                             else if (newSanity <= 80f)
                             {
-                                _plugin.AudioManager.PlayLocalAudio(player, AudioKey.Whispers_1);
+                                _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.Whispers_1, player.Position);
                             }
                         }
                     }

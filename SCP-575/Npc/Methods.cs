@@ -410,7 +410,7 @@ namespace SCP_575.Npc
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
 
-                        _plugin.AudioManager.PlayLocalAudio(player, AudioKey.MonsterBreathLocal);
+                        _plugin.AudioManager.PlayIsolatedSpatialAudio(player, AudioKey.MonsterBreathLocal, player.Position);
 
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }
