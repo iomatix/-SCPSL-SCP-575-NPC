@@ -162,15 +162,15 @@ namespace SCP_575.Shared
             {
                 rigidbodies.AddRange(ragdollRigidbodies);
 
-                Vector3 upwardForce = Vector3.up * CalculateForcePush(13.45f);
-                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 18.75f);
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(7.45f);
+                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 12.75f);
             }
             finally
             {
                 RigidbodyPool.Return(rigidbodies);
             }
 
-            yield return Timing.WaitForSeconds(0.25f);
+            yield return Timing.WaitForSeconds(0.45f);
 
             if (player != null && player.IsReady)
             {
@@ -235,6 +235,7 @@ namespace SCP_575.Shared
                 if (rb == null) continue;
 
                 rb.isKinematic = false;
+
                 Vector3 horizontalDir = new Vector3(UnityEngine.Random.Range(-1f, 1f), 0f, UnityEngine.Random.Range(-1f, 1f));
                 if (horizontalDir == Vector3.zero) horizontalDir = Vector3.forward;
                 horizontalDir.Normalize();
@@ -246,7 +247,7 @@ namespace SCP_575.Shared
 
                 rb.AddForce(combinedForce, ForceMode.Impulse);
 
-                float torqueModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+                float torqueModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier * 3.45f;
                 rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.Impulse);
             }
         }
@@ -304,8 +305,8 @@ namespace SCP_575.Shared
 
             float configModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
 
-            float internalSharedModifier = 1.75f * Mathf.Log(configModifier) * CalculateForcePush(configModifier);
-            float forcePushMagnitude = CalculateForcePush(2.15f);
+            float internalSharedModifier = 1.45f * Mathf.Log(configModifier) * CalculateForcePush(configModifier);
+            float forcePushMagnitude = CalculateForcePush(1.85f);
 
             float finalLinearMagnitude = internalSharedModifier * forcePushMagnitude;
 
