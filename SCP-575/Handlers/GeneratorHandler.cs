@@ -5,7 +5,6 @@
     using MEC;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Shared;
     using System;
     using UnityEngine;
 
@@ -61,21 +60,29 @@
 
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
-                // Delay the termination audio sequence slightly to allow the structural 
-                // power restoration soundscapes to establish narrative precedence.
+                // FIXED: Played the signature lethal dying scream IMMEDIATELY to anchor spatial presence.
+                // This ensures the audio wave enters the mixer engine before the lifecycle teardown executes.
+                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamDying, ev.Generator.Position);
+
+                // FIXED: We delay the dynamic data and system structural teardown instead of the sound trigger.
+                // This creates a flawless cinematic window where the monster roars in agony for 3.75s, 
+                // and then the facility power systems drop the event state flags.
                 var coroutine = Timing.CallDelayed(3.75f, () =>
                 {
-                    // Keeping it spatialized at the final generator position with a massive distance roll-off
-                    // ensures structural echo and multi-layered directionality across adjacent zones.
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamDying, ev.Generator.Position);
+                    try
+                    {
+                        if (_plugin.Config.NpcConfig.IsNpcKillable)
+                            _plugin.Npc.Methods.Kill575();
+                        else
+                            _plugin.Npc.Methods.Reset575();
+                    }
+                    catch (Exception ex)
+                    {
+                        LibraryLabAPI.LogError("GeneratorHandler.Teardown", $"Failed to execute post-mortem state change: {ex.Message}");
+                    }
                 });
 
                 coroutine.Tag = GeneratorAudioTag;
-
-                if (_plugin.Config.NpcConfig.IsNpcKillable)
-                    _plugin.Npc.Methods.Kill575();
-                else
-                    _plugin.Npc.Methods.Reset575();
             }
             else
             {
