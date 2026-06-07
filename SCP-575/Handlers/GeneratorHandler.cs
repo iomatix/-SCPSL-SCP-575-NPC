@@ -51,22 +51,11 @@
 
             LibraryLabAPI.LogInfo("GeneratorHandler", $"Generator activated in {room.Name}");
 
-            _lib.EnableAndFlickerRoomAndNeighborLights(
-                room,
-                _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-
-            // Trigger environmental feedback indicating that this specific sub-station has synchronized.
-            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.GeneratorHumDefense, ev.Generator.Position);
-
+            // 1. If it's the final generator, execute standard death sequence
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
-                // FIXED: Played the signature lethal dying scream IMMEDIATELY to anchor spatial presence.
-                // This ensures the audio wave enters the mixer engine before the lifecycle teardown executes.
                 _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamDying, ev.Generator.Position);
 
-                // FIXED: We delay the dynamic data and system structural teardown instead of the sound trigger.
-                // This creates a flawless cinematic window where the monster roars in agony for 3.75s, 
-                // and then the facility power systems drop the event state flags.
                 var coroutine = Timing.CallDelayed(3.75f, () =>
                 {
                     try
@@ -83,11 +72,30 @@
                 });
 
                 coroutine.Tag = GeneratorAudioTag;
+                return;
+            }
+
+            // ===================================================================
+            // MONSTER RETALIATION / RAGE MECHANIC
+            // ===================================================================
+            if (_plugin.Config.BlackoutConfig.GeneratorActivationRetaliation)
+            {
+                // The monster gets furious. It instantly snuffs out the lights in the sector,
+                // overrides the sync, and commands a localized blackout that adds a global stack.
+                _lib.DisableRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.DurationMin);
+
+                // Play a high-priority angry scream directly at the source of the provocation
+                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamAngry, ev.Generator.Position);
+
+                LibraryLabAPI.LogInfo("GeneratorHandler", $"SCP-575 retaliated! Generator activation at {room.Name} triggered rage stack expansion.");
             }
             else
             {
-                // Dynamic acoustic rotation: pick randomly between behavioral screams and acute hurt feedback
-                // to signal that the sudden influx of structural power is physically disrupting the entity.
+                // Standard behavior: lights flicker on, protecting the room temporarily
+                _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
+                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.GeneratorHumDefense, ev.Generator.Position);
+
+                // Normal warning scream
                 var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.ScreamHurt + 1);
                 _plugin.AudioManager.PlayAudioAtPosition(randomScream, ev.Generator.Position);
             }

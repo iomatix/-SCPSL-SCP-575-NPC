@@ -118,6 +118,9 @@
         [Description("Cancel nuke detonation during blackout.")]
         public bool DisableNuke { get; set; } = true;
 
+        [Description("If true, activating a generator will make SCP-575 retaliate by aggressively forcing a blackout in that sector and adding a global blackout stack (increasing its rage and damage).")]
+        public bool GeneratorActivationRetaliation { get; set; } = true;
+
         /// <summary>
         /// Flicker lights at blackout start.
         /// </summary>

@@ -51,7 +51,7 @@ namespace SCP_575.ConfigObjects
         /// Modifier applied to player velocity when damaged by SCP-575.
         /// </summary>
         [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
-        public float KeterDamageVelocityModifier { get; set; } = 1.25f;
+        public float KeterDamageVelocityModifier { get; set; } = 2.45f;
 
         #endregion
 

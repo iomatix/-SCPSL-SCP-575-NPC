@@ -150,7 +150,7 @@ namespace SCP_575.Systems
                 var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
 
                 Ragdoll newRagdoll = Ragdoll.SpawnRagdoll(
-                    player.Role,
+                    RoleTypeId.Scp3114,
                     spawnPosition,
                     spawnRotation,
                     customHandler,
