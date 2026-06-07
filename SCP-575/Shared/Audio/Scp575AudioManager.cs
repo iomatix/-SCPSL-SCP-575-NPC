@@ -83,12 +83,36 @@
             _ambienceAudioSessionId = 0;
         }
 
+        /// <summary>
+        /// Cleans up all active audio coroutines, flushes running loops, and terminates 
+        /// active sound sessions across round boundaries or plugin reloads.
+        /// </summary>
         public void Clean()
         {
             Timing.KillCoroutines(AudioCoroutineTag);
             StopAmbience();
-            _pluginSessionIds.Clear();
-            Log.Debug("[Scp575AudioManager] Audio manager cleaned up.");
+
+            // FIXED: Real structural cleanup of all running background loops (like GeneratorHumDefense).
+            // Instead of just clearing the ID tracking list from memory, we explicitly command the audio engine 
+            // to fade out every active sound session registered by this plugin to prevent audio bleeding into post-event phases.
+            if (_pluginSessionIds != null && _pluginSessionIds.Count > 0)
+            {
+                foreach (int sessionId in _pluginSessionIds.ToList())
+                {
+                    if (sessionId == 0) continue;
+                    try
+                    {
+                        sharedAudioManager.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Debug($"[Scp575AudioManager.Clean] Session {sessionId} already terminated: {ex.Message}");
+                    }
+                }
+                _pluginSessionIds.Clear();
+            }
+
+            Log.Debug("[Scp575AudioManager] Audio manager cleaned up and all active loops safely terminated.");
         }
 
         public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false)
