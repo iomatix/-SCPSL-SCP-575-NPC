@@ -1,9 +1,16 @@
-namespace SCP_575.Systems
+namespace SCP_575.Shared
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Reflection;
+    using LabApi.Features.Wrappers;
+    using MEC;
+    using UnityEngine;
     using InventorySystem.Items.Armor;
     using LabApi.Features.Wrappers;
     using MEC;
     using PlayerRoles;
+    using PlayerRoles.Blood;
     using PlayerRoles.PlayableScps.Scp3114;
     using PlayerRoles.Ragdolls;
     using PlayerStatsSystem;
@@ -15,6 +22,47 @@ namespace SCP_575.Systems
 
     public static class Scp575DamageSystem
     {
+        // ===================================================================
+        // REFLECTION CACHE (Cached once during static initialization)
+        // ===================================================================
+        private static readonly MethodInfo PlaceLiquidMethod;
+        private static readonly object BloodEnumInstance;
+        private static readonly bool IsReflectionReady;
+
+        static Scp575DamageSystem()
+        {
+            try
+            {
+                // We extract the base game assembly securely using ReferenceHub as the anchor point
+                Assembly assemblyCSharp = typeof(ReferenceHub).Assembly;
+
+                Type liquidPlacementType = assemblyCSharp.GetType("Decals.LiquidPlacement");
+                Type liquidTypeEnum = assemblyCSharp.GetType("Decals.LiquidType");
+
+                if (liquidPlacementType != null && liquidTypeEnum != null)
+                {
+                    // Forcing extraction of static internal/private liquid injection layouts
+                    PlaceLiquidMethod = liquidPlacementType.GetMethod("PlaceLiquid",
+                        BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+
+                    if (PlaceLiquidMethod != null)
+                    {
+                        BloodEnumInstance = Enum.Parse(liquidTypeEnum, "Blood");
+                        IsReflectionReady = BloodEnumInstance != null;
+                    }
+                }
+
+                if (IsReflectionReady)
+                    LibraryLabAPI.LogDebug("Reflection.Init", "Successfully bridged internal Northwood Decal engine via Reflection.");
+                else
+                    LibraryLabAPI.LogWarn("Reflection.Init", "Failed to resolve internal Decal signatures. Blood generation will fallback.");
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogError("Reflection.Init", $"Critical hardware abstraction fault: {ex.Message}");
+            }
+        }
+
         #region Constants and Static Properties  
 
         public static string IdentifierName => nameof(Scp575DamageSystem);
@@ -97,10 +145,13 @@ namespace SCP_575.Systems
 
             try
             {
-                Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll);
+                // Spawn violent post-mortem environmental blood explosions around the body grid
+                TriggerDeathBloodSpill(ragdoll.Position, 6);
+
+                Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, player.Role);
                 if (newRagdoll == null) return;
 
-                Timing.RunCoroutine(ProcessRagdollPhysics(newRagdoll), "SCP575-RagdollPhys");
+                Timing.RunCoroutine(ProcessRagdollPhysics(ragdoll), CoroutineTags.RagdollPhysics);
             }
             catch (Exception ex)
             {
@@ -112,9 +163,7 @@ namespace SCP_575.Systems
         {
             if (ragdoll?.Base?.gameObject == null) yield break;
 
-            // Wait for frames to allow Unity to fully initialize the physics bones layout.
-            yield return Timing.WaitForOneFrame;
-            yield return Timing.WaitForOneFrame;
+            yield return Timing.WaitForSeconds(0.1f);
 
             List<Rigidbody> rigidbodies = RigidbodyPool.Rent();
             try
@@ -124,13 +173,10 @@ namespace SCP_575.Systems
 
                 rigidbodies.AddRange(ragdollRigidbodies);
 
-                Vector3 upwardForce = Vector3.up * CalculateForcePush(6.69f);
-                Vector3 randomForce = GetRandomUnitSphereVelocity(4.75f);
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(5.5f);
+                Vector3 randomForce = GetRandomUnitSphereVelocity(3.8f);
 
                 ApplyStandardRagdollPhysics(rigidbodies, upwardForce, randomForce);
-
-                // FIXED: Embedded the dormant ConvertToBones method directly into the logic lifecycle here.
-                ConvertToBones(ragdoll);
             }
             finally
             {
@@ -138,7 +184,7 @@ namespace SCP_575.Systems
             }
         }
 
-        private static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll)
+        private static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll, RoleTypeId oldRole)
         {
             if (player == null || originalRagdoll?.Base == null) return null;
 
@@ -164,7 +210,7 @@ namespace SCP_575.Systems
                     var newInfo = new PlayerRoles.Ragdolls.RagdollData(
                         oldInfo.OwnerHub,
                         oldInfo.Handler,
-                        oldInfo.RoleType,
+                        oldRole,
                         oldInfo.StartRelativePosition,
                         oldInfo.StartRelativeRotation,
                         oldInfo.Scale,
@@ -197,10 +243,42 @@ namespace SCP_575.Systems
                 if (rb == null) continue;
 
                 rb.isKinematic = false;
-
-                // FIXED: Removed manual mass multiplier to avoid extreme explosive launches caused by double-mass scaling in Impulse mode.
                 rb.AddForce(combinedForce, ForceMode.Impulse);
                 rb.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+            }
+        }
+
+
+        /// <summary>
+        /// Dynamically triggers native blood splatter system calls using performance-optimized cached reflection.
+        /// </summary>
+        private static void TriggerDeathBloodSpill(Vector3 centerPosition, int intensityCount)
+        {
+            if (!IsReflectionReady) return;
+
+            try
+            {
+                // PERFORMANCE OPTIMIZATION: We allocate the parameters array exactly ONCE outside the loop grid
+                // to achieve clean, zero-allocation behavior inside the iterative splatter block.
+                object[] invokeParameters = new object[3];
+                invokeParameters[1] = Vector3.down;         // Surface normal projection vector
+                invokeParameters[2] = BloodEnumInstance;    // LiquidType.Blood instance clone
+
+                for (int i = 0; i < intensityCount; i++)
+                {
+                    Vector3 dynamicOffset = UnityEngine.Random.insideUnitSphere * 1.5f;
+                    dynamicOffset.y = Mathf.Abs(dynamicOffset.y) * 0.1f; // Flatten splatters to focus on floor geometries
+
+                    // Swap out only the execution position index inside the reused array layout
+                    invokeParameters[0] = centerPosition + dynamicOffset;
+
+                    // Execute low-level internal method injection directly into Assembly-CSharp engine
+                    PlaceLiquidMethod.Invoke(null, invokeParameters);
+                }
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogWarn("TriggerDeathBloodSpill", $"Reflection pipeline failed to inject blood arrays: {ex.Message}");
             }
         }
 

@@ -6,8 +6,6 @@
     using MEC;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Systems;
-    using SCP_575.Shared;
     using System;
 
     /// <summary>

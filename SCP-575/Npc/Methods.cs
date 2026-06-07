@@ -7,7 +7,6 @@ namespace SCP_575.Npc
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Systems;
     using SCP_575.Shared;
     using Shared;
     using System;
@@ -411,7 +410,7 @@ namespace SCP_575.Npc
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
 
-                        _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterBreathLocal);
+                        _plugin.AudioManager.PlayLocalAudio(player, AudioKey.MonsterBreathLocal);
 
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }

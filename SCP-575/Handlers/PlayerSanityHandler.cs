@@ -1,6 +1,5 @@
 ﻿namespace SCP_575.Handlers
 {
-    using Hints;
     using LabApi.Events.Arguments.PlayerEvents;
     using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
@@ -9,8 +8,6 @@
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Systems;
-    using SCP_575.Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -325,22 +322,22 @@
                     {
                         if (newSanity <= 35f && oldSanity > 35f)
                         {
-                            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.SanityLowDrone, player.Position);
+                            _plugin.AudioManager.PlayLocalAudio(player, AudioKey.SanityLowDrone);
                         }
                         
                         if (UnityEngine.Random.value < 0.05f)
                         {
                             if (newSanity <= 20f)
                             {
-                                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersMixed, player.Position);
+                                _plugin.AudioManager.PlayLocalAudio(player, AudioKey.WhispersMixed);
                             }
                             else if (newSanity <= 50f)
                             {
-                                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_2, player.Position);
+                                _plugin.AudioManager.PlayLocalAudio(player, AudioKey.Whispers_2);
                             }
                             else if (newSanity <= 80f)
                             {
-                                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_1, player.Position);
+                                _plugin.AudioManager.PlayLocalAudio(player, AudioKey.Whispers_1);
                             }
                         }
                     }

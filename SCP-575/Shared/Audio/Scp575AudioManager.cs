@@ -284,6 +284,24 @@
         }
 
         /// <summary>
+        /// Sends a clean 2D audio stream strictly into the target player's headphones.
+        /// Zero spatial tracking, zero leakage to adjacent units – absolute isolated paranoia.
+        /// </summary>
+        public int PlayLocalAudio(Player player, AudioKey audioKey, float? lifespan = null, float fadeInDuration = 0f)
+        {
+            if (player == null) return 0;
+            return PlayAudioAutoManaged(
+                player: player,
+                audioKey: audioKey,
+                position: null,
+                lifespan: lifespan,
+                hearableForAllPlayers: false,
+                queue: false,
+                fadeInDuration: fadeInDuration,
+                isNonSpatial: true);
+        }
+
+        /// <summary>
         /// Plays random audio effect for player. If no options are provided, defaults to baseline paranoia pool.
         /// </summary>
         public void PlayRandomAudioEffect(Player player, params AudioKey[] options)
@@ -296,6 +314,7 @@
             var selected = options[UnityEngine.Random.Range(0, options.Length)];
             _plugin.AudioManager.PlayAudioAutoManaged(player, selected, hearableForAllPlayers: true, lifespan: null);
         }
+
 
         private void RegisterAudioResources()
         {

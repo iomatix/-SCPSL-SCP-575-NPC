@@ -4,7 +4,6 @@
     using LabApi.Events.CustomHandlers;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Systems;
     using System;
 
     /// <summary>
