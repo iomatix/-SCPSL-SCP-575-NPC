@@ -150,11 +150,12 @@ namespace SCP_575.Shared
 
         private static IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll, Player player)
         {
-
             if (ragdoll?.Base?.gameObject == null) yield break;
 
             yield return Timing.WaitForSeconds(0.1f);
 
+
+            var originalPlayerRole = player.Role;
             Rigidbody[] ragdollRigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
             if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0) yield break;
 
@@ -175,7 +176,7 @@ namespace SCP_575.Shared
 
             if (player != null && player.IsReady)
             {
-                Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, player.Role);
+                Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, originalPlayerRole);
             }
         }
 
@@ -205,7 +206,7 @@ namespace SCP_575.Shared
                     var newInfo = new PlayerRoles.Ragdolls.RagdollData(
                         oldInfo.OwnerHub,
                         oldInfo.Handler,
-                        oldRole,
+                        originalPlayerRole,
                         oldInfo.StartRelativePosition,
                         oldInfo.StartRelativeRotation,
                         oldInfo.Scale,
