@@ -4,6 +4,7 @@
     using LabApi.Events.CustomHandlers;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
+    using System.Collections.Generic;
     using Types;
     using UnityEngine;
 
@@ -43,26 +44,27 @@
             var room = _lib.GetRoomAtPosition(position);
             if (room == null) return;
 
-            // Prevent executing expensive spatial queries if a tactical threat 
-            // is introduced while the entity is dormant or unable to react.
+            // Pobieramy informację o aktywności blackoutu z silnika NPC
+            bool isBlackoutActive = _plugin.Npc.Methods.IsBlackoutActive;
+
             if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && room.LightController.LightsEnabled)
                 return;
-
-            var room = _lib.GetRoomAtPosition(position);
-            if (room == null) return;
 
             switch (impactType)
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
-                    // Local tactical blackout only triggers the close-up psychological node.
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, position, isTransient: true);
-
                     _lib.DisableRoomAndNeighborLights(room);
+
+                    if (isBlackoutActive)
+                    {
+                        float boostDuration = _plugin.Config.BlackoutConfig.DurationMin;
+
+                        MEC.Timing.RunCoroutine(TriggerTacticalBlackoutBoost(boostDuration), CoroutineTags.BlackoutStacks);
+                    }
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-
-                    // Randomly select between defensive rage or acute pain feedback to avoid overlapping artifacts.
                     AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
                     _plugin.AudioManager.PlayAudioAtPosition(selectedScream, position, isTransient: true);
 
@@ -72,10 +74,25 @@
                 default:
                     if (room.LightController.LightsEnabled) return;
 
-                    // Default baseline paranoia feedback for non-tactical explosive events.
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_1, position);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Coroutine temporary boosts the intensity of the tactical blackout.
+        /// </summary>
+        private IEnumerator<float> TriggerTacticalBlackoutBoost(float duration)
+        {
+            _plugin.Npc.Methods.IncrementBlackoutStack();
+            LibraryLabAPI.LogInfo("ProjectileImpact", $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}");
+
+            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterRoarGlobal);
+
+            yield return MEC.Timing.WaitForSeconds(duration);
+
+            _plugin.Npc.Methods.DecrementBlackoutStack();
+            LibraryLabAPI.LogInfo("ProjectileImpact", $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}");
         }
     }
 }
