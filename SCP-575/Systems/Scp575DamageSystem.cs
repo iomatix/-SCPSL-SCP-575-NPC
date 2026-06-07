@@ -162,8 +162,8 @@ namespace SCP_575.Shared
             {
                 rigidbodies.AddRange(ragdollRigidbodies);
 
-                Vector3 upwardForce = Vector3.up * CalculateForcePush(23.5f);
-                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 22.75f);
+                Vector3 upwardForce = Vector3.up * CalculateForcePush(13.45f);
+                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 18.75f);
             }
             finally
             {
@@ -235,7 +235,13 @@ namespace SCP_575.Shared
                 if (rb == null) continue;
 
                 rb.isKinematic = false;
-                Vector3 uniqueRandomForce = GetRandomUnitSphereVelocity(randomForceMagnitude);
+                Vector3 horizontalDir = new Vector3(UnityEngine.Random.Range(-1f, 1f), 0f, UnityEngine.Random.Range(-1f, 1f));
+                if (horizontalDir == Vector3.zero) horizontalDir = Vector3.forward;
+                horizontalDir.Normalize();
+
+                float scaledHorizontalForce = CalculateForcePush(randomForceMagnitude);
+                Vector3 uniqueRandomForce = horizontalDir * scaledHorizontalForce;
+
                 Vector3 combinedForce = upwardForce + uniqueRandomForce;
 
                 rb.AddForce(combinedForce, ForceMode.Impulse);
@@ -289,25 +295,43 @@ namespace SCP_575.Shared
                 yield break;
             }
 
+            if (droppedPickups == null || droppedPickups.Count == 0) yield break;
+
             while (player.Inventory.UserInventory.Items.Count > 0 && waitFrames++ < maxWaitFrames)
             {
                 yield return Timing.WaitForOneFrame;
             }
 
-            // FIXED: Moved the WaitForOneFrame outside the loop to execute the physics impulse for all items instantly in a single frame.
-            foreach (Pickup pickup in droppedPickups)
+            float configModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+
+            float internalSharedModifier = 1.75f * Mathf.Log(configModifier) * CalculateForcePush(configModifier);
+            float forcePushMagnitude = CalculateForcePush(2.15f);
+
+            float finalLinearMagnitude = internalSharedModifier * forcePushMagnitude;
+
+            int pickupCount = droppedPickups.Count;
+
+            for (int i = 0; i < pickupCount; i++)
             {
-                if (pickup?.Rigidbody == null || pickup.IsDestroyed || !pickup.IsSpawned) continue;
+                Pickup pickup = droppedPickups[i];
+
+                if (pickup == null || pickup.IsDestroyed || !pickup.IsSpawned) continue;
+
+                Rigidbody rb = pickup.Rigidbody;
+                if (rb == null) continue;
 
                 try
                 {
-                    pickup.Rigidbody.isKinematic = false;
+                    rb.isKinematic = false;
 
-                    var direction = GetRandomUnitSphereVelocity(1.75f);
-                    var magnitude = CalculateForcePush(2.15f);
+                    Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
+                    if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f)
+                    {
+                        randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
+                    }
 
-                    pickup.Rigidbody.linearVelocity = direction * magnitude;
-                    pickup.Rigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+                    rb.linearVelocity = randomDirection * finalLinearMagnitude;
+                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * configModifier;
                 }
                 catch (Exception ex)
                 {
