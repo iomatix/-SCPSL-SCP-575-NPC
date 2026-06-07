@@ -152,7 +152,7 @@ namespace SCP_575.Shared
         {
             if (ragdoll?.Base?.gameObject == null) yield break;
 
-            yield return Timing.WaitForSeconds(0.1f);
+            yield return Timing.WaitForSeconds(0.11f);
 
 
             var originalPlayerRole = player.Role;
@@ -165,14 +165,14 @@ namespace SCP_575.Shared
                 rigidbodies.AddRange(ragdollRigidbodies);
 
                 Vector3 upwardForce = Vector3.up * CalculateForcePush(35.0f);
-                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 12.5f);
+                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 16.75f);
             }
             finally
             {
                 RigidbodyPool.Return(rigidbodies);
             }
 
-            yield return Timing.WaitForSeconds(0.15f);
+            yield return Timing.WaitForSeconds(0.25f);
 
             if (player != null && player.IsReady)
             {
@@ -305,8 +305,8 @@ namespace SCP_575.Shared
                 {
                     pickup.Rigidbody.isKinematic = false;
 
-                    var direction = GetRandomUnitSphereVelocity(2.25f);
-                    var magnitude = CalculateForcePush(3.45f);
+                    var direction = GetRandomUnitSphereVelocity(2.15f);
+                    var magnitude = CalculateForcePush(2.45f);
 
                     pickup.Rigidbody.linearVelocity = direction * magnitude;
                     pickup.Rigidbody.angularVelocity = UnityEngine.Random.insideUnitSphere * Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
