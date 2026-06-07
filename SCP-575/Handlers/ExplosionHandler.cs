@@ -53,22 +53,20 @@
             switch (impactType)
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
-                    _lib.DisableRoomAndNeighborLights(room);
-
                     // Local tactical blackout only triggers the close-up psychological node.
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, position, isTransient: true);
+
+                    _lib.DisableRoomAndNeighborLights(room);
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
                     if (room.LightController.LightsEnabled) return;
 
-                    _lib.EnableAndFlickerRoomAndNeighborLights(
-                        room,
-                        _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-
                     // Randomly select between defensive rage or acute pain feedback to avoid overlapping artifacts.
                     AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
                     _plugin.AudioManager.PlayAudioAtPosition(selectedScream, position, isTransient: true);
+
+                    _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
                     break;
 
                 default:
