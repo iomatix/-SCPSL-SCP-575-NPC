@@ -142,7 +142,8 @@ namespace SCP_575.Shared
                 Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, player.Role);
                 if (newRagdoll == null) return;
 
-                Timing.RunCoroutine(ProcessRagdollPhysics(ragdoll), CoroutineTags.RagdollPhysics);
+                Timing.RunCoroutine(ProcessRagdollPhysics(newRagdoll), CoroutineTags.RagdollPhysics);
+                newRagdoll.IsConsumed = true;
             }
             catch (Exception ex)
             {
