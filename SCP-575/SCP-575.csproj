@@ -2,8 +2,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<AssemblyName Condition="'$(Configuration)' == 'Debug'">$(ProjectName)-DEBUG</AssemblyName>
-		<AssemblyName Condition="'$(Configuration)' != 'Debug'">$(ProjectName)</AssemblyName>
+		
+		<AssemblyName Condition="'$(Configuration)' == 'Debug'">$(MSBuildProjectName)-DEBUG</AssemblyName>
+		<AssemblyName Condition="'$(Configuration)' != 'Debug'">$(MSBuildProjectName)</AssemblyName>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
 		<Version>1.0.0</Version>
