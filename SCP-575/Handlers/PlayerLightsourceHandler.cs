@@ -110,6 +110,12 @@ namespace SCP_575.Handlers
             if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player))
                 return;
 
+            string userId = ev.Player.UserId;
+
+            // FIX: Instantly terminate active flickering coroutines to prevent background logic leaks on item swap.
+            Timing.KillCoroutines($"{FlickerTagPrefix}{userId}");
+            _flickeringPlayers.Remove(userId);
+
             Action stateModificationActions = null;
             bool requiresIntervention = false;
 
@@ -165,7 +171,7 @@ namespace SCP_575.Handlers
 
         public override void OnPlayerTogglingFlashlight(PlayerTogglingFlashlightEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || !IsBlackout()) return;
+            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || !IsBlackout() || ev.Player.CurrentItem is not LightItem) return;
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
         }
@@ -196,7 +202,7 @@ namespace SCP_575.Handlers
 
             // BASE GAME BUGFIX: Weapon flashlights are natively silent in SCP:SL. 
             // We inject a micro-click on EVERY toggle to compensate for the base game flaw.
-            _plugin.AudioManager.PlayLocalAudio(ev.Player, AudioKey.LightShortCircuit, lifespan: 0.115f, isTransient: true);
+            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, ev.Player.Position, lifespan: 0.115f, isTransient: true);
 
             // Existing plugin behavior rules for darkness and event statuses
             if (!_plugin.IsEventActive || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout())
@@ -355,11 +361,16 @@ namespace SCP_575.Handlers
                 for (int i = 0; i < flickerCount; i++)
                 {
                     if (!_plugin.IsEventActive) break;
+                    var p = Player.Get(userId);
 
+                    // FIX: Ensure the loop breaks immediately if item states diverge during asynchronous execution.
                     if (lightType == "WeaponFlashlight")
                     {
-                        var p = Player.Get(userId);
                         if (p?.CurrentItem is not FirearmItem f || !HasFlashlight(f)) break;
+                    }
+                    else if (lightType == "Flashlight")
+                    {
+                        if (p?.CurrentItem is not LightItem) break;
                     }
 
                     if (player != null)
@@ -369,7 +380,7 @@ namespace SCP_575.Handlers
                         bool isLastIteration = (i == flickerCount - 1);
                         if (!(isLastIteration && forceOff))
                         {
-                            _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 0.145f, isTransient: true);
+                            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.145f, isTransient: true);
                         }
                     }
 
@@ -381,7 +392,7 @@ namespace SCP_575.Handlers
                 {
 
                     setState(false);
-                    _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 0.33f, isTransient: true);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.33f, isTransient: true);
                 }
             }
             finally
@@ -392,8 +403,9 @@ namespace SCP_575.Handlers
 
         private bool HasFlashlight(FirearmItem firearm)
         {
-            if (firearm?.Base == null) return false;
-            return firearm.Attachments != null && firearm.Attachments.Any(a => a.Name == AttachmentName.Flashlight);
+            // FIX: Query the underlying native Unity game object state to ensure the attachment is actively rendered/equipped on the server.
+            if (firearm?.Base?.Attachments == null) return false;
+            return firearm.Base.Attachments.Any(a => a != null && a.Name == AttachmentName.Flashlight && a.gameObject.activeSelf);
         }
 
         /// <summary>
@@ -407,7 +419,7 @@ namespace SCP_575.Handlers
             if (!_lastCooldownAudioTime.TryGetValue(player.UserId, out DateTime lastPlayTime) || (now - lastPlayTime).TotalSeconds >= 1.5)
             {
                 _lastCooldownAudioTime[player.UserId] = now;
-                _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 1.5f, isTransient: true);
+                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 1.5f, isTransient: true);
             }
         }
 
