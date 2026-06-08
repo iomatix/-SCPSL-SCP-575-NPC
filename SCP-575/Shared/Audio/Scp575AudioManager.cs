@@ -350,6 +350,111 @@
         }
 
         /// <summary>
+        /// Spawns a 3D spatialized audio track that dynamically locks onto the player's anatomical head/neck region.
+        /// Automatically computes local space orientation (facing direction) on every frame tick.
+        /// </summary>
+        public void PlayTrackingAudio(Player player, AudioKey audioKey, float? lifespan = null, bool hearableForAllPlayers = true, Vector3? customOffset = null)
+        {
+            if (player == null || !player.IsReady)
+                return;
+
+            if (!_audioRegistry.TryGetValue(audioKey, out var config))
+                throw new ArgumentException($"Audio key {audioKey} not found in configuration registries.", nameof(audioKey));
+
+            float effectiveLifespan = lifespan ?? config.DefaultLifespan;
+            if (effectiveLifespan <= 0f)
+                return;
+
+            // REACTIVE POSITION PROVIDER LAMBDA (Zero-Allocation Local Space Translation)
+            Func<Vector3> positionProvider = () =>
+            {
+                if (player == null || player.GameObject == null)
+                    return Vector3.zero;
+
+                // Fallback: If a developer forces a hardcoded world offset, use it directly.
+                if (customOffset.HasValue)
+                {
+                    return player.Position + customOffset.Value;
+                }
+
+                // Native Unity Transform reference query
+                Transform t = player.GameObject.transform;
+
+                // 1.65f meters represents the standard human neck/eye-level height matrix in SCP:SL.
+                // 0.001f meters (exactly 1mm) drives the sound source slightly forward along the look vector,
+                // anchoring the spatial panner perfectly "inside the skull/front of face" without clipping background geo.
+                return player.Position + (t.up * 1.65f) + (t.forward * 0.001f);
+            };
+
+            // Instantiate the session using the initial frame calculation
+            int sessionId = PlayAudioAutoManaged(
+                player: hearableForAllPlayers ? null : player,
+                audioKey: audioKey,
+                position: positionProvider(),
+                lifespan: effectiveLifespan,
+                hearableForAllPlayers: hearableForAllPlayers,
+                isTransient: false
+            );
+
+            if (sessionId == 0)
+                return;
+
+            // Pass the reactive provider to the frame update engine
+            Timing.RunCoroutine(
+                TrackTargetPositionCoroutine(positionProvider, () => player != null && player.IsReady && player.IsAlive, sessionId, effectiveLifespan),
+                AudioCoroutineTag
+            );
+        }
+
+        /// <summary>
+        /// High-performance frame-by-frame layout syncer. Forwards live vector data to the active audio session handle.
+        /// </summary>
+        private IEnumerator<float> TrackTargetPositionCoroutine(Func<Vector3> positionProvider, Func<bool> validationCheck, int sessionId, float duration)
+        {
+            float elapsed = 0f;
+
+            // 100ms hardware warm-up buffer to let Unity initialize the physical 3D speaker component components
+            yield return Timing.WaitForSeconds(0.1f);
+
+            while (elapsed < duration)
+            {
+                if (!validationCheck())
+                {
+                    try
+                    {
+                        if (_audioEngine.IsValidSession(sessionId))
+                        {
+                            _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                            _pluginSessionIds.Remove(sessionId);
+                        }
+                    }
+                    catch { }
+                    yield break;
+                }
+
+                try
+                {
+                    if (_audioEngine.IsValidSession(sessionId))
+                    {
+                        // Dynamically updates the 3D panner position with computed local transformation matrix
+                        _audioEngine.SetSessionPosition(sessionId, positionProvider());
+                    }
+                    else
+                    {
+                        yield break;
+                    }
+                }
+                catch (Exception)
+                {
+                    yield break;
+                }
+
+                elapsed += Timing.DeltaTime;
+                yield return Timing.WaitForOneFrame;
+            }
+        }
+
+        /// <summary>
         /// Broadcasts an environmental non-spatial audio track globally to all active network clients with automated lifetime garbage collection.
         /// </summary>
         /// <returns>A unique audio channel session identifier for global synchronization control.</returns>

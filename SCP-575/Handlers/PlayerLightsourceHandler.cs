@@ -419,7 +419,12 @@ namespace SCP_575.Handlers
             if (!_lastCooldownAudioTime.TryGetValue(player.UserId, out DateTime lastPlayTime) || (now - lastPlayTime).TotalSeconds >= 1.5)
             {
                 _lastCooldownAudioTime[player.UserId] = now;
-                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 1.5f, isTransient: true);
+                _plugin.AudioManager.PlayTrackingAudio(
+                    player: player,
+                    audioKey: AudioKey.LightShortCircuit,
+                    lifespan: 1.5f,
+                    hearableForAllPlayers: true
+                );
             }
         }
 
