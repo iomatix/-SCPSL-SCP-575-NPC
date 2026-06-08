@@ -35,31 +35,31 @@
 
         private readonly Dictionary<AudioKey, AudioTrackProfile> _audioRegistry = new()
         {
-            { AudioKey.Scream_1, new("scp575.scream_1", 0.91f, 65f, 150f, true, AudioPriority.High, 9f) },
-            { AudioKey.Scream_2, new("scp575.scream_2", 0.91f, 65f, 150f, true, AudioPriority.High, 9f) },
-            { AudioKey.Scream_3, new("scp575.scream_3", 0.91f, 65f, 150f, true, AudioPriority.High, 9f) },
-            { AudioKey.ScreamAngry, new("scp575.scream_angry", 0.99f, 175f, 450f, true, AudioPriority.High, 9f) },
-            { AudioKey.ScreamHurt, new("scp575.scream_hurt", 0.99f, 125f, 345f, true, AudioPriority.High, 7f) },
-            { AudioKey.ScreamDying, new("scp575.scream_dying", 1.0f, 255f, 480f, true, AudioPriority.High, 20f) },
-            { AudioKey.MonsterRoarGlobal, new("scp575.monster_roar_global", 0.95f, 45f, 999.99f, false, AudioPriority.High, 40f) },
+            { AudioKey.Scream_1, new("scp575.scream_1", 0.95f, 65f, 150f, true, AudioPriority.High, 9f) },
+            { AudioKey.Scream_2, new("scp575.scream_2", 0.95f, 65f, 150f, true, AudioPriority.High, 9f) },
+            { AudioKey.Scream_3, new("scp575.scream_3", 0.95f, 65f, 150f, true, AudioPriority.High, 9f) },
+            { AudioKey.ScreamAngry, new("scp575.scream_angry", 0.95f, 175f, 450f, true, AudioPriority.High, 9f) },
+            { AudioKey.ScreamHurt, new("scp575.scream_hurt", 0.95f, 125f, 345f, true, AudioPriority.High, 7f) },
+            { AudioKey.ScreamDying, new("scp575.scream_dying", 0.95f, 255f, 480f, true, AudioPriority.High, 20f) },
+            { AudioKey.MonsterRoarGlobal, new("scp575.monster_roar_global", 0.85f, 45f, 999.99f, false, AudioPriority.High, 40f) },
 
-            { AudioKey.Whispers_1, new("scp575.whispers_1", 0.47f, 5f, 35f, true, AudioPriority.Medium, 11f) },
+            { AudioKey.Whispers_1, new("scp575.whispers_1", 0.45f, 5f, 35f, true, AudioPriority.Medium, 11f) },
             { AudioKey.Whispers_2, new("scp575.whispers_2", 0.55f, 7f, 45f, true, AudioPriority.Medium, 19f) },
             { AudioKey.Whispers_3, new("scp575.whispers_3", 0.65f, 9f, 52f, true, AudioPriority.Medium, 14f) },
-            { AudioKey.WhispersBang, new("scp575.whispers_bang", 0.78f, 12f, 65f, true, AudioPriority.High, 20f) },
+            { AudioKey.WhispersBang, new("scp575.whispers_bang", 0.75f, 12f, 65f, true, AudioPriority.High, 20f) },
             { AudioKey.WhispersMixed, new("scp575.whispers_mixed", 0.75f, 10f, 55f, true, AudioPriority.Medium, 25f) },
-            { AudioKey.MonsterBreathLocal, new("scp575.monster_breath_local", 0.75f, 5f, 24f, true, AudioPriority.High, 11f) },
-            { AudioKey.ShadowClicking, new("scp575.shadow_clicking", 0.67f, 4.75f, 33f, true, AudioPriority.High, 9f) },
+            { AudioKey.MonsterBreathLocal, new("scp575.monster_breath_local", 0.8f, 5f, 24f, true, AudioPriority.High, 11f) },
+            { AudioKey.ShadowClicking, new("scp575.shadow_clicking", 0.65f, 4.75f, 33f, true, AudioPriority.High, 9f) },
 
-            { AudioKey.ShadowStrike, new("scp575.shadow_strike", 0.88f, 5.5f, 30f, true, AudioPriority.High, 5f) },
-            { AudioKey.ShadowConsumingBody, new("scp575.shadow_consuming_body", 0.91f, 7.5f, 45f, true, AudioPriority.High, 5f) },
-            { AudioKey.AnomalousImpact, new("scp575.anomalous_impact", 0.88f, 3.5f, 25f, true, AudioPriority.High, 5f) },
-            { AudioKey.GeneratorHumDefense, new("scp575.generator_hum_defense", 0.67f, 6.5f, 45f, true, AudioPriority.Medium, 0f) },
-            { AudioKey.LightShortCircuit, new("scp575.light_short_circuit", 0.95f, 2.5f, 18f, true, AudioPriority.High, 4f) },
+            { AudioKey.ShadowStrike, new("scp575.shadow_strike", 0.95f, 5.5f, 30f, true, AudioPriority.High, 5f) },
+            { AudioKey.ShadowConsumingBody, new("scp575.shadow_consuming_body", 0.95f, 7.5f, 45f, true, AudioPriority.High, 5f) },
+            { AudioKey.AnomalousImpact, new("scp575.anomalous_impact", 0.95f, 3.5f, 25f, true, AudioPriority.High, 5f) },
+            { AudioKey.GeneratorHumDefense, new("scp575.generator_hum_defense", 0.75f, 6.5f, 45f, true, AudioPriority.Medium, 0f) },
+            { AudioKey.LightShortCircuit, new("scp575.light_short_circuit", 0.95f, 2.5f, 18f, true, AudioPriority.High, 1.5f) },
             //{ AudioKey.StaticBuzz, new("scp575.static_buzz", 0.37f, 2.5f, 15f, true, AudioPriority.Medium, 0f) }, // TODO: Add static buzz
 
             { AudioKey.Ambience, new("scp575.ambience", 0.45f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
-            { AudioKey.SanityLowDrone, new("scp575.sanity_low_drone", 0.55f, 200.0f, 999.99f, false, AudioPriority.Medium, 0f) },
+            { AudioKey.SanityLowDrone, new("scp575.sanity_low_drone", 0.45f, 200.0f, 999.99f, false, AudioPriority.Medium, 0f) },
             { AudioKey.BlackoutImpactGlobal, new("scp575.blackout_impact_global", 0.95f, 0f, 999.99f, false, AudioPriority.High, 13f) },
         };
 
