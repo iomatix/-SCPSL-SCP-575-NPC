@@ -100,29 +100,42 @@ namespace SCP_575.Handlers
         #region Event Handlers
 
         /// <summary>
-        /// Monopolizes network item swap sequences to suppress active photon generation fields 
-        /// before they render to client proxies if the actor is caught inside non-illuminated sectors.
+        /// Monopolizes network item swap sequences to suppress active photon generation fields.
+        /// Turns off items being stowed to maintain realism, and acts as a fail-safe for items being equipped.
         /// </summary>
         public override void OnPlayerChangedItem(PlayerChangedItemEventArgs ev)
         {
             if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player))
                 return;
 
-            bool isEmitting = false;
-            Action disableAction = null;
+            Action stateModificationActions = null;
+            bool requiresIntervention = false;
 
-            if (ev.NewItem is LightItem lightItem && lightItem.IsEmitting)
+            // 1. TURN OFF CHANGED ITEM
+            if (ev.OldItem is LightItem oldLight && oldLight.IsEmitting)
             {
-                isEmitting = true;
-                disableAction = () => lightItem.IsEmitting = false;
+                requiresIntervention = true;
+                stateModificationActions += () => oldLight.IsEmitting = false;
             }
-            else if (ev.NewItem is FirearmItem firearm && HasFlashlight(firearm) && firearm.FlashlightEnabled)
+            else if (ev.OldItem is FirearmItem oldFirearm && HasFlashlight(oldFirearm) && oldFirearm.FlashlightEnabled)
             {
-                isEmitting = true;
-                disableAction = () => firearm.FlashlightEnabled = false;
+                requiresIntervention = true;
+                stateModificationActions += () => oldFirearm.FlashlightEnabled = false;
             }
 
-            if (!isEmitting || disableAction == null) return;
+            // 2. FAIL-SAFE
+            if (ev.NewItem is LightItem newLight && newLight.IsEmitting)
+            {
+                requiresIntervention = true;
+                stateModificationActions += () => newLight.IsEmitting = false;
+            }
+            else if (ev.NewItem is FirearmItem newFirearm && HasFlashlight(newFirearm) && newFirearm.FlashlightEnabled)
+            {
+                requiresIntervention = true;
+                stateModificationActions += () => newFirearm.FlashlightEnabled = false;
+            }
+
+            if (!requiresIntervention || stateModificationActions == null) return;
 
             string userId = ev.Player.UserId;
             string coroutineTag = $"{ItemChangePrefix}{userId}";
@@ -136,8 +149,9 @@ namespace SCP_575.Handlers
             {
                 try
                 {
-                    disableAction();
-                    LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Suppressed active emissive state during gear swap for {ev.Player.Nickname}.");
+                    // Apply state modifications
+                    stateModificationActions.Invoke();
+                    LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Enforced dark-state on inventory swap for {ev.Player.Nickname}.");
                 }
                 finally
                 {
