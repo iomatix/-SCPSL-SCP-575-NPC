@@ -353,6 +353,8 @@ namespace SCP_575.Handlers
                         var p = Player.Get(userId);
                         if (p?.CurrentItem is not FirearmItem f || !HasFlashlight(f)) break;
                     }
+                    
+                    if (player != null) _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 0.165f, isTransient: true);
 
                     setState(!getState());
                     yield return Timing.WaitForSeconds(delayPerFlicker);
