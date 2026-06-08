@@ -52,7 +52,8 @@
             switch (impactType)
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.WhispersBang, position, isTransient: true);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, position, isTransient: true);
+                    _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Scream_1);
                     _lib.DisableRoomAndNeighborLights(room);
 
                     if (isBlackoutActive)

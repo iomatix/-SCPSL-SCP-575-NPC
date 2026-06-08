@@ -364,8 +364,8 @@
                 {
                     AudioKey? whisperToPlay = null;
 
-                    if (newSanity <= 10f) whisperToPlay = AudioKey.WhispersMixed;
-                    else if (newSanity <= 25f) whisperToPlay = AudioKey.Whispers_3;
+                    if (newSanity <= 10f) whisperToPlay = AudioKey.WhispersBang;
+                    else if (newSanity <= 25f) whisperToPlay = AudioKey.WhispersMixed;
                     else if (newSanity <= 55f) whisperToPlay = AudioKey.Whispers_2;
                     else if (newSanity <= 85f) whisperToPlay = AudioKey.Whispers_1;
 
