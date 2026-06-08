@@ -82,6 +82,7 @@ namespace SCP_575.Handlers
             _cooldownUntil.Clear();
             _flickeringPlayers.Clear();
             _pendingItemChanges.Clear();
+            _lastCooldownAudioTime.Clear();
         }
 
         public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
@@ -209,6 +210,7 @@ namespace SCP_575.Handlers
             _cooldownUntil.Remove(ev.Player.UserId);
             _flickeringPlayers.Remove(ev.Player.UserId);
             _pendingItemChanges.Remove(ev.Player.UserId);
+            _lastCooldownAudioTime.Remove(ev.Player.UserId);
         }
 
         #endregion
@@ -302,19 +304,10 @@ namespace SCP_575.Handlers
 
             if (_cooldownUntil.TryGetValue(player.UserId, out var until) && DateTime.UtcNow < until)
             {
-                if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint)
-                    player.SendHint(message, 1.0f);
 
-                // ANTI-SPAM GUARD: Check if 1.5 seconds have passed since the last error audio execution
-                DateTime now = DateTime.UtcNow;
-                if (!_lastCooldownAudioTime.TryGetValue(player.UserId, out DateTime lastPlayTime) || (now - lastPlayTime).TotalSeconds >= 1.65f)
-                {
-                    _lastCooldownAudioTime[player.UserId] = now;
+                if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint) player.SendHint(message, 1.0f);
 
-                    // Executive shift: PlayLocalAudio injects the click directly
-                    // forcing a clean delivery that bypasses 3D room attenuation settings.
-                    _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 1.5f, isTransient: true);
-                }
+                PlayLightsourceErrorFeedback(player);
 
                 return (true, false);
             }
@@ -342,7 +335,7 @@ namespace SCP_575.Handlers
 
                     if (forceOff)
                     {
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, player.Position, isTransient: true);
+                        PlayLightsourceErrorFeedback(player);
                     }
 
                 }
@@ -377,6 +370,21 @@ namespace SCP_575.Handlers
         {
             if (firearm?.Base == null) return false;
             return firearm.Attachments != null && firearm.Attachments.Any(a => a.Name == AttachmentName.Flashlight);
+        }
+
+        /// <summary>
+        /// Executes a rate-limited local acoustic short-circuit artifact to notify the player of hardware failure or suppression.
+        /// </summary>
+        private void PlayLightsourceErrorFeedback(Player player)
+        {
+            if (player == null) return;
+
+            DateTime now = DateTime.UtcNow;
+            if (!_lastCooldownAudioTime.TryGetValue(player.UserId, out DateTime lastPlayTime) || (now - lastPlayTime).TotalSeconds >= 1.5)
+            {
+                _lastCooldownAudioTime[player.UserId] = now;
+                _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 1.5f, isTransient: true);
+            }
         }
 
         private IEnumerator<float> CleanupCoroutine()
