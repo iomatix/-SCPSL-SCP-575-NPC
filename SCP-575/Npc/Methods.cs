@@ -483,6 +483,13 @@ namespace SCP_575.Npc
             };
         }
 
+        public void ForceGlobalBlackoutEvent()
+        {
+            if (!_isInitialized || !_plugin.IsEventActive) return;
+
+            Timing.RunCoroutine(ExecuteBlackoutEvent(), CoroutineTags.Temp);
+        }
+
         public void Kill575() => Disable();
 
         #endregion
