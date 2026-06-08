@@ -313,7 +313,7 @@
                     {
                         AudioKey[] defensivePool = { AudioKey.Whispers_1, AudioKey.Whispers_2, AudioKey.WhispersBang };
                         AudioKey randomWhisper = defensivePool[UnityEngine.Random.Range(0, defensivePool.Length)];
-                        _plugin.AudioManager.PlayAudioAtPosition(randomWhisper, player.Position, isTransient: true);
+                        _plugin.AudioManager.PlayOrbitingAudio(player, randomWhisper);
                     }
 
                     Scp575DamageSystem.DamagePlayer(player, culmDamage);
