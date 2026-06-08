@@ -522,7 +522,7 @@
             {
                 // Yielding frames allows Unity to execute Awake/Start on the Speaker GameObject 
                 // and ensures 'InitializePhysicalSpeaker' bonds before we start the truncation countdown.
-                yield return Timing.WaitForSeconds(0.06f);
+                yield return Timing.WaitForSeconds(0.1f);
             }
 
             // Now the server clock is perfectly synchronized with the actual audible start on the client
