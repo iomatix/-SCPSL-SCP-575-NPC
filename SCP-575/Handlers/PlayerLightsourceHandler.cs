@@ -303,10 +303,14 @@ namespace SCP_575.Handlers
                 var player = Player.Get(userId);
                 if (player != null)
                 {
+                    if (UnityEngine.Random.value <= 0.21f)
+                    {
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.MonsterBreathLocal, player.Position);
+                    }
+
                     if (forceOff)
                     {
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position, isTransient: true);
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.MonsterBreathLocal, player.Position);
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, player.Position, isTransient: true);
                     }
                     else
                     {

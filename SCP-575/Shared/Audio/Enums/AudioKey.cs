@@ -1,4 +1,7 @@
-﻿namespace SCP_575.Shared.Audio.Enums
+﻿using AudioManagerAPI.Features.Enums;
+using SCP_575.Shared.Audio.Enums;
+
+namespace SCP_575.Shared.Audio.Enums
 {
     /// <summary>
     /// Defines architectural registration keys for SCP-575 spatialized and global audio layers.
@@ -45,9 +48,11 @@
 
 
         ShadowStrike,
-
-  
+        ShadowConsumingBody,
+        AnomalousImpact,
         GeneratorHumDefense,
+        LightShortCircuit,
+        StaticBuzz,
 
         // ===================================================================
         // ENVIRONMENTAL ACOUSTIC BACKGROUNDS & ZONE STATE TRANSITIONS

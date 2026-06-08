@@ -45,7 +45,7 @@
                 {
                     LibraryLabAPI.LogDebug("RagdollHandler", $"Processing SCP-575 ragdoll for {ev.Player.Nickname}. Triggering post-mortem acoustic feedback.");
 
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, ev.Ragdoll.Position);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowConsumingBody, ev.Ragdoll.Position);
 
                     Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
                 }

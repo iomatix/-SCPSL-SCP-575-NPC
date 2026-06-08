@@ -107,7 +107,7 @@ namespace SCP_575.Shared
             if (DateTime.UtcNow - lastAttackAudioTime >= cooldown)
             {
                 lastAttackAudioTime = DateTime.UtcNow;
-                plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowClicking, player.Position, isTransient: true);
+                plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
             }
         }
 
