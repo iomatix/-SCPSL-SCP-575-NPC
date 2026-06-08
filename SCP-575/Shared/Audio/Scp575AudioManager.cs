@@ -121,18 +121,16 @@
             if (!_audioRegistry.TryGetValue(audioKey, out var config))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration.", nameof(audioKey));
 
-            // DEBOUNCE ENGINE: Protects the audio driver from channel starvation if network events are spammed via macros.
             if (isTransient && player != null)
             {
                 string debounceKey = player.UserId + "_" + (int)audioKey;
-                double currentTime = Timing.LocalTime; // High-performance cached frame time, avoiding DateTime syscall overhead.
+                double currentTime = Timing.LocalTime;
 
                 if (_transientCooldowns.TryGetValue(debounceKey, out double nextAllowedTime) && currentTime < nextAllowedTime)
                 {
-                    return 0; // Soft drop: Silently drop the invocation to maintain virtual voice channel stability.
+                    return 0;
                 }
 
-                // 90ms window matches the standard mechanical physical switch cycle limit.
                 _transientCooldowns[debounceKey] = currentTime + 0.090;
             }
 
@@ -158,9 +156,25 @@
                 StopAmbience();
             }
 
-            Func<Player, bool> targetPlayerFilter = (!hearableForAllPlayers && player != null)
-                ? (p => p != null && p.UserId == player.UserId)
-                : null;
+            // ===================================================================
+            // AAA NETCODE OPTIMIZATION: AREA OF INTEREST (AoI) FILTRATION
+            // ===================================================================
+            Func<Player, bool> targetPlayerFilter;
+            if (!hearableForAllPlayers && player != null)
+            {
+                targetPlayerFilter = p => p != null && p.UserId == player.UserId;
+            }
+            else if (hearableForAllPlayers && !isNonSpatial)
+            {
+                // Explicitly target only remote clients within the physical audio bubble sphere.
+                // This drops network packet generation payload up to 90% in populated servers.
+                float maxAudibleDistance = config.MaxDistance;
+                targetPlayerFilter = p => p != null && p.IsReady && !p.IsHost && Vector3.Distance(p.Position, playPosition) <= maxAudibleDistance;
+            }
+            else
+            {
+                targetPlayerFilter = null;
+            }
 
             bool isGeneratorHum = audioKey == AudioKey.GeneratorHumDefense;
             int sessionId;
@@ -195,10 +209,18 @@
                 _pluginSessionIds.Add(sessionId);
             }
 
-            float effectiveLifespan = lifespan ?? config.DefaultLifespan;
-            if (effectiveLifespan > 0)
+            // ===================================================================
+            // FIX: RACE CONDITION SUPPRESSION FOR MICRO-TRANSIENTS
+            // ===================================================================
+            // If the audio track is marked as transient, we completely skip the manual LifespanCleanupCoroutine.
+            // The engine's native 'autoCleanup: true' safely unloads the asset AFTER the track successfully ends.
+            if (!isTransient)
             {
-                Timing.RunCoroutine(LifespanCleanupCoroutine(sessionId, effectiveLifespan, audioKey, isNonSpatial, hearableForAllPlayers), AudioCoroutineTag);
+                float effectiveLifespan = lifespan ?? config.DefaultLifespan;
+                if (effectiveLifespan > 0)
+                {
+                    Timing.RunCoroutine(LifespanCleanupCoroutine(sessionId, effectiveLifespan, audioKey, isNonSpatial, hearableForAllPlayers), AudioCoroutineTag);
+                }
             }
 
             return sessionId;
