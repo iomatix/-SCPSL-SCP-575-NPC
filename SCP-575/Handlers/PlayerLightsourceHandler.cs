@@ -191,7 +191,15 @@ namespace SCP_575.Handlers
 
         public override void OnPlayerToggledWeaponFlashlight(PlayerToggledWeaponFlashlightEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !HasFlashlight(ev.FirearmItem) || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout())
+            if (ev?.Player == null || ev.FirearmItem == null || !HasFlashlight(ev.FirearmItem))
+                return;
+
+            // BASE GAME BUGFIX: Weapon flashlights are natively silent in SCP:SL. 
+            // We inject a micro-click (0.05s) on EVERY toggle to compensate for the base game flaw.
+            _plugin.AudioManager.PlayLocalAudio(ev.Player, AudioKey.LightShortCircuit, lifespan: 0.05f, isTransient: true);
+
+            // Existing plugin behavior rules for darkness and event statuses
+            if (!_plugin.IsEventActive || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout())
                 return;
 
             Timing.RunCoroutine(
@@ -353,14 +361,28 @@ namespace SCP_575.Handlers
                         var p = Player.Get(userId);
                         if (p?.CurrentItem is not FirearmItem f || !HasFlashlight(f)) break;
                     }
-                    
-                    if (player != null) _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 0.165f, isTransient: true);
+
+                    if (player != null)
+                    {
+                        // ANTI-OVERLAP GUARD: If this is the final cycle and a forced blowout 
+                        // is imminent, we suppress the loop audio to prevent transient stacking.
+                        bool isLastIteration = (i == flickerCount - 1);
+                        if (!(isLastIteration && forceOff))
+                        {
+                            _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 0.145f, isTransient: true);
+                        }
+                    }
 
                     setState(!getState());
                     yield return Timing.WaitForSeconds(delayPerFlicker);
                 }
 
-                if (forceOff && _plugin.IsEventActive) setState(false);
+                if (forceOff && _plugin.IsEventActive)
+                {
+
+                    setState(false);
+                    _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 0.33f, isTransient: true);
+                }
             }
             finally
             {
