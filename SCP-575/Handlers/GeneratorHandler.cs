@@ -38,7 +38,8 @@
         /// <param name="ev">The event arguments containing generator telemetry and location.</param>
         public override void OnServerGeneratorActivated(GeneratorActivatedEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !_plugin.Npc.Methods.IsBlackoutActive)
+            // Prevent interaction overhead if the SCP-575 lifecycle is not initialized for this round.
+            if (!_plugin.IsEventActive)
                 return;
 
             if (ev?.Generator == null)
@@ -50,7 +51,11 @@
 
             LibraryLabAPI.LogInfo("GeneratorHandler", $"Generator activated in {room.Name}");
 
-            // 1. If it's the final generator, execute standard death sequence
+            // Establish the substation as a persistent grid safety point that resists future blackouts.
+            _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
+            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.GeneratorHumDefense, ev.Generator.Position);
+
+            // Evaluate final containment criteria before processing standard retaliation loops.
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
                 _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamDying, ev.Generator.Position, isTransient: true);
@@ -59,10 +64,17 @@
                 {
                     try
                     {
+                        // Handle permanent entity termination or suppress current wave while preserving random event loops.
                         if (_plugin.Config.NpcConfig.IsNpcKillable)
+                        {
                             _plugin.Npc.Methods.Kill575();
+                            LibraryLabAPI.LogInfo("GeneratorHandler", "SCP-575 permanently terminated via core power grid restoration.");
+                        }
                         else
+                        {
                             _plugin.Npc.Methods.Reset575();
+                            LibraryLabAPI.LogInfo("GeneratorHandler", "Facility grid operational. SCP-575 suppressed, background loops preserved.");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -74,37 +86,41 @@
                 return;
             }
 
-            // ===================================================================
-            // MONSTER RETALIATION / RAGE MECHANIC
-            // ===================================================================
+            // Process systemic entity aggression if configured for mechanical counter-play.
             if (_plugin.Config.BlackoutConfig.GeneratorActivationRetaliation)
             {
-                // The monster gets furious. It instantly snuffs out the lights in the sector,
-                // overrides the sync, and commands a localized blackout that adds a global stack.
-                _lib.DisableRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.DurationMin);
-
-                // DYNAMIC AUDIO LOGIC:
-                // Instead of a static sound, the furious scream encapsulates the entire room
-                // dynamically orbiting the generator to disorient players caught in the dark.
                 _plugin.AudioManager.PlayOrbitingAudio(
                     staticPosition: ev.Generator.Position,
                     audioKey: AudioKey.ScreamAngry,
-                    lifespan: null,          // Automatically synced with the wav length
-                    maxRadius: 6.5f,         // Broad orbit spanning the entire generator room
-                    minRadius: 1.5f,         // Swoops down dangerously close to the generator
-                    angularSpeed: 3.5f,      // Fast, frantic circulation in the pitch black
-                    approachSpeed: 2.8f      // Rhythmic diving attacks simulating a search
+                    lifespan: null,
+                    maxRadius: 6.5f,
+                    minRadius: 1.5f,
+                    angularSpeed: 3.5f,
+                    approachSpeed: 2.8f
                 );
 
-                LibraryLabAPI.LogInfo("GeneratorHandler", $"SCP-575 retaliated! Generator activation at {room.Name} triggered rage stack expansion.");
+                // Force a global state shift if the entity is currently dormant to penalize early activation.
+                if (!_plugin.Npc.Methods.IsBlackoutActive)
+                {
+                    _plugin.Npc.Methods.IncrementBlackoutStack();
+                    Map.TurnOffLights(_plugin.Config.BlackoutConfig.DurationMin);
+
+                    Timing.CallDelayed(_plugin.Config.BlackoutConfig.DurationMin, () =>
+                    {
+                        _plugin.Npc.Methods.DecrementBlackoutStack();
+                    });
+
+                    LibraryLabAPI.LogInfo("GeneratorHandler", "Dormant SCP-575 awakened. Triggering emergency facility-wide blackout.");
+                }
+                else
+                {
+                    // Escalate localized structural failure if an environmental blackout is already active.
+                    _lib.DisableRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.DurationMin);
+                    LibraryLabAPI.LogInfo("GeneratorHandler", "SCP-575 escalated localized darkness during active blackout.");
+                }
             }
             else
             {
-                // Standard behavior: lights flicker on, protecting the room temporarily
-                _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.GeneratorHumDefense, ev.Generator.Position);
-
-                // Normal warning scream
                 var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.ScreamHurt + 1);
                 _plugin.AudioManager.PlayAudioAtPosition(randomScream, ev.Generator.Position, isTransient: true);
             }
