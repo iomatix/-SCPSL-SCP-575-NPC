@@ -28,6 +28,7 @@
 
         private int _ambienceAudioSessionId;
         private readonly Dictionary<string, int> _activeDroneSessions = new();
+        private readonly Dictionary<string, double> _transientCooldowns = new Dictionary<string, double>();
         private readonly HashSet<int> _generatorSessionIds = new();
         private readonly HashSet<int> _pluginSessionIds = new();
 
@@ -55,7 +56,7 @@
             { AudioKey.ShadowConsumingBody, new("scp575.shadow_consuming_body", 0.95f, 7.5f, 45f, true, AudioPriority.High, 5f) },
             { AudioKey.AnomalousImpact, new("scp575.anomalous_impact", 0.95f, 3.5f, 25f, true, AudioPriority.High, 5f) },
             { AudioKey.GeneratorHumDefense, new("scp575.generator_hum_defense", 0.75f, 6.5f, 45f, true, AudioPriority.Medium, 0f) },
-            { AudioKey.LightShortCircuit, new("scp575.light_short_circuit", 0.9f, 2.5f, 18f, true, AudioPriority.High, 1.5f) },
+            { AudioKey.LightShortCircuit, new("scp575.light_short_circuit", 0.9f, 2.5f, 18f, true, AudioPriority.Max, 1.5f) },
             //{ AudioKey.StaticBuzz, new("scp575.static_buzz", 0.37f, 2.5f, 15f, true, AudioPriority.Medium, 0f) }, // TODO: Add static buzz
 
             { AudioKey.Ambience, new("scp575.ambience", 0.45f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
@@ -119,6 +120,21 @@
         {
             if (!_audioRegistry.TryGetValue(audioKey, out var config))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration.", nameof(audioKey));
+
+            // DEBOUNCE ENGINE: Protects the audio driver from channel starvation if network events are spammed via macros.
+            if (isTransient && player != null)
+            {
+                string debounceKey = player.UserId + "_" + (int)audioKey;
+                double currentTime = Timing.LocalTime; // High-performance cached frame time, avoiding DateTime syscall overhead.
+
+                if (_transientCooldowns.TryGetValue(debounceKey, out double nextAllowedTime) && currentTime < nextAllowedTime)
+                {
+                    return 0; // Soft drop: Silently drop the invocation to maintain virtual voice channel stability.
+                }
+
+                // 90ms window matches the standard mechanical physical switch cycle limit.
+                _transientCooldowns[debounceKey] = currentTime + 0.090;
+            }
 
             if (!hearableForAllPlayers && player == null && !isNonSpatial)
                 throw new ArgumentNullException(nameof(player), "Player cannot be null when hearableForAllPlayers is false and audio is spatial.");
@@ -369,11 +385,12 @@
         public void SkipAudio(int sessionId, int count) => _audioEngine.SkipAudio(sessionId, count);
 
         /// <summary>
-        /// Dispatches a spatialized audio cue fixed to a static coordinate vector in the 3D game world, audible by all surrounding network observers.
+        /// Dispatches a spatialized audio cue fixed to a static coordinate vector in the 3D game world, 
+        /// protected by a non-blocking debouncer gate tracking the source player.
         /// </summary>
-        public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null, bool isTransient = false)
+        public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null, bool isTransient = false, Player sourcePlayer = null)
         {
-            PlayAudioAutoManaged(null, key, position, lifespan: lifespan, hearableForAllPlayers: true, isNonSpatial: false, isTransient: isTransient);
+            PlayAudioAutoManaged(sourcePlayer, key, position, lifespan: lifespan, hearableForAllPlayers: true, isNonSpatial: false, isTransient: isTransient);
         }
 
         /// <summary>
