@@ -29,8 +29,6 @@
             if (_plugin.Config?.FlashlightSpawnConfig == null || !_plugin.Config.FlashlightSpawnConfig.IsEnabled)
                 return;
 
-            // We still force an asynchronous delay because physical map generation (Unity structures)
-            // occurs downstream from the framework logical initialization routines.
             Timing.RunCoroutine(SpawnFlashlightsPipeline(), CoroutineTags.MapCoroutines);
         }
 
@@ -63,12 +61,14 @@
                     if (roll > spawnChance)
                         continue;
 
-                    Vector3 spawnPosition = room.Position + new Vector3(0f, 0.5f, 0f);
+                    // Elevated center point prevents early collisions with floor primitives during spawn frames.
+                    Vector3 spawnPosition = room.Position + new Vector3(0f, 0.6f, 0f);
 
                     var flashlightPickup = Pickup.Create(ItemType.Flashlight, spawnPosition, Quaternion.identity);
                     if (flashlightPickup != null)
                     {
-                        ApplyRandomThrowForce(flashlightPickup);
+                        // Enqueuing the physics push to run asynchronously to ensure the engine registers the item's spawn lifecycle state.
+                        Timing.RunCoroutine(ApplyDelayedPhysicsPush(flashlightPickup), CoroutineTags.MapCoroutines);
                         totalSpawned++;
 
                         LibraryLabAPI.LogDebug("MapHandler", $"Injected flashlight into {room.Name} ({room.Zone}).");
@@ -96,18 +96,46 @@
             }
         }
 
-        private void ApplyRandomThrowForce(Pickup pickup)
+        /// <summary>
+        /// Asynchronously delays physics execution by exactly one frame to ensure 
+        /// that the native base-game spawning logic doesn't overwrite our custom velocities.
+        /// </summary>
+        private IEnumerator<float> ApplyDelayedPhysicsPush(Pickup pickup)
         {
-            if (pickup == null || pickup.GameObject == null) return;
+            yield return Timing.WaitForOneFrame;
 
-            Rigidbody rb = pickup.GameObject.GetComponent<Rigidbody>();
-            if (rb == null) return;
+            if (pickup == null || pickup.IsDestroyed || !pickup.IsSpawned)
+                yield break;
 
-            float randomAngle = (float)(_random.NextDouble() * Math.PI * 2.0);
-            Vector3 throwDirection = new Vector3((float)Math.Cos(randomAngle), 0.3f, (float)Math.Sin(randomAngle)).normalized;
+            Rigidbody rb = pickup.Rigidbody;
+            if (rb == null)
+                yield break;
 
-            rb.velocity = throwDirection * UnityEngine.Random.Range(1.5f, 3.5f);
-            rb.angularVelocity = new Vector3(UnityEngine.Random.Range(-5f, 5f), UnityEngine.Random.Range(-5f, 5f), UnityEngine.Random.Range(-5f, 5f));
+            try
+            {
+                // Force kinematic state to false to wake up the Unity physics processing pipeline on this network object.
+                rb.isKinematic = false;
+
+                // Generating a clean 3D force vector.
+                Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
+
+                // Reflection gate: prevents items from being driven straight down into floor mesh colliders.
+                if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f)
+                {
+                    randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
+                }
+
+                // Standard natural drop force magnitude for environment props layout.
+                float dynamicMagnitude = UnityEngine.Random.Range(2.0f, 4.2f);
+
+                // Utilizing the modern Unity linearVelocity property discovered in your functional runtime code.
+                rb.linearVelocity = randomDirection * dynamicMagnitude;
+                rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 3.5f;
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogError("MapHandler.Physics", $"Failed to apply synchronized physics to pickup {pickup.Serial}: {ex.Message}");
+            }
         }
     }
 }
