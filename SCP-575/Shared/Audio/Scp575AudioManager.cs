@@ -487,9 +487,23 @@
             {
                 try
                 {
-                    _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                    // Using the newly discovered native validation check to prevent API exceptions
+                    if (_audioEngine.IsValidSession(sessionId))
+                    {
+                        if (lifespan < 0.5f)
+                        {
+                            // HARD CUT: Instantly drops the network stream and releases memory.
+                            // This stops micro-transients (like the 0.15s/0.05s clicks) from bleeding through.
+                            _audioEngine.DestroySession(sessionId);
+                        }
+                        else
+                        {
+                            // Standard fade out for long environmental or narrative audio sequences
+                            _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                        }
+                    }
                 }
-                catch { }
+                catch { /* Final safety net to protect server frame stability */ }
             }
             _pluginSessionIds.Remove(sessionId);
         }
