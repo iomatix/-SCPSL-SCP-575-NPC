@@ -27,6 +27,7 @@ namespace SCP_575.Handlers
         private readonly PlayerLightsourceConfig _config;
 
         private readonly Dictionary<string, DateTime> _cooldownUntil = new();
+        private readonly Dictionary<string, DateTime> _lastCooldownAudioTime = new Dictionary<string, DateTime>();
         private readonly HashSet<string> _flickeringPlayers = new();
         private readonly HashSet<string> _pendingItemChanges = new();
         private readonly Random _random = new();
@@ -301,7 +302,20 @@ namespace SCP_575.Handlers
 
             if (_cooldownUntil.TryGetValue(player.UserId, out var until) && DateTime.UtcNow < until)
             {
-                if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint)  player.SendHint(message, 1.0f);
+                if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint)
+                    player.SendHint(message, 1.0f);
+
+                // ANTI-SPAM GUARD: Check if 1.5 seconds have passed since the last error audio execution
+                DateTime now = DateTime.UtcNow;
+                if (!_lastCooldownAudioTime.TryGetValue(player.UserId, out DateTime lastPlayTime) || (now - lastPlayTime).TotalSeconds >= 1.65f)
+                {
+                    _lastCooldownAudioTime[player.UserId] = now;
+
+                    // Executive shift: PlayLocalAudio injects the click directly
+                    // forcing a clean delivery that bypasses 3D room attenuation settings.
+                    _plugin.AudioManager.PlayLocalAudio(player, AudioKey.LightShortCircuit, lifespan: 1.5f, isTransient: true);
+                }
+
                 return (true, false);
             }
 
