@@ -249,7 +249,7 @@
                 position: positionProvider(), // Fetches the initial position
                 lifespan: effectiveLifespan,
                 hearableForAllPlayers: hearableForAll,
-                isTransient: false,
+                isTransient: false
             );
 
             if (sessionId == 0) return;
