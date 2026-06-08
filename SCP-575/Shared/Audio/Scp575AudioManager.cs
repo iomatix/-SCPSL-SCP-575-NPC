@@ -214,14 +214,13 @@
             // ===================================================================
             // If the audio track is marked as transient, we completely skip the manual LifespanCleanupCoroutine.
             // The engine's native 'autoCleanup: true' safely unloads the asset AFTER the track successfully ends.
-            if (!isTransient)
+
+            float effectiveLifespan = lifespan ?? config.DefaultLifespan;
+            if (effectiveLifespan > 0)
             {
-                float effectiveLifespan = lifespan ?? config.DefaultLifespan;
-                if (effectiveLifespan > 0)
-                {
-                    Timing.RunCoroutine(LifespanCleanupCoroutine(sessionId, effectiveLifespan, audioKey, isNonSpatial, hearableForAllPlayers), AudioCoroutineTag);
-                }
+                Timing.RunCoroutine(LifespanCleanupCoroutine(sessionId, effectiveLifespan, audioKey, isNonSpatial, hearableForAllPlayers), AudioCoroutineTag);
             }
+
 
             return sessionId;
         }
@@ -526,25 +525,45 @@
             {
                 try
                 {
-                    // Using the newly discovered native validation check to prevent API exceptions
                     if (_audioEngine.IsValidSession(sessionId))
                     {
                         if (lifespan < 0.5f)
                         {
-                            // HARD CUT: Instantly drops the network stream and releases memory.
-                            // This stops micro-transients (like the 0.15s/0.05s clicks) from bleeding through.
-                            _audioEngine.DestroySession(sessionId);
+                            // SOFT STOP: Command the engine to instantly stop feeding audio bytes to the stream.
+                            // This achieves the exact target duration (e.g. 0.115s) without dropping the network channel.
+                            _audioEngine.FadeOutAudio(sessionId, 0f);
+
+                            // DELAYED FLUSH: Defer physical session destruction to allow the UDP network queue to clear out.
+                            Timing.RunCoroutine(DelayedSessionDestroy(sessionId, 0.25f), AudioCoroutineTag);
                         }
                         else
                         {
-                            // Standard fade out for long environmental or narrative audio sequences
+                            // Standard fade-out lifecycle for longer atmospheric profiles
                             _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
                         }
                     }
                 }
-                catch { /* Final safety net to protect server frame stability */ }
+                catch { /* Protect server frame stability against race conditions */ }
             }
+
             _pluginSessionIds.Remove(sessionId);
+        }
+
+        /// <summary>
+        /// Asynchronously purges the network session ID after allowing the packet buffers to flush to remote clients.
+        /// </summary>
+        private IEnumerator<float> DelayedSessionDestroy(int sessionId, float delay)
+        {
+            yield return Timing.WaitForSeconds(delay);
+
+            try
+            {
+                if (_audioEngine.IsValidSession(sessionId))
+                {
+                    _audioEngine.DestroySession(sessionId);
+                }
+            }
+            catch { /* Prevent unexpected state exceptions if session was cleared externally */ }
         }
 
         private sealed class AudioTrackProfile
