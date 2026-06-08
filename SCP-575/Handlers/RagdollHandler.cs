@@ -45,8 +45,10 @@
                 {
                     LibraryLabAPI.LogDebug("RagdollHandler", $"Processing SCP-575 ragdoll for {ev.Player.Nickname}. Triggering post-mortem acoustic feedback.");
 
+                    var position = ev.Ragdoll.Position;
+
                     _plugin.AudioManager.PlayOrbitingAudio(
-                        staticPosition: ev.Ragdoll.Position,
+                        staticPosition: position,
                         audioKey: AudioKey.ShadowConsumingBody,
                         lifespan: null,
                         maxRadius: 2.5f,
@@ -57,7 +59,7 @@
                     );
 
                     _plugin.AudioManager.PlayOrbitingAudio(
-                        staticPosition: ev.Ragdoll.Position,
+                        staticPosition: position,
                         audioKey: AudioKey.ShadowClicking,
                         lifespan: null,
                         maxRadius: 2.2f,
