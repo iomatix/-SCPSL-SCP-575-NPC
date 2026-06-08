@@ -68,6 +68,7 @@ namespace SCP_575.Npc
                 StartBlackoutEventLoop();
                 StartKeterActionLoop();
                 StartSanityHandlerLoop();
+                _plugin.MapHandler?.ExecuteFlashlightDistribution();
 
                 foreach (var player in Player.ReadyList)
                 {

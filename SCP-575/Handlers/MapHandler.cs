@@ -1,6 +1,5 @@
 ﻿namespace SCP_575.Handlers
 {
-    using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
     using MapGeneration;
@@ -22,25 +21,30 @@
             _random = new System.Random();
         }
 
-        public override void OnServerRoundStarted()
+        /// <summary>
+        /// Public entrypoint invoked exclusively by the central NPC Lifecycle Orchestrator.
+        /// </summary>
+        public void ExecuteFlashlightDistribution()
         {
-            if (!_plugin.IsEventActive || _plugin.Config?.FlashlightSpawnConfig == null || !_plugin.Config.FlashlightSpawnConfig.IsEnabled)
+            if (_plugin.Config?.FlashlightSpawnConfig == null || !_plugin.Config.FlashlightSpawnConfig.IsEnabled)
                 return;
 
+            // We still force an asynchronous delay because physical map generation (Unity structures)
+            // occurs downstream from the framework logical initialization routines.
             Timing.RunCoroutine(SpawnFlashlightsPipeline(), CoroutineTags.MapCoroutines);
         }
 
         private IEnumerator<float> SpawnFlashlightsPipeline()
         {
-            // Deferring execution to ensure that Room positions and NavMesh generation are completely baked.
-            yield return Timing.WaitForSeconds(1.5f);
+            // Safeguard delay allowing Unity scene graph and network transforms to fully compile.
+            yield return Timing.WaitForSeconds(2.5f);
 
             try
             {
                 var allRooms = _plugin.LibraryLabAPI?.Rooms;
                 if (allRooms == null || !allRooms.Any())
                 {
-                    LibraryLabAPI.LogError("MapHandler", "Aborting distribution: Custom room registry is unavailable or uninitialized.");
+                    LibraryLabAPI.LogError("MapHandler", "Asynchronous abort: Room registry data is blank at T+2.5s.");
                     yield break;
                 }
 
@@ -48,11 +52,7 @@
 
                 foreach (Room room in allRooms)
                 {
-                    if (room == null)
-                        continue;
-
-                    // Absolute mechanical constraint: Pocket dimension must maintain strict item isolation.
-                    if (room.Name == RoomName.Pocket)
+                    if (room == null || room.Name == RoomName.Pocket)
                         continue;
 
                     float spawnChance = GetZoneSpawnChance(room.Zone);
@@ -63,7 +63,6 @@
                     if (roll > spawnChance)
                         continue;
 
-                    // Hovering the item exactly 0.5m above center prevents it from initializing embedded inside the floor collider.
                     Vector3 spawnPosition = room.Position + new Vector3(0f, 0.5f, 0f);
 
                     var flashlightPickup = Pickup.Create(ItemType.Flashlight, spawnPosition, Quaternion.identity);
@@ -72,67 +71,43 @@
                         ApplyRandomThrowForce(flashlightPickup);
                         totalSpawned++;
 
-                        LibraryLabAPI.LogDebug("MapHandler", $"Injected flashlight into {room.Name} ({room.Zone}). Roll: {roll:F1}/{spawnChance}%");
+                        LibraryLabAPI.LogDebug("MapHandler", $"Injected flashlight into {room.Name} ({room.Zone}).");
                     }
                 }
 
-                LibraryLabAPI.LogInfo("MapHandler", $"Dynamic flashlight injection sequence complete. Total items spawned: {totalSpawned}");
+                LibraryLabAPI.LogInfo("MapHandler", $"Orchestrated flashlight injection complete. Total spawned: {totalSpawned}");
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("MapHandler.Spawn", $"Pipeline collapsed due to an unhandled exception: {ex}");
+                LibraryLabAPI.LogError("MapHandler.Spawn", $"Pipeline collapsed: {ex}");
             }
         }
 
-        /// <summary>
-        /// Resolves the configured zone probability using classic C# 7.4 syntax for runtime compatibility.
-        /// </summary>
         private float GetZoneSpawnChance(FacilityZone zone)
         {
             var config = _plugin.Config.FlashlightSpawnConfig;
-
             switch (zone)
             {
-                case FacilityZone.LightContainment:
-                    return config.ChanceLight;
-                case FacilityZone.HeavyContainment:
-                    return config.ChanceHeavy;
-                case FacilityZone.Entrance:
-                    return config.ChanceEntrance;
-                case FacilityZone.Surface:
-                    return config.ChanceSurface;
-                default:
-                    return config.ChanceOther;
+                case FacilityZone.LightContainment: return config.ChanceLight;
+                case FacilityZone.HeavyContainment: return config.ChanceHeavy;
+                case FacilityZone.Entrance: return config.ChanceEntrance;
+                case FacilityZone.Surface: return config.ChanceSurface;
+                default: return config.ChanceOther;
             }
         }
 
         private void ApplyRandomThrowForce(Pickup pickup)
         {
-            if (pickup == null)
-                return;
+            if (pickup == null || pickup.GameObject == null) return;
 
-            GameObject visualObject = pickup.GameObject;
-            if (visualObject == null)
-                return;
+            Rigidbody rb = pickup.GameObject.GetComponent<Rigidbody>();
+            if (rb == null) return;
 
-            Rigidbody rb = visualObject.GetComponent<Rigidbody>();
-            if (rb == null)
-                return;
-
-            // Calculating flat horizontal circle vector to distribute items naturally without clipping into ceilings.
             float randomAngle = (float)(_random.NextDouble() * Math.PI * 2.0);
             Vector3 throwDirection = new Vector3((float)Math.Cos(randomAngle), 0.3f, (float)Math.Sin(randomAngle)).normalized;
 
-            // Randomized velocity scalar creates asymmetric drop patterns across multiple rooms.
-            float throwForce = UnityEngine.Random.Range(1.5f, 3.5f);
-            rb.velocity = throwDirection * throwForce;
-
-            // Injecting chaotic three-axis angular velocity to mimic realistic physics tumbling upon instantiation.
-            rb.angularVelocity = new Vector3(
-                UnityEngine.Random.Range(-5f, 5f),
-                UnityEngine.Random.Range(-5f, 5f),
-                UnityEngine.Random.Range(-5f, 5f)
-            );
+            rb.velocity = throwDirection * UnityEngine.Random.Range(1.5f, 3.5f);
+            rb.angularVelocity = new Vector3(UnityEngine.Random.Range(-5f, 5f), UnityEngine.Random.Range(-5f, 5f), UnityEngine.Random.Range(-5f, 5f));
         }
     }
 }

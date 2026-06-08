@@ -29,6 +29,8 @@ namespace SCP_575
         public static Plugin Singleton { get; private set; }
         public PlayerSanityHandler SanityEventHandler => _sanityHandler;
         public PlayerLightsourceHandler LightsourceHandler => _lightsourceHandler;
+        public MapHandler MapHandler => _mapHandler;
+
 
         public bool IsEventActive
         {
