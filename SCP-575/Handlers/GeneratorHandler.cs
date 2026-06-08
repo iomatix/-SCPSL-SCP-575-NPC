@@ -103,7 +103,8 @@
                 if (!_plugin.Npc.Methods.IsBlackoutActive)
                 {
                     _plugin.Npc.Methods.IncrementBlackoutStack();
-                    Map.TurnOffLights(_plugin.Config.BlackoutConfig.DurationMin);
+
+                    LabApi.Features.Wrappers.Map.TurnOffLights(_plugin.Config.BlackoutConfig.DurationMin);
 
                     Timing.CallDelayed(_plugin.Config.BlackoutConfig.DurationMin, () =>
                     {
