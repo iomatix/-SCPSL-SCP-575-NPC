@@ -26,6 +26,7 @@
         public const string ElevatorLocks = "SCP575-ElevatorLocks";
         public const string BlackoutStacks = "SCP575-BlackoutStacks";
         public const string LightCleanup = "SCP575-LightCleanup";
+        public const string MapCoroutines = "SCP575-MapCoroutines";
 
         // ===================================================================
         // AUDIO AND SOUNDSCAPES

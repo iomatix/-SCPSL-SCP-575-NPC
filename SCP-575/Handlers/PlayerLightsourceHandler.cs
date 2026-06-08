@@ -145,7 +145,6 @@ namespace SCP_575.Handlers
 
             if (!requiresIntervention || stateModificationActions == null) return;
 
-            string userId = ev.Player.UserId;
             string coroutineTag = $"{ItemChangePrefix}{userId}";
 
             Timing.KillCoroutines(coroutineTag);

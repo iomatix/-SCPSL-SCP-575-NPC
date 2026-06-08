@@ -26,6 +26,9 @@ namespace SCP_575
         [Description("Configuration settings for blackout mechanics.")]
         public BlackoutConfig BlackoutConfig { get; set; } = new BlackoutConfig();
 
+        [Description("Configuration settings for flashlight spawn mechanics.")]
+        public FlashlightSpawnConfig FlashlightSpawnConfig { get; set; } = new FlashlightSpawnConfig();
+
         #endregion
 
         #region NPC Settings

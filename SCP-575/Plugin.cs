@@ -18,6 +18,7 @@ namespace SCP_575
         private RagdollHandler _ragdollHandler;
         private PlayerSanityHandler _sanityHandler;
         private PlayerLightsourceHandler _lightsourceHandler;
+        private MapHandler _mapHandler;
 
         private NestingObjects.Npc _npc;
         private Scp575AudioManager _audioManager;
@@ -74,6 +75,7 @@ namespace SCP_575
                 _ragdollHandler = new RagdollHandler(this);
                 _sanityHandler = new PlayerSanityHandler(this);
                 _lightsourceHandler = new PlayerLightsourceHandler(this);
+                _mapHandler = new MapHandler(this);
 
                 _npc = new NestingObjects.Npc(this);
 
@@ -141,6 +143,7 @@ namespace SCP_575
             _explosionHandler = null;
             _generatorHandler = null;
             _lifecycleHandler = null;
+            _mapHandler = null;
 
             _audioManager = null;
             _libraryLabAPI = null;
@@ -158,6 +161,7 @@ namespace SCP_575
             CustomHandlersManager.RegisterEventsHandler(_ragdollHandler);
             CustomHandlersManager.RegisterEventsHandler(_lightsourceHandler);
             CustomHandlersManager.RegisterEventsHandler(_sanityHandler);
+            CustomHandlersManager.RegisterEventsHandler(_mapHandler);
             LibraryLabAPI.LogDebug("Plugin.RegisterEvents", "Registered server and player event handlers.");
         }
 
@@ -170,6 +174,7 @@ namespace SCP_575
             CustomHandlersManager.UnregisterEventsHandler(_ragdollHandler);
             CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
             CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
+            CustomHandlersManager.UnregisterEventsHandler(_mapHandler);
             LibraryLabAPI.LogDebug("Plugin.UnregisterEvents", "Unregistered server and player event handlers.");
         }
     }
