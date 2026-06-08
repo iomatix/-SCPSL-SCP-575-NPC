@@ -83,8 +83,18 @@
                 // overrides the sync, and commands a localized blackout that adds a global stack.
                 _lib.DisableRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.DurationMin);
 
-                // Play a high-priority angry scream directly at the source of the provocation
-                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamAngry, ev.Generator.Position, isTransient: true);
+                // DYNAMIC AUDIO LOGIC:
+                // Instead of a static sound, the furious scream encapsulates the entire room
+                // dynamically orbiting the generator to disorient players caught in the dark.
+                _plugin.AudioManager.PlayOrbitingAudio(
+                    staticPosition: ev.Generator.Position,
+                    audioKey: AudioKey.ScreamAngry,
+                    lifespan: null,          // Automatically synced with the wav length
+                    maxRadius: 6.5f,         // Broad orbit spanning the entire generator room
+                    minRadius: 1.5f,         // Swoops down dangerously close to the generator
+                    angularSpeed: 3.5f,      // Fast, frantic circulation in the pitch black
+                    approachSpeed: 2.8f      // Rhythmic diving attacks simulating a search
+                );
 
                 LibraryLabAPI.LogInfo("GeneratorHandler", $"SCP-575 retaliated! Generator activation at {room.Name} triggered rage stack expansion.");
             }

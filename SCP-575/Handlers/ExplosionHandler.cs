@@ -4,6 +4,7 @@
     using LabApi.Events.CustomHandlers;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
+    using System;
     using System.Collections.Generic;
     using Types;
     using UnityEngine;
@@ -66,7 +67,17 @@
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
                     AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
-                    _plugin.AudioManager.PlayAudioAtPosition(selectedScream, position, isTransient: true);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, position, isTransient: true);
+
+                    _plugin.AudioManager.PlayOrbitingAudio(
+                        staticPosition: position,
+                        audioKey: selectedScream,
+                        lifespan: null,
+                        maxRadius: 5.5f,
+                        minRadius: 0.8f,
+                        angularSpeed: 4.5f,
+                        approachSpeed: 5.2f
+                    );
 
                     _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
                     break;

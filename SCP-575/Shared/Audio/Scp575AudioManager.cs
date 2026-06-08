@@ -55,8 +55,8 @@
             { AudioKey.ShadowConsumingBody, new("scp575.shadow_consuming_body", 0.91f, 7.5f, 45f, true, AudioPriority.High, 5f) },
             { AudioKey.AnomalousImpact, new("scp575.anomalous_impact", 0.88f, 3.5f, 25f, true, AudioPriority.High, 5f) },
             { AudioKey.GeneratorHumDefense, new("scp575.generator_hum_defense", 0.67f, 6.5f, 45f, true, AudioPriority.Medium, 0f) },
-            { AudioKey.LightShortCircuit, new("scp575.light_short_circuit", 0.55f, 2.5f, 18f, true, AudioPriority.High, 4f) },
-            { AudioKey.StaticBuzz, new("scp575.static_buzz", 0.37f, 2.5f, 15f, true, AudioPriority.Medium, 0f) },
+            { AudioKey.LightShortCircuit, new("scp575.light_short_circuit", 0.95f, 2.5f, 18f, true, AudioPriority.High, 4f) },
+            //{ AudioKey.StaticBuzz, new("scp575.static_buzz", 0.37f, 2.5f, 15f, true, AudioPriority.Medium, 0f) }, // TODO: Add static buzz
 
             { AudioKey.Ambience, new("scp575.ambience", 0.45f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
             { AudioKey.SanityLowDrone, new("scp575.sanity_low_drone", 0.55f, 200.0f, 999.99f, false, AudioPriority.Medium, 0f) },
@@ -189,19 +189,51 @@
         }
 
         /// <summary>
-        /// Deploys a dynamically tracking, spatialized auditory entity that continuously circles and periodically swoops in toward the target player.
-        /// Designed to induce sensory panic and prevent spatial tracking exploitation by the client.
+        /// Localized hallucination target tracking. Orbits exclusively around a specific player's perception.
         /// </summary>
-        /// <param name="player">The focal point player target to encapsulate within the acoustic orbit.</param>
-        /// <param name="audioKey">The unique system registration key mapped to the target audio clip resource.</param>
-        /// <param name="lifespan">The absolute execution boundaries of the track. Defaults to registered metadata profile values.</param>
-        /// <param name="maxRadius">The maximum outer boundary of the orbital path.</param>
-        /// <param name="minRadius">The inner boundary (closest approach) to the target's core matrix.</param>
-        /// <param name="angularSpeed">The velocity multiplier of the spatial rotation matrix loop (orbit speed).</param>
-        /// <param name="approachSpeed">The velocity multiplier for the inward/outward radius oscillation.</param>
         public void PlayOrbitingAudio(Player player, AudioKey audioKey, float? lifespan = null, float maxRadius = 3.2f, float minRadius = 0.6f, float angularSpeed = 1.1f, float approachSpeed = 1.5f)
         {
-            if (player == null || !player.IsAlive) return;
+            PlayOrbitingAudioCore(
+                positionProvider: () => player.Position,
+                validationCheck: () => player != null && player.IsAlive,
+                listener: player, // Only the target player hears it
+                audioKey: audioKey,
+                lifespan: lifespan,
+                maxRadius: maxRadius,
+                minRadius: minRadius,
+                angularSpeed: angularSpeed,
+                approachSpeed: approachSpeed
+            );
+        }
+
+        /// <summary>
+        /// Static environmental manifestation. Orbits around a fixed geographical coordinate, audible to all nearby entities.
+        /// </summary>
+        public void PlayOrbitingAudio(Vector3 staticPosition, AudioKey audioKey, float? lifespan = null, float maxRadius = 3.2f, float minRadius = 0.6f, float angularSpeed = 1.1f, float approachSpeed = 1.5f, float heightOffset = 0.85f)
+        {
+            PlayOrbitingAudioCore(
+                positionProvider: () => staticPosition,
+                validationCheck: () => true, // A static coordinate in space is always valid
+                listener: null, // Null means it's a global spatial sound hearable by anyone nearby
+                audioKey: audioKey,
+                lifespan: lifespan,
+                maxRadius: maxRadius,
+                minRadius: minRadius,
+                angularSpeed: angularSpeed,
+                approachSpeed: approachSpeed,
+                heightOffset: heightOffset
+            );
+        }
+
+        /// <summary>
+        /// Universal acoustic orbit engine. Tracks any arbitrary spatial coordinate provider in real-time.
+        /// </summary>
+        /// <param name="positionProvider">Delegate returning the current 3D vector of the target to orbit.</param>
+        /// <param name="validationCheck">Delegate evaluating if the target is still valid (stops coroutine if false).</param>
+        /// <param name="listener">The specific player who hears the audio, or null for a global broadcast.</param>
+        public void PlayOrbitingAudioCore(Func<Vector3> positionProvider, Func<bool> validationCheck, Player listener, AudioKey audioKey, float? lifespan = null, float maxRadius = 3.2f, float minRadius = 0.6f, float angularSpeed = 1.1f, float approachSpeed = 1.5f, float heightOffset = 0.85f)
+        {
+            if (positionProvider == null || validationCheck == null || !validationCheck()) return;
 
             if (!_audioRegistry.TryGetValue(audioKey, out var config))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration system registries.", nameof(audioKey));
@@ -209,39 +241,37 @@
             float effectiveLifespan = lifespan ?? config.DefaultLifespan;
             if (effectiveLifespan <= 0f) return;
 
+            bool hearableForAll = listener == null;
+
             int sessionId = PlayAudioAutoManaged(
-                player: player,
+                player: listener,
                 audioKey: audioKey,
-                position: player.Position,
+                position: positionProvider(), // Fetches the initial position
                 lifespan: effectiveLifespan,
-                hearableForAllPlayers: false,
-                isTransient: false
+                hearableForAllPlayers: hearableForAll,
+                isTransient: false,
             );
 
             if (sessionId == 0) return;
 
-            var trackingHandle = Timing.RunCoroutine(
-                TrackAndOrbitPlayerCoroutine(player, sessionId, effectiveLifespan, maxRadius, minRadius, angularSpeed, approachSpeed),
+            Timing.RunCoroutine(
+                TrackAndOrbitPositionCoroutine(positionProvider, validationCheck, sessionId, effectiveLifespan, maxRadius, minRadius, angularSpeed, approachSpeed, heightOffset),
                 AudioCoroutineTag
             );
         }
 
         /// <summary>
-        /// Asynchronously recalculates and updates 3D trigonometric vectors around a moving target on safe framerate intervals, utilizing sine-wave normalized radius oscillation.
+        /// Generalized trigonometric vector update loop utilizing dynamic position providers.
         /// </summary>
-        private IEnumerator<float> TrackAndOrbitPlayerCoroutine(Player player, int sessionId, float duration, float maxRadius, float minRadius, float angularSpeed, float approachSpeed)
+        private IEnumerator<float> TrackAndOrbitPositionCoroutine(Func<Vector3> positionProvider, Func<bool> validationCheck, int sessionId, float duration, float maxRadius, float minRadius, float angularSpeed, float approachSpeed, float heightOffset = 0.85f)
         {
             float elapsed = 0f;
-
-            // Randomize starting orbital position
             float currentAngle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
-
-            // Randomize starting approach phase (prevents the audio from always starting far away or always starting close)
             float approachPhaseOffset = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
 
             while (elapsed < duration)
             {
-                if (player == null || !player.IsAlive)
+                if (!validationCheck())
                 {
                     try
                     {
@@ -252,19 +282,18 @@
                     yield break;
                 }
 
-                // 1. Compute dynamic radius
-                // Mathf.Sin returns [-1, 1]. Adding 1 and dividing by 2 normalizes it to [0, 1].
+                Vector3 corePosition = positionProvider();
+
                 float normalizedSine = (Mathf.Sin((elapsed * approachSpeed) + approachPhaseOffset) + 1f) / 2f;
                 float currentRadius = Mathf.Lerp(minRadius, maxRadius, normalizedSine);
 
-                // 2. Compute spatial coordinates using the dynamic radius
                 float xOffset = Mathf.Cos(currentAngle) * currentRadius;
                 float zOffset = Mathf.Sin(currentAngle) * currentRadius;
 
                 Vector3 projectedVector = new Vector3(
-                    player.Position.x + xOffset,
-                    player.Position.y + 0.85f,
-                    player.Position.z + zOffset
+                    corePosition.x + xOffset,
+                    corePosition.y + heightOffset, // Maintains ear-level projection
+                    corePosition.z + zOffset
                 );
 
                 try
@@ -276,7 +305,6 @@
                     yield break;
                 }
 
-                // 3. Advance state iterators
                 currentAngle += angularSpeed * Timing.DeltaTime;
                 elapsed += Timing.DeltaTime;
 
