@@ -199,7 +199,7 @@
         /// <param name="angularSpeed">The velocity multiplier of the spatial rotation matrix loop.</param>
         public void PlayOrbitingAudio(Player player, AudioKey audioKey, float? lifespan = null, float radius = 3.2f, float angularSpeed = 1.1f)
         {
-            if (player == null || !player.IsAlive)  return;
+            if (player == null || !player.IsAlive) return;
 
 
             if (!_audioRegistry.TryGetValue(audioKey, out var config))
@@ -445,7 +445,11 @@
             }
             else
             {
-                _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                try
+                {
+                    _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                }
+                catch { }
             }
             _pluginSessionIds.Remove(sessionId);
         }
