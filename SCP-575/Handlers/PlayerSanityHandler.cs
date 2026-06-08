@@ -290,7 +290,15 @@
                 float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
+
+                    if (UnityEngine.Random.value <= 0.25f)
+                    {
+                        AudioKey[] aggressivePool = { AudioKey.Scream_1, AudioKey.Scream_2, AudioKey.Scream_3, AudioKey.ScreamAngry };
+                        AudioKey randomVocalization = aggressivePool[UnityEngine.Random.Range(0, aggressivePool.Length)];
+                        _plugin.AudioManager.PlayOrbitingAudio(player, randomVocalization);
+                    }
+
                     Scp575DamageSystem.DamagePlayer(player, culmDamage);
                 }
             }
@@ -300,6 +308,14 @@
                 if (culmDamage > 0)
                 {
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
+
+                    if (UnityEngine.Random.value <= 0.15f)
+                    {
+                        AudioKey[] defensivePool = { AudioKey.Whispers_1, AudioKey.Whispers_2, AudioKey.WhispersBang };
+                        AudioKey randomWhisper = defensivePool[UnityEngine.Random.Range(0, defensivePool.Length)];
+                        _plugin.AudioManager.PlayAudioAtPosition(randomWhisper, player.Position, isTransient: true);
+                    }
+
                     Scp575DamageSystem.DamagePlayer(player, culmDamage);
                 }
             }
