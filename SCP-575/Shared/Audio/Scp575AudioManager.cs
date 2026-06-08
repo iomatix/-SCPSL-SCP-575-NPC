@@ -188,6 +188,7 @@
             }
             else
             {
+
                 sessionId = _audioEngine.PlayAudio(
                     config.Key, playPosition, loop: isGeneratorHum, volume: config.Volume,
                     minDistance: config.MinDistance, maxDistance: config.MaxDistance,
@@ -210,11 +211,8 @@
             }
 
             // ===================================================================
-            // FIX: RACE CONDITION SUPPRESSION FOR MICRO-TRANSIENTS
+            // FIX: RACE CONDITION SUPPRESSION FOR MICRO-AUDIO
             // ===================================================================
-            // If the audio track is marked as transient, we completely skip the manual LifespanCleanupCoroutine.
-            // The engine's native 'autoCleanup: true' safely unloads the asset AFTER the track successfully ends.
-
             float effectiveLifespan = lifespan ?? config.DefaultLifespan;
             if (effectiveLifespan > 0)
             {
