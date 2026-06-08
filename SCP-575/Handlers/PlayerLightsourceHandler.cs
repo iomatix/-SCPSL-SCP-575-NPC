@@ -195,8 +195,8 @@ namespace SCP_575.Handlers
                 return;
 
             // BASE GAME BUGFIX: Weapon flashlights are natively silent in SCP:SL. 
-            // We inject a micro-click (0.05s) on EVERY toggle to compensate for the base game flaw.
-            _plugin.AudioManager.PlayLocalAudio(ev.Player, AudioKey.LightShortCircuit, lifespan: 0.05f, isTransient: true);
+            // We inject a micro-click on EVERY toggle to compensate for the base game flaw.
+            _plugin.AudioManager.PlayLocalAudio(ev.Player, AudioKey.LightShortCircuit, lifespan: 0.115f, isTransient: true);
 
             // Existing plugin behavior rules for darkness and event statuses
             if (!_plugin.IsEventActive || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout())
