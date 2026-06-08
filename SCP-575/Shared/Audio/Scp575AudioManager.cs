@@ -515,6 +515,17 @@
 
         private IEnumerator<float> LifespanCleanupCoroutine(int sessionId, float lifespan, AudioKey audioKey, bool isNonSpatial, bool hearableForAllPlayers)
         {
+            // ===================================================================
+            // AAA COMPENSATOR: 3D PHYSICAL SPEAKER WARM-UP BUFFER
+            // ===================================================================
+            if (!isNonSpatial)
+            {
+                // Yielding frames allows Unity to execute Awake/Start on the Speaker GameObject 
+                // and ensures 'InitializePhysicalSpeaker' bonds before we start the truncation countdown.
+                yield return Timing.WaitForSeconds(0.06f);
+            }
+
+            // Now the server clock is perfectly synchronized with the actual audible start on the client
             yield return Timing.WaitForSeconds(lifespan);
 
             if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
@@ -529,16 +540,14 @@
                     {
                         if (lifespan < 0.5f)
                         {
-                            // SOFT STOP: Command the engine to instantly stop feeding audio bytes to the stream.
-                            // This achieves the exact target duration (e.g. 0.115s) without dropping the network channel.
+                            // SOFT STOP: Instantly mute the playback data layer.
                             _audioEngine.FadeOutAudio(sessionId, 0f);
 
-                            // DELAYED FLUSH: Defer physical session destruction to allow the UDP network queue to clear out.
+                            // DELAYED FLUSH: Give the UDP network buffer 250ms to flush the 0.115s audio tail.
                             Timing.RunCoroutine(DelayedSessionDestroy(sessionId, 0.25f), AudioCoroutineTag);
                         }
                         else
                         {
-                            // Standard fade-out lifecycle for longer atmospheric profiles
                             _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
                         }
                     }
