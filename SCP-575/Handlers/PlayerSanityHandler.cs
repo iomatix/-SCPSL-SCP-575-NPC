@@ -290,7 +290,12 @@
                 float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
+
+                    if (UnityEngine.Random.value <= 0.25f)
+                    {
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
+                    }
+
                     if (UnityEngine.Random.value <= 0.2f)
                     {
                         _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
