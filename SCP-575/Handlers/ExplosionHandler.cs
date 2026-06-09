@@ -59,7 +59,7 @@
                     // Enhanced spatialized vortex layered smoothly over your baseline logic
                     _plugin.AudioManager.PlayOrbitingAudio(
                         staticPosition: position,
-                        audioKey: AudioKey.WhispersMixed,
+                        audioKey: AudioKey.ScreamAngry,
                         lifespan: 4.0f,
                         maxRadius: 7.0f,
                         minRadius: 0.5f,
@@ -67,7 +67,7 @@
                         approachSpeed: 2.2f
                     );
 
-                    _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Scream_1);
+                    _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Whispers_2);
                     _lib.DisableRoomAndNeighborLights(room);
 
                     if (isBlackoutActive)
@@ -80,17 +80,16 @@
                             "ProjectileImpact",
                             $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks + 1}",
                             $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}",
-                            () => _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterRoarGlobal)
+                            () => _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterBreathLocal)
                         );
                     }
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-                    // RESTORED: Your exact, highly dynamic RNG check
+
                     AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, position, isTransient: true);
 
-                    // RESTORED: Your exact custom speed parameters that made the audio trajectory feel punchy
                     _plugin.AudioManager.PlayOrbitingAudio(
                         staticPosition: position,
                         audioKey: selectedScream,
@@ -101,12 +100,10 @@
                         approachSpeed: 5.2f
                     );
 
-                    // RESTORED: Your operational facility grid manipulation method
                     _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
                     break;
 
                 default:
-                    // RESTORED: Fallback evaluation logic for non-standard impacts inside unlit zones
                     if (room.LightController.LightsEnabled) return;
 
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_1, position);
