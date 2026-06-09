@@ -116,7 +116,7 @@
         /// Serves as the central backend pipeline for processing, validating, sanitizing vectors, and executing all spatialized and non-spatialized raw audio tracks.
         /// </summary>
         /// <returns>A unique network audio session handle identifier used for runtime modification, tracking, or early eviction.</returns>
-        public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false, bool isTransient = false)
+        public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false, bool isTransient = false, Player sourcePlayer = null)
         {
             if (!_audioRegistry.TryGetValue(audioKey, out var config))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration.", nameof(audioKey));
@@ -166,10 +166,12 @@
             }
             else if (hearableForAllPlayers && !isNonSpatial)
             {
-                // Explicitly target only remote clients within the physical audio bubble sphere.
-                // This drops network packet generation payload up to 90% in populated servers.
                 float maxAudibleDistance = config.MaxDistance;
-                targetPlayerFilter = p => p != null && p.IsReady && !p.IsHost && Vector3.Distance(p.Position, playPosition) <= maxAudibleDistance;
+                string sourceUserId = sourcePlayer?.UserId;
+
+                targetPlayerFilter = p => p != null && p.IsReady && !p.IsHost
+                    && (sourceUserId == null || p.UserId != sourceUserId)
+                    && Vector3.Distance(p.Position, playPosition) <= maxAudibleDistance;
             }
             else
             {
@@ -514,7 +516,13 @@
         /// </summary>
         public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null, bool isTransient = false, Player sourcePlayer = null)
         {
-            PlayAudioAutoManaged(sourcePlayer, key, position, lifespan: lifespan, hearableForAllPlayers: true, isNonSpatial: false, isTransient: isTransient);
+
+            PlayAudioAutoManaged(sourcePlayer, key, position, lifespan: lifespan, hearableForAllPlayers: true, isNonSpatial: false, isTransient: isTransient, sourcePlayer: sourcePlayer);
+
+            if (sourcePlayer != null)
+            {
+                PlayLocalAudio(sourcePlayer, key, lifespan: lifespan, isTransient: isTransient);
+            }
         }
 
         /// <summary>
