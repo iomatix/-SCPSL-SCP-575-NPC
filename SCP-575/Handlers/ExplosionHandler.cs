@@ -113,21 +113,5 @@
                     break;
             }
         }
-
-        /// <summary>
-        /// Coroutine temporary boosts the intensity of the tactical blackout.
-        /// </summary>
-        private IEnumerator<float> TriggerTacticalBlackoutBoost(float duration)
-        {
-            _plugin.Npc.Methods.IncrementBlackoutStack();
-            LibraryLabAPI.LogInfo("ProjectileImpact", $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}");
-
-            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterRoarGlobal);
-
-            yield return MEC.Timing.WaitForSeconds(duration);
-
-            _plugin.Npc.Methods.DecrementBlackoutStack();
-            LibraryLabAPI.LogInfo("ProjectileImpact", $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}");
-        }
     }
 }
