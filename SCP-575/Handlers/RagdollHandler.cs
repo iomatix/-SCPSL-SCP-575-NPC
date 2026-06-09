@@ -47,22 +47,12 @@
 
                     var position = ev.Ragdoll.Position;
 
-                    _plugin.AudioManager.PlayOrbitingAudio(
-                        staticPosition: position,
-                        audioKey: AudioKey.ShadowConsumingBody,
-                        lifespan: null,
-                        maxRadius: 2.5f,
-                        minRadius: 0.1f,
-                        angularSpeed: 8.5f,
-                        approachSpeed: 7.0f,
-                        heightOffset: 0.1f
-                    );
+                    _plugin.AudioManager.PlayAtPosition(AudioKey.ShadowConsumingBody, position: position);
 
                     _plugin.AudioManager.PlayOrbitingAudio(
                         staticPosition: position,
                         audioKey: AudioKey.ShadowClicking,
-                        lifespan: null,
-                        maxRadius: 2.2f,
+                        maxRadius: 2.5f,
                         minRadius: 0.1f,
                         angularSpeed: 8.65f,
                         approachSpeed: 7.15f,

@@ -54,20 +54,19 @@
             switch (impactType)
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, position, isTransient: true);
+                    _plugin.AudioManager.PlayAtPosition(AudioKey.AnomalousImpact, position);
 
                     // Enhanced spatialized vortex layered smoothly over your baseline logic
                     _plugin.AudioManager.PlayOrbitingAudio(
                         staticPosition: position,
                         audioKey: AudioKey.ScreamAngry,
-                        lifespan: 4.0f,
-                        maxRadius: 7.0f,
+                        maxRadius: 8.5f,
                         minRadius: 0.5f,
                         angularSpeed: 6.0f,
                         approachSpeed: 2.2f
                     );
 
-                    _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Whispers_2);
+                    _plugin.AudioManager.PlayGlobal(AudioKey.Whispers_2);
                     _lib.DisableRoomAndNeighborLights(room);
 
                     if (isBlackoutActive)
@@ -80,7 +79,7 @@
                             "ProjectileImpact",
                             $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks + 1}",
                             $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}",
-                            () => _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterBreathLocal)
+                            () => _plugin.AudioManager.PlayGlobal(AudioKey.MonsterBreathLocal)
                         );
                     }
                     break;
@@ -88,13 +87,12 @@
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
 
                     AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, position, isTransient: true);
+                    _plugin.AudioManager.PlayAtPosition(AudioKey.AnomalousImpact, position);
 
                     _plugin.AudioManager.PlayOrbitingAudio(
                         staticPosition: position,
                         audioKey: selectedScream,
-                        lifespan: null,
-                        maxRadius: 5.5f,
+                        maxRadius: 9.5f,
                         minRadius: 0.8f,
                         angularSpeed: 4.5f,
                         approachSpeed: 5.2f
@@ -106,7 +104,7 @@
                 default:
                     if (room.LightController.LightsEnabled) return;
 
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_1, position);
+                    _plugin.AudioManager.PlayAtPosition(AudioKey.Whispers_1, position);
                     break;
             }
         }

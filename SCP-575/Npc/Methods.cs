@@ -154,8 +154,8 @@ namespace SCP_575.Npc
             // CORRECTED GLOBAL AUDIO ROUTING
             // ===================================================================
             // Using dedicated global methods for non-spatial environmental tracks instead of dummy vectors.
-            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.BlackoutImpactGlobal);
-            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterRoarGlobal);
+            _plugin.AudioManager.PlayGlobal(AudioKey.BlackoutImpactGlobal);
+            _plugin.AudioManager.PlayGlobal(AudioKey.MonsterRoarGlobal);
 
             // Spatialized cue for a specific vulnerable target to anchor localized direction.
             if (UnityEngine.Random.Range(0f, 100f) < 70f)
@@ -166,7 +166,7 @@ namespace SCP_575.Npc
                 {
                     var randomPlayer = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
                     var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.Scream_3 + 1);
-                    _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, randomScream);
+                    _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, randomScream, isolated: true);
                 }
             }
 
@@ -457,7 +457,7 @@ namespace SCP_575.Npc
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
 
-                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal);
+                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true);
 
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }

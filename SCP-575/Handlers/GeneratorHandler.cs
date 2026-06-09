@@ -53,18 +53,12 @@
 
             // Establish the substation as a persistent grid safety point that resists future blackouts.
             _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-            _plugin.AudioManager.PlayAudioAutoManaged(
-                            player: null,
-                            audioKey: AudioKey.GeneratorHumDefense,
-                            position: ev.Generator.Position,
-                            lifespan: null,
-                            hearableForAllPlayers: true
-                        );
+            _plugin.AudioManager.PlayAtPosition(AudioKey.GeneratorHumDefense, ev.Generator.Position, loop: true);
 
             // Evaluate final containment criteria before processing standard retaliation loops.
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
             {
-                _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ScreamDying, ev.Generator.Position, isTransient: true);
+                _plugin.AudioManager.PlayAtPosition(AudioKey.ScreamDying, ev.Generator.Position);
 
                 var coroutine = Timing.CallDelayed(3.75f, () =>
                 {
@@ -98,7 +92,6 @@
                 _plugin.AudioManager.PlayOrbitingAudio(
                     staticPosition: ev.Generator.Position,
                     audioKey: AudioKey.ScreamAngry,
-                    lifespan: null,
                     maxRadius: 6.5f,
                     minRadius: 1.5f,
                     angularSpeed: 3.5f,
@@ -127,7 +120,7 @@
             else
             {
                 var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.ScreamHurt + 1);
-                _plugin.AudioManager.PlayAudioAtPosition(randomScream, ev.Generator.Position, isTransient: true);
+                _plugin.AudioManager.PlayAtPosition(randomScream, ev.Generator.Position);
             }
         }
     }

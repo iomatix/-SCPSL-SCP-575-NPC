@@ -378,7 +378,7 @@
 
                     if (whisperToPlay.HasValue)
                     {
-                        _plugin.AudioManager.PlayIsolatedSpatialAudio(player, whisperToPlay.Value, player.Position);
+                        _plugin.AudioManager.PlayAttached(player, whisperToPlay.Value, hearableForAll: false, isTransient: true);
                     }
                 }
             }

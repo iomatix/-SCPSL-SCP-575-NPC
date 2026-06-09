@@ -201,7 +201,7 @@ namespace SCP_575.Handlers
 
             // BASE GAME BUGFIX: Weapon flashlights are natively silent in SCP:SL. 
             // We inject a micro-click on EVERY toggle to compensate for the base game flaw.
-            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, ev.Player.Position, lifespan: 0.115f, isTransient: true, sourcePlayer: ev.Player);
+            _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, ev.Player.Position, lifespan: 0.115f, isTransient: true, sourcePlayer: ev.Player);
 
             // Existing plugin behavior rules for darkness and event statuses
             if (!_plugin.IsEventActive || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout())
@@ -339,11 +339,11 @@ namespace SCP_575.Handlers
                 {
                     if (UnityEngine.Random.value <= 0.25f)
                     {
-                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal);
+                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true);
                     }
                     if (UnityEngine.Random.value <= 0.15f)
                     {
-                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking);
+                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, isolated: true);
                     }
 
                     if (forceOff)
@@ -380,7 +380,7 @@ namespace SCP_575.Handlers
                         if (!(isLastIteration && forceOff))
                         {
                             // FIX: Forward the active loop player reference to secure structural anti-spam protection inside MEC frame routines.
-                            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.145f, isTransient: true, sourcePlayer: player);
+                            _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.145f, isTransient: true, sourcePlayer: player);
                         }
                     }
 
@@ -392,7 +392,7 @@ namespace SCP_575.Handlers
                 {
 
                     setState(false);
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.33f, isTransient: true);
+                    _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.33f, isTransient: true, sourcePlayer: player);
                 }
             }
             finally
@@ -422,7 +422,6 @@ namespace SCP_575.Handlers
                 _plugin.AudioManager.PlayTrackingAudio(
                     player: player,
                     audioKey: AudioKey.LightShortCircuit,
-                    lifespan: 1.5f,
                     hearableForAllPlayers: true
                 );
             }

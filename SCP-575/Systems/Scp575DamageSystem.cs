@@ -107,7 +107,7 @@ namespace SCP_575.Shared
             if (DateTime.UtcNow - lastAttackAudioTime >= cooldown)
             {
                 lastAttackAudioTime = DateTime.UtcNow;
-                plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
+                plugin.AudioManager.PlayAtPosition(AudioKey.AnomalousImpact, player.Position);
             }
         }
 
@@ -121,7 +121,7 @@ namespace SCP_575.Shared
             LibraryLabAPI.LogDebug(IdentifierName, $"Death confirmed from {IdentifierName} for {player.Nickname}. Triggering item physics and lethal soundscape.");
 
             // ShadowStrike is strictly reserved for lethal impact synchronization
-            plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
+            plugin.AudioManager.PlayAtPosition(AudioKey.ShadowStrike, player.Position);
 
             // Offload item kinetic scatter calculations to an isolated coroutine to prevent main-thread choking
             Timing.RunCoroutine(DropAndPushItems(player), CoroutineTags.ItemPhysics);
