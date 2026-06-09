@@ -524,14 +524,6 @@ namespace SCP_575.Npc
             };
         }
 
-        /// <summary>
-        /// Starts the continuous environment ambience tracking loop.
-        /// </summary>
-        public void StartAmbienceTrackingLoop()
-        {
-            Timing.KillCoroutines(CoroutineTags.AmbienceTracking);
-        }
-
         public void ForceGlobalBlackoutEvent()
         {
             if (!_isInitialized || !_plugin.IsEventActive) return;

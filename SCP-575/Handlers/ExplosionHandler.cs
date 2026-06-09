@@ -47,16 +47,16 @@
 
             bool isBlackoutActive = _plugin.Npc.Methods.IsBlackoutActive;
 
+            // RESTORED: Core guard clause for dangerous impact type
             if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && room.LightController.LightsEnabled)
                 return;
 
             switch (impactType)
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
-                    // 1. Structural impact physical sound anchor
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, position, isTransient: true);
 
-                    // 2. Swirling spatial vortex that aggressively collapses into the point of impact
+                    // Enhanced spatialized vortex layered smoothly over your baseline logic
                     _plugin.AudioManager.PlayOrbitingAudio(
                         staticPosition: position,
                         audioKey: AudioKey.WhispersMixed,
@@ -73,6 +73,8 @@
                     if (isBlackoutActive)
                     {
                         float boostDuration = _plugin.Config.BlackoutConfig.DurationMin;
+
+                        // Thread-safe centralized boost execution protecting stack states
                         _plugin.Npc.Methods.StartTimedBlackoutBoost(
                             boostDuration,
                             "ProjectileImpact",
@@ -84,27 +86,48 @@
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-                    // 1. Solid impact audio feedback
+                    // RESTORED: Your exact, highly dynamic RNG check
+                    AudioKey selectedScream = UnityEngine.Random.value > 0.45f ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, position, isTransient: true);
 
-                    // 2. Dynamic evaluation: select an explicit acoustic retaliation response based on RNG
-                    AudioKey dynamicPainScream = UnityEngine.Random.Range(0, 2) == 0 ? AudioKey.ScreamAngry : AudioKey.ScreamHurt;
-
-                    // 3. Wide, chaotic sound dispersion rotating heavily around the detonation origin point
+                    // RESTORED: Your exact custom speed parameters that made the audio trajectory feel punchy
                     _plugin.AudioManager.PlayOrbitingAudio(
                         staticPosition: position,
-                        audioKey: dynamicPainScream,
-                        lifespan: 4.5f,
-                        maxRadius: 8.5f,
-                        minRadius: 1.5f,
+                        audioKey: selectedScream,
+                        lifespan: null,
+                        maxRadius: 5.5f,
+                        minRadius: 0.8f,
                         angularSpeed: 4.5f,
-                        approachSpeed: 1.5f
+                        approachSpeed: 5.2f
                     );
 
-                    LibraryLabAPI.LogInfo("ProjectileImpact", $"Dangerous impact spatialized at coordinates via tracking key: {dynamicPainScream}");
+                    // RESTORED: Your operational facility grid manipulation method
+                    _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
+                    break;
+
+                default:
+                    // RESTORED: Fallback evaluation logic for non-standard impacts inside unlit zones
+                    if (room.LightController.LightsEnabled) return;
+
+                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.Whispers_1, position);
                     break;
             }
         }
 
+        /// <summary>
+        /// Coroutine temporary boosts the intensity of the tactical blackout.
+        /// </summary>
+        private IEnumerator<float> TriggerTacticalBlackoutBoost(float duration)
+        {
+            _plugin.Npc.Methods.IncrementBlackoutStack();
+            LibraryLabAPI.LogInfo("ProjectileImpact", $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}");
+
+            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterRoarGlobal);
+
+            yield return MEC.Timing.WaitForSeconds(duration);
+
+            _plugin.Npc.Methods.DecrementBlackoutStack();
+            LibraryLabAPI.LogInfo("ProjectileImpact", $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}");
+        }
     }
 }
