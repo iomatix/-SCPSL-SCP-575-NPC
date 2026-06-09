@@ -126,7 +126,7 @@
             // If their new role is invalid for sanity mechanics, silence active loops immediately
             if (!IsValidPlayer(ev.Player))
             {
-                _plugin.AudioManager.UpdatePlayerBackgroundAmbient(ev.Player, shouldPlayDrone: false);
+                SafeUpdateAmbient(ev.Player, shouldPlayDrone: false);
             }
         }
 

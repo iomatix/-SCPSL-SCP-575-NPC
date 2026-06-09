@@ -84,6 +84,14 @@
             if (fullShutdown)
             {
                 StopAmbience();
+
+                // FIX: Active psychological drones are now strictly bound to full round/plugin lifecycle teardowns
+                foreach (int sessionId in _activeDroneSessions.Values.ToList())
+                {
+                    if (sessionId == 0) continue;
+                    try { _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration); } catch { }
+                }
+                _activeDroneSessions.Clear();
             }
 
             if (_pluginSessionIds.Count > 0)
@@ -95,8 +103,6 @@
                 }
                 _pluginSessionIds.Clear();
             }
-
-            _activeDroneSessions.Clear();
 
             if (fullShutdown && _generatorSessionIds.Count > 0)
             {
@@ -159,6 +165,7 @@
             }
 
             bool isGeneratorHum = audioKey == AudioKey.GeneratorHumDefense;
+            bool isSanityDrone = audioKey == AudioKey.SanityLowDrone;
             int sessionId;
 
             if (isNonSpatial)
@@ -193,13 +200,11 @@
             }
             else if (!isTransient && loop) // FIX: Only track inside persistent collection if the track requires explicit structural interruption (loops)
             {
-                _pluginSessionIds.Add(sessionId);
+                _activeDroneSessions[userId] = sessionId;
             }
-            else if (!isTransient && lifespan.HasValue)
+            else if (!isTransient)
             {
                 _pluginSessionIds.Add(sessionId);
-                // Fire and forget self-cleaning handle to prevent unbounded collection leaks during long rounds
-                Timing.CallDelayed(lifespan.Value, () => _pluginSessionIds.Remove(sessionId));
             }
 
             return sessionId;
