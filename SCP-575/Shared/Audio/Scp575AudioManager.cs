@@ -28,8 +28,8 @@
         private double _lastGlobalScreamTimeTicks = 0;
 
         private int _ambienceAudioSessionId;
-        private readonly Dictionary<string, int> _activeDroneSessions = new();
-        private readonly Dictionary<string, double> _transientCooldowns = new Dictionary<string, double>();
+        private readonly Dictionary<string, int> _activeDroneSessions = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, double> _transientCooldowns = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<int> _generatorSessionIds = new();
         private readonly HashSet<int> _pluginSessionIds = new();
 
@@ -200,7 +200,7 @@
             }
             else if (!isTransient && loop) // FIX: Only track inside persistent collection if the track requires explicit structural interruption (loops)
             {
-                string userId = player.UserId.ToLowerInvariant();
+                string userId = player.UserId;
                 _activeDroneSessions[userId] = sessionId;
             }
             else if (!isTransient)

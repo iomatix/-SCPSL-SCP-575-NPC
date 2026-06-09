@@ -23,8 +23,8 @@
         private readonly LibraryLabAPI _libraryLabAPI;
         private readonly PlayerSanityConfig _sanityConfig;
 
-        private readonly Dictionary<string, float> _sanityCache = new();
-        private readonly Dictionary<string, DateTime> _lastHintTime = new();
+        private readonly Dictionary<string, float> _sanityCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTime> _lastHintTime = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<PlayerSanityStageConfig> _orderedStages;
 
         private readonly float _hintCooldown;
@@ -41,7 +41,7 @@
         /// <summary>
         /// Contains a flag indicating whether the player has an active drone (true) or not (false).
         /// </summary>
-        private readonly Dictionary<string, bool> _activeAmbientState = new();
+        private readonly Dictionary<string, bool> _activeAmbientState = new(StringComparer.OrdinalIgnoreCase);
 
         public PlayerSanityHandler(Plugin plugin)
         {
@@ -133,7 +133,7 @@
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
             if (ev?.Player == null) return;
-            string userId = NormalizeUserId(ev.Player.UserId);
+            string userId = ev.Player.UserId;
 
             lock (_cacheLock)
             {
@@ -171,7 +171,7 @@
         {
             if (!IsValidPlayer(player)) return _sanityConfig.InitialSanity;
 
-            string userId = NormalizeUserId(player.UserId);
+            string userId = player.UserId;
             lock (_cacheLock)
             {
                 if (!_sanityCache.TryGetValue(userId, out float sanity))
@@ -201,7 +201,7 @@
         {
             if (!IsValidPlayer(player)) return 0f;
 
-            string userId = NormalizeUserId(player.UserId);
+            string userId = player.UserId;
             float clampedSanity = Mathf.Clamp(sanity, 0f, 100f);
 
             lock (_cacheLock)
@@ -383,7 +383,7 @@
             // 3. Process UI alert prompt updates
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
             {
-                string userId = NormalizeUserId(player.UserId);
+                string userId = player.UserId;
                 if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
                 {
                     SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
@@ -412,7 +412,7 @@
             // 3. Process UI alert prompt updates
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
             {
-                string userId = NormalizeUserId(player.UserId);
+                string userId = player.UserId;
                 if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
                 {
                     SendSanityHint(player, _plugin.Config.HintsConfig.SanityIncreasedHint, newSanity);
@@ -448,11 +448,6 @@
                    player.Room.Name != MapGeneration.RoomName.Pocket;
         }
 
-        private string NormalizeUserId(string userId)
-        {
-            return userId?.ToLowerInvariant() ?? string.Empty;
-        }
-
         private float GetItemRestoreAmount(ItemType itemType)
         {
             return itemType switch
@@ -465,7 +460,7 @@
 
         private void SafeUpdateAmbient(Player player, bool shouldPlayDrone)
         {
-            string userId = NormalizeUserId(player.UserId);
+            string userId = player.UserId;
 
             lock (_cacheLock)
             {

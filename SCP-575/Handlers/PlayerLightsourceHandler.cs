@@ -26,10 +26,10 @@ namespace SCP_575.Handlers
         private readonly LibraryLabAPI _libraryLabAPI;
         private readonly PlayerLightsourceConfig _config;
 
-        private readonly Dictionary<string, DateTime> _cooldownUntil = new();
-        private readonly Dictionary<string, DateTime> _lastCooldownAudioTime = new Dictionary<string, DateTime>();
-        private readonly HashSet<string> _flickeringPlayers = new();
-        private readonly HashSet<string> _pendingItemChanges = new();
+        private readonly Dictionary<string, DateTime> _cooldownUntil = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTime> _lastCooldownAudioTime = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _flickeringPlayers = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _pendingItemChanges = new(StringComparer.OrdinalIgnoreCase);
         private readonly Random _random = new();
 
         private bool _isDisposed;
