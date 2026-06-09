@@ -291,19 +291,19 @@
                 if (culmDamage > 0)
                 {
 
-                    if (UnityEngine.Random.value <= 0.25f)
+                    if (UnityEngine.Random.value <= 0.2f)
                     {
                         _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
                     }
 
-                    if (UnityEngine.Random.value <= 0.2f)
+                    if (UnityEngine.Random.value <= 0.15f)
                     {
                         _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
                     }
 
-                    if (UnityEngine.Random.value <= 0.25f)
+                    if (UnityEngine.Random.value <= 0.2f)
                     {
-                        AudioKey[] aggressivePool = { AudioKey.Scream_1, AudioKey.Scream_2, AudioKey.Scream_3, AudioKey.ScreamAngry };
+                        AudioKey[] aggressivePool = { AudioKey.Scream_1, AudioKey.Scream_2, AudioKey.Scream_3, AudioKey.ScreamAngry, AudioKey.ShadowClicking };
                         AudioKey randomVocalization = aggressivePool[UnityEngine.Random.Range(0, aggressivePool.Length)];
                         _plugin.AudioManager.PlayOrbitingAudio(player, randomVocalization);
                     }
@@ -316,18 +316,18 @@
                 float culmDamage = stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
-                    if (UnityEngine.Random.value <= 0.35f)
+                    if (UnityEngine.Random.value <= 0.15f)
                     {
                         _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
                     }
-                    else if (UnityEngine.Random.value <= 0.15f)
+                    else if (UnityEngine.Random.value <= 0.1f)
                     {
                         _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
                     }
 
                     if (UnityEngine.Random.value <= 0.15f)
                     {
-                        AudioKey[] defensivePool = { AudioKey.Whispers_1, AudioKey.Whispers_2, AudioKey.WhispersBang };
+                        AudioKey[] defensivePool = { AudioKey.Whispers_1, AudioKey.Whispers_2, AudioKey.WhispersBang, AudioKey.ShadowClicking };
                         AudioKey randomWhisper = defensivePool[UnityEngine.Random.Range(0, defensivePool.Length)];
                         _plugin.AudioManager.PlayOrbitingAudio(player, randomWhisper);
                     }
