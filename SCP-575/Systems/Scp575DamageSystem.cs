@@ -303,7 +303,7 @@ namespace SCP_575.Shared
             float configModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
 
             float internalSharedModifier = 1.45f * Mathf.Log(configModifier) * CalculateForcePush(configModifier);
-            float forcePushMagnitude = CalculateForcePush(1.85f);
+            float forcePushMagnitude = CalculateForcePush(1.35f);
 
             float finalLinearMagnitude = internalSharedModifier * forcePushMagnitude;
 
