@@ -78,7 +78,9 @@
         public void Initialize()
         {
             if (_isDisposed) return;
-            // Coroutine initialization can be triggered here or via server start events.
+            var handle = Timing.RunCoroutine(HandleSanityDecay());
+            handle.Tag = SanityCoroutineTag;
+            LibraryLabAPI.LogInfo("PlayerSanityHandler", "Sanity decay processing loop successfully started.");
         }
 
         /// <summary>
@@ -472,11 +474,18 @@
                 {
                     return;
                 }
-                _activeAmbientState[userId] = shouldPlayDrone;
             }
 
-            _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, shouldPlayDrone);
-            LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Ambient state changed for {player.Nickname} to: {shouldPlayDrone}");
+            bool success = _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, shouldPlayDrone);
+
+            if (success || !shouldPlayDrone)
+            {
+                lock (_cacheLock)
+                {
+                    _activeAmbientState[userId] = shouldPlayDrone;
+                }
+                LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Ambient state committed for {player.Nickname} to: {shouldPlayDrone}");
+            }
         }
 
         private void SendSanityHint(Player player, string hintMessage, float sanity)

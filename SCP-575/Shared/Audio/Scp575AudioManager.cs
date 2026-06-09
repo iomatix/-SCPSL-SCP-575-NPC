@@ -18,9 +18,8 @@
     using Log = LabApi.Features.Console.Logger;
 
     /// <summary>
-    /// Highly optimized acoustic orchestration engine for SCP-575.
-    /// Acts as a lightweight profile registry that delegates structural space transformations 
-    /// and tracking loops directly to the underlying AudioManagerAPI V2.3.2 subsystem.
+    /// Manages audio asset registries and playback tracking sessions for the SCP-575 subsystem.
+    /// Delegates spatial routing and global audio processing to the underlying AudioManagerAPI.
     /// </summary>
     public class Scp575AudioManager
     {
@@ -103,39 +102,26 @@
             Log.Debug($"[Scp575AudioManager] Clean executed. (FullShutdown: {fullShutdown})");
         }
 
-        public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false, bool isTransient = false, Player sourcePlayer = null)
+        public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false, bool isTransient = false, Player sourcePlayer = null, bool loop = false)
         {
             if (!_audioRegistry.TryGetValue(audioKey, out var config))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration.", nameof(audioKey));
 
-            if (isTransient && player != null)
+            if (isTransient && player != null && !TryAcquireTransientLock(player.UserId, audioKey))
             {
-                string debounceKey = player.UserId + "_" + (int)audioKey;
-                double currentTime = Timing.LocalTime;
-
-                if (_transientCooldowns.TryGetValue(debounceKey, out double nextAllowedTime) && currentTime < nextAllowedTime)
-                {
-                    return 0;
-                }
-
-                _transientCooldowns[debounceKey] = currentTime + 0.090;
+                return 0;
             }
 
             if (!hearableForAllPlayers && player == null && !isNonSpatial)
                 throw new ArgumentNullException(nameof(player), "Player cannot be null when hearableForAllPlayers is false and audio is spatial.");
 
-            Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
+            Vector3 playPosition = isNonSpatial ? Vector3.zero : SanitizePosition(position ?? player.Position);
 
             if (isNonSpatial && (audioKey == AudioKey.Scream_1 || audioKey == AudioKey.Scream_2 || audioKey == AudioKey.Scream_3 || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
                 double secondsSinceLastScream = (DateTime.UtcNow - _lastGlobalScreamTime).TotalSeconds;
                 if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown) return 0;
                 _lastGlobalScreamTime = DateTime.UtcNow;
-            }
-
-            if (!isNonSpatial && (float.IsNaN(playPosition.x) || float.IsNaN(playPosition.y) || float.IsNaN(playPosition.z) || float.IsInfinity(playPosition.x) || float.IsInfinity(playPosition.y) || float.IsInfinity(playPosition.z)))
-            {
-                playPosition = Vector3.zero;
             }
 
             if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers) && _ambienceAudioSessionId != 0)
@@ -168,14 +154,15 @@
             if (isNonSpatial)
             {
                 sessionId = _audioEngine.PlayGlobalAudio(
-                    config.Key, loop: false, volume: config.Volume, priority: config.Priority,
+                    config.Key, loop: loop, volume: config.Volume, priority: config.Priority,
                     validPlayersFilter: targetPlayerFilter, queue: queue, fadeInDuration: fadeInDuration,
                     lifespan: lifespan, autoCleanup: true);
             }
             else
             {
+                bool dynamicLoop = isGeneratorHum || loop;
                 sessionId = _audioEngine.PlayAudio(
-                    config.Key, playPosition, loop: isGeneratorHum, volume: config.Volume,
+                    config.Key, playPosition, loop: dynamicLoop, volume: config.Volume,
                     minDistance: config.MinDistance, maxDistance: config.MaxDistance,
                     isSpatial: config.IsSpatial, priority: config.Priority,
                     validPlayersFilter: targetPlayerFilter, queue: queue,
@@ -199,7 +186,7 @@
         }
 
         /// <summary>
-        /// Localized hallucination target tracking. Orbits exclusively around a specific player's perception.
+        /// Registers a spatialized audio orbit relative to a moving player target.
         /// </summary>
         public void PlayOrbitingAudio(Player player, AudioKey audioKey, float? lifespan = null, float maxRadius = 3.2f, float minRadius = 0.6f, float angularSpeed = 1.1f, float approachSpeed = 1.5f)
         {
@@ -217,7 +204,7 @@
         }
 
         /// <summary>
-        /// Static environmental manifestation. Orbits around a fixed geographical coordinate, audible to all nearby entities.
+        /// Registers a spatialized audio orbit around fixed static world coordinates.
         /// </summary>
         public void PlayOrbitingAudio(Vector3 staticPosition, AudioKey audioKey, float? lifespan = null, float maxRadius = 3.2f, float minRadius = 0.6f, float angularSpeed = 1.1f, float approachSpeed = 1.5f, float heightOffset = 0.85f)
         {
@@ -236,7 +223,7 @@
         }
 
         /// <summary>
-        /// Universal acoustic orbit engine. Tracks any arbitrary spatial coordinate provider in real-time.
+        /// Core operational routine for injecting real-time orbiting vector calculations into the audio engine.
         /// </summary>
         public void PlayOrbitingAudioCore(Func<Vector3> positionProvider, Func<bool> validationCheck, Player listener, AudioKey audioKey, float? lifespan = null, float maxRadius = 3.2f, float minRadius = 0.6f, float angularSpeed = 1.1f, float approachSpeed = 1.5f, float heightOffset = 0.85f)
         {
@@ -276,7 +263,7 @@
         }
 
         /// <summary>
-        /// Attaches a dynamic sound source to a moving target silhouette with frame-perfect tracking vectors.
+        /// Binds a dynamic sound instance to trace player transform vectors.
         /// </summary>
         public void PlayTrackingAudio(Player player, AudioKey audioKey, float? lifespan = null, bool hearableForAllPlayers = true, Vector3? customOffset = null)
         {
@@ -357,10 +344,6 @@
 
         public void SkipAudio(int sessionId, int count) => _audioEngine.SkipAudio(sessionId, count);
 
-        /// <summary>
-        /// Dispatches a high-fidelity spatialized acoustic event with automatic dual-channel configuration 
-        /// to ensure latency-free simulation for the actor and immersive propagation for the environment.
-        /// </summary>
         public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null, bool isTransient = false, Player sourcePlayer = null)
         {
             if (!_audioRegistry.TryGetValue(key, out var profile))
@@ -369,22 +352,16 @@
                 return;
             }
 
-            if (isTransient && sourcePlayer != null)
+            if (isTransient && sourcePlayer != null && !TryAcquireTransientLock(sourcePlayer.UserId, key))
             {
-                string debounceKey = sourcePlayer.UserId + "_" + (int)key;
-                double currentTime = Timing.LocalTime;
-
-                if (_transientCooldowns.TryGetValue(debounceKey, out double nextAllowedTime) && currentTime < nextAllowedTime)
-                {
-                    return;
-                }
-
-                _transientCooldowns[debounceKey] = currentTime + 0.090;
+                return;
             }
+
+            Vector3 targetPosition = SanitizePosition(position);
 
             var sessions = _audioEngine.PlaySpatialSmart(
                 key: profile.Key,
-                position: position,
+                position: targetPosition,
                 sourcePlayer: sourcePlayer,
                 priority: profile.Priority,
                 lifespan: lifespan ?? profile.DefaultLifespan,
@@ -397,9 +374,9 @@
             if (sessions.sourceSessionId != 0) _pluginSessionIds.Add(sessions.sourceSessionId);
         }
 
-        public int PlayLocalAudio(Player player, AudioKey audioKey, float? lifespan = null, float fadeInDuration = 0f, bool isTransient = false)
+        public int PlayLocalAudio(Player player, AudioKey audioKey, float? lifespan = null, float fadeInDuration = 0f, bool isTransient = false, bool loop = false)
         {
-            return PlayAudioAutoManaged(player, audioKey, position: null, lifespan: lifespan, hearableForAllPlayers: false, queue: false, fadeInDuration: fadeInDuration, isNonSpatial: true, isTransient: isTransient);
+            return PlayAudioAutoManaged(player, audioKey, position: null, lifespan: lifespan, hearableForAllPlayers: false, queue: false, fadeInDuration: fadeInDuration, isNonSpatial: true, isTransient: isTransient, loop: loop);
         }
 
         public int PlayIsolatedSpatialAudio(Player player, AudioKey audioKey, Vector3 position, float? lifespan = null, float fadeInDuration = 0f, bool isTransient = false)
@@ -417,103 +394,67 @@
             PlayAudioAutoManaged(player, selected, hearableForAllPlayers: false, lifespan: null);
         }
 
-        /// <summary>
-        /// Plays aggressive audio cues when the target is fully exposed to SCP-575.
-        /// </summary>
         public void PlayAggressiveAudio(Player player)
         {
-            // Intent: create sudden, violent impact feedback
             PlayCommonAudio(player, new[] { AudioKey.AnomalousImpact }, 0.15f);
-
-            // Intent: rare but intense strike cue
             PlayCommonAudio(player, new[] { AudioKey.ShadowStrike }, 0.10f);
 
-            // Intent: aggressive vocalization orbiting around the player
-            AudioKey[] aggressivePool =
-            {
-                AudioKey.Scream_1,
-                AudioKey.Scream_2,
-                AudioKey.Scream_3,
-                AudioKey.ScreamAngry
-            };
+            AudioKey[] aggressivePool = { AudioKey.Scream_1, AudioKey.Scream_2, AudioKey.Scream_3, AudioKey.ScreamAngry };
             PlayCommonAudio(player, aggressivePool, 0.10f, orbit: true);
-
-            // Intent: subtle but unsettling clicking
             PlayCommonAudio(player, new[] { AudioKey.ShadowClicking }, 0.05f);
         }
 
-        /// <summary>
-        /// Plays a random audio clip from the provided pool with a given probability.
-        /// Supports both positional and orbiting playback.
-        /// </summary>
+        public void PlayDefensiveAudio(Player player)
+        {
+            PlayCommonAudio(player, new[] { AudioKey.AnomalousImpact }, 0.10f);
+            PlayCommonAudio(player, new[] { AudioKey.ShadowStrike }, 0.05f);
+
+            AudioKey[] defensivePool = { AudioKey.Whispers_1, AudioKey.Whispers_2, AudioKey.WhispersBang };
+            PlayCommonAudio(player, defensivePool, 0.10f, orbit: true);
+            PlayCommonAudio(player, new[] { AudioKey.ShadowClicking }, 0.10f);
+        }
+
         public void PlayCommonAudio(Player player, AudioKey[] pool, float chance, bool orbit = false)
         {
             if (UnityEngine.Random.value > chance)
                 return;
 
-            // Intent: choose a random clip from the pool
             AudioKey selected = pool.Length == 1
                 ? pool[0]
                 : pool[UnityEngine.Random.Range(0, pool.Length)];
 
             if (orbit)
             {
-                // Intent: create spatial movement around the player
-                _plugin.AudioManager.PlayOrbitingAudio(player, selected);
+                PlayOrbitingAudio(player, selected);
             }
             else
             {
-                // Intent: play direct positional cue
-                _plugin.AudioManager.PlayAudioAtPosition(selected, player.Position, isTransient: true);
+                PlayAudioAtPosition(selected, player.Position, isTransient: true);
             }
         }
 
-
-
-        /// <summary>
-        /// Plays defensive or suppressed audio cues when the target is partially protected by light.
-        /// </summary>
-        public void PlayDefensiveAudio(Player player)
+        public bool UpdatePlayerBackgroundAmbient(Player player, bool shouldPlayDrone)
         {
-            // Intent: weakened impact due to light protection
-            PlayCommonAudio(player, new[] { AudioKey.AnomalousImpact }, 0.10f);
-
-            // Intent: rare suppressed strike cue
-            PlayCommonAudio(player, new[] { AudioKey.ShadowStrike }, 0.05f);
-
-            // Intent: defensive whispering orbiting around the player
-            AudioKey[] defensivePool =
-            {
-            AudioKey.Whispers_1,
-            AudioKey.Whispers_2,
-            AudioKey.WhispersBang
-            };
-            PlayCommonAudio(player, defensivePool, 0.10f, orbit: true);
-
-            // Intent: fallback subtle clicking when whispers do not trigger
-            PlayCommonAudio(player, new[] { AudioKey.ShadowClicking }, 0.10f);
-        }
-
-        public void UpdatePlayerBackgroundAmbient(Player player, bool shouldPlayDrone)
-        {
-            if (player == null || string.IsNullOrEmpty(player.UserId)) return;
+            if (player == null || string.IsNullOrEmpty(player.UserId)) return false;
 
             string userId = player.UserId.ToLowerInvariant();
 
             if (shouldPlayDrone)
             {
-                if (_activeDroneSessions.ContainsKey(userId)) return;
+                if (_activeDroneSessions.ContainsKey(userId)) return true;
 
-                int sessionId = PlayLocalAudio(player, AudioKey.SanityLowDrone, lifespan: null, fadeInDuration: 2.0f);
+                int sessionId = PlayLocalAudio(player, AudioKey.SanityLowDrone, lifespan: null, fadeInDuration: 2.0f, isTransient: false, loop: true);
                 if (sessionId != 0)
                 {
                     _activeDroneSessions[userId] = sessionId;
                     _pluginSessionIds.Add(sessionId);
+                    return true;
                 }
+                return false;
             }
             else
             {
-                if (!_activeDroneSessions.TryGetValue(userId, out int sessionId)) return;
+                if (!_activeDroneSessions.TryGetValue(userId, out int sessionId)) return true;
 
                 if (sessionId != 0)
                 {
@@ -521,6 +462,7 @@
                     _pluginSessionIds.Remove(sessionId);
                 }
                 _activeDroneSessions.Remove(userId);
+                return true;
             }
         }
 
@@ -531,9 +473,45 @@
             string userId = player.UserId.ToLowerInvariant();
             if (_activeDroneSessions.TryGetValue(userId, out int sessionId))
             {
-                if (sessionId != 0) _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                if (sessionId != 0)
+                {
+                    _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                    _pluginSessionIds.Remove(sessionId);
+                }
                 _activeDroneSessions.Remove(userId);
             }
+        }
+
+        #region Helper Private Methods (DRY & Robustness)
+
+        /// <summary>
+        /// Validates and evaluates transient audio key cooldown tracking constraints.
+        /// </summary>
+        private bool TryAcquireTransientLock(string userId, AudioKey key)
+        {
+            string debounceKey = userId + "_" + (int)key;
+            double currentTime = Timing.LocalTime;
+
+            if (_transientCooldowns.TryGetValue(debounceKey, out double nextAllowedTime) && currentTime < nextAllowedTime)
+            {
+                return false;
+            }
+
+            _transientCooldowns[debounceKey] = currentTime + 0.090;
+            return true;
+        }
+
+        /// <summary>
+        /// Validates coordinate boundaries to block invalid vector mutations within Unity's audio layers.
+        /// </summary>
+        private Vector3 SanitizePosition(Vector3 position)
+        {
+            if (float.IsNaN(position.x) || float.IsNaN(position.y) || float.IsNaN(position.z) ||
+                float.IsInfinity(position.x) || float.IsInfinity(position.y) || float.IsInfinity(position.z))
+            {
+                return Vector3.zero;
+            }
+            return position;
         }
 
         private void RegisterAudioResources()
@@ -553,6 +531,8 @@
                 _audioEngine.RegisterAudio(key, () => assembly.GetManifestResourceStream(resourceName));
             }
         }
+
+        #endregion
 
         private sealed class AudioTrackProfile
         {
