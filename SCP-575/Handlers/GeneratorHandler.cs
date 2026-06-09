@@ -102,16 +102,14 @@
                 // Force a global state shift if the entity is currently dormant to penalize early activation.
                 if (!_plugin.Npc.Methods.IsBlackoutActive)
                 {
-                    _plugin.Npc.Methods.IncrementBlackoutStack();
-
-                    LabApi.Features.Wrappers.Map.TurnOffLights(_plugin.Config.BlackoutConfig.DurationMin);
-
-                    Timing.CallDelayed(_plugin.Config.BlackoutConfig.DurationMin, () =>
-                    {
-                        _plugin.Npc.Methods.DecrementBlackoutStack();
-                    });
-
-                    LibraryLabAPI.LogInfo("GeneratorHandler", "Dormant SCP-575 awakened. Triggering emergency facility-wide blackout.");
+                    // Delegating stack mutation and safety tagging to the central method to prevent cross-round dangling timers
+                    _plugin.Npc.Methods.StartTimedBlackoutBoost(
+                        _plugin.Config.BlackoutConfig.DurationMin,
+                        "GeneratorHandler",
+                        "Dormant SCP-575 awakened. Triggering emergency facility-wide blackout.",
+                        null, // Expiration log not requested for generator context
+                        () => LabApi.Features.Wrappers.Map.TurnOffLights(_plugin.Config.BlackoutConfig.DurationMin)
+                    );
                 }
                 else
                 {

@@ -359,6 +359,38 @@ namespace SCP_575.Npc
             }
         }
 
+        // Place this inside public class Methods (#region Blackout Management)
+
+        /// <summary>
+        /// Safely triggers a synchronized timed blackout boost, managing stacks under a tracked MEC tag
+        /// to prevent state leakage and dangling handles across lifecycle state changes.
+        /// </summary>
+        public void StartTimedBlackoutBoost(float duration, string logContext, string startLog, string endLog, Action startAction = null)
+        {
+            Timing.RunCoroutine(TimedBlackoutBoostCoroutine(duration, logContext, startLog, endLog, startAction), CoroutineTags.BlackoutStacks);
+        }
+
+        /// <summary>
+        /// Internal coroutine handling the lifecycle of a localized or sudden facility-wide blackout escalation.
+        /// </summary>
+        private IEnumerator<float> TimedBlackoutBoostCoroutine(float duration, string logContext, string startLog, string endLog, Action startAction = null)
+        {
+            IncrementBlackoutStack();
+
+            // Execute environmental, layout or audio mutations safely prior to logging
+            startAction?.Invoke();
+
+            if (!string.IsNullOrEmpty(startLog))
+                LibraryLabAPI.LogInfo(logContext, startLog);
+
+            yield return Timing.WaitForSeconds(duration);
+
+            DecrementBlackoutStack();
+
+            if (!string.IsNullOrEmpty(endLog))
+                LibraryLabAPI.LogInfo(logContext, endLog);
+        }
+
         #endregion
 
         #region CASSIE Management

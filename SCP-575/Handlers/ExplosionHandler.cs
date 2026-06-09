@@ -61,7 +61,14 @@
                     {
                         float boostDuration = _plugin.Config.BlackoutConfig.DurationMin;
 
-                        MEC.Timing.RunCoroutine(TriggerTacticalBlackoutBoost(boostDuration), CoroutineTags.BlackoutStacks);
+                        // Centralized thread-safe execution replacing the old local coroutine call
+                        _plugin.Npc.Methods.StartTimedBlackoutBoost(
+                            boostDuration,
+                            "ProjectileImpact",
+                            $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks + 1}",
+                            $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}",
+                            () => _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.MonsterRoarGlobal)
+                        );
                     }
                     break;
 
