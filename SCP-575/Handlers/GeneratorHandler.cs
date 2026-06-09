@@ -53,7 +53,13 @@
 
             // Establish the substation as a persistent grid safety point that resists future blackouts.
             _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-            _plugin.AudioManager.PlayAudioAtPosition(AudioKey.GeneratorHumDefense, ev.Generator.Position);
+            _plugin.AudioManager.PlayAudioAutoManaged(
+                            player: null,
+                            audioKey: AudioKey.GeneratorHumDefense,
+                            position: ev.Generator.Position,
+                            lifespan: null,
+                            hearableForAllPlayers: true
+                        );
 
             // Evaluate final containment criteria before processing standard retaliation loops.
             if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
