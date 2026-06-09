@@ -49,8 +49,9 @@ namespace SCP_575.Npc
             LibraryLabAPI.LogDebug(nameof(Methods), "NPC Methods system linked with Handlers and LibraryAPI.");
         }
 
-        public bool IsBlackoutActive => _blackoutStacks > 0;
-        public int GetCurrentBlackoutStacks => _blackoutStacks;
+        // Protect reads via locks or make properties access synchronized data strictly
+        public bool IsBlackoutActive { get { lock (BlackoutLock) return _blackoutStacks > 0; } }
+        public int GetCurrentBlackoutStacks { get { lock (BlackoutLock) return _blackoutStacks; } }
 
         #region Lifecycle Management
 
@@ -159,9 +160,11 @@ namespace SCP_575.Npc
             // Spatialized cue for a specific vulnerable target to anchor localized direction.
             if (UnityEngine.Random.Range(0f, 100f) < 70f)
             {
-                var randomPlayer = Player.ReadyList.Where(p => p.IsAlive && p.IsHuman).OrderBy(_ => UnityEngine.Random.value).FirstOrDefault();
-                if (randomPlayer != null)
+                // OPTIMIZATION: Allocation-free extraction pattern avoiding heavy LINQ OrderBy sorting execution
+                var validTargets = Player.ReadyList.Where(p => p.IsAlive && p.IsHuman).ToList();
+                if (validTargets.Count > 0)
                 {
+                    var randomPlayer = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
                     var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.Scream_3 + 1);
                     _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, randomScream);
                 }
@@ -373,23 +376,28 @@ namespace SCP_575.Npc
 
         /// <summary>
         /// Internal coroutine handling the lifecycle of a localized or sudden facility-wide blackout escalation.
+        /// Guaranteed execution pattern via deterministic try-finally structural blocks.
         /// </summary>
         private IEnumerator<float> TimedBlackoutBoostCoroutine(float duration, string logContext, string startLog, string endLog, Action startAction = null)
         {
             IncrementBlackoutStack();
+            try
+            {
+                startAction?.Invoke();
 
-            // Execute environmental, layout or audio mutations safely prior to logging
-            startAction?.Invoke();
+                if (!string.IsNullOrEmpty(startLog))
+                    LibraryLabAPI.LogInfo(logContext, startLog);
 
-            if (!string.IsNullOrEmpty(startLog))
-                LibraryLabAPI.LogInfo(logContext, startLog);
+                yield return Timing.WaitForSeconds(duration);
+            }
+            finally
+            {
+                // FIX: Finally block guarantees stack integrity even if startAction or the coroutine layer throws/aborts
+                DecrementBlackoutStack();
 
-            yield return Timing.WaitForSeconds(duration);
-
-            DecrementBlackoutStack();
-
-            if (!string.IsNullOrEmpty(endLog))
-                LibraryLabAPI.LogInfo(logContext, endLog);
+                if (!string.IsNullOrEmpty(endLog))
+                    LibraryLabAPI.LogInfo(logContext, endLog);
+            }
         }
 
         #endregion
@@ -505,7 +513,13 @@ namespace SCP_575.Npc
         public void Reset575()
         {
             _plugin.AudioManager.Clean(fullShutdown: false);
-            _blackoutStacks = 0;
+
+            lock (BlackoutLock)
+            {
+                // FIX: Enforcing critical section visibility across all threads to prevent mid-frame race conditions
+                _blackoutStacks = 0;
+            }
+
             Map.ResetColorOfLights();
             Map.TurnOnLights();
             _triggeredZones.Clear();

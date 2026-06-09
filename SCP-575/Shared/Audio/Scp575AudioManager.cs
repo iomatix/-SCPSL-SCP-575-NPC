@@ -25,7 +25,7 @@
     {
         private readonly Plugin _plugin;
         private readonly IAudioManager _audioEngine;
-        private DateTime _lastGlobalScreamTime = DateTime.MinValue;
+        private double _lastGlobalScreamTimeTicks = 0;
 
         private int _ambienceAudioSessionId;
         private readonly Dictionary<string, int> _activeDroneSessions = new();
@@ -128,9 +128,10 @@
 
             if (isNonSpatial && (audioKey == AudioKey.Scream_1 || audioKey == AudioKey.Scream_2 || audioKey == AudioKey.Scream_3 || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
-                double secondsSinceLastScream = (DateTime.UtcNow - _lastGlobalScreamTime).TotalSeconds;
+                // FIX: Migrated from machine real-time DateTime clock to deterministic engine timeline frame-ticks
+                double secondsSinceLastScream = Timing.LocalTime - _lastGlobalScreamTimeTicks;
                 if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown) return 0;
-                _lastGlobalScreamTime = DateTime.UtcNow;
+                _lastGlobalScreamTimeTicks = Timing.LocalTime;
             }
 
             if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers) && _ambienceAudioSessionId != 0)
@@ -185,10 +186,20 @@
                 _ambienceAudioSessionId = sessionId;
             }
 
-            if (isGeneratorHum) _generatorSessionIds.Add(sessionId);
-            else if (!isTransient)
+            // Replace the old registration block with strict lifetime tracking filters
+            if (isGeneratorHum)
+            {
+                _generatorSessionIds.Add(sessionId);
+            }
+            else if (!isTransient && loop) // FIX: Only track inside persistent collection if the track requires explicit structural interruption (loops)
             {
                 _pluginSessionIds.Add(sessionId);
+            }
+            else if (!isTransient && lifespan.HasValue)
+            {
+                _pluginSessionIds.Add(sessionId);
+                // Fire and forget self-cleaning handle to prevent unbounded collection leaks during long rounds
+                Timing.CallDelayed(lifespan.Value, () => _pluginSessionIds.Remove(sessionId));
             }
 
             return sessionId;
