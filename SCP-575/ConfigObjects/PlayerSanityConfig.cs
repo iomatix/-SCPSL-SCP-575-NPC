@@ -92,10 +92,10 @@
             {
                 MinThreshold = 90f,
                 MaxThreshold = 100f,
-                DamageOnStrike = 0f,
-                AdditionalDamagePerStack = 0f,
+                DamageOnStrike = 1f,
+                AdditionalDamagePerStack = 2f,
                 DamageOnStrikeWhenLightsourceActive = 0f,
-                AdditionalDamagePerStackWhenLightsourceActive = 0f,
+                AdditionalDamagePerStackWhenLightsourceActive = 1f,
                 OverrideLightSourceSanityProtection = false,
                 Effects = new()
                 {
