@@ -10,6 +10,7 @@
     using SCP_575.Shared.Audio.Enums;
     using System;
     using System.Collections.Generic;
+    using System.Data.Common;
     using System.Linq;
     using UnityEngine;
 
@@ -19,6 +20,8 @@
     /// </summary>
     public class PlayerSanityHandler : CustomEventsHandler, IDisposable
     {
+        public static string IdentifierName => nameof(Scp575DamageSystem);
+
         private readonly Plugin _plugin;
         private readonly LibraryLabAPI _libraryLabAPI;
         private readonly PlayerSanityConfig _sanityConfig;
@@ -295,19 +298,19 @@
 
             if (culmDamage <= 0) return;
 
-            ChangeSanityValue(player, _plugin.Config.SanityConfig.ScpHitSanityDrop);
+            float dropAmount = _plugin.Config.SanityConfig.ScpHitSanityDrop;
+            if (dropAmount > 0f)
+            {
+                float newSanity = ChangeSanityValue(player, -dropAmount);
+                LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity lowered by {dropAmount}. New sanity: {newSanity}");
+            }
+
             // Trigger audio feedback based on vulnerability state
             if (isVulnerable) _plugin.AudioManager.PlayAggressiveAudio(player);
             else _plugin.AudioManager.PlayDefensiveAudio(player);
 
             Scp575DamageSystem.DamagePlayer(player, culmDamage);
         }
-
-
-
-
-
-
 
         #endregion
 
