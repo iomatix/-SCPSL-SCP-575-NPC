@@ -394,7 +394,17 @@ namespace SCP_575.Npc
         {
             while (_isInitialized)
             {
-                yield return Timing.WaitForSeconds(_npcConfig.KeterActionDelay);
+
+                float offset = UnityEngine.Random.Range(-_npcConfig.KeterActionDelayRandomizerValue, _npcConfig.KeterActionDelayRandomizerValue);
+                float finalDelay = _npcConfig.KeterActionDelay + offset;
+
+                if (finalDelay < 0.25f) finalDelay = 0.25f;
+
+                yield return Timing.WaitForSeconds(finalDelay);
+
+
+                yield return Timing.WaitForSeconds(finalDelay);
+
 
                 if (!_plugin.IsEventActive || !IsBlackoutActive) continue;
 

@@ -30,25 +30,25 @@
         /// Minimum duration of a blackout event, in seconds.
         /// </summary>
         [Description("Minimum blackout duration in seconds.")]
-        public float DurationMin { get; set; } = 30f;
+        public float DurationMin { get; set; } = 210f;
 
         /// <summary>
         /// Maximum duration of a blackout event, in seconds.
         /// </summary>
         [Description("Maximum blackout duration in seconds.")]
-        public float DurationMax { get; set; } = 90f;
+        public float DurationMax { get; set; } = 490f;
 
         /// <summary>
         /// Minimum delay between blackout events, in seconds.
         /// </summary>
         [Description("Minimum delay between events in seconds.")]
-        public int DelayMin { get; set; } = 180;
+        public int DelayMin { get; set; } = 335;
 
         /// <summary>
         /// Maximum delay between blackout events, in seconds.
         /// </summary>
         [Description("Maximum delay between events in seconds.")]
-        public int DelayMax { get; set; } = 500;
+        public int DelayMax { get; set; } = 980;
 
         #endregion
 

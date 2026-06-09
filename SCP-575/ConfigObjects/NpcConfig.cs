@@ -35,7 +35,16 @@ namespace SCP_575.ConfigObjects
         /// Delay in seconds between SCP-575 action ticks.
         /// </summary>
         [Description("The delay of receiving damage.")]
-        public float KeterActionDelay { get; set; } = 17.485f;
+        public float KeterActionDelay { get; set; } = 22.485f;
+
+
+        /// <summary>
+        /// Randomizer value for the delay in seconds between SCP-575 action ticks.
+        /// e.g. KeterActionDelayRandomizerValue = 5 means a random between -5 and 5 seconds.
+        /// </summary>
+        [Description("The randomizer value for the delay of receiving damage.")]
+        public float KeterActionDelayRandomizerValue { get; set; } = 4.485f;
+
 
         #endregion
 
@@ -51,7 +60,7 @@ namespace SCP_575.ConfigObjects
         /// Modifier applied to player velocity when damaged by SCP-575.
         /// </summary>
         [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
-        public float KeterDamageVelocityModifier { get; set; } = 2.45f;
+        public float KeterDamageVelocityModifier { get; set; } = 2.65f;
 
         #endregion
 
@@ -80,6 +89,18 @@ namespace SCP_575.ConfigObjects
             {
                 Log.Warn("[NpcConfig] KeterActionDelay cannot be negative. Resetting to 0.");
                 KeterActionDelay = 0f;
+            }
+
+            if (KeterActionDelayRandomizerValue < 0f)
+            {
+                Log.Warn("[NpcConfig] KeterActionDelayRandomizerValue cannot be negative. Resetting to 0.");
+                KeterActionDelayRandomizerValue = 0f;
+            }
+
+            if (KeterActionDelayRandomizerValue >= KeterActionDelay)
+            {
+                Log.Warn("[NpcConfig] KeterActionDelayRandomizerValue cannot be greater than KeterActionDelay. Resetting to 0.");
+                KeterActionDelayRandomizerValue = 0f;
             }
 
             KeterDamagePenetration = Mathf.Clamp(KeterDamagePenetration, 0f, 1f);
