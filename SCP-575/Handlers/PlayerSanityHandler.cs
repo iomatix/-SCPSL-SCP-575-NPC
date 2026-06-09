@@ -285,57 +285,28 @@
             var stage = GetCurrentSanityStage(player);
             if (stage == null) return;
 
-            if (Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection)
-            {
-                float culmDamage = stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
-                if (culmDamage > 0)
-                {
+            bool isVulnerable = Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection;
 
-                    if (UnityEngine.Random.value <= 0.2f)
-                    {
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
-                    }
+            float culmDamage = isVulnerable
+                ? stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks)
+                : stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
 
-                    if (UnityEngine.Random.value <= 0.15f)
-                    {
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
-                    }
+            if (culmDamage <= 0) return;
 
-                    if (UnityEngine.Random.value <= 0.2f)
-                    {
-                        AudioKey[] aggressivePool = { AudioKey.Scream_1, AudioKey.Scream_2, AudioKey.Scream_3, AudioKey.ScreamAngry, AudioKey.ShadowClicking };
-                        AudioKey randomVocalization = aggressivePool[UnityEngine.Random.Range(0, aggressivePool.Length)];
-                        _plugin.AudioManager.PlayOrbitingAudio(player, randomVocalization);
-                    }
-
-                    Scp575DamageSystem.DamagePlayer(player, culmDamage);
-                }
-            }
+            // Trigger audio feedback based on vulnerability state
+            if (isVulnerable)
+                _plugin.AudioManager.PlayAggressiveAudio(player);
             else
-            {
-                float culmDamage = stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
-                if (culmDamage > 0)
-                {
-                    if (UnityEngine.Random.value <= 0.15f)
-                    {
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
-                    }
-                    else if (UnityEngine.Random.value <= 0.1f)
-                    {
-                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
-                    }
+                _plugin.AudioManager.PlayDefensiveAudio(player);
 
-                    if (UnityEngine.Random.value <= 0.15f)
-                    {
-                        AudioKey[] defensivePool = { AudioKey.Whispers_1, AudioKey.Whispers_2, AudioKey.WhispersBang, AudioKey.ShadowClicking };
-                        AudioKey randomWhisper = defensivePool[UnityEngine.Random.Range(0, defensivePool.Length)];
-                        _plugin.AudioManager.PlayOrbitingAudio(player, randomWhisper);
-                    }
-
-                    Scp575DamageSystem.DamagePlayer(player, culmDamage);
-                }
-            }
+            Scp575DamageSystem.DamagePlayer(player, culmDamage);
         }
+
+
+
+
+
+
 
         #endregion
 

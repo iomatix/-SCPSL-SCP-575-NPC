@@ -417,6 +417,83 @@
             PlayAudioAutoManaged(player, selected, hearableForAllPlayers: false, lifespan: null);
         }
 
+        /// <summary>
+        /// Plays aggressive audio cues when the target is fully exposed to SCP-575.
+        /// </summary>
+        public void PlayAggressiveAudio(Player player)
+        {
+            // Intent: create sudden, violent impact feedback
+            PlayCommonAudio(player, new[] { AudioKey.AnomalousImpact }, 0.15f);
+
+            // Intent: rare but intense strike cue
+            PlayCommonAudio(player, new[] { AudioKey.ShadowStrike }, 0.10f);
+
+            // Intent: aggressive vocalization orbiting around the player
+            AudioKey[] aggressivePool =
+            {
+                AudioKey.Scream_1,
+                AudioKey.Scream_2,
+                AudioKey.Scream_3,
+                AudioKey.ScreamAngry
+            };
+            PlayCommonAudio(player, aggressivePool, 0.10f, orbit: true);
+
+            // Intent: subtle but unsettling clicking
+            PlayCommonAudio(player, new[] { AudioKey.ShadowClicking }, 0.05f);
+        }
+
+        /// <summary>
+        /// Plays a random audio clip from the provided pool with a given probability.
+        /// Supports both positional and orbiting playback.
+        /// </summary>
+        public void PlayCommonAudio(Player player, AudioKey[] pool, float chance, bool orbit = false)
+        {
+            if (UnityEngine.Random.value > chance)
+                return;
+
+            // Intent: choose a random clip from the pool
+            AudioKey selected = pool.Length == 1
+                ? pool[0]
+                : pool[UnityEngine.Random.Range(0, pool.Length)];
+
+            if (orbit)
+            {
+                // Intent: create spatial movement around the player
+                _plugin.AudioManager.PlayOrbitingAudio(player, selected);
+            }
+            else
+            {
+                // Intent: play direct positional cue
+                _plugin.AudioManager.PlayAudioAtPosition(selected, player.Position, isTransient: true);
+            }
+        }
+
+
+
+        /// <summary>
+        /// Plays defensive or suppressed audio cues when the target is partially protected by light.
+        /// </summary>
+        public void PlayDefensiveAudio(Player player)
+        {
+            // Intent: weakened impact due to light protection
+            PlayCommonAudio(player, new[] { AudioKey.AnomalousImpact }, 0.10f);
+
+            // Intent: rare suppressed strike cue
+            PlayCommonAudio(player, new[] { AudioKey.ShadowStrike }, 0.05f);
+
+            // Intent: defensive whispering orbiting around the player
+            AudioKey[] defensivePool =
+            {
+            AudioKey.Whispers_1,
+            AudioKey.Whispers_2,
+            AudioKey.WhispersBang
+            };
+            PlayCommonAudio(player, defensivePool, 0.10f, orbit: true);
+
+            // Intent: fallback subtle clicking when whispers do not trigger
+            PlayCommonAudio(player, new[] { AudioKey.ShadowClicking }, 0.10f);
+        }
+
         public void UpdatePlayerBackgroundAmbient(Player player, bool shouldPlayDrone)
         {
             if (player == null || string.IsNullOrEmpty(player.UserId)) return;
