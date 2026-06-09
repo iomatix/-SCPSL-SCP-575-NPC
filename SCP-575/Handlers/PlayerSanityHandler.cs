@@ -295,11 +295,10 @@
 
             if (culmDamage <= 0) return;
 
+            ChangeSanityValue(player, _plugin.Config.SanityConfig.ScpHitSanityDrop);
             // Trigger audio feedback based on vulnerability state
-            if (isVulnerable)
-                _plugin.AudioManager.PlayAggressiveAudio(player);
-            else
-                _plugin.AudioManager.PlayDefensiveAudio(player);
+            if (isVulnerable) _plugin.AudioManager.PlayAggressiveAudio(player);
+            else _plugin.AudioManager.PlayDefensiveAudio(player);
 
             Scp575DamageSystem.DamagePlayer(player, culmDamage);
         }
