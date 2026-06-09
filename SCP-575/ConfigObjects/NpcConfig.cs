@@ -70,13 +70,13 @@ namespace SCP_575.ConfigObjects
         /// Minimum force modifier applied to ragdolls damaged by SCP-575.
         /// </summary>
         [Description("The minimum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMinModifier { get; set; } = 1.45f;
+        public float KeterForceMinModifier { get; set; } = 1.55f;
 
         /// <summary>
         /// Maximum force modifier applied to ragdolls damaged by SCP-575.
         /// </summary>
         [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
-        public float KeterForceMaxModifier { get; set; } = 3.25f;
+        public float KeterForceMaxModifier { get; set; } = 2.45f;
 
         #endregion
 
