@@ -4,21 +4,23 @@
     using AudioManagerAPI.Features.Enums;
     using AudioManagerAPI.Features.Filters;
     using AudioManagerAPI.Features.Management;
+    using AudioManagerAPI.Features.Management.Settings;
     using LabApi.Features.Wrappers;
     using MEC;
-    using SCP_575.Shared.Audio.Enums;
     using SCP_575.Shared;
+    using SCP_575.Shared.Audio.Enums;
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Reflection;
     using UnityEngine;
     using Log = LabApi.Features.Console.Logger;
 
     /// <summary>
-    /// Highly optimized, enterprise-grade audio orchestration engine for SCP-575.
-    /// Manages transient vocalizations, 3D isolated paranoia tracks, and procedural environmental soundscapes.
-    /// Operates securely on AudioManagerAPI V2.0.0 Session Architecture.
+    /// Highly optimized acoustic orchestration engine for SCP-575.
+    /// Acts as a lightweight profile registry that delegates structural space transformations 
+    /// and tracking loops directly to the underlying AudioManagerAPI V2.3.2 subsystem.
     /// </summary>
     public class Scp575AudioManager
     {
@@ -57,7 +59,6 @@
             { AudioKey.AnomalousImpact, new("scp575.anomalous_impact", 0.95f, 3.5f, 25f, true, AudioPriority.High, 5f) },
             { AudioKey.GeneratorHumDefense, new("scp575.generator_hum_defense", 0.75f, 6.5f, 45f, true, AudioPriority.Medium, 0f) },
             { AudioKey.LightShortCircuit, new("scp575.light_short_circuit", 0.9f, 2.5f, 18f, true, AudioPriority.Max, 1.5f) },
-            //{ AudioKey.StaticBuzz, new("scp575.static_buzz", 0.37f, 2.5f, 15f, true, AudioPriority.Medium, 0f) }, // TODO: Add static buzz
 
             { AudioKey.Ambience, new("scp575.ambience", 0.45f, 0f, 999.99f, false, AudioPriority.Low, 0f) },
             { AudioKey.SanityLowDrone, new("scp575.sanity_low_drone", 0.45f, 200.0f, 999.99f, false, AudioPriority.Medium, 0f) },
@@ -65,9 +66,9 @@
         };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Scp575AudioManager"/> class, anchoring it to the core plugin lifecycle and resolving native audio session bridges.
+        /// Initializes a new instance of the <see cref="Scp575AudioManager"/> class, anchoring it to the core plugin lifecycle.
         /// </summary>
-        /// <param name="plugin">The master plugin context used to reference configuration profiles and event states.</param>
+        /// <param name="plugin">The master plugin context used to reference configuration profiles.</param>
         public Scp575AudioManager(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
@@ -77,7 +78,7 @@
         }
 
         /// <summary>
-        /// Performs emergency resource rehabilitation by tearing down active routine tracking threads and systematically fading out lingering audio sessions to prevent memory or channel allocation leaks.
+        /// Performs emergency resource rehabilitation by tearing down active routine tracking threads and systematically fading out lingering audio sessions.
         /// </summary>
         /// <param name="fullShutdown">If set to <c>true</c>, cleans up infrastructure audio segments like functional generator hums alongside standard effects.</param>
         public void Clean(bool fullShutdown = false)
@@ -95,8 +96,6 @@
                 _pluginSessionIds.Clear();
             }
 
-            // FIXED: Clears tracking keys mapping to drone sessions. Since physical sessions 
-            // are terminated above, maintaining these keys would block future ambient triggers in the same round.
             _activeDroneSessions.Clear();
 
             if (fullShutdown && _generatorSessionIds.Count > 0)
@@ -113,14 +112,15 @@
         }
 
         /// <summary>
-        /// Serves as the central backend pipeline for processing, validating, sanitizing vectors, and executing all spatialized and non-spatialized raw audio tracks.
+        /// Serves as the fallback managed backend pipeline for processing, validating, and executing raw audio tracks.
         /// </summary>
-        /// <returns>A unique network audio session handle identifier used for runtime modification, tracking, or early eviction.</returns>
+        /// <returns>A unique network audio session handle identifier used for runtime modification.</returns>
         public int PlayAudioAutoManaged(Player player, AudioKey audioKey, Vector3? position = null, float? lifespan = null, bool hearableForAllPlayers = false, bool queue = false, float fadeInDuration = 0f, bool isNonSpatial = false, bool isTransient = false, Player sourcePlayer = null)
         {
             if (!_audioRegistry.TryGetValue(audioKey, out var config))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration.", nameof(audioKey));
 
+            // Guard against virtual audio pipeline channel starvation if asynchronous events are spammed.
             if (isTransient && player != null)
             {
                 string debounceKey = player.UserId + "_" + (int)audioKey;
@@ -139,6 +139,7 @@
 
             Vector3 playPosition = isNonSpatial ? Vector3.zero : (position ?? player.Position);
 
+            // Enforce strategic pacing limitations on apocalyptic spatial global vocalizations.
             if (isNonSpatial && (audioKey == AudioKey.Scream_1 || audioKey == AudioKey.Scream_2 || audioKey == AudioKey.Scream_3 || audioKey == AudioKey.ScreamAngry || audioKey == AudioKey.ScreamDying))
             {
                 double secondsSinceLastScream = (DateTime.UtcNow - _lastGlobalScreamTime).TotalSeconds;
@@ -146,6 +147,7 @@
                 _lastGlobalScreamTime = DateTime.UtcNow;
             }
 
+            // Sanitize coordinate primitives against floating point instabilities before spatial layout attachment.
             if (!isNonSpatial && (float.IsNaN(playPosition.x) || float.IsNaN(playPosition.y) || float.IsNaN(playPosition.z) || float.IsInfinity(playPosition.x) || float.IsInfinity(playPosition.y) || float.IsInfinity(playPosition.z)))
             {
                 playPosition = Vector3.zero;
@@ -156,9 +158,7 @@
                 StopAmbience();
             }
 
-            // ===================================================================
-            // AAA NETCODE OPTIMIZATION: AREA OF INTEREST (AoI) FILTRATION
-            // ===================================================================
+            // Isolate network packet visibility arrays depending on subjective hallucination vs global auditory broadcast states.
             Func<Player, bool> targetPlayerFilter;
             if (!hearableForAllPlayers && player != null)
             {
@@ -190,7 +190,6 @@
             }
             else
             {
-
                 sessionId = _audioEngine.PlayAudio(
                     config.Key, playPosition, loop: isGeneratorHum, volume: config.Volume,
                     minDistance: config.MinDistance, maxDistance: config.MaxDistance,
@@ -212,16 +211,6 @@
                 _pluginSessionIds.Add(sessionId);
             }
 
-            // ===================================================================
-            // FIX: RACE CONDITION SUPPRESSION FOR MICRO-AUDIO
-            // ===================================================================
-            float effectiveLifespan = lifespan ?? config.DefaultLifespan;
-            if (effectiveLifespan > 0)
-            {
-                Timing.RunCoroutine(LifespanCleanupCoroutine(sessionId, effectiveLifespan, audioKey, isNonSpatial, hearableForAllPlayers), AudioCoroutineTag);
-            }
-
-
             return sessionId;
         }
 
@@ -233,7 +222,7 @@
             PlayOrbitingAudioCore(
                 positionProvider: () => player.Position,
                 validationCheck: () => player != null && player.IsAlive,
-                listener: player, // Only the target player hears it
+                listener: player,
                 audioKey: audioKey,
                 lifespan: lifespan,
                 maxRadius: maxRadius,
@@ -250,8 +239,8 @@
         {
             PlayOrbitingAudioCore(
                 positionProvider: () => staticPosition,
-                validationCheck: () => true, // A static coordinate in space is always valid
-                listener: null, // Null means it's a global spatial sound hearable by anyone nearby
+                validationCheck: () => true,
+                listener: null,
                 audioKey: audioKey,
                 lifespan: lifespan,
                 maxRadius: maxRadius,
@@ -265,208 +254,88 @@
         /// <summary>
         /// Universal acoustic orbit engine. Tracks any arbitrary spatial coordinate provider in real-time.
         /// </summary>
-        /// <param name="positionProvider">Delegate returning the current 3D vector of the target to orbit.</param>
-        /// <param name="validationCheck">Delegate evaluating if the target is still valid (stops coroutine if false).</param>
-        /// <param name="listener">The specific player who hears the audio, or null for a global broadcast.</param>
         public void PlayOrbitingAudioCore(Func<Vector3> positionProvider, Func<bool> validationCheck, Player listener, AudioKey audioKey, float? lifespan = null, float maxRadius = 3.2f, float minRadius = 0.6f, float angularSpeed = 1.1f, float approachSpeed = 1.5f, float heightOffset = 0.85f)
         {
             if (positionProvider == null || validationCheck == null || !validationCheck()) return;
 
-            if (!_audioRegistry.TryGetValue(audioKey, out var config))
+            if (!_audioRegistry.TryGetValue(audioKey, out var profile))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration system registries.", nameof(audioKey));
 
-            float effectiveLifespan = lifespan ?? config.DefaultLifespan;
+            float effectiveLifespan = lifespan ?? profile.DefaultLifespan;
             if (effectiveLifespan <= 0f) return;
 
-            bool hearableForAll = listener == null;
+            // Consolidate trigonometric velocity variables into a parameter object to insulate the call stack from API parameter modifications.
+            OrbitSettings dynamicMovementConfiguration = new OrbitSettings(
+                maxRadius: maxRadius,
+                minRadius: minRadius,
+                angularSpeed: angularSpeed,
+                approachSpeed: approachSpeed,
+                heightOffset: heightOffset
+            );
 
-            int sessionId = PlayAudioAutoManaged(
-                player: listener,
-                audioKey: audioKey,
-                position: positionProvider(), // Fetches the initial position
+            // Shift coordinate wave computations away from the local assembly directly onto the low-level framework driver matrix.
+            _audioEngine.PlayOrbitingAudio(
+                key: profile.Key,
+                positionProvider: positionProvider,
+                validationCheck: validationCheck,
+                volume: profile.Volume,
+                minDistance: profile.MinDistance,
+                maxDistance: profile.MaxDistance,
+                orbitSettings: dynamicMovementConfiguration,
+                priority: profile.Priority,
                 lifespan: effectiveLifespan,
-                hearableForAllPlayers: hearableForAll,
-                isTransient: false
-            );
-
-            if (sessionId == 0) return;
-
-            Timing.RunCoroutine(
-                TrackAndOrbitPositionCoroutine(positionProvider, validationCheck, sessionId, effectiveLifespan, maxRadius, minRadius, angularSpeed, approachSpeed, heightOffset),
-                AudioCoroutineTag
+                targetPlayerFilter: listener == null ? null : p => p != null && p.UserId == listener.UserId
             );
         }
 
         /// <summary>
-        /// Generalized trigonometric vector update loop utilizing dynamic position providers.
-        /// </summary>
-        private IEnumerator<float> TrackAndOrbitPositionCoroutine(Func<Vector3> positionProvider, Func<bool> validationCheck, int sessionId, float duration, float maxRadius, float minRadius, float angularSpeed, float approachSpeed, float heightOffset = 0.85f)
-        {
-            float elapsed = 0f;
-            float currentAngle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
-            float approachPhaseOffset = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
-
-            while (elapsed < duration)
-            {
-                if (!validationCheck())
-                {
-                    try
-                    {
-                        _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
-                        _pluginSessionIds.Remove(sessionId);
-                    }
-                    catch { }
-                    yield break;
-                }
-
-                Vector3 corePosition = positionProvider();
-
-                float normalizedSine = (Mathf.Sin((elapsed * approachSpeed) + approachPhaseOffset) + 1f) / 2f;
-                float currentRadius = Mathf.Lerp(minRadius, maxRadius, normalizedSine);
-
-                float xOffset = Mathf.Cos(currentAngle) * currentRadius;
-                float zOffset = Mathf.Sin(currentAngle) * currentRadius;
-
-                Vector3 projectedVector = new Vector3(
-                    corePosition.x + xOffset,
-                    corePosition.y + heightOffset, // Maintains ear-level projection
-                    corePosition.z + zOffset
-                );
-
-                try
-                {
-                    _audioEngine.SetSessionPosition(sessionId, projectedVector);
-                }
-                catch (Exception)
-                {
-                    yield break;
-                }
-
-                currentAngle += angularSpeed * Timing.DeltaTime;
-                elapsed += Timing.DeltaTime;
-
-                yield return Timing.WaitForOneFrame;
-            }
-        }
-
-        /// <summary>
-        /// Spawns a 3D spatialized audio track that dynamically locks onto the player's anatomical head/neck region.
-        /// Automatically computes local space orientation (facing direction) on every frame tick.
+        /// Attaches a dynamic sound source to a moving target silhouette with frame-perfect tracking vectors.
         /// </summary>
         public void PlayTrackingAudio(Player player, AudioKey audioKey, float? lifespan = null, bool hearableForAllPlayers = true, Vector3? customOffset = null)
         {
-            if (player == null || !player.IsReady)
-                return;
+            if (player == null || !player.IsReady) return;
 
-            if (!_audioRegistry.TryGetValue(audioKey, out var config))
+            if (!_audioRegistry.TryGetValue(audioKey, out var profile))
                 throw new ArgumentException($"Audio key {audioKey} not found in configuration registries.", nameof(audioKey));
 
-            float effectiveLifespan = lifespan ?? config.DefaultLifespan;
-            if (effectiveLifespan <= 0f)
-                return;
+            float effectiveLifespan = lifespan ?? profile.DefaultLifespan;
+            if (effectiveLifespan <= 0f) return;
 
-            // REACTIVE POSITION PROVIDER LAMBDA (Zero-Allocation Local Space Translation)
-            Func<Vector3> positionProvider = () =>
+            // Maintain spatial tracking within the target's anatomical perception grid height maps without generating heap allocations.
+            Func<Vector3> locationProvider = () =>
             {
-                if (player == null || player.GameObject == null)
-                    return Vector3.zero;
+                if (player == null || player.GameObject == null) return Vector3.zero;
+                if (customOffset.HasValue) return player.Position + customOffset.Value;
 
-                // Fallback: If a developer forces a hardcoded world offset, use it directly.
-                if (customOffset.HasValue)
-                {
-                    return player.Position + customOffset.Value;
-                }
-
-                // Native Unity Transform reference query
-                Transform t = player.GameObject.transform;
-
-                // 1.65f meters represents the standard human neck/eye-level height matrix in SCP:SL.
-                // 0.001f meters (exactly 1mm) drives the sound source slightly forward along the look vector,
-                // anchoring the spatial panner perfectly "inside the skull/front of face" without clipping background geo.
-                return player.Position + (t.up * 1.65f) + (t.forward * 0.001f);
+                Transform transformTarget = player.GameObject.transform;
+                return player.Position + (transformTarget.up * 1.65f) + (transformTarget.forward * 0.001f);
             };
 
-            // Instantiate the session using the initial frame calculation
-            int sessionId = PlayAudioAutoManaged(
-                player: hearableForAllPlayers ? null : player,
-                audioKey: audioKey,
-                position: positionProvider(),
+            // Offload runtime synchronous coordinate loops entirely to the network virtualization framework.
+            _audioEngine.PlayTrackingAudio(
+                key: profile.Key,
+                positionProvider: locationProvider,
+                validationCheck: () => player != null && player.IsReady && player.IsAlive,
+                priority: profile.Priority,
                 lifespan: effectiveLifespan,
-                hearableForAllPlayers: hearableForAllPlayers,
-                isTransient: false
+                targetPlayerFilter: hearableForAllPlayers ? null : p => p != null && p.UserId == player.UserId,
+                volume: profile.Volume,
+                minDistance: profile.MinDistance,
+                maxDistance: profile.MaxDistance
             );
-
-            if (sessionId == 0)
-                return;
-
-            // Pass the reactive provider to the frame update engine
-            Timing.RunCoroutine(
-                TrackTargetPositionCoroutine(positionProvider, () => player != null && player.IsReady && player.IsAlive, sessionId, effectiveLifespan),
-                AudioCoroutineTag
-            );
-        }
-
-        /// <summary>
-        /// High-performance frame-by-frame layout syncer. Forwards live vector data to the active audio session handle.
-        /// </summary>
-        private IEnumerator<float> TrackTargetPositionCoroutine(Func<Vector3> positionProvider, Func<bool> validationCheck, int sessionId, float duration)
-        {
-            float elapsed = 0f;
-
-            // 100ms hardware warm-up buffer to let Unity initialize the physical 3D speaker component components
-            yield return Timing.WaitForSeconds(0.1f);
-
-            while (elapsed < duration)
-            {
-                if (!validationCheck())
-                {
-                    try
-                    {
-                        if (_audioEngine.IsValidSession(sessionId))
-                        {
-                            _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
-                            _pluginSessionIds.Remove(sessionId);
-                        }
-                    }
-                    catch { }
-                    yield break;
-                }
-
-                try
-                {
-                    if (_audioEngine.IsValidSession(sessionId))
-                    {
-                        // Dynamically updates the 3D panner position with computed local transformation matrix
-                        _audioEngine.SetSessionPosition(sessionId, positionProvider());
-                    }
-                    else
-                    {
-                        yield break;
-                    }
-                }
-                catch (Exception)
-                {
-                    yield break;
-                }
-
-                elapsed += Timing.DeltaTime;
-                yield return Timing.WaitForOneFrame;
-            }
         }
 
         /// <summary>
         /// Broadcasts an environmental non-spatial audio track globally to all active network clients with automated lifetime garbage collection.
         /// </summary>
-        /// <returns>A unique audio channel session identifier for global synchronization control.</returns>
         public int PlayGlobalAudioAutoManaged(AudioKey audioKey, float? lifespan = null, bool queue = false, float fadeInDuration = 0f)
         {
             return PlayAudioAutoManaged(null, audioKey, null, lifespan, hearableForAllPlayers: true, queue, fadeInDuration, isNonSpatial: true);
         }
 
         /// <summary>
-        /// Establishes the continuous situational backdrop soundscape, dynamically filtering client audibility based on real-time facility blackout conditions and light levels.
+        /// Establishes the continuous situational backdrop soundscape, dynamically filtering client audibility based on real-time facility blackout conditions.
         /// </summary>
-        /// <returns>A unique session handle representing the running environmental background pipeline.</returns>
         public int PlayAmbience(bool loop = true, float? lifespan = null, float fadeInDuration = 0f, bool queue = false)
         {
             var config = _audioRegistry[AudioKey.Ambience];
@@ -511,40 +380,49 @@
         public void SkipAudio(int sessionId, int count) => _audioEngine.SkipAudio(sessionId, count);
 
         /// <summary>
-        /// Dispatches a spatialized audio cue fixed to a static coordinate vector in the 3D game world, 
-        /// protected by a non-blocking debouncer gate tracking the source player.
+        /// Dispatches a high-fidelity spatialized acoustic event with automatic dual-channel configuration 
+        /// to ensure latency-free simulation for the actor and immersive propagation for the environment.
         /// </summary>
         public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null, bool isTransient = false, Player sourcePlayer = null)
         {
-
-            PlayAudioAutoManaged(sourcePlayer, key, position, lifespan: lifespan, hearableForAllPlayers: true, isNonSpatial: false, isTransient: isTransient, sourcePlayer: sourcePlayer);
-
-            if (sourcePlayer != null)
+            if (!_audioRegistry.TryGetValue(key, out var profile))
             {
-                PlayLocalAudio(sourcePlayer, key, lifespan: lifespan, isTransient: isTransient);
+                Log.Error($"[Scp575AudioManager] Failed to route smart spatial asset. Key '{key}' is unassigned.");
+                return;
             }
+
+            // Suppress wave interference mechanics and jitter variations for the local execution agent 
+            // while preserving authentic multi-channel attenuation profiles for remote peripheral observers.
+            _audioEngine.PlaySpatialSmart(
+                key: profile.Key,
+                position: position,
+                sourcePlayer: sourcePlayer,
+                priority: profile.Priority,
+                lifespan: lifespan ?? profile.DefaultLifespan,
+                volume: profile.Volume,
+                minDistance: profile.MinDistance,
+                maxDistance: profile.MaxDistance
+            );
         }
 
         /// <summary>
-        /// Injects a non-spatial auditory hallucination directly into a specific target player's personal headspace, completely isolating the perception from the rest of the server.
+        /// Injects a non-spatial auditory hallucination directly into a specific target player's personal headspace.
         /// </summary>
-        /// <returns>The localized audio tracking ID.</returns>
         public int PlayLocalAudio(Player player, AudioKey audioKey, float? lifespan = null, float fadeInDuration = 0f, bool isTransient = false)
         {
             return PlayAudioAutoManaged(player, audioKey, position: null, lifespan: lifespan, hearableForAllPlayers: false, queue: false, fadeInDuration: fadeInDuration, isNonSpatial: true, isTransient: isTransient);
         }
 
         /// <summary>
-        /// Projects a 3D spatialized audio effect that is strictly isolated to a single target player's perception network, creating a private positional auditory hallucination.
+        /// Projects a 3D spatialized audio effect that is strictly isolated to a single target player's perception network.
         /// </summary>
-        /// <returns>The isolated audio tracking ID.</returns>
         public int PlayIsolatedSpatialAudio(Player player, AudioKey audioKey, Vector3 position, float? lifespan = null, float fadeInDuration = 0f, bool isTransient = false)
         {
             return PlayAudioAutoManaged(player, audioKey, position: position, lifespan: lifespan, hearableForAllPlayers: false, queue: false, fadeInDuration: fadeInDuration, isNonSpatial: false, isTransient: isTransient);
         }
 
         /// <summary>
-        /// Evaluates a pool of auditory paranoia alternatives to select and manifest a random atmospheric psychological trigger for the target player.
+        /// Evaluates a pool of auditory paranoia alternatives to select and manifest a random atmospheric psychological trigger.
         /// </summary>
         public void PlayRandomAudioEffect(Player player, params AudioKey[] options)
         {
@@ -557,7 +435,7 @@
         }
 
         /// <summary>
-        /// Orchestrates continuous 2D background ambience state transitions based on target sanity brackets, handling fade-in triggers or session caching per client.
+        /// Orchestrates continuous 2D background ambience state transitions based on target sanity brackets.
         /// </summary>
         public void UpdatePlayerBackgroundAmbient(Player player, bool shouldPlayDrone)
         {
@@ -589,7 +467,7 @@
         }
 
         /// <summary>
-        /// Explicit emergency cutoff tracking hook linked to network disconnection lifecycles to instantaneously strip active tracking audio from an exiting client.
+        /// Explicit emergency cutoff tracking hook linked to network disconnection lifecycles.
         /// </summary>
         public void ForceStopAllPlayerAudio(Player player)
         {
@@ -604,7 +482,7 @@
         }
 
         /// <summary>
-        /// Scans internal assembly manifests via reflection to locate embedded audio binaries and maps them securely into the audio engine registration table.
+        /// Scans internal assembly manifests via reflection to locate embedded audio binaries and maps them securely.
         /// </summary>
         private void RegisterAudioResources()
         {
@@ -622,68 +500,6 @@
 
                 _audioEngine.RegisterAudio(key, () => assembly.GetManifestResourceStream(resourceName));
             }
-        }
-
-        private IEnumerator<float> LifespanCleanupCoroutine(int sessionId, float lifespan, AudioKey audioKey, bool isNonSpatial, bool hearableForAllPlayers)
-        {
-            // ===================================================================
-            // AAA COMPENSATOR: 3D PHYSICAL SPEAKER WARM-UP BUFFER
-            // ===================================================================
-            if (!isNonSpatial)
-            {
-                // Yielding frames allows Unity to execute Awake/Start on the Speaker GameObject 
-                // and ensures 'InitializePhysicalSpeaker' bonds before we start the truncation countdown.
-                yield return Timing.WaitForSeconds(0.1f);
-            }
-
-            // Now the server clock is perfectly synchronized with the actual audible start on the client
-            yield return Timing.WaitForSeconds(lifespan);
-
-            if (audioKey == AudioKey.Ambience && (isNonSpatial || hearableForAllPlayers))
-            {
-                StopAmbience();
-            }
-            else
-            {
-                try
-                {
-                    if (_audioEngine.IsValidSession(sessionId))
-                    {
-                        if (lifespan < 0.5f)
-                        {
-                            // SOFT STOP: Instantly mute the playback data layer.
-                            _audioEngine.FadeOutAudio(sessionId, 0f);
-
-                            // DELAYED FLUSH: Give the UDP network buffer 250ms to flush the 0.115s audio tail.
-                            Timing.RunCoroutine(DelayedSessionDestroy(sessionId, 0.25f), AudioCoroutineTag);
-                        }
-                        else
-                        {
-                            _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
-                        }
-                    }
-                }
-                catch { /* Protect server frame stability against race conditions */ }
-            }
-
-            _pluginSessionIds.Remove(sessionId);
-        }
-
-        /// <summary>
-        /// Asynchronously purges the network session ID after allowing the packet buffers to flush to remote clients.
-        /// </summary>
-        private IEnumerator<float> DelayedSessionDestroy(int sessionId, float delay)
-        {
-            yield return Timing.WaitForSeconds(delay);
-
-            try
-            {
-                if (_audioEngine.IsValidSession(sessionId))
-                {
-                    _audioEngine.DestroySession(sessionId);
-                }
-            }
-            catch { /* Prevent unexpected state exceptions if session was cleared externally */ }
         }
 
         private sealed class AudioTrackProfile
