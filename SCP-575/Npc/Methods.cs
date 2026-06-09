@@ -530,26 +530,6 @@ namespace SCP_575.Npc
         public void StartAmbienceTrackingLoop()
         {
             Timing.KillCoroutines(CoroutineTags.AmbienceTracking);
-            Timing.RunCoroutine(TrackDarkroomAmbienceLoop(), CoroutineTags.AmbienceTracking);
-        }
-
-        /// <summary>
-        /// Evaluates players dynamically, streaming ambient track to those submerged in darkness.
-        /// </summary>
-        private IEnumerator<float> TrackDarkroomAmbienceLoop()
-        {
-            while (_isInitialized)
-            {
-                yield return Timing.WaitForSeconds(1.0f);
-
-                if (!_plugin.IsEventActive) continue;
-
-                // Utilizing the global audio routing method with a predicate filter targeting only dark rooms
-                _plugin.AudioManager.PlayGlobalAudioWithFilter(
-                    AudioKey.Ambience,
-                    player => player != null && player.IsAlive && player.IsHuman && _libraryLabAPI.IsPlayerInDarkRoom(player)
-                );
-            }
         }
 
         public void ForceGlobalBlackoutEvent()

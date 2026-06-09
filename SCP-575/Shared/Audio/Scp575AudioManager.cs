@@ -321,7 +321,7 @@
                 && p.IsReady
                 && !p.IsHost
                 && _plugin.IsEventActive
-                && _libraryLabAPI.IsPlayerInDarkRoom(p);
+                && _plugin.LibraryLabAPI.IsPlayerInDarkRoom(p);
 
             int sessionId = _audioEngine.PlayGlobalAudio(
                 key: config.Key, loop: loop, volume: config.Volume, priority: config.Priority,
