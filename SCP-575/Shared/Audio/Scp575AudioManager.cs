@@ -200,7 +200,8 @@
             }
             else if (!isTransient && loop) // FIX: Only track inside persistent collection if the track requires explicit structural interruption (loops)
             {
-                _activeDroneSessions[player.UserId] = sessionId;
+                string userId = player.UserId.ToLowerInvariant();
+                _activeDroneSessions[userId] = sessionId;
             }
             else if (!isTransient)
             {
