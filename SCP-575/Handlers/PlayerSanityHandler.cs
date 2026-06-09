@@ -291,6 +291,10 @@
                 if (culmDamage > 0)
                 {
                     _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
+                    if (UnityEngine.Random.value <= 0.2f)
+                    {
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
+                    }
 
                     if (UnityEngine.Random.value <= 0.25f)
                     {
@@ -307,7 +311,14 @@
                 float culmDamage = stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
                 if (culmDamage > 0)
                 {
-                    _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
+                    if (UnityEngine.Random.value <= 0.35f)
+                    {
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.AnomalousImpact, player.Position, isTransient: true);
+                    }
+                    else if (UnityEngine.Random.value <= 0.15f)
+                    {
+                        _plugin.AudioManager.PlayAudioAtPosition(AudioKey.ShadowStrike, player.Position, isTransient: true);
+                    }
 
                     if (UnityEngine.Random.value <= 0.15f)
                     {

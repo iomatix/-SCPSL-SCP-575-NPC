@@ -337,11 +337,11 @@ namespace SCP_575.Handlers
                 var player = Player.Get(userId);
                 if (player != null)
                 {
-                    if (UnityEngine.Random.value <= 0.23f)
+                    if (UnityEngine.Random.value <= 0.25f)
                     {
                         _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal);
                     }
-                    if (UnityEngine.Random.value <= 0.12f)
+                    if (UnityEngine.Random.value <= 0.15f)
                     {
                         _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking);
                     }
