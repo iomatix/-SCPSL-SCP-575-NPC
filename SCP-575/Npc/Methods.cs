@@ -403,9 +403,6 @@ namespace SCP_575.Npc
                 yield return Timing.WaitForSeconds(finalDelay);
 
 
-                yield return Timing.WaitForSeconds(finalDelay);
-
-
                 if (!_plugin.IsEventActive || !IsBlackoutActive) continue;
 
                 foreach (Player player in Player.ReadyList)
