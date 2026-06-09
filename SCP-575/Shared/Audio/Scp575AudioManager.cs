@@ -72,10 +72,19 @@
             _ambienceAudioSessionId = 0;
         }
 
+        /// <summary>
+        /// Terminates active audio tracking sessions. Preserves the background ambience singleton 
+        /// across localized state resets, killing it only during hard round teardowns.
+        /// </summary>
         public void Clean(bool fullShutdown = false)
         {
             Timing.KillCoroutines(AudioCoroutineTag);
-            StopAmbience();
+
+            // FIX: Ambience lives continuously through the event lifecycle. Only destroy the speaker component on hard plugin disable.
+            if (fullShutdown)
+            {
+                StopAmbience();
+            }
 
             if (_pluginSessionIds.Count > 0)
             {
@@ -308,16 +317,16 @@
         }
 
         /// <summary>
-        /// Registers a persistent global ambient track that dynamically streams only to
-        /// players currently fully submerged in dark rooms while the event lifecycle is active.
+        /// Registers a persistent global ambient track. Uses a strict singleton guard clause 
+        /// to block duplicate speaker allocations within the underlying audio engine.
         /// </summary>
         public int PlayAmbience(bool loop = true, float? lifespan = null, float fadeInDuration = 0f, bool queue = false)
         {
-            var config = _audioRegistry[AudioKey.Ambience];
-            if (_ambienceAudioSessionId != 0) StopAmbience();
+            if (_ambienceAudioSessionId != 0) return _ambienceAudioSessionId;
 
-            // Real-time predicate filter evaluated by the underlying audio engine per-frame/per-player
-            Func<Player, bool> darkroomFilter = p => p != null
+            var config = _audioRegistry[AudioKey.Ambience];
+
+            Func<Player, bool> blackoutFilter = p => p != null
                 && p.IsReady
                 && !p.IsHost
                 && _plugin.IsEventActive
@@ -325,31 +334,26 @@
 
             int sessionId = _audioEngine.PlayGlobalAudio(
                 key: config.Key, loop: loop, volume: config.Volume, priority: config.Priority,
-                validPlayersFilter: darkroomFilter, queue: queue, fadeInDuration: fadeInDuration,
+                validPlayersFilter: blackoutFilter, queue: queue, fadeInDuration: fadeInDuration,
                 persistent: true, lifespan: null, autoCleanup: true);
 
             if (sessionId == 0) return 0;
             _ambienceAudioSessionId = sessionId;
 
-            if (!loop && lifespan.HasValue)
-            {
-                if (lifespan.Value <= 0) { StopAmbience(); return 0; }
-                var coroutine = Timing.CallDelayed(lifespan.Value, StopAmbience);
-                coroutine.Tag = AudioCoroutineTag;
-            }
-
             return sessionId;
         }
 
+        /// <summary>
+        /// Safely triggers a fade-out sequence on the background ambient track and releases the session lock.
+        /// </summary>
         public void StopAmbience()
         {
             if (_ambienceAudioSessionId != 0)
             {
-                _audioEngine.FadeOutAudio(_ambienceAudioSessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
-                _ambienceAudioSessionId = 0;
+                try { _audioEngine.FadeOutAudio(_ambienceAudioSessionId, _plugin.Config.AudioConfig.DefaultFadeDuration); } catch { }
+                _ambienceAudioSessionId = 0; // Lock released safely
             }
         }
-
         public void SkipAudio(int sessionId, int count) => _audioEngine.SkipAudio(sessionId, count);
 
         public void PlayAudioAtPosition(AudioKey key, Vector3 position, float? lifespan = null, bool isTransient = false, Player sourcePlayer = null)
