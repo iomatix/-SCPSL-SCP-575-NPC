@@ -70,6 +70,9 @@ namespace SCP_575.Npc
                 StartSanityHandlerLoop();
                 _plugin.MapHandler?.ExecuteFlashlightDistribution();
 
+                // Fire the persistent filtered ambient track right as the event system spins up
+                _plugin.AudioManager.PlayAmbience(loop: true, fadeInDuration: 3.0f);
+
                 foreach (var player in Player.ReadyList)
                 {
                     if (_sanityHandler.IsValidPlayer(player))
@@ -334,8 +337,6 @@ namespace SCP_575.Npc
             IncrementBlackoutStack();
             TriggerCassieMessage(_config.CassieConfig.CassieKeter);
 
-            _plugin.AudioManager.PlayGlobalAudioAutoManaged(AudioKey.Ambience);
-
             yield return Timing.WaitForSeconds(duration);
 
             DecrementBlackoutStack();
@@ -521,6 +522,34 @@ namespace SCP_575.Npc
                 ExplosionType.Disruptor => true,
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// Starts the continuous environment ambience tracking loop.
+        /// </summary>
+        public void StartAmbienceTrackingLoop()
+        {
+            Timing.KillCoroutines(CoroutineTags.AmbienceTracking);
+            Timing.RunCoroutine(TrackDarkroomAmbienceLoop(), CoroutineTags.AmbienceTracking);
+        }
+
+        /// <summary>
+        /// Evaluates players dynamically, streaming ambient track to those submerged in darkness.
+        /// </summary>
+        private IEnumerator<float> TrackDarkroomAmbienceLoop()
+        {
+            while (_isInitialized)
+            {
+                yield return Timing.WaitForSeconds(1.0f);
+
+                if (!_plugin.IsEventActive) continue;
+
+                // Utilizing the global audio routing method with a predicate filter targeting only dark rooms
+                _plugin.AudioManager.PlayGlobalAudioWithFilter(
+                    AudioKey.Ambience,
+                    player => player != null && player.IsAlive && player.IsHuman && _libraryLabAPI.IsPlayerInDarkRoom(player)
+                );
+            }
         }
 
         public void ForceGlobalBlackoutEvent()

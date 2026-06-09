@@ -31,6 +31,7 @@
         // ===================================================================
         // AUDIO AND SOUNDSCAPES
         // ===================================================================
+        public const string AmbienceTracking = "SCP575-AmbienceTracking";
         public const string AudioCoroutines = "SCP575-AudioCoroutines";
         public const string GeneratorAudio = "SCP575-GeneratorAudio";
 

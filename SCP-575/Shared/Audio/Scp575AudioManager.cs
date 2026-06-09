@@ -307,17 +307,25 @@
             return PlayAudioAutoManaged(null, audioKey, null, lifespan, hearableForAllPlayers: true, queue, fadeInDuration, isNonSpatial: true);
         }
 
+        /// <summary>
+        /// Registers a persistent global ambient track that dynamically streams only to
+        /// players currently fully submerged in dark rooms while the event lifecycle is active.
+        /// </summary>
         public int PlayAmbience(bool loop = true, float? lifespan = null, float fadeInDuration = 0f, bool queue = false)
         {
             var config = _audioRegistry[AudioKey.Ambience];
             if (_ambienceAudioSessionId != 0) StopAmbience();
 
-            var isDarkRoomFilter = AudioFilters.IsInRoomWhereLightsAre(false);
-            Func<Player, bool> blackoutFilter = p => isDarkRoomFilter(p) && _plugin.Npc.Methods.IsBlackoutActive;
+            // Real-time predicate filter evaluated by the underlying audio engine per-frame/per-player
+            Func<Player, bool> darkroomFilter = p => p != null
+                && p.IsReady
+                && !p.IsHost
+                && _plugin.IsEventActive
+                && _libraryLabAPI.IsPlayerInDarkRoom(p);
 
             int sessionId = _audioEngine.PlayGlobalAudio(
                 key: config.Key, loop: loop, volume: config.Volume, priority: config.Priority,
-                validPlayersFilter: blackoutFilter, queue: queue, fadeInDuration: fadeInDuration,
+                validPlayersFilter: darkroomFilter, queue: queue, fadeInDuration: fadeInDuration,
                 persistent: true, lifespan: null, autoCleanup: true);
 
             if (sessionId == 0) return 0;
