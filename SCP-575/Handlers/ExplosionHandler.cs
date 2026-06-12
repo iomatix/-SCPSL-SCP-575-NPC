@@ -62,8 +62,8 @@
                         audioKey: AudioKey.ScreamAngry,
                         maxRadius: 8.5f,
                         minRadius: 0.5f,
-                        angularSpeed: 6.0f,
-                        approachSpeed: 2.2f
+                        angularSpeed: 3.5f,
+                        approachSpeed: 1.85f
                     );
 
                     _plugin.AudioManager.PlayGlobal(AudioKey.Whispers_2);
@@ -94,8 +94,8 @@
                         audioKey: selectedScream,
                         maxRadius: 9.5f,
                         minRadius: 0.8f,
-                        angularSpeed: 4.5f,
-                        approachSpeed: 5.2f
+                        angularSpeed: 2.65f,
+                        approachSpeed: 2.55f
                     );
 
                     _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);

@@ -166,7 +166,11 @@ namespace SCP_575.Npc
                 {
                     var randomPlayer = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
                     var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.Scream_3 + 1);
-                    _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, randomScream, isolated: true);
+                    _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, randomScream, isolated: true,
+                        maxRadius: 3.5f,
+                        minRadius: 0.25f,
+                        angularSpeed: 3.45f,
+                        approachSpeed: 2.35f);
                 }
             }
 
@@ -457,7 +461,11 @@ namespace SCP_575.Npc
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
 
-                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true);
+                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
+                        maxRadius: 1.75f,
+                        minRadius: 0.15f,
+                        angularSpeed: 1.35f,
+                        approachSpeed: 1.65f);
 
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }

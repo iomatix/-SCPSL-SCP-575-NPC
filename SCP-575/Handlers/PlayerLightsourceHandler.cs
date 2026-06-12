@@ -339,11 +339,19 @@ namespace SCP_575.Handlers
                 {
                     if (UnityEngine.Random.value <= 0.25f)
                     {
-                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true);
+                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
+                        maxRadius: 2.75f,
+                        minRadius: 0.25f,
+                        angularSpeed: 1.45f,
+                        approachSpeed: 1.65f);
                     }
                     if (UnityEngine.Random.value <= 0.15f)
                     {
-                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, isolated: true);
+                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, isolated: true,
+                        maxRadius: 3.35f,
+                        minRadius: 0.35f,
+                        angularSpeed: 1.75f,
+                        approachSpeed: 2.05f);
                     }
 
                     if (forceOff)

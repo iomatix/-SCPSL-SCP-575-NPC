@@ -94,8 +94,8 @@
                     audioKey: AudioKey.ScreamAngry,
                     maxRadius: 6.5f,
                     minRadius: 1.5f,
-                    angularSpeed: 3.5f,
-                    approachSpeed: 2.8f
+                    angularSpeed: 1.85f,
+                    approachSpeed: 1.75f
                 );
 
                 // Force a global state shift if the entity is currently dormant to penalize early activation.

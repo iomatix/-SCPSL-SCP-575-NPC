@@ -328,7 +328,7 @@
             EvaluateAndPlayProbability(player, new[] { AudioKey.AnomalousImpact }, 0.15f, orbit: false, isolated: true);
             EvaluateAndPlayProbability(player, new[] { AudioKey.ShadowStrike }, 0.10f, orbit: false, isolated: true);
             EvaluateAndPlayProbability(player, new[] { AudioKey.Scream_1, AudioKey.Scream_2, AudioKey.Scream_3, AudioKey.ScreamAngry }, 0.10f, orbit: true);
-            EvaluateAndPlayProbability(player, new[] { AudioKey.ShadowClicking }, 0.05f, orbit: false, isolated: true);
+            EvaluateAndPlayProbability(player, new[] { AudioKey.ShadowClicking }, 0.04f, orbit: false, isolated: true);
         }
 
         /// <summary>
@@ -341,7 +341,7 @@
             EvaluateAndPlayProbability(player, new[] { AudioKey.AnomalousImpact }, 0.10f, orbit: false, isolated: true);
             EvaluateAndPlayProbability(player, new[] { AudioKey.ShadowStrike }, 0.05f, orbit: false, isolated: true);
             EvaluateAndPlayProbability(player, new[] { AudioKey.Whispers_1, AudioKey.Whispers_2, AudioKey.WhispersBang }, 0.10f, orbit: true);
-            EvaluateAndPlayProbability(player, new[] { AudioKey.ShadowClicking }, 0.10f, orbit: false, isolated: true);
+            EvaluateAndPlayProbability(player, new[] { AudioKey.ShadowClicking }, 0.07f, orbit: false, isolated: true);
         }
 
         private void EvaluateAndPlayProbability(Player player, AudioKey[] pool, float chance, bool orbit, bool isolated = false)
