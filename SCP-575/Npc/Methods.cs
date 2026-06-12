@@ -169,8 +169,8 @@ namespace SCP_575.Npc
                     _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, randomScream, isolated: true,
                         maxRadius: 3.5f,
                         minRadius: 0.25f,
-                        angularSpeed: 3.45f,
-                        approachSpeed: 2.35f);
+                        angularSpeed: 2.65f,
+                        approachSpeed: 2.25f);
                 }
             }
 
@@ -464,8 +464,8 @@ namespace SCP_575.Npc
                         _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
                         maxRadius: 1.75f,
                         minRadius: 0.15f,
-                        angularSpeed: 1.35f,
-                        approachSpeed: 1.65f);
+                        angularSpeed: 1.25f,
+                        approachSpeed: 1.55f);
 
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }

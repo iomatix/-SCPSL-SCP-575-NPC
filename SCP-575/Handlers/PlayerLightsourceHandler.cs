@@ -342,16 +342,16 @@ namespace SCP_575.Handlers
                         _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
                         maxRadius: 2.75f,
                         minRadius: 0.25f,
-                        angularSpeed: 1.45f,
-                        approachSpeed: 1.65f);
+                        angularSpeed: 1.15f,
+                        approachSpeed: 1.25f);
                     }
                     if (UnityEngine.Random.value <= 0.15f)
                     {
                         _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, isolated: true,
                         maxRadius: 3.35f,
                         minRadius: 0.35f,
-                        angularSpeed: 1.75f,
-                        approachSpeed: 2.05f);
+                        angularSpeed: 1.45f,
+                        approachSpeed: 2.15f);
                     }
 
                     if (forceOff)

@@ -54,7 +54,7 @@
                         audioKey: AudioKey.ShadowClicking,
                         maxRadius: 2.5f,
                         minRadius: 0.1f,
-                        angularSpeed: 4.35f,
+                        angularSpeed: 1.75f,
                         approachSpeed: 3.65f,
                         heightOffset: 0.1f
                     );

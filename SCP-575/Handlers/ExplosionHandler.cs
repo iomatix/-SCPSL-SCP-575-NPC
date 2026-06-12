@@ -63,7 +63,7 @@
                         maxRadius: 8.5f,
                         minRadius: 0.5f,
                         angularSpeed: 3.5f,
-                        approachSpeed: 1.85f
+                        approachSpeed: 2.75f
                     );
 
                     _plugin.AudioManager.PlayGlobal(AudioKey.Whispers_2);
