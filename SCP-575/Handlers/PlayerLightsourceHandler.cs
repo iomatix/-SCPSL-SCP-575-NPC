@@ -28,6 +28,7 @@ namespace SCP_575.Handlers
 
         private readonly Dictionary<string, DateTime> _cooldownUntil = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DateTime> _lastCooldownAudioTime = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTime> _lastWeaponClickTime = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _flickeringPlayers = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _pendingItemChanges = new(StringComparer.OrdinalIgnoreCase);
         private readonly Random _random = new();
@@ -83,6 +84,7 @@ namespace SCP_575.Handlers
             _flickeringPlayers.Clear();
             _pendingItemChanges.Clear();
             _lastCooldownAudioTime.Clear();
+            _lastWeaponClickTime.Clear();
         }
 
         public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
@@ -201,7 +203,16 @@ namespace SCP_575.Handlers
 
             // BASE GAME BUGFIX: Weapon flashlights are natively silent in SCP:SL. 
             // We inject a micro-click on EVERY toggle to compensate for the base game flaw.
-            _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, ev.Player.Position, lifespan: 0.115f, isTransient: true, sourcePlayer: ev.Player);
+            DateTime now = DateTime.UtcNow;
+            string userId = ev.Player.UserId;
+
+            // FIX: Implement a micro-debouncer. If clicks happen faster than 110ms, 
+            // we skip the audio call to prevent voice network starvation and frame clipping.
+            if (!_lastWeaponClickTime.TryGetValue(userId, out DateTime lastClick) || (now - lastClick).TotalMilliseconds >= 110)
+            {
+                _lastWeaponClickTime[userId] = now;
+                _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, ev.Player.Position, lifespan: 0.115f, isTransient: true, sourcePlayer: ev.Player);
+            }
 
             // Existing plugin behavior rules for darkness and event statuses
             if (!_plugin.IsEventActive || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout())
@@ -224,6 +235,7 @@ namespace SCP_575.Handlers
             _flickeringPlayers.Remove(ev.Player.UserId);
             _pendingItemChanges.Remove(ev.Player.UserId);
             _lastCooldownAudioTime.Remove(ev.Player.UserId);
+            _lastWeaponClickTime.Remove(ev.Player.UserId);
         }
 
         #endregion
