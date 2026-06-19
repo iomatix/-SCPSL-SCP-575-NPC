@@ -6,6 +6,7 @@
     using MEC;
     using SCP_575.Shared;
     using System;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Intercepts incoming environmental and entity damage updates to evaluate 
@@ -16,9 +17,9 @@
         private readonly Plugin _plugin;
         private const string ItemPhysicsTag = CoroutineTags.ItemPhysics;
 
-        // Anti-spam configuration: Tracks timestamps to rate-limit repetitive non-lethal attack audio hooks
-        private DateTime _lastAttackAudioTime = DateTime.MinValue;
-        private readonly TimeSpan _attackAudioCooldown = TimeSpan.FromSeconds(1.0);
+        // FIX: Replaced global timestamp with a per-player dictionary to prevent cross-player audio suppression
+        private readonly Dictionary<string, DateTime> _playerLastAttackAudioTime = new(StringComparer.OrdinalIgnoreCase);
+        private readonly TimeSpan _attackAudioCooldown = TimeSpan.FromSeconds(1.2); // Slightly increased for better acoustic spacing
 
         public PlayerDamageHandler(Plugin plugin)
         {
@@ -27,8 +28,17 @@
 
         #region Lifecycle Cleanup
 
-        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Timing.KillCoroutines(ItemPhysicsTag);
-        public override void OnServerWaitingForPlayers() => Timing.KillCoroutines(ItemPhysicsTag);
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
+        public override void OnServerWaitingForPlayers() => Clean();
+
+        /// <summary>
+        /// Flushes all tracking nodes to prevent continuous heap allocation accumulation.
+        /// </summary>
+        private void Clean()
+        {
+            Timing.KillCoroutines(ItemPhysicsTag);
+            _playerLastAttackAudioTime.Clear();
+        }
 
         #endregion
 
@@ -46,7 +56,6 @@
             {
                 if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler)) return;
 
-                // Offload the downstream lethal actions entirely to the centralized damage manager
                 Scp575DamageSystem.ProcessLethalStrike(ev.Player, _plugin);
             }
             catch (Exception ex)
@@ -67,8 +76,17 @@
 
             if (isPhysicalScpAttack)
             {
-                // Pass the timestamp tracking variable by reference ('ref') so the sub-system can directly refresh the cooldown
-                Scp575DamageSystem.ProcessAnomalousTrauma(ev.Player, _plugin, ref _lastAttackAudioTime, _attackAudioCooldown);
+                string userId = ev.Player.UserId;
+
+                if (!_playerLastAttackAudioTime.TryGetValue(userId, out var lastTime))
+                {
+                    lastTime = DateTime.MinValue;
+                }
+
+                // FIX: Use a local proxy copy to safely bypass C# 'ref' restrictions on dictionary values
+                DateTime tempTime = lastTime;
+                Scp575DamageSystem.ProcessAnomalousTrauma(ev.Player, _plugin, ref tempTime, _attackAudioCooldown);
+                _playerLastAttackAudioTime[userId] = tempTime;
             }
         }
 

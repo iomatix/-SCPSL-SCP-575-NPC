@@ -31,6 +31,8 @@
         private readonly List<PlayerSanityStageConfig> _orderedStages;
         private readonly Dictionary<string, DateTime> _painkillerProtectionExpiry = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DateTime> _painkillerSanityBoostExpiry = new(StringComparer.OrdinalIgnoreCase);
+        // Tracks combat stinger feedback intervals to prevent machine-gun stacking artifacts
+        private readonly Dictionary<string, DateTime> _lastCombatAudioTime = new(StringComparer.OrdinalIgnoreCase);
         // Tracks the next allowed timestamp for a localized whisper hallucination per player
         private readonly Dictionary<string, DateTime> _nextAllowedWhisperTime = new(StringComparer.OrdinalIgnoreCase);
         // Global timestamp to prevent multiple players from triggering intense jumpscares simultaneously
@@ -104,6 +106,7 @@
                 _lastHintTime.Clear();
                 _activeAmbientState.Clear();
                 _nextAllowedWhisperTime.Clear();
+                _lastCombatAudioTime.Clear();
                 _painkillerProtectionExpiry.Clear();
                 _painkillerSanityBoostExpiry.Clear();
             }
@@ -153,6 +156,7 @@
                 _lastHintTime.Remove(userId);
                 _activeAmbientState.Remove(userId);
                 _nextAllowedWhisperTime.Remove(userId);
+                _lastCombatAudioTime.Remove(userId);
                 _painkillerProtectionExpiry.Remove(userId);
                 _painkillerSanityBoostExpiry.Remove(userId);
             }
@@ -336,9 +340,18 @@
                 LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity lowered by {dropAmount}. New sanity: {newSanity}");
             }
 
-            // Trigger audio feedback based on vulnerability state
-            if (isVulnerable) _plugin.AudioManager.PlayAggressiveAudio(player);
-            else _plugin.AudioManager.PlayDefensiveAudio(player);
+            // FIX: Implement a strict combat audio pacing gate. 
+            // Prevents multiple heavy threat stingers from stacking and clipping on rapid damage ticks.
+            string userId = player.UserId;
+            if (!_lastCombatAudioTime.TryGetValue(userId, out var lastCombatAudio) || (DateTime.Now - lastCombatAudio).TotalSeconds >= 1.6)
+            {
+                _lastCombatAudioTime[userId] = DateTime.Now;
+
+                if (isVulnerable)
+                    _plugin.AudioManager.PlayAggressiveAudio(player);
+                else
+                    _plugin.AudioManager.PlayDefensiveAudio(player);
+            }
 
             Scp575DamageSystem.DamagePlayer(player, culmDamage);
         }
