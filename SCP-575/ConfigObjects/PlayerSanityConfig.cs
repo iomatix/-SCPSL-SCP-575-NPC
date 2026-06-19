@@ -23,31 +23,31 @@
         /// Gets or sets the baseline rate at which an actor's sanity naturally decays per minute under standard conditions.
         /// </summary>
         [Description("How much sanity (0-100) a player naturally loses PER MINUTE in baseline conditions.")]
-        public float BaseDecayPerMinute { get; set; } = 9.5f;
+        public float BaseDecayPerMinute { get; set; } = 7.5f;
 
         /// <summary>
         /// Gets or sets the additional decay multiplier applied to the baseline loss when SCP-575 is actively hunting during a blackout.
         /// </summary>
-        [Description("Decay multiplier when SCP-575 is active.")]
-        public float DecayMultiplierBlackout { get; set; } = 1.05f;
+        [Description("Decay multiplier applied during an active SCP-575 Blackout event.")]
+        public float DecayMultiplierBlackout { get; set; } = 1.5f; // 50% faster decay during global blackout
 
         /// <summary>
-        /// Gets or sets the extra multiplier applied to the decay rate when a human actor is caught in absolute darkness without a light source.
+        /// Gets or sets the harsh penalty multiplier applied when a player stands in a dark room without any personal light source active (Pitch Black state).
         /// </summary>
-        [Description("Decay multiplier when player has no light source.")]
-        public float DecayMultiplierDarkness { get; set; } = 1.15f;
+        [Description("Harsh decay multiplier applied when the player has NO active personal light source (flashlight/weapon light) in the dark.")]
+        public float DecayMultiplierDarkness { get; set; } = 2.25f; // 125% faster decay if completely blind in the dark
 
         /// <summary>
         /// Gets or sets the rate at which an actor passively recovers their sanity percentage per minute while standing inside safe, well-lit zones.
         /// </summary>
         [Description("How much sanity (0-100) a player passively regenerates PER MINUTE when inside safe, lit zones.")]
-        public float PassiveRegenPerMinute { get; set; } = 4.55f;
+        public float PassiveRegenPerMinute { get; set; } = 3.55f;
 
         /// <summary>
         /// Gets or sets the discrete amount of sanity stripped instantly from an actor upon sustaining a direct physical attack from any SCP entity.
         /// </summary>
         [Description("Amount of sanity lost instantly when attacked/hit by any SCP entity.")]
-        public float ScpHitSanityDrop { get; set; } = 4f;
+        public float ScpHitSanityDrop { get; set; } = 3f;
 
         #endregion
 
