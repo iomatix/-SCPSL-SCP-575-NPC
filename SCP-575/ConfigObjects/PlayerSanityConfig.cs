@@ -29,13 +29,13 @@
         /// Gets or sets the additional decay multiplier applied to the baseline loss when SCP-575 is actively hunting during a blackout.
         /// </summary>
         [Description("Decay multiplier when SCP-575 is active.")]
-        public float DecayMultiplierBlackout { get; set; } = 1.33f;
+        public float DecayMultiplierBlackout { get; set; } = 1.05f;
 
         /// <summary>
         /// Gets or sets the extra multiplier applied to the decay rate when a human actor is caught in absolute darkness without a light source.
         /// </summary>
         [Description("Decay multiplier when player has no light source.")]
-        public float DecayMultiplierDarkness { get; set; } = 1.55f;
+        public float DecayMultiplierDarkness { get; set; } = 1.15f;
 
         /// <summary>
         /// Gets or sets the rate at which an actor passively recovers their sanity percentage per minute while standing inside safe, well-lit zones.
