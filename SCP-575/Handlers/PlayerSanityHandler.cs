@@ -31,6 +31,10 @@
         private readonly List<PlayerSanityStageConfig> _orderedStages;
         private readonly Dictionary<string, DateTime> _painkillerProtectionExpiry = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DateTime> _painkillerSanityBoostExpiry = new(StringComparer.OrdinalIgnoreCase);
+        // Tracks the next allowed timestamp for a localized whisper hallucination per player
+        private readonly Dictionary<string, DateTime> _nextAllowedWhisperTime = new(StringComparer.OrdinalIgnoreCase);
+        // Global timestamp to prevent multiple players from triggering intense jumpscares simultaneously
+        private static DateTime _globalNextAllowedWhisperTime = DateTime.MinValue;
 
         private readonly float _hintCooldown;
         private bool _isDisposed;
@@ -99,6 +103,7 @@
                 _sanityCache.Clear();
                 _lastHintTime.Clear();
                 _activeAmbientState.Clear();
+                _nextAllowedWhisperTime.Clear();
                 _painkillerProtectionExpiry.Clear();
                 _painkillerSanityBoostExpiry.Clear();
             }
@@ -147,6 +152,7 @@
                 _sanityCache.Remove(userId);
                 _lastHintTime.Remove(userId);
                 _activeAmbientState.Remove(userId);
+                _nextAllowedWhisperTime.Remove(userId);
                 _painkillerProtectionExpiry.Remove(userId);
                 _painkillerSanityBoostExpiry.Remove(userId);
             }
@@ -388,22 +394,43 @@
             bool requiresLowDrone = newSanity <= 35f;
             SafeUpdateAmbient(player, requiresLowDrone);
 
-            // 2. Localized Hallucination Logic (3D Isolated Spatialized Auditory Jumpscares)
+            // 2. PROFESSIONAL AUDIO DIRECTOR: Localized Hallucination Logic (Dynamic Spacing)
             var stage = GetCurrentSanityStage(newSanity);
             if (stage != null)
             {
-                if (UnityEngine.Random.value < 0.035f) // 3.5% chance per tick
+                string userId = player.UserId;
+
+                // Verify if both individual and global audio director cooldown gates are open
+                bool isIndividualReady = !_nextAllowedWhisperTime.TryGetValue(userId, out var individualExpiry) || now >= individualExpiry;
+                bool isGlobalReady = now >= _globalNextAllowedWhisperTime;
+
+                if (isIndividualReady && isGlobalReady)
                 {
-                    AudioKey? whisperToPlay = null;
-
-                    if (newSanity <= 10f) whisperToPlay = AudioKey.WhispersBang;
-                    else if (newSanity <= 25f) whisperToPlay = AudioKey.WhispersMixed;
-                    else if (newSanity <= 55f) whisperToPlay = AudioKey.Whispers_2;
-                    else if (newSanity <= 85f) whisperToPlay = AudioKey.Whispers_1;
-
-                    if (whisperToPlay.HasValue)
+                    // Base dynamic chance: 4.5% per second, evaluated only when the cooldown window is completely open
+                    if (UnityEngine.Random.value < 0.045f)
                     {
-                        _plugin.AudioManager.PlayAttached(player, whisperToPlay.Value, hearableForAll: false, isTransient: true);
+                        AudioKey? whisperToPlay = null;
+
+                        if (newSanity <= 10f) whisperToPlay = AudioKey.WhispersBang;
+                        else if (newSanity <= 25f) whisperToPlay = AudioKey.WhispersMixed;
+                        else if (newSanity <= 55f) whisperToPlay = AudioKey.Whispers_2;
+                        else if (newSanity <= 85f) whisperToPlay = AudioKey.Whispers_1;
+
+                        if (whisperToPlay.HasValue)
+                        {
+                            _plugin.AudioManager.PlayAttached(player, whisperToPlay.Value, hearableForAll: false, isTransient: true);
+
+                            // ADVANCED PACING: Impose a strict, randomized individual restriction (45 to 90 seconds of pure silence)
+                            // This creates a standard tension-and-release curve rather than annoying cluster loops
+                            float randomCooldown = UnityEngine.Random.Range(45f, 90f);
+                            _nextAllowedWhisperTime[userId] = now.AddSeconds(randomCooldown);
+
+                            // Global suppression gate: No other player on the server can trigger a whisper for the next 6 seconds
+                            // This entirely eliminates overlapping text-to-speech soundscapes across concrete walls
+                            _globalNextAllowedWhisperTime = now.AddSeconds(6f);
+
+                            LibraryLabAPI.LogDebug("AudioDirector", $"Whisper triggered for {player.Nickname}. Next individual scare in {randomCooldown:F1}s. Global gate locked for 6s.");
+                        }
                     }
                 }
             }
