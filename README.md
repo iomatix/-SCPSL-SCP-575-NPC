@@ -48,7 +48,7 @@ To prevent malicious execution, all subcommands require the native `- FacilityMa
 | **Initialize Framework** | `scp575 init` / `scp575 start` | Bypasses configuration spawn weights and forces the SCP-575 environment online mid-round. Spins up coroutines, sets player baselines, and plays background ambience. |
 | **Trigger Blackout** | `scp575 blackout` / `scp575 trigger` | Forces an immediate global blackout event. Dispatches glitchy CASSIE broadcasts, fires 3D jumpscare soundscapes, and overrides illumination fields. |
 | **Emergency Disable** | `scp575 stop` / `scp575 disable` | Instantly terminates the event. Kills active loops, ucisza all custom speakers, clears dictionary caches, and restores structural facility lighting. |
-| **Set Blackout Stacks** | `scp575 setstacks [value]` | Explicitly sets the current blackout stack register (e.g., `scp575 setstacks 3`). Higher stacks heavily escalate sanity decay and physical damage. Passing '0' restores zasilanie. |
+| **Set Blackout Stacks** | `scp575 setstacks [value]` | Explicitly sets the current blackout stack register (e.g., `scp575 setstacks 3`). Higher stacks heavily escalate sanity decay and physical damage. Passing '0' restores facility power. |
 
 ### 💡 Execution Examples
 
