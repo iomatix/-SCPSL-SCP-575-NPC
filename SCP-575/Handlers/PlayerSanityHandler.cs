@@ -278,6 +278,9 @@
             if (!_plugin.Npc.Methods.IsBlackoutActive && !bypassBlackoutGate)
                 return;
 
+            // FIX: Short-circuit and suppress any negative stage debuffs if the player is currently shielded by painkillers
+            if (IsProtectedByPainkillers(player)) return;
+
             var stage = GetCurrentSanityStage(player);
             if (stage == null) return;
 
