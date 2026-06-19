@@ -10,7 +10,6 @@
     using SCP_575.Shared.Audio.Enums;
     using System;
     using System.Collections.Generic;
-    using System.Data.Common;
     using System.Linq;
     using UnityEngine;
 
@@ -31,11 +30,8 @@
         private readonly List<PlayerSanityStageConfig> _orderedStages;
         private readonly Dictionary<string, DateTime> _painkillerProtectionExpiry = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DateTime> _painkillerSanityBoostExpiry = new(StringComparer.OrdinalIgnoreCase);
-        // Tracks combat stinger feedback intervals to prevent machine-gun stacking artifacts
         private readonly Dictionary<string, DateTime> _lastCombatAudioTime = new(StringComparer.OrdinalIgnoreCase);
-        // Tracks the next allowed timestamp for a localized whisper hallucination per player
         private readonly Dictionary<string, DateTime> _nextAllowedWhisperTime = new(StringComparer.OrdinalIgnoreCase);
-        // Global timestamp to prevent multiple players from triggering intense jumpscares simultaneously
         private static DateTime _globalNextAllowedWhisperTime = DateTime.MinValue;
 
         private readonly float _hintCooldown;
@@ -135,10 +131,8 @@
         {
             if (ev?.Player == null) return;
 
-            // Reset baseline metrics
             ResetPlayerSanity(ev.Player);
 
-            // If their new role is invalid for sanity mechanics, silence active loops immediately
             if (!IsValidPlayer(ev.Player))
             {
                 SafeUpdateAmbient(ev.Player, shouldPlayDrone: false);
@@ -161,7 +155,6 @@
                 _painkillerSanityBoostExpiry.Remove(userId);
             }
 
-            // Explicitly notify the audio manager to release tracking keys upon network disconnect
             _plugin.AudioManager.ForceStopAllPlayerAudio(ev.Player);
         }
 
@@ -174,12 +167,10 @@
 
             string userId = ev.Player.UserId;
 
-            // Check if the consumed medical item is painkillers to trigger custom mechanics
             if (ev.UsableItem.Type == ItemType.Painkillers)
             {
                 lock (_cacheLock)
                 {
-                    // Calculate and commit expiration timestamps based on configuration values
                     _painkillerProtectionExpiry[userId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersProtectionDuration);
                     _painkillerSanityBoostExpiry[userId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersRegenDuration);
                 }
@@ -284,12 +275,10 @@
         public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false)
         {
             if (!IsValidPlayer(player)) return;
+            if (IsProtectedByPainkillers(player)) return;
 
             if (!_plugin.Npc.Methods.IsBlackoutActive && !bypassBlackoutGate)
                 return;
-
-            // FIX: Short-circuit and suppress any negative stage debuffs if the player is currently shielded by painkillers
-            if (IsProtectedByPainkillers(player)) return;
 
             var stage = GetCurrentSanityStage(player);
             if (stage == null) return;
@@ -340,13 +329,21 @@
                 LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity lowered by {dropAmount}. New sanity: {newSanity}");
             }
 
-            // FIX: Implement a strict combat audio pacing gate. 
-            // Prevents multiple heavy threat stingers from stacking and clipping on rapid damage ticks.
+            // FIX: Enforce thread-safe access constraints over the plain combat stinger dictionary tracking node
             string userId = player.UserId;
-            if (!_lastCombatAudioTime.TryGetValue(userId, out var lastCombatAudio) || (DateTime.Now - lastCombatAudio).TotalSeconds >= 1.6)
-            {
-                _lastCombatAudioTime[userId] = DateTime.Now;
+            bool allowCombatStinger = false;
 
+            lock (_cacheLock)
+            {
+                if (!_lastCombatAudioTime.TryGetValue(userId, out var lastCombatAudio) || (DateTime.Now - lastCombatAudio).TotalSeconds >= 1.6)
+                {
+                    _lastCombatAudioTime[userId] = DateTime.Now;
+                    allowCombatStinger = true;
+                }
+            }
+
+            if (allowCombatStinger)
+            {
                 if (isVulnerable)
                     _plugin.AudioManager.PlayAggressiveAudio(player);
                 else
@@ -376,7 +373,6 @@
 
                 foreach (var player in Player.ReadyList)
                 {
-                    // FIX: If a player becomes invalid (dies/spectator), explicitly strip their ambient sound loop
                     if (!IsValidPlayer(player))
                     {
                         SafeUpdateAmbient(player, shouldPlayDrone: false);
@@ -403,23 +399,25 @@
             float oldSanity = GetCurrentSanity(player);
             float newSanity = ChangeSanityValue(player, -decayRate);
 
-            // 1. Continuous Background State Evaluation (Non-Spatial Head-Space Ambience)
             bool requiresLowDrone = newSanity <= 35f;
             SafeUpdateAmbient(player, requiresLowDrone);
 
-            // 2. PROFESSIONAL AUDIO DIRECTOR: Localized Hallucination Logic (Dynamic Spacing)
             var stage = GetCurrentSanityStage(newSanity);
             if (stage != null)
             {
                 string userId = player.UserId;
+                bool isIndividualReady = false;
 
-                // Verify if both individual and global audio director cooldown gates are open
-                bool isIndividualReady = !_nextAllowedWhisperTime.TryGetValue(userId, out var individualExpiry) || now >= individualExpiry;
+                // FIX: Enforce a secure context lock when reading structural pacing data from the individual whisper dictionary
+                lock (_cacheLock)
+                {
+                    isIndividualReady = !_nextAllowedWhisperTime.TryGetValue(userId, out var individualExpiry) || now >= individualExpiry;
+                }
+
                 bool isGlobalReady = now >= _globalNextAllowedWhisperTime;
 
                 if (isIndividualReady && isGlobalReady)
                 {
-                    // Base dynamic chance: 4.5% per second, evaluated only when the cooldown window is completely open
                     if (UnityEngine.Random.value < 0.045f)
                     {
                         AudioKey? whisperToPlay = null;
@@ -433,13 +431,14 @@
                         {
                             _plugin.AudioManager.PlayAttached(player, whisperToPlay.Value, hearableForAll: false, isTransient: true);
 
-                            // ADVANCED PACING: Impose a strict, randomized individual restriction (45 to 90 seconds of pure silence)
-                            // This creates a standard tension-and-release curve rather than annoying cluster loops
                             float randomCooldown = UnityEngine.Random.Range(45f, 90f);
-                            _nextAllowedWhisperTime[userId] = now.AddSeconds(randomCooldown);
 
-                            // Global suppression gate: No other player on the server can trigger a whisper for the next 6 seconds
-                            // This entirely eliminates overlapping text-to-speech soundscapes across concrete walls
+                            // FIX: Hold the atomic cache lock when writing tracking coordinates inside the core loop execution thread
+                            lock (_cacheLock)
+                            {
+                                _nextAllowedWhisperTime[userId] = now.AddSeconds(randomCooldown);
+                            }
+
                             _globalNextAllowedWhisperTime = now.AddSeconds(6f);
 
                             LibraryLabAPI.LogDebug("AudioDirector", $"Whisper triggered for {player.Nickname}. Next individual scare in {randomCooldown:F1}s. Global gate locked for 6s.");
@@ -448,7 +447,6 @@
                 }
             }
 
-            // 3. Process UI alert prompt updates
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
             {
                 string userId = player.UserId;
@@ -464,14 +462,12 @@
         {
             float oldSanity = GetCurrentSanity(player);
 
-            // 1. Edge-case safety block
             if (oldSanity >= 100f)
             {
                 SafeUpdateAmbient(player, shouldPlayDrone: false);
                 return;
             }
 
-            // FIX: Calculate the core regeneration rate, adding extra boost if the painkiller duration is still running
             float regenRate = _sanityConfig.PassiveRegenRate;
             lock (_cacheLock)
             {
@@ -483,11 +479,9 @@
 
             float newSanity = ChangeSanityValue(player, regenRate);
 
-            // 2. Continuous Background State Evaluation
             bool requiresLowDrone = newSanity <= 35f;
             SafeUpdateAmbient(player, requiresLowDrone);
 
-            // 3. Process UI alert prompt updates
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
             {
                 string userId = player.UserId;
@@ -513,9 +507,6 @@
 
         #region Helper Methods
 
-        /// <summary>
-        /// Validates if an actor is currently eligible for psychological processing loops and environmental interactions.
-        /// </summary>
         public bool IsValidPlayer(Player player)
         {
             return player != null &&
@@ -536,9 +527,6 @@
             };
         }
 
-        /// <summary>
-        /// Determines whether the designated player is currently shielded by painkillers protection.
-        /// </summary>
         public bool IsProtectedByPainkillers(Player player)
         {
             if (player == null || string.IsNullOrEmpty(player.UserId)) return false;
