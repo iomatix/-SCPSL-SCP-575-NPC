@@ -1,10 +1,9 @@
 ﻿namespace SCP_575.ConfigObjects
 {
-    using CustomPlayerEffects;
-    using Exiled.API.Features;
     using System.Collections.Generic;
     using System.ComponentModel;
     using UnityEngine;
+    using Logger = LabApi.Features.Console.Logger;
 
     /// <summary>
     /// Configuration for player sanity system behavior throughout the round.
@@ -15,37 +14,37 @@
         #region Sanity Flow Settings
 
         /// <summary>
-        /// Initial sanity percentage assigned when the player spawns.
+        /// Gets or sets the initial sanity percentage assigned to a human actor upon spawning.
         /// </summary>
         [Description("Initial sanity value (0–100) on spawn.")]
         public float InitialSanity { get; set; } = 100f;
 
         /// <summary>
-        /// Base rate at which sanity naturally decays per second.
+        /// Gets or sets the baseline rate at which an actor's sanity naturally decays per minute under standard conditions.
         /// </summary>
-        [Description("Base sanity decay rate per second.")]
-        public float DecayRateBase { get; set; } = 0.1125f;
+        [Description("How much sanity (0-100) a player naturally loses PER MINUTE in baseline conditions.")]
+        public float BaseDecayPerMinute { get; set; } = 12.5f; // Results in exactly 8 minutes for full drain
 
         /// <summary>
-        /// Additional decay multiplier applied when SCP-575 is active (i.e. during blackout).
+        /// Gets or sets the additional decay multiplier applied to the baseline loss when SCP-575 is actively hunting during a blackout.
         /// </summary>
         [Description("Decay multiplier when SCP-575 is active.")]
         public float DecayMultiplierBlackout { get; set; } = 1.33f;
 
         /// <summary>
-        /// Extra multiplier applied when player is in darkness (without active light source).
+        /// Gets or sets the extra multiplier applied to the decay rate when a human actor is caught in absolute darkness without a light source.
         /// </summary>
         [Description("Decay multiplier when player has no light source.")]
         public float DecayMultiplierDarkness { get; set; } = 1.55f;
 
         /// <summary>
-        /// Amount of sanity regained passively per second outside blackout or danger zones.
+        /// Gets or sets the rate at which an actor passively recovers their sanity percentage per minute while standing inside safe, well-lit zones.
         /// </summary>
-        [Description("Passive sanity regen rate per second.")]
-        public float PassiveRegenRate { get; set; } = 0.0457f;
+        [Description("How much sanity (0-100) a player passively regenerates PER MINUTE when inside safe, lit zones.")]
+        public float PassiveRegenPerMinute { get; set; } = 5.55f; // Results in exactly 18 minutes for full recovery
 
         /// <summary>
-        /// Gets or sets the amount of sanity lost immediately upon taking damage from any SCP entity.
+        /// Gets or sets the discrete amount of sanity stripped instantly from an actor upon sustaining a direct physical attack from any SCP entity.
         /// </summary>
         [Description("Amount of sanity lost instantly when attacked/hit by any SCP entity.")]
         public float ScpHitSanityDrop { get; set; } = 4f;
@@ -55,35 +54,74 @@
         #region Medical Recovery Settings
 
         /// <summary>
-        /// Minimum sanity percentage restored from consuming Painkillers.
+        /// Gets or sets the minimum sanity percentage restored from consuming Painkillers.
         /// </summary>
         [Description("Minimum sanity restore percent from medical pills.")]
-        public float PillsRestoreMin { get; set; } = 15f;
+        public float PainkillersRestoreMin { get; set; } = 5f;
 
         /// <summary>
-        /// Maximum sanity percentage restored from consuming Painkillers.
+        /// Gets or sets the maximum sanity percentage restored from consuming Painkillers.
         /// </summary>
         [Description("Maximum sanity restore percent from medical pills.")]
-        public float PillsRestoreMax { get; set; } = 45f;
+        public float PainkillersRestoreMax { get; set; } = 15f;
 
         /// <summary>
-        /// Minimum sanity percentage restored by SCP-500 pills.
+        /// Gets or sets the additional flat sanity units injected into the passive regeneration routine per second while the actor is inside a lit room.
+        /// </summary>
+        [Description("Amount added to sanity per second if the player is in the bright room.")]
+        public float PainkillersExtraSanityRegen { get; set; } = 0.5f;
+
+        /// <summary>
+        /// Gets or sets the lifespan threshold in seconds governing how long the amplified medical regeneration modifier remains active.
+        /// </summary>
+        [Description("Duration in seconds of the regen effect if the player is in the bright room.")]
+        public float PainkillersRegenDuration { get; set; } = 12.5f;
+
+        /// <summary>
+        /// Gets or sets the lifespan threshold in seconds for the absolute protection shield. 
+        /// While active, SCP-575 cannot inflict trauma, damage, or status afflictions onto the protected actor.
+        /// </summary>
+        [Description("Duration in seconds of the protection effect. SCP-575 will not deal any damage nor apply any effects to the player for this duration.")]
+        public float PainkillersProtectionDuration { get; set; } = 3.25f;
+
+        /// <summary>
+        /// Gets or sets the maximum fallback sanity percentage allowed from standard medical pill categories.
+        /// </summary>
+        [Description("Maximum sanity restore percent from medical pills.")]
+        public float PillsRestoreMax { get; set; } = 25f;
+
+        /// <summary>
+        /// Gets or sets the minimum sanity percentage restored by SCP-500 pills.
         /// </summary>
         [Description("Minimum sanity restore percent from SCP-500.")]
         public float Scp500RestoreMin { get; set; } = 85f;
 
         /// <summary>
-        /// Maximum sanity percentage restored by SCP-500 pills.
+        /// Gets or sets the maximum sanity percentage restored by SCP-500 pills.
         /// </summary>
         [Description("Maximum sanity restore percent from SCP-500.")]
         public float Scp500RestoreMax { get; set; } = 100f;
 
         #endregion
 
+        #region Runtime Backing Fields (Pre-calculated for performance)
+
+        /// <summary>
+        /// Gets the pre-compiled baseline sanity decay units processed per single execution tick (second).
+        /// </summary>
+        public float DecayRateBase { get; private set; }
+
+        /// <summary>
+        /// Gets the pre-compiled baseline passive sanity recovery units processed per single execution tick (second).
+        /// </summary>
+        public float PassiveRegenRate { get; private set; }
+
+        #endregion
+
         #region Stage Thresholds and Effects
 
         /// <summary>
-        /// List of sanity stages determining player effects based on their sanity range.
+        /// Gets or sets the list of sanity stages determining structural impairment profiles based on the player's remaining sanity range.
         /// </summary>
         [Description("Stages of sanity and their associated effects.")]
         public List<PlayerSanityStageConfig> SanityStages { get; set; } = new()
@@ -225,27 +263,33 @@
         #endregion
 
         /// <summary>
-        /// Validates the player sanity configuration parameters and corrects invalid input.
+        /// Validates the player sanity configuration parameters and compiles intuitive human-readable metrics into high-speed runtime decimals.
         /// </summary>
         public void Validate()
         {
             InitialSanity = Mathf.Clamp(InitialSanity, 0f, 100f);
 
-            if (DecayRateBase < 0f) DecayRateBase = 0f;
-            if (DecayMultiplierBlackout < 0f) DecayMultiplierBlackout = 0f;
-            if (DecayMultiplierDarkness < 0f) DecayMultiplierDarkness = 0f;
-            if (PassiveRegenRate < 0f) PassiveRegenRate = 0f;
+            if (BaseDecayPerMinute < 0f) BaseDecayPerMinute = 0f;
+            if (PassiveRegenPerMinute < 0f) PassiveRegenPerMinute = 0f;
+            if (DecayMultiplierBlackout < 0f) DecayMultiplierBlackout = 1f;
+            if (DecayMultiplierDarkness < 0f) DecayMultiplierDarkness = 1f;
 
-            if (PillsRestoreMin < 0f) PillsRestoreMin = 0f;
-            if (PillsRestoreMax < 0f) PillsRestoreMax = 0f;
+            // Compile high-level per-minute metrics into high-performance second-based decimals for core threads
+            DecayRateBase = BaseDecayPerMinute / 60f;
+            PassiveRegenRate = PassiveRegenPerMinute / 60f;
 
-            if (PillsRestoreMin > PillsRestoreMax)
+            if (PainkillersRestoreMin < 0f) PainkillersRestoreMin = 0f;
+            if (PainkillersRestoreMax < 0f) PainkillersRestoreMax = 0f;
+
+            if (PainkillersRestoreMin > PainkillersRestoreMax)
             {
-                float temp = PillsRestoreMin;
-                PillsRestoreMin = PillsRestoreMax;
-                PillsRestoreMax = temp;
-                Log.Warn("[PlayerSanityConfig] PillsRestoreMin was greater than PillsRestoreMax. Values have been swapped.");
+                float temp = PainkillersRestoreMin;
+                PainkillersRestoreMin = PainkillersRestoreMax;
+                PainkillersRestoreMax = temp;
+                Logger.Warn("[PlayerSanityConfig] PainkillersRestoreMin was greater than PainkillersRestoreMax. Values have been swapped.");
             }
+
+            if (PillsRestoreMax < 0f) PillsRestoreMax = 0f;
 
             if (Scp500RestoreMin < 0f) Scp500RestoreMin = 0f;
             if (Scp500RestoreMax < 0f) Scp500RestoreMax = 0f;
@@ -255,7 +299,7 @@
                 float temp = Scp500RestoreMin;
                 Scp500RestoreMin = Scp500RestoreMax;
                 Scp500RestoreMax = temp;
-                Log.Warn("[PlayerSanityConfig] Scp500RestoreMin was greater than Scp500RestoreMax. Values have been swapped.");
+                Logger.Warn("[PlayerSanityConfig] Scp500RestoreMin was greater than Scp500RestoreMax. Values have been swapped.");
             }
 
             if (SanityStages == null || SanityStages.Count == 0)
@@ -265,7 +309,7 @@
 
             if (ScpHitSanityDrop < 0f) ScpHitSanityDrop = 0f;
 
-            // Sort stages by minimum threshold ascending to validate range coverage
+            // Sort stages by minimum threshold ascending to validate sequential coverage
             SanityStages.Sort((a, b) => a.MinThreshold.CompareTo(b.MinThreshold));
 
             if (SanityStages[0].MinThreshold > 0f || SanityStages[SanityStages.Count - 1].MaxThreshold < 100f)
@@ -282,7 +326,6 @@
             }
 
             foreach (var stage in SanityStages) { stage?.Validate(); }
-
         }
     }
 }

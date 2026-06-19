@@ -43,7 +43,9 @@ namespace SCP_575.Shared
         public static bool DamagePlayer(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox = HitboxType.Body)
         {
             if (target?.ReferenceHub == null) return false;
+            if (Plugin.Singleton?.SanityEventHandler != null && Plugin.Singleton.SanityEventHandler.IsProtectedByPainkillers(target)) return false;
             if (damage < 0f) return false;
+
 
             float processedDamage = DamageProcessor(target, damage, hitbox);
             return target.Damage(processedDamage, DeathScreenText);
@@ -93,6 +95,7 @@ namespace SCP_575.Shared
         public static void ProcessAnomalousTrauma(LabApi.Features.Wrappers.Player player, Plugin plugin, ref DateTime lastAttackAudioTime, TimeSpan cooldown)
         {
             if (player == null || plugin == null) return;
+            if (plugin.SanityEventHandler != null && plugin.SanityEventHandler.IsProtectedByPainkillers(player)) return;
 
             // 1. Process Sanity Reduction & Consequences
             float dropAmount = plugin.Config.SanityConfig.ScpHitSanityDrop;

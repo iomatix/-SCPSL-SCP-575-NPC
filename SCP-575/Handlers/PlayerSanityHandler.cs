@@ -29,6 +29,8 @@
         private readonly Dictionary<string, float> _sanityCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DateTime> _lastHintTime = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<PlayerSanityStageConfig> _orderedStages;
+        private readonly Dictionary<string, DateTime> _painkillerProtectionExpiry = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTime> _painkillerSanityBoostExpiry = new(StringComparer.OrdinalIgnoreCase);
 
         private readonly float _hintCooldown;
         private bool _isDisposed;
@@ -97,6 +99,8 @@
                 _sanityCache.Clear();
                 _lastHintTime.Clear();
                 _activeAmbientState.Clear();
+                _painkillerProtectionExpiry.Clear();
+                _painkillerSanityBoostExpiry.Clear();
             }
         }
 
@@ -143,6 +147,8 @@
                 _sanityCache.Remove(userId);
                 _lastHintTime.Remove(userId);
                 _activeAmbientState.Remove(userId);
+                _painkillerProtectionExpiry.Remove(userId);
+                _painkillerSanityBoostExpiry.Remove(userId);
             }
 
             // Explicitly notify the audio manager to release tracking keys upon network disconnect
@@ -155,6 +161,21 @@
 
             float restoreAmount = GetItemRestoreAmount(ev.UsableItem.Type);
             if (restoreAmount <= 0f) return;
+
+            string userId = ev.Player.UserId;
+
+            // Check if the consumed medical item is painkillers to trigger custom mechanics
+            if (ev.UsableItem.Type == ItemType.Painkillers)
+            {
+                lock (_cacheLock)
+                {
+                    // Calculate and commit expiration timestamps based on configuration values
+                    _painkillerProtectionExpiry[userId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersProtectionDuration);
+                    _painkillerSanityBoostExpiry[userId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersRegenDuration);
+                }
+
+                LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Painkillers consumed by {ev.Player.Nickname}. Protection registered for {_sanityConfig.PainkillersProtectionDuration}s, Sanity boost registered for {_sanityConfig.PainkillersRegenDuration}s.");
+            }
 
             float newSanity = ChangeSanityValue(ev.Player, restoreAmount);
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
@@ -286,6 +307,7 @@
         public void ApplyDamageToPlayer(Player player)
         {
             if (!IsValidPlayer(player)) return;
+            if (IsProtectedByPainkillers(player)) return;
 
             var stage = GetCurrentSanityStage(player);
             if (stage == null) return;
@@ -406,7 +428,17 @@
                 return;
             }
 
-            float newSanity = ChangeSanityValue(player, _sanityConfig.PassiveRegenRate);
+            // FIX: Calculate the core regeneration rate, adding extra boost if the painkiller duration is still running
+            float regenRate = _sanityConfig.PassiveRegenRate;
+            lock (_cacheLock)
+            {
+                if (_painkillerSanityBoostExpiry.TryGetValue(player.UserId, out DateTime boostExpiry) && now < boostExpiry)
+                {
+                    regenRate += _sanityConfig.PainkillersExtraSanityRegen;
+                }
+            }
+
+            float newSanity = ChangeSanityValue(player, regenRate);
 
             // 2. Continuous Background State Evaluation
             bool requiresLowDrone = newSanity <= 35f;
@@ -419,7 +451,7 @@
                 if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
                 {
                     SendSanityHint(player, _plugin.Config.HintsConfig.SanityIncreasedHint, newSanity);
-                    _lastHintTime[userId] = now; 
+                    _lastHintTime[userId] = now;
                 }
             }
         }
@@ -456,9 +488,26 @@
             return itemType switch
             {
                 ItemType.SCP500 => UnityEngine.Random.Range(_sanityConfig.Scp500RestoreMin, _sanityConfig.Scp500RestoreMax),
-                ItemType.Painkillers => UnityEngine.Random.Range(_sanityConfig.PillsRestoreMin, _sanityConfig.PillsRestoreMax),
+                ItemType.Painkillers => UnityEngine.Random.Range(_sanityConfig.PainkillersRestoreMin, _sanityConfig.PainkillersRestoreMax),
                 _ => 0f
             };
+        }
+
+        /// <summary>
+        /// Determines whether the designated player is currently shielded by painkillers protection.
+        /// </summary>
+        public bool IsProtectedByPainkillers(Player player)
+        {
+            if (player == null || string.IsNullOrEmpty(player.UserId)) return false;
+
+            lock (_cacheLock)
+            {
+                if (_painkillerProtectionExpiry.TryGetValue(player.UserId, out DateTime expiryTime))
+                {
+                    return DateTime.Now < expiryTime;
+                }
+            }
+            return false;
         }
 
         private void SafeUpdateAmbient(Player player, bool shouldPlayDrone)
