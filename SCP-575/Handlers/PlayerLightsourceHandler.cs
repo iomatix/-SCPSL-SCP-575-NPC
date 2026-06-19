@@ -409,11 +409,16 @@ namespace SCP_575.Handlers
             }
         }
 
+        /// <summary>
+        /// Verifies if the specified firearm has a flashlight attachment actively equipped by the player.
+        /// </summary>
         private bool HasFlashlight(FirearmItem firearm)
         {
-            // FIX: Query the underlying native Unity game object state to ensure the attachment is actively rendered/equipped on the server.
             if (firearm?.Base?.Attachments == null) return false;
-            return firearm.Base.Attachments.Any(a => a != null && a.Name == AttachmentName.Flashlight && a.gameObject.activeSelf);
+
+            // FIX: On a dedicated server, gameObject.activeSelf is unreliable as physical sub-objects are not visually toggled.
+            // We must query the native 'IsEnabled' property compiled by the server from the item's attachment code bitmask.
+            return firearm.Base.Attachments.Any(a => a != null && a.Name == AttachmentName.Flashlight && a.IsEnabled);
         }
 
         /// <summary>
