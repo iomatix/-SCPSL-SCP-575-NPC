@@ -23,7 +23,7 @@
         /// Gets or sets the baseline rate at which an actor's sanity naturally decays per minute under standard conditions.
         /// </summary>
         [Description("How much sanity (0-100) a player naturally loses PER MINUTE in baseline conditions.")]
-        public float BaseDecayPerMinute { get; set; } = 12.5f; // Results in exactly 8 minutes for full drain
+        public float BaseDecayPerMinute { get; set; } = 9.5f;
 
         /// <summary>
         /// Gets or sets the additional decay multiplier applied to the baseline loss when SCP-575 is actively hunting during a blackout.
@@ -41,7 +41,7 @@
         /// Gets or sets the rate at which an actor passively recovers their sanity percentage per minute while standing inside safe, well-lit zones.
         /// </summary>
         [Description("How much sanity (0-100) a player passively regenerates PER MINUTE when inside safe, lit zones.")]
-        public float PassiveRegenPerMinute { get; set; } = 5.55f; // Results in exactly 18 minutes for full recovery
+        public float PassiveRegenPerMinute { get; set; } = 4.55f;
 
         /// <summary>
         /// Gets or sets the discrete amount of sanity stripped instantly from an actor upon sustaining a direct physical attack from any SCP entity.
