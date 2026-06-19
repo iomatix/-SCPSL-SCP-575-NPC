@@ -36,30 +36,30 @@ This is the very first official build of the SCP-575 NPC mod, hosted in its own 
 
 ## 🛠️ Administrative Commands
 
-Version 9.10.2 introduces a centralized administrative control command 'scp575' with aliases '575' and 'ev575'. These commands are fully integrated into both the Remote Admin (RA) Console and the Server Game Console.
+Version 9.10.2 introduces a centralized administrative control command `scp575` with aliases `575` and `ev575`. These commands are fully integrated into both the Remote Admin (RA) Console and the Server Game Console.
 
 ### 🔒 Permissions
-To prevent malicious execution, all subcommands require the native 'FacilityManagement' administrative permission node.
+To prevent malicious execution, all subcommands require the native `- FacilityManagement.*` administrative permission node.
 
 ### 📋 Subcommand Matrix
 
 | Command | Syntax | Description |
 | :--- | :--- | :--- |
-| **Initialize Framework** | 'scp575 init' / 'scp575 start' | Bypasses configuration spawn weights and forces the SCP-575 environment online mid-round. Spins up coroutines, sets player baselines, and plays background ambience. |
-| **Trigger Blackout** | 'scp575 blackout' / 'scp575 trigger' | Forces an immediate global blackout event. Dispatches glitchy CASSIE broadcasts, fires 3D jumpscare soundscapes, and overrides illumination fields. |
-| **Emergency Disable** | 'scp575 stop' / 'scp575 disable' | Instantly terminates the event. Kills active loops, ucisza all custom speakers, clears dictionary caches, and restores structural facility lighting. |
-| **Set Blackout Stacks** | 'scp575 setstacks [value]' | Explicitly sets the current blackout stack register (e.g., 'scp575 setstacks 3'). Higher stacks heavily escalate sanity decay and physical damage. Passing '0' restores zasilanie. |
+| **Initialize Framework** | `scp575 init` / `scp575 start` | Bypasses configuration spawn weights and forces the SCP-575 environment online mid-round. Spins up coroutines, sets player baselines, and plays background ambience. |
+| **Trigger Blackout** | `scp575 blackout` / `scp575 trigger` | Forces an immediate global blackout event. Dispatches glitchy CASSIE broadcasts, fires 3D jumpscare soundscapes, and overrides illumination fields. |
+| **Emergency Disable** | `scp575 stop` / `scp575 disable` | Instantly terminates the event. Kills active loops, ucisza all custom speakers, clears dictionary caches, and restores structural facility lighting. |
+| **Set Blackout Stacks** | `scp575 setstacks [value]` | Explicitly sets the current blackout stack register (e.g., `scp575 setstacks 3`). Higher stacks heavily escalate sanity decay and physical damage. Passing '0' restores zasilanie. |
 
 ### 💡 Execution Examples
 
 * Starting the event manually if it didn't roll naturally at round start:
-'scp575 start'
+`scp575 start`
 
 * Testing or triggering an immediate atmospheric event for your players:
-'scp575 trigger'
+`scp575 trigger`
 
 * Instantly turning the facility back to normal if a round gets stuck:
-'scp575 disable'
+`scp575 disable`
 
 * Setting the threat matrix to maximum danger (5 stack multiplication loop):
-'scp575 setstacks 5'
+`scp575 setstacks 5`
