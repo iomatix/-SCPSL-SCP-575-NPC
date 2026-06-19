@@ -61,5 +61,5 @@ To prevent malicious execution, all subcommands require the native 'FacilityMana
 * Instantly turning the facility back to normal if a round gets stuck:
 'scp575 disable'
 
-* Setting the threat matrix to maximum danger (3 stack multiplication loop):
-'scp575 setstacks 3'
+* Setting the threat matrix to maximum danger (5 stack multiplication loop):
+'scp575 setstacks 5'
