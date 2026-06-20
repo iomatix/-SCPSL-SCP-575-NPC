@@ -75,11 +75,13 @@
                     float currentSanity = _sanityHandler.GetCurrentSanity(player);
                     bool isInDarkness = _plugin.LibraryLabAPI.IsPlayerInDarkRoom(player);
 
-                    EvaluatePersistentPanicDrone(player, instanceId, currentSanity, isInDarkness);
-                    UpdatePlayerBackgroundAmbient(player, instanceId, isInDarkness);
+                    float lowSanityThreshold = _plugin.Config.AudioConfig.Tier2DisturbedWhispersThreshold;
+                    bool shouldPlayLowSanityDrone = isInDarkness && currentSanity <= lowSanityThreshold;
 
-                    if (IsAcousticBudgetSaturated(instanceId, now))
-                        continue;
+                    EvaluatePersistentPanicDrone(player, instanceId, currentSanity, isInDarkness);
+                    UpdatePlayerBackgroundAmbient(player, instanceId, shouldPlayLowSanityDrone);
+
+                    if (IsAcousticBudgetSaturated(instanceId, now)) continue;
 
                     if (isInDarkness)
                     {
