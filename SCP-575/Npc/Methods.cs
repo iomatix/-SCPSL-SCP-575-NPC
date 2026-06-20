@@ -5,8 +5,8 @@ namespace SCP_575.Npc
     using MapGeneration;
     using MEC;
     using SCP_575.ConfigObjects;
-    using SCP_575.Shared.Audio.Enums;
     using SCP_575.Shared;
+    using SCP_575.Shared.Audio.Enums;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -45,15 +45,15 @@ namespace SCP_575.Npc
 
         /// <summary>
         /// Defines operational predatory intervals for the shadow anomaly, modulating
-        /// auditory presence and physical trauma delivery based on subject vulnerability.
+        /// tactical pressure and mechanical trauma delivery based on subject vulnerability.
         /// </summary>
         public enum NpcBehaviorState
         {
-            /// <summary> The entity is passive or the subject is fully protected by localized high-lux lighting. </summary>
+            /// <summary> The entity is passive or the subject is fully protected by localized room lighting. </summary>
             Dormant,
-            /// <summary> The entity is trailing and manipulating gear. Flashlights fluctuate, paranoiac ticks spin out. No physical harm. </summary>
+            /// <summary> The entity is actively stalking and closing in on a subject holding an active light source. </summary>
             Stalking,
-            /// <summary> The entity undergoes total predatory breakthrough. Photon emitters are permanently blown out, dealing heavy health damage. </summary>
+            /// <summary> The entity undergoes breakthrough sza³u, executing targets left completely vulnerable in darkness. </summary>
             Striking
         }
 
@@ -122,7 +122,7 @@ namespace SCP_575.Npc
             _sanityHandler?.Clean();
             _plugin.LightsourceHandler?.Clean();
 
-            // Clear state data to guarantee complete isolation across standalone plugin deactivations
+            // Evict structural tracking tables safely to protect memory boundary configurations across rounds
             _playerAiStates.Clear();
 
             LibraryLabAPI.LogInfo(nameof(Disable), "SCP-575 NPC logic and all coroutines terminated.");
@@ -444,6 +444,10 @@ namespace SCP_575.Npc
 
         #region Attack Logic & AI State Machine
 
+        /// <summary>
+        /// Main operational decision thread for the SCP-575 entity. Evaluates subject parameters 
+        /// inside unlit sectors and routes behavioral state executions strictly via architectural handler abstractions.
+        /// </summary>
         public IEnumerator<float> KeterActionLoop()
         {
             while (_isInitialized)
@@ -457,8 +461,6 @@ namespace SCP_575.Npc
 
                 if (!_plugin.IsEventActive || !IsBlackoutActive) continue;
 
-                var audioConfig = _config.AudioConfig;
-
                 foreach (Player player in Player.ReadyList)
                 {
                     try
@@ -466,81 +468,37 @@ namespace SCP_575.Npc
                         if (player == null || !player.IsAlive || !player.IsHuman || player.Room.Name == RoomName.Pocket) continue;
 
                         string userId = player.UserId;
+                        bool isInDarkness = _libraryLabAPI.IsPlayerInDarkRoom(player);
 
-                        // Environmental Gate: Instantly revert to Dormant if subject exits darkness or logs out
-                        if (!_libraryLabAPI.IsPlayerInDarkRoom(player) || !_sanityHandler.IsValidPlayer(player))
+                        // Environmental Check: Gracefully drop tracking if subject steps back into active room illumination
+                        if (!isInDarkness || !_sanityHandler.IsValidPlayer(player))
                         {
                             _playerAiStates[userId] = NpcBehaviorState.Dormant;
                             continue;
                         }
 
-                        float currentSanity = _sanityHandler.GetCurrentSanity(player);
+                        bool hasActiveLight = !Helpers.IsHumanWithoutLight(player);
 
-                        if (!_playerAiStates.TryGetValue(userId, out var previousState))
-                        {
-                            previousState = NpcBehaviorState.Dormant;
-                        }
-
-                        // --- THRESHOLD EVALUATION BOUNDARIES ---
-                        NpcBehaviorState newState = NpcBehaviorState.Dormant;
-
-                        if (currentSanity <= 30f)
-                        {
-                            newState = NpcBehaviorState.Striking;
-                        }
-                        else if (currentSanity <= 75f || Helpers.IsHumanWithoutLight(player))
-                        {
-                            newState = NpcBehaviorState.Stalking;
-                        }
-
+                        // --- ADAPTIVE ARCHITECTURAL STATE MATRIX ---
+                        NpcBehaviorState newState = hasActiveLight ? NpcBehaviorState.Stalking : NpcBehaviorState.Striking;
                         _playerAiStates[userId] = newState;
 
-                        // --- STATE MACHINE EXECUTION PIPELINE ---
-                        switch (newState)
+                        // --- DECOUPLED TRANSACTION DISPATCH ---
+                        // We execute a strike tick across ALL subjects caught vulnerable in unlit rooms.
+                        // The PlayerSanityHandler naturally resolves config profiles based on active light status.
+                        _sanityHandler.ApplyDamageToPlayer(player);
+                        _sanityHandler.ApplyStageEffects(player);
+
+                        if (newState == NpcBehaviorState.Stalking)
                         {
-                            case NpcBehaviorState.Stalking:
-                                // Psychological Escalation: Fire a transient voltage spike stinger on state transition entry
-                                if (previousState == NpcBehaviorState.Dormant)
-                                {
-                                    _plugin.AudioDirector?.ProcessLightsourceFlicker(player);
-                                }
-
-                                // Project tracking clicks using loose orbit margins to confuse target tracking vectors
-                                _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, isolated: true,
-                                    maxRadius: audioConfig.HunterBreathMaxRadius * 1.6f,
-                                    minRadius: audioConfig.HunterBreathMinRadius * 1.3f,
-                                    angularSpeed: audioConfig.HunterBreathAngularSpeed * 1.5f,
-                                    approachSpeed: audioConfig.HunterBreathApproachSpeed * 0.7f);
-                                break;
-
-                            case NpcBehaviorState.Striking:
-                                // Physiological Breakthrough: Process kinetic trauma, drop cognitive scores, and inject distortions
-                                _sanityHandler.ApplyDamageToPlayer(player);
-                                _sanityHandler.ApplyStageEffects(player);
-
-                                // Blow out active mobile emitters, locking them behind hardware cooldown tables
-                                _lightsourceHandler.ApplyLightsourceEffects(player);
-
-                                // Project high-amplitude local breathing vectors directly onto the subject's neck coordinates
-                                if (previousState != NpcBehaviorState.Striking)
-                                {
-                                    _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
-                                        maxRadius: audioConfig.HunterBreathMaxRadius,
-                                        minRadius: audioConfig.HunterBreathMinRadius,
-                                        angularSpeed: audioConfig.HunterBreathAngularSpeed,
-                                        approachSpeed: audioConfig.HunterBreathApproachSpeed);
-                                }
-                                break;
-
-                            case NpcBehaviorState.Dormant:
-                            default:
-                                // Baseline Quiescence: The entity retreats into environmental shadow volumes
-                                break;
+                            // Stalking Strike: The anomaly targets their mobile photon source, forcing an over-voltage blowout.
+                            // This suppresses their defensive light field, dropping them to Striking on consecutive execution frames.
+                            _lightsourceHandler.ApplyLightsourceEffects(player);
                         }
                     }
                     catch (Exception ex)
                     {
-                        LibraryLabAPI.LogError("Methods.KeterAction", $"Error processing {player?.Nickname}: {ex.Message}");
+                        LibraryLabAPI.LogError("Methods.KeterAction", $"Error executing macro strike for target {player?.Nickname}: {ex.Message}");
                     }
                 }
             }
@@ -601,7 +559,7 @@ namespace SCP_575.Npc
             _triggeredZones.Clear();
             ResetTeslaGates();
 
-            // Clean active tactical targets to prevent caching stale identifiers across consecutive round phases
+            // Evict structural tracking coordinates safely to enforce cross-round data isolation models
             _playerAiStates.Clear();
         }
 
