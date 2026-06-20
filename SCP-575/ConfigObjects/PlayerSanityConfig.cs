@@ -85,12 +85,6 @@
         public float PainkillersProtectionDuration { get; set; } = 3.25f;
 
         /// <summary>
-        /// Gets or sets the maximum fallback sanity percentage allowed from standard medical pill categories.
-        /// </summary>
-        [Description("Maximum sanity restore percent from medical pills.")]
-        public float PillsRestoreMax { get; set; } = 25f;
-
-        /// <summary>
         /// Gets or sets the minimum sanity percentage restored by SCP-500 pills.
         /// </summary>
         [Description("Minimum sanity restore percent from SCP-500.")]
@@ -270,8 +264,6 @@
                 PainkillersRestoreMax = temp;
                 Logger.Warn("[PlayerSanityConfig] PainkillersRestoreMin was greater than PainkillersRestoreMax. Values have been swapped.");
             }
-
-            if (PillsRestoreMax < 0f) PillsRestoreMax = 0f;
 
             if (Scp500RestoreMin < 0f) Scp500RestoreMin = 0f;
             if (Scp500RestoreMax < 0f) Scp500RestoreMax = 0f;
