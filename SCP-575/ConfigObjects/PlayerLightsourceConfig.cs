@@ -15,25 +15,25 @@
         /// Gets or sets the minimum number of flickers triggered by SCP-575.
         /// </summary>
         [Description("Minimum number of flickers caused by SCP-575.")]
-        public int MinFlickerCount { get; set; } = 3;
+        public int MinFlickerCount { get; set; } = 2;
 
         /// <summary>
         /// Gets or sets the maximum number of flickers triggered by SCP-575.
         /// </summary>
         [Description("Maximum number of flickers caused by SCP-575.")]
-        public int MaxFlickerCount { get; set; } = 11;
+        public int MaxFlickerCount { get; set; } = 9;
 
         /// <summary>
         /// Gets or sets the minimum duration of the flicker effect in milliseconds.
         /// </summary>
         [Description("Minimum duration of the flicker effect in milliseconds.")]
-        public int MinFlickerDurationMs { get; set; } = 1500;
+        public int MinFlickerDurationMs { get; set; } = 850;
 
         /// <summary>
         /// Gets or sets the maximum duration of the flicker effect in milliseconds.
         /// </summary>
         [Description("Maximum duration of the flicker effect in milliseconds.")]
-        public int MaxFlickerDurationMs { get; set; } = 2500;
+        public int MaxFlickerDurationMs { get; set; } = 1500;
 
         /// <summary>
         /// Validates the player lightsource configuration parameters and corrects invalid input.
