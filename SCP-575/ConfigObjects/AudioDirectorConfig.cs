@@ -5,21 +5,11 @@
     using UnityEngine;
 
     /// <summary>
-    /// Scentralizowany kontener konfiguracyjny dla podsystemu audio oraz reżysera pacingu horroru.
-    /// Definiuje czasy odnowienia, wielkości buforów wyciszenia oraz przestrzenne wymiary orbit.
+    /// Configuration container mapping all parametric limits, spatial dimensions, 
+    /// and threshold scaling curves utilized by the autonomous horror pacing engine.
     /// </summary>
-    public sealed class AudioConfig
+    public sealed class AudioDirectorConfig
     {
-        #region Baseline Engine Options
-
-        [Description("The cooldown time in seconds for global scream audio playback. Must be positive.")]
-        public float GlobalScreamCooldown { get; set; } = 75f;
-
-        [Description("The default duration in seconds for audio fade-in and fade-out effects. Must be non-negative.")]
-        public float DefaultFadeDuration { get; set; } = 1f;
-
-        #endregion
-
         #region Tension Pacing Dynamics
 
         [Description("The speed modifier used to accelerate individual tension accumulation curves based on cognitive risk coefficients.")]
@@ -121,22 +111,11 @@
         #endregion
 
         /// <summary>
-        /// Validates the audio configuration parameters and corrects invalid input.
+        /// Validates parametric bounds to defend the client mixer space against hardware phasing anomalies.
         /// </summary>
         public void Validate()
         {
-            if (GlobalScreamCooldown <= 0f)
-            {
-                Log.Warn("[AudioConfig] GlobalScreamCooldown must be positive. Resetting to default (75f).");
-                GlobalScreamCooldown = 75f;
-            }
-
-            if (DefaultFadeDuration < 0f)
-            {
-                Log.Warn("[AudioConfig] DefaultFadeDuration cannot be negative. Resetting to default (1f).");
-                DefaultFadeDuration = 1f;
-            }
-
+            // Hardware constraint protection: Panning vectors collapsing closer than 0.15m break sound-stage panning primitives
             StingerMinRadius = Mathf.Max(0.15f, StingerMinRadius);
             HelpfulExplosionMinRadius = Mathf.Max(0.15f, HelpfulExplosionMinRadius);
             DangerousExplosionMinRadius = Mathf.Max(0.15f, DangerousExplosionMinRadius);
@@ -147,7 +126,7 @@
 
             if (TensionTriggerMinThreshold > TensionTriggerMaxThreshold)
             {
-                Log.Warn("[AudioConfig] TensionTriggerMinThreshold cannot exceed MaxThreshold. Swapping boundaries.");
+                Log.Warn("[AudioDirectorConfig] TensionTriggerMinThreshold cannot exceed MaxThreshold. Performing defensive transposition.");
                 float temp = TensionTriggerMinThreshold;
                 TensionTriggerMinThreshold = TensionTriggerMaxThreshold;
                 TensionTriggerMaxThreshold = temp;
