@@ -196,26 +196,6 @@
             _ambienceAudioSessionId = 0;
         }
 
-        /// <summary>
-        /// Backward-compatibility proxy routing teardown requests straight to the new Audio Director.
-        /// </summary>
-        public void ForceStopAllPlayerAudio(Player player)
-        {
-            if (player?.GameObject == null) return;
-            _plugin.AudioDirector?.OnPlayerLeft(player);
-        }
-
-        /// <summary>
-        /// Backward-compatibility proxy routing background ambient updates straight to the new Audio Director.
-        /// </summary>
-        public bool UpdatePlayerBackgroundAmbient(Player player, bool shouldPlayDrone)
-        {
-            if (player?.GameObject == null) return false;
-
-            _plugin.AudioDirector?.UpdatePlayerBackgroundAmbient(player, player.GameObject.GetInstanceID(), shouldPlayDrone);
-            return true;
-        }
-
         public void StopSession(int sessionId)
         {
             if (sessionId == 0) return;

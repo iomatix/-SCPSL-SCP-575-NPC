@@ -75,11 +75,13 @@
                     float currentSanity = _sanityHandler.GetCurrentSanity(player);
                     bool isInDarkness = _plugin.LibraryLabAPI.IsPlayerInDarkRoom(player);
 
+                    bool triggersPanicZone = currentSanity <= _plugin.Config.AudioConfig.PanicDroneSanityThreshold && isInDarkness;
+
                     float lowSanityThreshold = _plugin.Config.AudioConfig.Tier2DisturbedWhispersThreshold;
-                    bool shouldPlayLowSanityDrone = isInDarkness && currentSanity <= lowSanityThreshold;
+                    bool shouldPlayLowSanityDrone = isInDarkness && currentSanity <= lowSanityThreshold && !triggersPanicZone;
 
                     EvaluatePersistentPanicDrone(player, instanceId, currentSanity, isInDarkness);
-                    UpdatePlayerBackgroundAmbient(player, instanceId, shouldPlayLowSanityDrone);
+                    EvaluateLowSanityDrone(player, instanceId, shouldPlayLowSanityDrone);
 
                     if (IsAcousticBudgetSaturated(instanceId, now)) continue;
 
@@ -184,7 +186,10 @@
             }
         }
 
-        public void UpdatePlayerBackgroundAmbient(Player player, int instanceId, bool shouldPlayDrone)
+        /// <summary>
+        /// Dynamically drives the persistent low-sanity tension hum based on cognitive risk layers.
+        /// </summary>
+        public void EvaluateLowSanityDrone(Player player, int instanceId, bool shouldPlayDrone)
         {
             lock (_directorLock)
             {
