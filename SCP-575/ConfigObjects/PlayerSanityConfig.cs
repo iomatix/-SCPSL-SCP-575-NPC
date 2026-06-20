@@ -138,12 +138,9 @@
                 Effects = new()
                 {
                     new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 3 },
-                    new() { EffectType = SanityEffectType.Slowness, Duration = 1.25f, Intensity = 30 },
+                    new() { EffectType = SanityEffectType.Slowness, Duration = 1.05f, Intensity = 20 },
                     new() { EffectType = SanityEffectType.Blurred, Duration = 1f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Concussed, Duration = 2f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.45f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Deafened, Duration = 0.55f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.15f, Intensity = 1 },
                 }
             },
             new PlayerSanityStageConfig
@@ -157,13 +154,11 @@
                 OverrideLightSourceSanityProtection = false,
                 Effects = new()
                 {
-                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 3 },
+                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 5 },
                     new() { EffectType = SanityEffectType.Slowness, Duration = 1.25f, Intensity = 30 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 1f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Concussed, Duration = 2f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.45f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 0.55f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.15f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blurred, Duration = 1.5f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.3f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Deafened, Duration = 1.05f, Intensity = 1 },
                 }
             },
             new PlayerSanityStageConfig
@@ -179,14 +174,10 @@
                 {
                     new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 7 },
                     new() { EffectType = SanityEffectType.Slowness, Duration = 1.65f, Intensity = 40 },
-                    new() { EffectType = SanityEffectType.Disabled, Duration = 7f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Traumatized, Duration = 7f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Exhausted, Duration = 1.5f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Blurred, Duration = 2f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Concussed, Duration = 3f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.75f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 1.25f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.25f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.5f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Deafened, Duration = 1.5f, Intensity = 1 },
                 }
             },
             new PlayerSanityStageConfig
@@ -202,14 +193,11 @@
                 {
                     new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 9 },
                     new() { EffectType = SanityEffectType.Slowness, Duration = 2.45f, Intensity = 55 },
-                    new() { EffectType = SanityEffectType.Disabled, Duration = 9f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Traumatized, Duration = 9f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Exhausted, Duration = 2.5f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 5f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Concussed, Duration = 8f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 1.25f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blurred, Duration = 3.5f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.75f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Deafened, Duration = 2.25f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.35f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.25f, Intensity = 1 },
                 }
             },
             new PlayerSanityStageConfig
@@ -225,14 +213,11 @@
                 {
                     new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 10 },
                     new() { EffectType = SanityEffectType.Slowness, Duration = 3.25f, Intensity = 70 },
-                    new() { EffectType = SanityEffectType.Disabled, Duration = 15f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Traumatized, Duration = 15f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Exhausted, Duration = 4.75f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 7f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Concussed, Duration = 10f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 1.45f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Exhausted, Duration = 3.25f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blurred, Duration = 5f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blindness, Duration = 1.25f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Deafened, Duration = 3.5f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.65f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.45f, Intensity = 1 },
                 }
             },
             new PlayerSanityStageConfig
@@ -247,14 +232,11 @@
                 Effects = new()
                 {
                     new() { EffectType = SanityEffectType.SilentWalk, Duration = 5f, Intensity = 10 },
-                    new() { EffectType = SanityEffectType.Slowness, Duration = 3.25f, Intensity = 70 },
-                    new() { EffectType = SanityEffectType.Disabled, Duration = 15f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Traumatized, Duration = 15f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Exhausted, Duration = 4.75f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 7f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Concussed, Duration = 10f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Slowness, Duration = 3.55f, Intensity = 75 },
+                    new() { EffectType = SanityEffectType.Exhausted, Duration = 3.65f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blurred, Duration = 6.5f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Blindness, Duration = 1.45f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 3.5f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Deafened, Duration = 4.0f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Flashed, Duration = 0.65f, Intensity = 1 },
                 }
             },
