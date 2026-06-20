@@ -63,7 +63,7 @@
                     _plugin.Npc.Methods.StartTimedBlackoutBoost(
                         _plugin.Config.BlackoutConfig.DurationMin,
                         "GeneratorHandler",
-                        "Dormant SCP-575 awakened. Triggering emergency facility-wide blackout.",
+                        $"Dormant SCP-575 awakened. Triggering emergency blackout in {room.Name}.",
                         null,
                         () => _plugin.Npc.Methods.ExecuteLocalizedRetaliationSurge(room)
                     );
