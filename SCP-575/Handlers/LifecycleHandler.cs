@@ -42,8 +42,8 @@
             // ===================================================================
 #if DEBUG
             // Forcing the roll to -1f guarantees success in Methods.Init (since -1f is always <= EventChance, even if chance is 0%).
-            roll = -1f; 
-            
+            roll = -1f;
+
             LibraryLabAPI.LogInfo("Lifecycle", "========================================================================");
             LibraryLabAPI.LogInfo("Lifecycle", "       [DEVELOPER ENVIRONMENT DETECTED - FORCING 100% SPAWN CHANCE]     ");
             LibraryLabAPI.LogInfo("Lifecycle", "  SCP-575 event roll has been bypassed. Blackout loop will trigger automatically. ");

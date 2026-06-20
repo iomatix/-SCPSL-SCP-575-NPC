@@ -10,6 +10,7 @@ namespace SCP_575.Shared
     using SCP_575.Shared;
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using UnityEngine;
 
@@ -38,9 +39,13 @@ namespace SCP_575.Shared
 
         #region Logging
 
-        public void LogDebug(string moduleId, string message)
+        /// <summary>
+        /// Logs a debug message to the console line strictly during DEBUG compilation builds.
+        /// Fully stripped out by the compiler in RELEASE mode to guarantee zero runtime allocation overhead.
+        /// </summary>
+        [Conditional("DEBUG")]
+        static public void LogDebug(string moduleId, string message)
         {
-            if (_plugin?.Config?.Debug == false) return;
             LabApi.Features.Console.Logger.Debug($"[{moduleId}] {message}");
         }
 
