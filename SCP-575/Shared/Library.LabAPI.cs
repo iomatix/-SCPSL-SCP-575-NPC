@@ -38,9 +38,9 @@ namespace SCP_575.Shared
 
         #region Logging
 
-        public static void LogDebug(string moduleId, string message)
+        public void LogDebug(string moduleId, string message)
         {
-            if (Plugin.Singleton?.Config?.Debug == false) return;
+            if (_plugin?.Config?.Debug == false) return;
             LabApi.Features.Console.Logger.Debug($"[{moduleId}] {message}");
         }
 
