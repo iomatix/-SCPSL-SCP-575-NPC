@@ -55,20 +55,23 @@
 
             // --- PSYCHOLOGICAL PARANOIA & SANITY DECAY (TIERED PACING) ---
             { AudioKey.WhispersSubtle, new AudioTrackGroup(
-                new AudioTrackProfile("scp575.whispers_1", 0.55f, 5f, 35f, true, AudioPriority.Medium, 11f),
-                new AudioTrackProfile("scp575.whispers_2", 0.55f, 7f, 45f, true, AudioPriority.Medium, 19f)
-            )},
-            { AudioKey.WhispersDisturbed, new AudioTrackGroup(
                 new AudioTrackProfile("scp575.whispers_3", 0.55f, 9f, 52f, true, AudioPriority.Medium, 9f),
                 new AudioTrackProfile("scp575.whispers_4", 0.55f, 9f, 52f, true, AudioPriority.Medium, 8f),
-                new AudioTrackProfile("scp575.whispers_5", 0.55f, 9f, 52f, true, AudioPriority.Medium, 14f),
+                new AudioTrackProfile("scp575.whispers_5", 0.55f, 9f, 52f, true, AudioPriority.Medium, 14f)
+            )},
+            { AudioKey.WhispersDisturbed, new AudioTrackGroup(
                 new AudioTrackProfile("scp575.whispers_6", 0.55f, 9f, 52f, true, AudioPriority.Medium, 17f),
                 new AudioTrackProfile("scp575.whispers_7", 0.55f, 9f, 52f, true, AudioPriority.Medium, 28f)
             )},
-            { AudioKey.WhispersPsychotic, new AudioTrackGroup(new AudioTrackProfile("scp575.whispers_mixed", 0.65f, 10f, 55f, true, AudioPriority.Medium, 25f)) },
+            { AudioKey.WhispersPsychotic, new AudioTrackGroup(
+                new AudioTrackProfile("scp575.whispers", 0.55f, 5f, 35f, true, AudioPriority.Medium, 10f),
+                new AudioTrackProfile("scp575.whispers_1", 0.55f, 5f, 35f, true, AudioPriority.Medium, 11f),
+                new AudioTrackProfile("scp575.whispers_2", 0.55f, 7f, 45f, true, AudioPriority.Medium, 19f),
+                new AudioTrackProfile("scp575.whispers_mixed", 0.65f, 10f, 55f, true, AudioPriority.Medium, 25f))
+            },
             { AudioKey.WhispersShockStinger, new AudioTrackGroup(
-                new AudioTrackProfile("scp575.whispers_bang", 0.65f, 12f, 65f, true, AudioPriority.High, 20f),
-                new AudioTrackProfile("scp575.whispers_bang_alt", 0.65f, 12f, 65f, true, AudioPriority.High, 12f)
+                new AudioTrackProfile("scp575.whispers_bang", 0.65f, 12f, 65f, true, AudioPriority.High, 20f)
+                // removed for now, clip audio is boring new AudioTrackProfile("scp575.whispers_bang_alt", 0.65f, 12f, 65f, true, AudioPriority.High, 12f)
             )},
             { AudioKey.WhispersPanicDrone, new AudioTrackGroup(new AudioTrackProfile("scp575.whispers_long_drones", 0.65f, 12f, 65f, true, AudioPriority.High, 0f)) },
             { AudioKey.ShadowClicking, new AudioTrackGroup(new AudioTrackProfile("scp575.shadow_clicking", 0.55f, 4.75f, 33f, true, AudioPriority.High, 9f)) },
