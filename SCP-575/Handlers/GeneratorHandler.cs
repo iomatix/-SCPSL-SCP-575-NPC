@@ -52,28 +52,7 @@
 
             if (allEngaged)
             {
-                var coroutine = Timing.CallDelayed(3.75f, () =>
-                {
-                    try
-                    {
-                        if (_plugin.Config.NpcConfig.IsNpcKillable)
-                        {
-                            _plugin.Npc.Methods.Kill575();
-                            LibraryLabAPI.LogInfo("GeneratorHandler", "SCP-575 permanently terminated via core power grid restoration.");
-                        }
-                        else
-                        {
-                            _plugin.Npc.Methods.Reset575();
-                            LibraryLabAPI.LogInfo("GeneratorHandler", "Facility grid operational. SCP-575 suppressed, background loops preserved.");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        LibraryLabAPI.LogError("GeneratorHandler.Teardown", $"Failed to execute post-mortem state change: {ex.Message}");
-                    }
-                });
-
-                coroutine.Tag = GeneratorAudioTag;
+                _plugin.Npc.Methods.ProcessFullGridRestorationTeardown();
                 return;
             }
 
@@ -86,7 +65,7 @@
                         "GeneratorHandler",
                         "Dormant SCP-575 awakened. Triggering emergency facility-wide blackout.",
                         null,
-                        () => LabApi.Features.Wrappers.Map.TurnOffLights(_plugin.Config.BlackoutConfig.DurationMin)
+                        () => _plugin.Npc.Methods.ExecuteLocalizedRetaliationSurge(room)
                     );
                 }
                 else

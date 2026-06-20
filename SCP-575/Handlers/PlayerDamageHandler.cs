@@ -17,7 +17,7 @@
         private readonly Plugin _plugin;
         private const string ItemPhysicsTag = CoroutineTags.ItemPhysics;
 
-        private readonly Dictionary<string, DateTime> _playerLastAttackAudioTime = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<int, DateTime> _playerLastAttackAudioTime = new();
         private readonly TimeSpan _attackAudioCooldown = TimeSpan.FromSeconds(1.2);
 
         public PlayerDamageHandler(Plugin plugin)
@@ -35,9 +35,9 @@
         /// </summary>
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
-            if (ev?.Player == null || string.IsNullOrEmpty(ev.Player.UserId)) return;
+            if (ev?.Player?.GameObject == null) return;
 
-            _playerLastAttackAudioTime.Remove(ev.Player.UserId);
+            _playerLastAttackAudioTime.Remove(ev.Player.GameObject.GetInstanceID());
         }
 
         private void Clean()
@@ -82,16 +82,16 @@
 
             if (isPhysicalScpAttack)
             {
-                string userId = ev.Player.UserId;
+                int instanceId = ev.Player.GameObject.GetInstanceID();
 
-                if (!_playerLastAttackAudioTime.TryGetValue(userId, out var lastTime))
+                if (!_playerLastAttackAudioTime.TryGetValue(instanceId, out var lastTime))
                 {
                     lastTime = DateTime.MinValue;
                 }
 
                 DateTime tempTime = lastTime;
                 Scp575DamageSystem.ProcessAnomalousTrauma(ev.Player, _plugin, ref tempTime, _attackAudioCooldown);
-                _playerLastAttackAudioTime[userId] = tempTime;
+                _playerLastAttackAudioTime[instanceId] = tempTime;
 
                 // Forces the Audio Director to clean up the mix, blinding out subtle whispers while raw meat-grinder sounds play out
                 _plugin.AudioDirector?.SuppressPsychologicalAudio(ev.Player, 3.5f);

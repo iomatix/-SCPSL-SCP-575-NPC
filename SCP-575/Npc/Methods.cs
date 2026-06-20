@@ -134,6 +134,8 @@ namespace SCP_575.Npc
         public void Clean()
         {
             Timing.KillCoroutines(CoroutineTags.CassieCooldown);
+            Timing.KillCoroutines(CoroutineTags.GridTearDown);
+            Timing.KillCoroutines(CoroutineTags.GeneratorSurge);
             Timing.KillCoroutines(TempCoroutineTag);
             Reset575();
         }
@@ -544,6 +546,71 @@ namespace SCP_575.Npc
         }
 
         public bool AreAllGeneratorsEngaged(int req = 3) => Generator.List.Count >= req && Generator.List.All(gen => gen.Engaged);
+
+        /// <summary>
+        /// Initiates a synchronized delayed state mutation sequence once all facility power generators are fully engaged.
+        /// </summary>
+        public void ProcessFullGridRestorationTeardown()
+        {
+            Timing.RunCoroutine(ExecuteGridRestorationRoutine(), CoroutineTags.GridTearDown);
+        }
+
+        private IEnumerator<float> ExecuteGridRestorationRoutine()
+        {
+            yield return Timing.WaitForSeconds(3.75f);
+            try
+            {
+                if (_config.NpcConfig.IsNpcKillable)
+                {
+                    Kill575();
+                    LibraryLabAPI.LogInfo("GeneratorHandler", "SCP-575 permanently terminated via core power grid restoration.");
+                }
+                else
+                {
+                    Reset575();
+                    LibraryLabAPI.LogInfo("GeneratorHandler", "Facility grid operational. SCP-575 suppressed, background loops preserved.");
+                }
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogError("GeneratorHandler.Teardown", $"Failed to execute post-mortem state change: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Triggers a localized stabilization window. The anomaly forces a temporary blackout surge, 
+        /// but the grid permanently locks into a full safe-zone once the stabilization timer expires.
+        /// </summary>
+        public void ExecuteLocalizedRetaliationSurge(Room generatorRoom)
+        {
+            if (generatorRoom == null) return;
+
+            // Fire the dual-phase stabilization pipeline using MEC
+            Timing.RunCoroutine(ExecuteStabilizationPipelineCoroutine(generatorRoom), CoroutineTags.GeneratorSurge);
+        }
+
+        private IEnumerator<float> ExecuteStabilizationPipelineCoroutine(Room generatorRoom)
+        {
+            // Phase 1: Localized grid overload (The monster's desperate counter-attack)
+            float stabilizationWindow = 20f;
+            _libraryLabAPI.DisableRoomAndNeighborLights(generatorRoom, stabilizationWindow);
+
+            // Audio stingers to alert players that the stabilization fight has begun
+            _plugin.AudioDirector?.ProcessGeneratorOverloadRetaliation(generatorRoom.Position);
+
+            // Wait out the high-tension stabilization window
+            yield return Timing.WaitForSeconds(stabilizationWindow);
+
+            // Phase 2: Grid Lock (The generator fully stabilizes and locks out the anomaly)
+            if (_plugin.IsEventActive && generatorRoom != null)
+            {
+                // Force the grid to ignite 100% power to this room and its immediate links
+                _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(generatorRoom, 0f);
+                _plugin.AudioDirector?.ProcessGeneratorStabilizedFeedback(generatorRoom.Position);
+
+                LibraryLabAPI.LogInfo("Methods.GeneratorStabilize", $"Generator room {generatorRoom.Name} fully stabilized. Safe-zone locked.");
+            }
+        }
 
         public void Reset575()
         {

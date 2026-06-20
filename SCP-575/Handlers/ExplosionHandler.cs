@@ -65,7 +65,7 @@
                             "ProjectileImpact",
                             $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks + 1}",
                             $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}",
-                            () => _plugin.AudioManager.PlayGlobal(AudioKey.MonsterBreathLocal)
+                            () => _plugin.AudioDirector?.ProcessExplosionImpactBoostFeedback() 
                         );
                     }
                     break;

@@ -27,6 +27,8 @@
         public const string BlackoutStacks = "SCP575-BlackoutStacks";
         public const string LightCleanup = "SCP575-LightCleanup";
         public const string MapCoroutines = "SCP575-MapCoroutines";
+        public const string GridTearDown = "SCP575-GridTearDown";
+        public const string GeneratorSurge = "SCP575-GeneratorSurge";
 
         // ===================================================================
         // AUDIO AND SOUNDSCAPES

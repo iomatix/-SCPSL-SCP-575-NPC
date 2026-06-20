@@ -25,11 +25,11 @@
         private readonly LibraryLabAPI _libraryLabAPI;
         private readonly PlayerSanityConfig _sanityConfig;
 
-        private readonly Dictionary<string, float> _sanityCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, DateTime> _lastHintTime = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<int, float> _sanityCache = new();
+        private readonly Dictionary<int, DateTime> _lastHintTime = new();
+        private readonly Dictionary<int, DateTime> _painkillerProtectionExpiry = new();
+        private readonly Dictionary<int, DateTime> _painkillerSanityBoostExpiry = new();
         private readonly List<PlayerSanityStageConfig> _orderedStages;
-        private readonly Dictionary<string, DateTime> _painkillerProtectionExpiry = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, DateTime> _painkillerSanityBoostExpiry = new(StringComparer.OrdinalIgnoreCase);
 
         private readonly float _hintCooldown;
         private bool _isDisposed;
@@ -40,12 +40,7 @@
         /// <summary>
         /// Exposes a read-only view of runtime psychological metrics for external integration tracking.
         /// </summary>
-        public IReadOnlyDictionary<string, float> SanityCache => _sanityCache;
-
-        /// <summary>
-        /// Contains a flag indicating whether the player has an active low-sanity background hum channel assigned.
-        /// </summary>
-        private readonly Dictionary<string, bool> _activeAmbientState = new(StringComparer.OrdinalIgnoreCase);
+        public IReadOnlyDictionary<int, float> SanityCache => _sanityCache;
 
         public PlayerSanityHandler(Plugin plugin)
         {
@@ -91,7 +86,6 @@
             {
                 _sanityCache.Clear();
                 _lastHintTime.Clear();
-                _activeAmbientState.Clear();
                 _painkillerProtectionExpiry.Clear();
                 _painkillerSanityBoostExpiry.Clear();
             }
@@ -122,26 +116,25 @@
 
             if (!IsValidPlayer(ev.Player))
             {
-                SafeUpdateAmbient(ev.Player, shouldPlayDrone: false);
+
             }
         }
 
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
-            if (ev?.Player == null) return;
-            string userId = ev.Player.UserId;
+            if (ev?.Player?.GameObject == null) return;
+            int instanceId = ev.Player.GameObject.GetInstanceID();
 
             lock (_cacheLock)
             {
-                _sanityCache.Remove(userId);
-                _lastHintTime.Remove(userId);
-                _activeAmbientState.Remove(userId);
-                _painkillerProtectionExpiry.Remove(userId);
-                _painkillerSanityBoostExpiry.Remove(userId);
+                _sanityCache.Remove(instanceId);
+                _lastHintTime.Remove(instanceId);
+                _painkillerProtectionExpiry.Remove(instanceId);
+                _painkillerSanityBoostExpiry.Remove(instanceId);
             }
 
+            // Direct decoupled notification to the director
             _plugin.AudioDirector?.OnPlayerLeft(ev.Player);
-            _plugin.AudioManager.ForceStopAllPlayerAudio(ev.Player);
         }
 
         public override void OnPlayerUsedItem(PlayerUsedItemEventArgs ev)
@@ -151,24 +144,30 @@
             float restoreAmount = GetItemRestoreAmount(ev.UsableItem.Type);
             if (restoreAmount <= 0f) return;
 
-            string userId = ev.Player.UserId;
+            int instanceId = ev.Player.GameObject.GetInstanceID();
 
             if (ev.UsableItem.Type == ItemType.Painkillers)
             {
                 lock (_cacheLock)
                 {
-                    _painkillerProtectionExpiry[userId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersProtectionDuration);
-                    _painkillerSanityBoostExpiry[userId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersRegenDuration);
+                    _painkillerProtectionExpiry[instanceId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersProtectionDuration);
+                    _painkillerSanityBoostExpiry[instanceId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersRegenDuration);
                 }
 
-                LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Painkillers consumed by {ev.Player.Nickname}. Protection registered for {_sanityConfig.PainkillersProtectionDuration}s, Sanity boost registered for {_sanityConfig.PainkillersRegenDuration}s.");
+                if (_plugin.Config.Debug)
+                {
+                    LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Painkillers consumed by {ev.Player.Nickname}. Protection registered for {_sanityConfig.PainkillersProtectionDuration}s, Sanity boost registered for {_sanityConfig.PainkillersRegenDuration}s.");
+                }
             }
 
             float newSanity = ChangeSanityValue(ev.Player, restoreAmount);
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
                 SendSanityHint(ev.Player, _plugin.Config.HintsConfig.SanityIncreasedMedicalHint, newSanity);
 
-            LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Restored {restoreAmount} sanity to {ev.Player.Nickname}. New sanity: {newSanity}");
+            if (_plugin.Config.Debug)
+            {
+                LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Restored {restoreAmount} sanity to {ev.Player.Nickname}. New sanity: {newSanity}");
+            }
         }
 
         #endregion
@@ -177,15 +176,15 @@
 
         public float GetCurrentSanity(Player player)
         {
-            if (!IsValidPlayer(player)) return _sanityConfig.InitialSanity;
+            if (player?.GameObject == null) return _sanityConfig.InitialSanity;
 
-            string userId = player.UserId;
+            int instanceId = player.GameObject.GetInstanceID();
             lock (_cacheLock)
             {
-                if (!_sanityCache.TryGetValue(userId, out float sanity))
+                if (!_sanityCache.TryGetValue(instanceId, out float sanity))
                 {
                     sanity = _sanityConfig.InitialSanity;
-                    _sanityCache[userId] = sanity;
+                    _sanityCache[instanceId] = sanity;
                 }
                 return sanity;
             }
@@ -201,14 +200,14 @@
 
         public float SetSanity(Player player, float sanity)
         {
-            if (!IsValidPlayer(player)) return 0f;
+            if (player?.GameObject == null) return 0f;
 
-            string userId = player.UserId;
+            int instanceId = player.GameObject.GetInstanceID();
             float clampedSanity = Mathf.Clamp(sanity, 0f, 100f);
 
             lock (_cacheLock)
             {
-                _sanityCache[userId] = clampedSanity;
+                _sanityCache[instanceId] = clampedSanity;
             }
             return clampedSanity;
         }
@@ -325,7 +324,6 @@
                 {
                     if (!IsValidPlayer(player))
                     {
-                        SafeUpdateAmbient(player, shouldPlayDrone: false);
                         continue;
                     }
 
@@ -350,17 +348,16 @@
             float newSanity = ChangeSanityValue(player, -decayRate);
 
             bool requiresLowDrone = newSanity <= 35f;
-            SafeUpdateAmbient(player, requiresLowDrone);
 
             ApplyStageEffects(player);
 
+            int instanceId = player.GameObject.GetInstanceID();
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
             {
-                string userId = player.UserId;
-                if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
+                if (!_lastHintTime.TryGetValue(instanceId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
                 {
                     SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
-                    _lastHintTime[userId] = now;
+                    _lastHintTime[instanceId] = now;
                 }
             }
         }
@@ -369,16 +366,14 @@
         {
             float oldSanity = GetCurrentSanity(player);
 
-            if (oldSanity >= 100f)
-            {
-                SafeUpdateAmbient(player, shouldPlayDrone: false);
-                return;
-            }
+            if (oldSanity >= 100f) return;
 
             float regenRate = _sanityConfig.PassiveRegenRate;
+            int instanceId = player.GameObject.GetInstanceID();
+
             lock (_cacheLock)
             {
-                if (_painkillerSanityBoostExpiry.TryGetValue(player.UserId, out DateTime boostExpiry) && now < boostExpiry)
+                if (_painkillerSanityBoostExpiry.TryGetValue(instanceId, out DateTime boostExpiry) && now < boostExpiry)
                 {
                     regenRate += _sanityConfig.PainkillersExtraSanityRegen;
                 }
@@ -386,16 +381,12 @@
 
             float newSanity = ChangeSanityValue(player, regenRate);
 
-            bool requiresLowDrone = newSanity <= 35f;
-            SafeUpdateAmbient(player, requiresLowDrone);
-
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
             {
-                string userId = player.UserId;
-                if (!_lastHintTime.TryGetValue(userId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
+                if (!_lastHintTime.TryGetValue(instanceId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
                 {
                     SendSanityHint(player, _plugin.Config.HintsConfig.SanityIncreasedHint, newSanity);
-                    _lastHintTime[userId] = now;
+                    _lastHintTime[instanceId] = now;
                 }
             }
         }
@@ -433,43 +424,19 @@
                 _ => 0f
             };
         }
-
         public bool IsProtectedByPainkillers(Player player)
         {
-            if (player == null || string.IsNullOrEmpty(player.UserId)) return false;
+            if (player?.GameObject == null) return false;
 
+            int instanceId = player.GameObject.GetInstanceID();
             lock (_cacheLock)
             {
-                if (_painkillerProtectionExpiry.TryGetValue(player.UserId, out DateTime expiryTime))
+                if (_painkillerProtectionExpiry.TryGetValue(instanceId, out DateTime expiryTime))
                 {
                     return DateTime.Now < expiryTime;
                 }
             }
             return false;
-        }
-
-        private void SafeUpdateAmbient(Player player, bool shouldPlayDrone)
-        {
-            string userId = player.UserId;
-
-            lock (_cacheLock)
-            {
-                if (_activeAmbientState.TryGetValue(userId, out bool currentState) && currentState == shouldPlayDrone)
-                {
-                    return;
-                }
-            }
-
-            bool success = _plugin.AudioManager.UpdatePlayerBackgroundAmbient(player, shouldPlayDrone);
-
-            if (success || !shouldPlayDrone)
-            {
-                lock (_cacheLock)
-                {
-                    _activeAmbientState[userId] = shouldPlayDrone;
-                }
-                LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Ambient state committed for {player.Nickname} to: {shouldPlayDrone}");
-            }
         }
 
         private void SendSanityHint(Player player, string hintMessage, float sanity)

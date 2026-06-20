@@ -268,6 +268,11 @@
             }
         }
 
+        public void ProcessExplosionImpactBoostFeedback()
+        {
+            _audioManager.PlayGlobal(AudioKey.MonsterBreathLocal);
+        }
+
         public void ProcessGeneratorActivation(Vector3 position, bool allGeneratorsEngaged, bool retaliationConfigured)
         {
             var config = _plugin.Config.AudioConfig;
@@ -287,6 +292,26 @@
             {
                 _audioManager.PlayAtPosition(AudioKey.ScreamStandard, position);
             }
+        }
+        public void ProcessGeneratorOverloadRetaliation(Vector3 position)
+        {
+            _audioManager.PlayAtPosition(AudioKey.LightShortCircuit, position);
+            _audioManager.PlayAtPosition(AudioKey.ScreamAngry, position);
+        }
+
+        public void ProcessGeneratorStabilizedFeedback(Vector3 position)
+        {
+            _audioManager.PlayAtPosition(AudioKey.LightSwitch, position);
+        }
+
+        public void ProcessLightSwitchClick(Vector3 position)
+        {
+            _audioManager.PlayAtPosition(AudioKey.LightSwitch, position);
+        }
+
+        public void ProcessLightsourceErrorFeedback(Player player)
+        {
+            _audioManager.PlayTrackingAudio(player: player, audioKey: AudioKey.LightShortCircuit, hearableForAllPlayers: true);
         }
 
         public void ProcessLightsourceFlicker(Player player)
