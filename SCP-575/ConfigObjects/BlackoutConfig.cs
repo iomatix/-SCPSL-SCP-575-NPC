@@ -122,6 +122,12 @@
         public bool GeneratorActivationRetaliation { get; set; } = true;
 
         /// <summary>
+        /// The duration (in seconds) the generator room remains in darkness during the stabilization phase.
+        /// </summary>
+        [Description("The duration (in seconds) the generator room remains in darkness during the stabilization phase if retaliation is active.")]
+        public float GeneratorStabilizationDuration { get; set; } = 20f;
+
+        /// <summary>
         /// Flicker lights at blackout start.
         /// </summary>
         [Description("Flicker lights when blackout starts.")]

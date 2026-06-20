@@ -589,13 +589,21 @@ namespace SCP_575.Npc
             Timing.RunCoroutine(ExecuteStabilizationPipelineCoroutine(generatorRoom), CoroutineTags.GeneratorSurge);
         }
 
+
         private IEnumerator<float> ExecuteStabilizationPipelineCoroutine(Room generatorRoom)
         {
+            // Wait 110ms to let the native base-game generator scripts finish forcing the lights ON, 
+            // before our anomaly clamps the grid back into tactical darkness.
+            yield return Timing.WaitForSeconds(0.11f);
+
+            if (generatorRoom == null || !_plugin.IsEventActive) yield break;
+
             // Phase 1: Localized grid overload (The monster's desperate counter-attack)
-            float stabilizationWindow = 20f;
+            float stabilizationWindow = _config.BlackoutConfig.GeneratorStabilizationDuration;
+
             _libraryLabAPI.DisableRoomAndNeighborLights(generatorRoom, stabilizationWindow);
 
-            // Audio stingers to alert players that the stabilization fight has begun
+            // Hand off the overload scare design entirely to the director layer
             _plugin.AudioDirector?.ProcessGeneratorOverloadRetaliation(generatorRoom.Position);
 
             // Wait out the high-tension stabilization window
@@ -604,7 +612,6 @@ namespace SCP_575.Npc
             // Phase 2: Grid Lock (The generator fully stabilizes and locks out the anomaly)
             if (_plugin.IsEventActive && generatorRoom != null)
             {
-                // Force the grid to ignite 100% power to this room and its immediate links
                 _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(generatorRoom, 0f);
                 _plugin.AudioDirector?.ProcessGeneratorStabilizedFeedback(generatorRoom.Position);
 
