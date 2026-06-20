@@ -58,21 +58,13 @@
 
             if (retaliationConfigured)
             {
-                if (!_plugin.Npc.Methods.IsBlackoutActive)
-                {
-                    _plugin.Npc.Methods.StartTimedBlackoutBoost(
-                        _plugin.Config.BlackoutConfig.DurationMin,
-                        "GeneratorHandler",
-                        $"Dormant SCP-575 awakened. Triggering emergency blackout in {room.Name}.",
-                        null,
-                        () => _plugin.Npc.Methods.ExecuteLocalizedRetaliationSurge(room)
-                    );
-                }
-                else
-                {
-                    _lib.DisableRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.DurationMin);
-                    LibraryLabAPI.LogInfo("GeneratorHandler", "SCP-575 escalated localized darkness during active blackout.");
-                }
+                _plugin.Npc.Methods.StartTimedBlackoutBoost(
+                    _plugin.Config.BlackoutConfig.DurationMin,
+                    "GeneratorHandler",
+                    $"Dormant SCP-575 awakened. Triggering emergency blackout in {room.Name}.",
+                    null,
+                    () => _plugin.Npc.Methods.ExecuteLocalizedRetaliationSurge(room)
+                );
             }
         }
     }
