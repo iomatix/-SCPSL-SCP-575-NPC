@@ -35,9 +35,9 @@
             if (!_plugin.IsEventActive || ev?.Generator == null)
                 return;
 
-            var room = _lib.GetRoomAtPosition(ev.Generator.Position);
-            if (room == null)
-                return;
+            var pos = ev.Generator.Position;
+            var room = _lib.GetRoomAtPosition(pos);
+            if (room == null) return;
 
             LibraryLabAPI.LogInfo("GeneratorHandler", $"Power substation initialized inside zone room: {room.Name}");
 
@@ -48,7 +48,7 @@
             bool retaliationConfigured = _plugin.Config.BlackoutConfig.GeneratorActivationRetaliation;
 
             // Delegate all audio feedback loops and environmental sound cues to the director layer
-            _plugin.AudioDirector?.ProcessGeneratorActivation(ev.Generator.Position, allEngaged, retaliationConfigured);
+            _plugin.AudioDirector?.ProcessGeneratorActivation(pos, allEngaged, retaliationConfigured);
 
             if (allEngaged)
             {

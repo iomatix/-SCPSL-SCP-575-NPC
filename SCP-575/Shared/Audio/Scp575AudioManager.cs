@@ -72,10 +72,17 @@
             Func<Player, bool> distanceFilter = p => p != null && p.IsReady && !p.IsHost
                 && Vector3.Distance(p.Position, targetPosition) <= config.MaxDistance;
 
+            float? targetLifespan = lifespan ?? config.DefaultLifespan;
+            if (loop && (targetLifespan <= 0f))
+            {
+                targetLifespan = null;
+            }
+
             int sessionId = _audioEngine.PlayAudio(
                 config.Key, targetPosition, loop, config.Volume,
                 config.MinDistance, config.MaxDistance, config.IsSpatial, config.Priority,
-                validPlayersFilter: distanceFilter, queue: false, fadeInDuration: 0f, lifespan: lifespan ?? config.DefaultLifespan, autoCleanup: true);
+                validPlayersFilter: distanceFilter, queue: false, fadeInDuration: 0f,
+                lifespan: targetLifespan, autoCleanup: !loop);
 
             if (sessionId != 0) _activeTrackingSessionIds.Add(sessionId);
             return sessionId;
@@ -92,10 +99,17 @@
                     ? Vector3.Distance(p.Position, (target?.GameObject != null ? target.Position : playPosition)) <= config.MaxDistance
                     : p.GameObject.GetInstanceID() == target.GameObject.GetInstanceID());
 
+
+            float? targetLifespan = lifespan ?? config.DefaultLifespan;
+            if (loop && (targetLifespan <= 0f))
+            {
+                targetLifespan = null;
+            }
             int sessionId = _audioEngine.PlayAudio(
                 config.Key, playPosition, loop, config.Volume,
                 config.MinDistance, config.MaxDistance, config.IsSpatial, config.Priority,
-                validPlayersFilter: playerFilter, queue: false, fadeInDuration: fadeInDuration, lifespan: lifespan ?? config.DefaultLifespan, autoCleanup: true);
+                validPlayersFilter: playerFilter, queue: false, fadeInDuration: fadeInDuration,
+                lifespan: targetLifespan, autoCleanup: !loop);
 
             if (sessionId != 0) _activeTrackingSessionIds.Add(sessionId);
             return sessionId;
