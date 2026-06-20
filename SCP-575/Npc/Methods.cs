@@ -305,7 +305,8 @@ namespace SCP_575.Npc
             var (chance, cassie) = GetRoomBlackoutParams(room.Zone);
             if (!forced && UnityEngine.Random.Range(0f, 100f) >= chance) return false;
 
-            HandleRoomBlackout(room, duration);
+            HandleRoomBlackout(room, duration, forced);
+
             if (!_triggeredZones.Contains(room.Zone) && !silent)
             {
                 if (!IsBlackoutActive) TriggerCassieMessage(cassie);
@@ -325,9 +326,9 @@ namespace SCP_575.Npc
             };
         }
 
-        private void HandleRoomBlackout(Room room, float duration)
+        private void HandleRoomBlackout(Room room, float duration, bool forced = false)
         {
-            if (!_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return;
+            if (!forced && !_libraryLabAPI.IsRoomAndNeighborsFreeOfEngagedGenerators(room)) return;
 
             HandleTeslaBlackout(room, duration);
             HandleWarheadBlackout();
@@ -601,7 +602,7 @@ namespace SCP_575.Npc
             // Phase 1: Localized grid overload (The monster's desperate counter-attack)
             float stabilizationWindow = _config.BlackoutConfig.GeneratorStabilizationDuration;
 
-            _libraryLabAPI.DisableRoomAndNeighborLights(generatorRoom, stabilizationWindow);
+            _libraryLabAPI.DisableRoomAndNeighborLights(generatorRoom, stabilizationWindow, forced: true);
 
             // Hand off the overload scare design entirely to the director layer
             _plugin.AudioDirector?.ProcessGeneratorOverloadRetaliation(generatorRoom.Position);

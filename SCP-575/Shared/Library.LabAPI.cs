@@ -78,7 +78,7 @@ namespace SCP_575.Shared
                 coroutine.Tag = CoroutineTags.Temp;
             });
 
-            LibraryLabAPI.LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
+            if (Config.Debug) LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
         }
 
         public bool IsRoomFreeOfEngagedGenerators(Room room)
@@ -139,14 +139,14 @@ namespace SCP_575.Shared
             }
         }
 
-        public void DisableRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f)
+        public void DisableRoomAndNeighborLights(Room room, float blackoutDurationBase = 13f, bool forced = false)
         {
             if (room == null) return;
 
             bool attemptFirstSuccess = false;
             float blackoutDuration = blackoutDurationBase + UnityEngine.Random.Range(Config.BlackoutConfig.DurationMin, Config.BlackoutConfig.DurationMax);
 
-            if (Methods.AttemptRoomBlackout(room, blackoutDuration, silent: true, forced: true))
+            if (Methods.AttemptRoomBlackout(room, blackoutDuration, silent: true, forced: forced))
             {
                 Methods.IncrementBlackoutStack();
                 var coroutine = Timing.CallDelayed(blackoutDuration, () => Methods.DecrementBlackoutStack());
@@ -179,7 +179,6 @@ namespace SCP_575.Shared
             var controllers = room.AllLightControllers;
             if (controllers == null) return false;
 
-            // FIXED: Safe evaluation layout for abstract IEnumerable collections.
             bool hasControllers = false;
             foreach (var lc in controllers)
             {
@@ -196,18 +195,41 @@ namespace SCP_575.Shared
 
         public IEnumerable<Elevator> GetElevatorsInZone(FacilityZone zone)
         {
-            return Elevators.Where(elevator => elevator.CurrentDestination.Rooms.Any(room => Room.Get(room.Base)?.Zone == zone));
+            foreach (var elevator in Elevator.List)
+            {
+                if (elevator.CurrentDestination.Rooms.Any(room => Room.Get(room.Base)?.Zone == zone))
+                {
+                    yield return elevator;
+                }
+            }
         }
 
         public bool IsElevatorActiveInRoom(Room room)
         {
-            return room != null && Elevators.Any(elevator => elevator.CurrentDestination.Rooms.Contains(room) && elevator.CurrentSequence != Interactables.Interobjects.ElevatorChamber.ElevatorSequence.Ready);
+            if (room == null) return false;
+
+            foreach (var elevator in Elevator.List)
+            {
+                if (elevator.CurrentDestination.Rooms.Contains(room) &&
+                    elevator.CurrentSequence != Interactables.Interobjects.ElevatorChamber.ElevatorSequence.Ready)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public IEnumerable<Elevator> GetElevatorsConnectedToRoom(Room room)
         {
-            if (room == null) return Enumerable.Empty<Elevator>();
-            return Elevator.List.Where(elevator => elevator.CurrentDestination?.Rooms.Contains(room) == true);
+            if (room == null) yield break;
+
+            foreach (var elevator in Elevator.List)
+            {
+                if (elevator.CurrentDestination?.Rooms.Contains(room) == true)
+                {
+                    yield return elevator;
+                }
+            }
         }
 
         public void LockElevatorsInZone(FacilityZone zone, DoorLockReason lockReason = DoorLockReason.AdminCommand)
@@ -226,11 +248,17 @@ namespace SCP_575.Shared
             }
         }
 
-        public bool IsPlayerInElevator(Player player)
+        public bool IsPlayerInExecutiveElevator(Player player)
         {
             var pRoom = player?.Room;
             if (pRoom == null) return false;
-            return Elevators.Any(elevator => elevator.CurrentDestination.Rooms.Contains(pRoom));
+
+            foreach (var elevator in Elevator.List)
+            {
+                if (elevator.CurrentDestination.Rooms.Contains(pRoom))
+                    return true;
+            }
+            return false;
         }
 
         #endregion
