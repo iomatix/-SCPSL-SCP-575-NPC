@@ -79,7 +79,11 @@
             { AudioKey.AnomalousImpact, new AudioTrackGroup(new AudioTrackProfile("scp575.anomalous_impact", 0.9f, 3.5f, 25f, true, AudioPriority.High, 5f)) },
             { AudioKey.GeneratorHumDefense, new AudioTrackGroup(new AudioTrackProfile("scp575.generator_hum_defense", 0.7f, 6.5f, 45f, true, AudioPriority.Medium, 0f)) },
             { AudioKey.LightShortCircuit, new AudioTrackGroup(new AudioTrackProfile("scp575.light_short_circuit", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f)) },
-            { AudioKey.LightSwitch, new AudioTrackGroup(new AudioTrackProfile("scp575.light_switch", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f)) },
+            { AudioKey.LightSwitch, new AudioTrackGroup(
+                new AudioTrackProfile("scp575.light_switch_1", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f),
+                new AudioTrackProfile("scp575.light_switch_2", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f),
+                new AudioTrackProfile("scp575.light_switch_3", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f)
+            )},
             { AudioKey.StaticBuzz, new AudioTrackGroup(new AudioTrackProfile("scp575.light_short_circuit", 0.45f, 1.5f, 10f, true, AudioPriority.Low, 0f)) },
             { AudioKey.BlackoutImpactGlobal, new AudioTrackGroup(new AudioTrackProfile("scp575.blackout_impact_global", 0.95f, 0f, 999.99f, false, AudioPriority.High, 13f)) },
 

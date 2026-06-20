@@ -21,7 +21,6 @@
 		<None Remove="Shared\Audio\Files\Interactions\scp575.anomalous_impact.wav" />
 		<None Remove="Shared\Audio\Files\Interactions\scp575.generator_hum_defense.wav" />
 		<None Remove="Shared\Audio\Files\Interactions\scp575.light_short_circuit.wav" />
-		<None Remove="Shared\Audio\Files\Interactions\scp575.light_switch.wav" />
 		<None Remove="Shared\Audio\Files\Interactions\scp575.shadow_consuming_body.wav" />
 		<None Remove="Shared\Audio\Files\Interactions\scp575.shadow_strike.wav" />
 		<None Remove="Shared\Audio\Files\Paranoia\scp575.monster_breath_local.wav" />
@@ -62,10 +61,12 @@
 	<ItemGroup>
 		<EmbeddedResource Include="Shared\Audio\Files\Ambience\scp575.blackout_impact_global.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Ambience\scp575.sanity_low_drone.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_switch_3.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_switch_2.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.anomalous_impact.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.generator_hum_defense.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_short_circuit.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_switch.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_switch_1.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.shadow_consuming_body.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.shadow_strike.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.monster_breath_local.wav" />
