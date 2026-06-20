@@ -83,7 +83,7 @@ namespace SCP_575.Shared
                 coroutine.Tag = CoroutineTags.Temp;
             });
 
-            if (Config.Debug) LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
+            LogDebug(nameof(TurnOffRoomLights), $"Lights turned off in room {room.Name} for {duration} seconds.");
         }
 
         public bool IsRoomFreeOfEngagedGenerators(Room room)
