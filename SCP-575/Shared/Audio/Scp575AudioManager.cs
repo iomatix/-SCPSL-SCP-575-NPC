@@ -52,7 +52,7 @@
 
             int sessionId = _audioEngine.PlayGlobalAudio(
                 config.Key, loop, config.Volume, config.Priority,
-                validPlayersFilter: null, queue, fadeInDuration, persistent: false, lifespan: lifespan, autoCleanup: true);
+                validPlayersFilter: null, queue, fadeInDuration, persistent: (key == AudioKey.Ambience), lifespan: lifespan, autoCleanup: true);
 
             if (sessionId != 0)
             {
@@ -88,7 +88,9 @@
 
             Vector3 playPosition = SanitizePosition(target.Position);
             Func<Player, bool> playerFilter = p => p != null && p.IsReady && !p.IsHost &&
-                (hearableForAll ? Vector3.Distance(p.Position, playPosition) <= config.MaxDistance : p.GameObject.GetInstanceID() == target.GameObject.GetInstanceID());
+                (hearableForAll
+                    ? Vector3.Distance(p.Position, (target?.GameObject != null ? target.Position : playPosition)) <= config.MaxDistance
+                    : p.GameObject.GetInstanceID() == target.GameObject.GetInstanceID());
 
             int sessionId = _audioEngine.PlayAudio(
                 config.Key, playPosition, loop, config.Volume,

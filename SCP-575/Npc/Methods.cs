@@ -27,12 +27,12 @@ namespace SCP_575.Npc
 
         private bool _isInitialized = false;
         private readonly HashSet<FacilityZone> _triggeredZones = new();
-        private static readonly object BlackoutLock = new();
-        private static int _blackoutStacks = 0;
+        private readonly object BlackoutLock = new();
+
+        private int _blackoutStacks = 0;
         private CassieStatus _cassieState = CassieStatus.Idle;
 
-        // --- PHASE 5: BEHAVIORAL HUNTING MATRIX STORAGE ---
-        private readonly Dictionary<string, NpcBehaviorState> _playerAiStates = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<int, NpcBehaviorState> _playerAiStates = new();
 
         private const string TempCoroutineTag = CoroutineTags.Temp;
 
@@ -111,26 +111,30 @@ namespace SCP_575.Npc
             _isInitialized = false;
             _plugin.IsEventActive = false;
 
+            // Kill all static lifecycle threads
             foreach (string tag in CoroutineTags.AllStaticTags)
             {
                 Timing.KillCoroutines(tag);
             }
-            LibraryLabAPI.LogDebug(nameof(Disable), "Killed all static SCP-575 coroutines via tags.");
+
+            Timing.KillCoroutines(TempCoroutineTag);
+            LibraryLabAPI.LogDebug(nameof(Disable), "Killed all static and dynamic SCP-575 coroutines via system tags.");
 
             _plugin.AudioDirector?.Clean();
             _plugin.AudioManager?.Clean(fullShutdown: true);
             _sanityHandler?.Clean();
             _plugin.LightsourceHandler?.Clean();
 
-            // Evict structural tracking tables safely to protect memory boundary configurations across rounds
             _playerAiStates.Clear();
+            _triggeredZones.Clear();
 
-            LibraryLabAPI.LogInfo(nameof(Disable), "SCP-575 NPC logic and all coroutines terminated.");
+            LibraryLabAPI.LogInfo(nameof(Disable), "SCP-575 NPC logic and all coroutines terminated safely.");
         }
 
         public void Clean()
         {
             Timing.KillCoroutines(CoroutineTags.CassieCooldown);
+            Timing.KillCoroutines(TempCoroutineTag);
             Reset575();
         }
 
@@ -463,42 +467,38 @@ namespace SCP_575.Npc
 
                 foreach (Player player in Player.ReadyList)
                 {
+                    if (player?.GameObject == null || !player.IsAlive || !player.IsHuman || player.Room.Name == RoomName.Pocket)
+                        continue;
+
                     try
                     {
-                        if (player == null || !player.IsAlive || !player.IsHuman || player.Room.Name == RoomName.Pocket) continue;
-
-                        string userId = player.UserId;
+                        // FIX: Zero-allocation lookup targeting native GameObject instance identifier integers
+                        int playerInstanceId = player.GameObject.GetInstanceID();
                         bool isInDarkness = _libraryLabAPI.IsPlayerInDarkRoom(player);
 
-                        // Environmental Check: Gracefully drop tracking if subject steps back into active room illumination
                         if (!isInDarkness || !_sanityHandler.IsValidPlayer(player))
                         {
-                            _playerAiStates[userId] = NpcBehaviorState.Dormant;
+                            _playerAiStates[playerInstanceId] = NpcBehaviorState.Dormant;
                             continue;
                         }
 
                         bool hasActiveLight = !Helpers.IsHumanWithoutLight(player);
 
-                        // --- ADAPTIVE ARCHITECTURAL STATE MATRIX ---
                         NpcBehaviorState newState = hasActiveLight ? NpcBehaviorState.Stalking : NpcBehaviorState.Striking;
-                        _playerAiStates[userId] = newState;
+                        _playerAiStates[playerInstanceId] = newState;
 
-                        // --- DECOUPLED TRANSACTION DISPATCH ---
-                        // We execute a strike tick across ALL subjects caught vulnerable in unlit rooms.
-                        // The PlayerSanityHandler naturally resolves config profiles based on active light status.
+                        // Decoupled transaction dispatch execution execution pipelines
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
 
                         if (newState == NpcBehaviorState.Stalking)
                         {
-                            // Stalking Strike: The anomaly targets their mobile photon source, forcing an over-voltage blowout.
-                            // This suppresses their defensive light field, dropping them to Striking on consecutive execution frames.
                             _lightsourceHandler.ApplyLightsourceEffects(player);
                         }
                     }
                     catch (Exception ex)
                     {
-                        LibraryLabAPI.LogError("Methods.KeterAction", $"Error executing macro strike for target {player?.Nickname}: {ex.Message}");
+                        LibraryLabAPI.LogError("Methods.KeterAction", $"Error executing macro strike processing for target {player.Nickname}: {ex.Message}");
                     }
                 }
             }
