@@ -1,11 +1,10 @@
-﻿namespace Shared.Audio
+﻿namespace SCP_575.Shared.Audio
 {
     using LabApi.Features.Wrappers;
     using MEC;
     using SCP_575;
     using SCP_575.Handlers;
     using SCP_575.Shared;
-    using SCP_575.Shared.Audio;
     using SCP_575.Shared.Audio.Enums;
     using SCP_575.Types;
     using System;
