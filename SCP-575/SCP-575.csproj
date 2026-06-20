@@ -21,6 +21,7 @@
 		<None Remove="Shared\Audio\Files\Interactions\scp575.anomalous_impact.wav" />
 		<None Remove="Shared\Audio\Files\Interactions\scp575.generator_hum_defense.wav" />
 		<None Remove="Shared\Audio\Files\Interactions\scp575.light_short_circuit.wav" />
+		<None Remove="Shared\Audio\Files\Interactions\scp575.light_switch.wav" />
 		<None Remove="Shared\Audio\Files\Interactions\scp575.shadow_consuming_body.wav" />
 		<None Remove="Shared\Audio\Files\Interactions\scp575.shadow_strike.wav" />
 		<None Remove="Shared\Audio\Files\Paranoia\scp575.monster_breath_local.wav" />
@@ -29,7 +30,13 @@
 		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_1.wav" />
 		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_2.wav" />
 		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_3.wav" />
+		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_4.wav" />
+		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_5.wav" />
+		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_6.wav" />
+		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_7.wav" />
 		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_bang.wav" />
+		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_bang_alt.wav" />
+		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_long_drones.wav" />
 		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_mixed.wav" />
 		<None Remove="Shared\Audio\Files\Vocalization\scp575.monster_roar_global.wav" />
 		<None Remove="Shared\Audio\Files\Vocalization\scp575.scream_1.wav" />
@@ -58,6 +65,7 @@
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.anomalous_impact.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.generator_hum_defense.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_short_circuit.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_switch.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.shadow_consuming_body.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.shadow_strike.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.monster_breath_local.wav" />
@@ -66,7 +74,13 @@
 		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_1.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_2.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_3.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_4.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_5.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_6.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_7.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_bang.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_bang_alt.wav" />
+		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_long_drones.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_mixed.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.monster_roar_global.wav" />
 		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.scream_1.wav" />

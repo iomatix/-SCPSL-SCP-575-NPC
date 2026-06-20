@@ -7,15 +7,15 @@
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
-    using SCP_575.Shared.Audio.Enums;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
 
     /// <summary>
-    /// Manages the internal psychological state of human actors, governing neurological decay vectors, 
-    /// systemic affliction mapping, and panic-induced defensive feedback loops under absolute darkness.
+    /// Manages the runtime neurological integrity models for human subjects. 
+    /// Tracks milestone decay curves, applies item restoration variances, and drives biological status updates 
+    /// while offloading all drama-bound audio responses to the central Audio Director.
     /// </summary>
     public class PlayerSanityHandler : CustomEventsHandler, IDisposable
     {
@@ -30,9 +30,6 @@
         private readonly List<PlayerSanityStageConfig> _orderedStages;
         private readonly Dictionary<string, DateTime> _painkillerProtectionExpiry = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DateTime> _painkillerSanityBoostExpiry = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, DateTime> _lastCombatAudioTime = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, DateTime> _nextAllowedWhisperTime = new(StringComparer.OrdinalIgnoreCase);
-        private static DateTime _globalNextAllowedWhisperTime = DateTime.MinValue;
 
         private readonly float _hintCooldown;
         private bool _isDisposed;
@@ -46,7 +43,7 @@
         public IReadOnlyDictionary<string, float> SanityCache => _sanityCache;
 
         /// <summary>
-        /// Contains a flag indicating whether the player has an active drone (true) or not (false).
+        /// Contains a flag indicating whether the player has an active low-sanity background hum channel assigned.
         /// </summary>
         private readonly Dictionary<string, bool> _activeAmbientState = new(StringComparer.OrdinalIgnoreCase);
 
@@ -79,9 +76,6 @@
 
         #region Lifecycle Management
 
-        /// <summary>
-        /// Provisions state machinery and prepares core collections for operational initialization.
-        /// </summary>
         public void Initialize()
         {
             if (_isDisposed) return;
@@ -90,9 +84,6 @@
             LibraryLabAPI.LogInfo("PlayerSanityHandler", "Sanity decay processing loop successfully started.");
         }
 
-        /// <summary>
-        /// Dissolves all internal execution tokens and purges cached tracking data to preserve allocation overhead.
-        /// </summary>
         public void Clean()
         {
             Timing.KillCoroutines(SanityCoroutineTag);
@@ -101,16 +92,11 @@
                 _sanityCache.Clear();
                 _lastHintTime.Clear();
                 _activeAmbientState.Clear();
-                _nextAllowedWhisperTime.Clear();
-                _lastCombatAudioTime.Clear();
                 _painkillerProtectionExpiry.Clear();
                 _painkillerSanityBoostExpiry.Clear();
             }
         }
 
-        /// <summary>
-        /// Explicitly terminates active execution routines and flags internal collections for garbage collection.
-        /// </summary>
         public void Dispose()
         {
             if (_isDisposed) return;
@@ -127,6 +113,7 @@
         #region Event Handlers
 
         public override void OnPlayerSpawned(PlayerSpawnedEventArgs ev) => ResetPlayerSanity(ev?.Player);
+
         public override void OnPlayerChangedRole(PlayerChangedRoleEventArgs ev)
         {
             if (ev?.Player == null) return;
@@ -149,12 +136,11 @@
                 _sanityCache.Remove(userId);
                 _lastHintTime.Remove(userId);
                 _activeAmbientState.Remove(userId);
-                _nextAllowedWhisperTime.Remove(userId);
-                _lastCombatAudioTime.Remove(userId);
                 _painkillerProtectionExpiry.Remove(userId);
                 _painkillerSanityBoostExpiry.Remove(userId);
             }
 
+            _plugin.AudioDirector?.OnPlayerLeft(userId);
             _plugin.AudioManager.ForceStopAllPlayerAudio(ev.Player);
         }
 
@@ -189,9 +175,6 @@
 
         #region Sanity Management
 
-        /// <summary>
-        /// Resolves the current psychological metric for a given target, initializing a standard baseline if untracked.
-        /// </summary>
         public float GetCurrentSanity(Player player)
         {
             if (!IsValidPlayer(player)) return _sanityConfig.InitialSanity;
@@ -208,9 +191,6 @@
             }
         }
 
-        /// <summary>
-        /// Resets an actor's psychological metric to a standard baseline.
-        /// </summary>
         private void ResetPlayerSanity(Player player)
         {
             if (IsValidPlayer(player))
@@ -219,9 +199,6 @@
             }
         }
 
-        /// <summary>
-        /// Forces an absolute overwrite on an actor's psychological metric, bounded by standard operational limits.
-        /// </summary>
         public float SetSanity(Player player, float sanity)
         {
             if (!IsValidPlayer(player)) return 0f;
@@ -236,9 +213,6 @@
             return clampedSanity;
         }
 
-        /// <summary>
-        /// Applies a relative variance to an actor's psychological metric, computing bounds-safe limits.
-        /// </summary>
         public float ChangeSanityValue(Player player, float amount)
         {
             if (!IsValidPlayer(player)) return 0f;
@@ -247,9 +221,6 @@
             return SetSanity(player, currentSanity + amount);
         }
 
-        /// <summary>
-        /// Maps an abstract numerical sanity score to its corresponding structural profile.
-        /// </summary>
         public PlayerSanityStageConfig GetCurrentSanityStage(float sanity)
         {
             foreach (var s in _orderedStages)
@@ -260,9 +231,6 @@
             return null;
         }
 
-        /// <summary>
-        /// Resolves the structural impairment profile currently governing the targeted actor.
-        /// </summary>
         public PlayerSanityStageConfig GetCurrentSanityStage(Player player)
         {
             if (!IsValidPlayer(player)) return null;
@@ -303,8 +271,8 @@
         }
 
         /// <summary>
-        /// Inflicts physical structural integrity decay on human actors caught vulnerable in active threat sectors, 
-        /// accounting for atmospheric stack multipliers and defensive gear status.
+        /// Inflicts mechanical and physiological damage to players vulnerable to active entity zones.
+        /// Hands operational audio cues off to the central AudioDirector subsystem.
         /// </summary>
         public void ApplyDamageToPlayer(Player player)
         {
@@ -329,26 +297,8 @@
                 LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity lowered by {dropAmount}. New sanity: {newSanity}");
             }
 
-            // FIX: Enforce thread-safe access constraints over the plain combat stinger dictionary tracking node
-            string userId = player.UserId;
-            bool allowCombatStinger = false;
-
-            lock (_cacheLock)
-            {
-                if (!_lastCombatAudioTime.TryGetValue(userId, out var lastCombatAudio) || (DateTime.Now - lastCombatAudio).TotalSeconds >= 1.6)
-                {
-                    _lastCombatAudioTime[userId] = DateTime.Now;
-                    allowCombatStinger = true;
-                }
-            }
-
-            if (allowCombatStinger)
-            {
-                if (isVulnerable)
-                    _plugin.AudioManager.PlayAggressiveAudio(player);
-                else
-                    _plugin.AudioManager.PlayDefensiveAudio(player);
-            }
+            // Redirects combat audio stinger execution parameters completely to the director component boundary
+            _plugin.AudioDirector?.ProcessAnomalousCombatStinger(player, isVulnerable);
 
             Scp575DamageSystem.DamagePlayer(player, culmDamage);
         }
@@ -358,7 +308,7 @@
         #region Sanity Processing Loop
 
         /// <summary>
-        /// Main runtime engine managing both active environmental sanity decay and peaceful context-aware regeneration.
+        /// Central background loop managing active environmental context checks to apply sanity decay or regeneration.
         /// </summary>
         public IEnumerator<float> HandleSanityDecay()
         {
@@ -402,50 +352,7 @@
             bool requiresLowDrone = newSanity <= 35f;
             SafeUpdateAmbient(player, requiresLowDrone);
 
-            var stage = GetCurrentSanityStage(newSanity);
-            if (stage != null)
-            {
-                string userId = player.UserId;
-                bool isIndividualReady = false;
-
-                // FIX: Enforce a secure context lock when reading structural pacing data from the individual whisper dictionary
-                lock (_cacheLock)
-                {
-                    isIndividualReady = !_nextAllowedWhisperTime.TryGetValue(userId, out var individualExpiry) || now >= individualExpiry;
-                }
-
-                bool isGlobalReady = now >= _globalNextAllowedWhisperTime;
-
-                if (isIndividualReady && isGlobalReady)
-                {
-                    if (UnityEngine.Random.value < 0.045f)
-                    {
-                        AudioKey? whisperToPlay = null;
-
-                        if (newSanity <= 10f) whisperToPlay = AudioKey.WhispersBang;
-                        else if (newSanity <= 25f) whisperToPlay = AudioKey.WhispersMixed;
-                        else if (newSanity <= 55f) whisperToPlay = AudioKey.Whispers_2;
-                        else if (newSanity <= 85f) whisperToPlay = AudioKey.Whispers_1;
-
-                        if (whisperToPlay.HasValue)
-                        {
-                            _plugin.AudioManager.PlayAttached(player, whisperToPlay.Value, hearableForAll: false, isTransient: true);
-
-                            float randomCooldown = UnityEngine.Random.Range(45f, 90f);
-
-                            // FIX: Hold the atomic cache lock when writing tracking coordinates inside the core loop execution thread
-                            lock (_cacheLock)
-                            {
-                                _nextAllowedWhisperTime[userId] = now.AddSeconds(randomCooldown);
-                            }
-
-                            _globalNextAllowedWhisperTime = now.AddSeconds(6f);
-
-                            LibraryLabAPI.LogDebug("AudioDirector", $"Whisper triggered for {player.Nickname}. Next individual scare in {randomCooldown:F1}s. Global gate locked for 6s.");
-                        }
-                    }
-                }
-            }
+            ApplyStageEffects(player);
 
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
             {

@@ -3,12 +3,12 @@
     using LabApi.Events.Arguments.PlayerEvents;
     using LabApi.Events.CustomHandlers;
     using SCP_575.Shared;
-    using SCP_575.Shared.Audio.Enums;
     using System;
+    using UnityEngine;
 
     /// <summary>
-    /// Intercepts physical corpse serialization processes to execute advanced anatomical modifications 
-    /// or clean up physical remains upon lethal event executions.
+    /// Intercepts physical corpse serialization processes to evaluate damage source signatures,
+    /// routing macro graphic modifications and post-mortem presentation logic to specialized subsystems.
     /// </summary>
     public class RagdollHandler : CustomEventsHandler
     {
@@ -20,10 +20,9 @@
         }
 
         /// <summary>
-        /// Inspects structural ragdoll telemetry upon player expiration, verifying source vectors 
-        /// before applying configured visual suppression or advanced anatomical configurations.
+        /// Evaluates active structural remains upon actor expiration, clearing physical remains 
+        /// if configured, or delegating localized traumatic audio cues to the central Audio Director.
         /// </summary>
-        /// <param name="ev">Operational structural details concerning the newly initialized corpse physics matrix.</param>
         public override void OnPlayerSpawnedRagdoll(PlayerSpawnedRagdollEventArgs ev)
         {
             if (!_plugin.IsEventActive) return;
@@ -43,22 +42,14 @@
                 }
                 else
                 {
-                    LibraryLabAPI.LogDebug("RagdollHandler", $"Processing SCP-575 ragdoll for {ev.Player.Nickname}. Triggering post-mortem acoustic feedback.");
+                    LibraryLabAPI.LogDebug("RagdollHandler", $"Processing anomalous post-mortem sequence for target: {ev.Player.Nickname}");
 
-                    var position = ev.Ragdoll.Position;
+                    Vector3 position = ev.Ragdoll.Position;
 
-                    _plugin.AudioManager.PlayAtPosition(AudioKey.ShadowConsumingBody, position: position);
+                    // Forward absolute authority of the local acoustic field to the director subsystem
+                    _plugin.AudioDirector?.ProcessRagdollConsumption(position);
 
-                    _plugin.AudioManager.PlayOrbitingAudio(
-                        staticPosition: position,
-                        audioKey: AudioKey.ShadowClicking,
-                        maxRadius: 2.5f,
-                        minRadius: 0.1f,
-                        angularSpeed: 1.75f,
-                        approachSpeed: 3.65f,
-                        heightOffset: 0.1f
-                    );
-
+                    // Execute downstream physiological status tracking updates
                     Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
                 }
             }

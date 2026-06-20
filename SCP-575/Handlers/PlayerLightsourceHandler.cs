@@ -7,18 +7,18 @@ namespace SCP_575.Handlers
     using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
+    using MapGeneration;
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
-    using SCP_575.Shared;
     using System;
     using System.Collections.Generic;
     using System.Linq;
 
     /// <summary>
-    /// Governs electrical degradation, interaction throttling, and forced tactical suppression 
-    /// of mobile photon emitters deployed by human forces inside localized dark zones.
+    /// Governs electrical degradation, interaction throttling, and structural suppression 
+    /// of mobile photon emitters deployed by human forces inside active threat zones.
     /// </summary>
     public class PlayerLightsourceHandler : CustomEventsHandler, IDisposable
     {
@@ -48,10 +48,6 @@ namespace SCP_575.Handlers
 
         #region Lifecycle Management
 
-        /// <summary>
-        /// Enlists the background garbage collection routines for expired network tracking nodes 
-        /// and establishes operational readiness.
-        /// </summary>
         public void Initialize()
         {
             if (_isDisposed) return;
@@ -62,10 +58,6 @@ namespace SCP_575.Handlers
             LibraryLabAPI.LogInfo("PlayerLightsourceHandler", "Initialized lightsource handler.");
         }
 
-        /// <summary>
-        /// Flushes tracking arrays and actively kills active visual flickering routines 
-        /// to guarantee total architectural isolation during round teardown phases.
-        /// </summary>
         public void Clean()
         {
             Timing.KillCoroutines(LightCleanupTag);
@@ -103,10 +95,6 @@ namespace SCP_575.Handlers
 
         #region Event Handlers
 
-        /// <summary>
-        /// Monopolizes network item swap sequences to suppress active photon generation fields.
-        /// Turns off items being stowed to maintain realism, and acts as a fail-safe for items being equipped.
-        /// </summary>
         public override void OnPlayerChangedItem(PlayerChangedItemEventArgs ev)
         {
             if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player))
@@ -114,14 +102,12 @@ namespace SCP_575.Handlers
 
             string userId = ev.Player.UserId;
 
-            // FIX: Instantly terminate active flickering coroutines to prevent background logic leaks on item swap.
             Timing.KillCoroutines($"{FlickerTagPrefix}{userId}");
             _flickeringPlayers.Remove(userId);
 
             Action stateModificationActions = null;
             bool requiresIntervention = false;
 
-            // 1. TURN OFF CHANGED ITEM
             if (ev.OldItem is LightItem oldLight && oldLight.IsEmitting)
             {
                 requiresIntervention = true;
@@ -133,7 +119,6 @@ namespace SCP_575.Handlers
                 stateModificationActions += () => oldFirearm.FlashlightEnabled = false;
             }
 
-            // 2. FAIL-SAFE
             if (ev.NewItem is LightItem newLight && newLight.IsEmitting)
             {
                 requiresIntervention = true;
@@ -152,13 +137,12 @@ namespace SCP_575.Handlers
             Timing.KillCoroutines(coroutineTag);
             _pendingItemChanges.Add(userId);
 
-            // Shifting structural component state modifications outside the instantaneous frame pipeline 
-            // guarantees the base game inventory code registers item swap data without race condition conflicts.
+            // Shifting mechanical transform weights out of the instant frame loop completely 
+            // eliminates race conditions with native client inventory swap packets.
             var coroutine = Timing.CallDelayed(0.05f, () =>
             {
                 try
                 {
-                    // Apply state modifications
                     stateModificationActions.Invoke();
                     LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Enforced dark-state on inventory swap for {ev.Player.Nickname}.");
                 }
@@ -201,20 +185,17 @@ namespace SCP_575.Handlers
             if (ev?.Player == null || ev.FirearmItem == null || !HasFlashlight(ev.FirearmItem))
                 return;
 
-            // BASE GAME BUGFIX: Weapon flashlights are natively silent in SCP:SL. 
-            // We inject a micro-click on EVERY toggle to compensate for the base game flaw.
             DateTime now = DateTime.UtcNow;
             string userId = ev.Player.UserId;
 
-            // FIX: Implement a micro-debouncer. If clicks happen faster than 110ms, 
-            // we skip the audio call to prevent voice network starvation and frame clipping.
+            // Audio channel throttling: Suppresses rapid sequential inputs to protect client frame compilation pipelines
             if (!_lastWeaponClickTime.TryGetValue(userId, out DateTime lastClick) || (now - lastClick).TotalMilliseconds >= 110)
             {
                 _lastWeaponClickTime[userId] = now;
-                _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, ev.Player.Position, lifespan: 0.115f, isTransient: true, sourcePlayer: ev.Player);
+                // FIXED: Mapped mechanical weapon toggle clicks onto the dedicated tactical interface clip instead of short circuits
+                _plugin.AudioManager.PlayAtPosition(AudioKey.LightSwitch, ev.Player.Position, lifespan: 0.115f, isTransient: true, sourcePlayer: ev.Player);
             }
 
-            // Existing plugin behavior rules for darkness and event statuses
             if (!_plugin.IsEventActive || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout())
                 return;
 
@@ -224,10 +205,6 @@ namespace SCP_575.Handlers
             );
         }
 
-        /// <summary>
-        /// Clears tracking nodes associated with a unique actor when they leave the server infrastructure,
-        /// ensuring zero memory accumulation over continuous runtime operations.
-        /// </summary>
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
             if (ev?.Player == null) return;
@@ -242,10 +219,6 @@ namespace SCP_575.Handlers
 
         #region Public Methods
 
-        /// <summary>
-        /// Enforces global system overrides on an actor's active tactical gear, shutting down 
-        /// and flickering hardware elements when attacked directly by anomalous forces.
-        /// </summary>
         public void ApplyLightsourceEffects(Player target)
         {
             if (!IsValidPlayer(target)) return;
@@ -270,22 +243,15 @@ namespace SCP_575.Handlers
             }
         }
 
-        /// <summary>
-        /// Imposes an absolute, un-bypassable transmission blockage on an actor's tactical electronics,
-        /// transmitting a structural interface warning hint to their heads-up display.
-        /// </summary>
         public void ForceCooldown(Player player)
         {
             if (!IsValidPlayer(player)) return;
 
             ApplyCooldown(player);
 
-            if(_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint) player.SendHint(_plugin.Config.HintsConfig.LightEmitterCooldownHint, 1.75f);
+            if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint) player.SendHint(_plugin.Config.HintsConfig.LightEmitterCooldownHint, 1.75f);
         }
 
-        /// <summary>
-        /// Removes transmission blocks from a specific actor, or clears the internal state tables completely.
-        /// </summary>
         public void ClearCooldown(Player player = null)
         {
             if (player == null)
@@ -307,7 +273,7 @@ namespace SCP_575.Handlers
 
         private bool IsPlayerInDarkRoom(Player player)
         {
-            if (player.Room == null || player.Room.Name == MapGeneration.RoomName.Pocket) return false;
+            if (player.Room == null || player.Room.Name == RoomName.Pocket) return false;
             return _libraryLabAPI.IsPlayerInDarkRoom(player);
         }
 
@@ -329,7 +295,6 @@ namespace SCP_575.Handlers
 
             if (_cooldownUntil.TryGetValue(player.UserId, out var until) && DateTime.UtcNow < until)
             {
-
                 if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint) player.SendHint(message, 1.0f);
 
                 PlayLightsourceErrorFeedback(player);
@@ -349,28 +314,13 @@ namespace SCP_575.Handlers
                 var player = Player.Get(userId);
                 if (player != null)
                 {
-                    if (UnityEngine.Random.value <= 0.25f)
-                    {
-                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
-                        maxRadius: 2.75f,
-                        minRadius: 0.25f,
-                        angularSpeed: 1.15f,
-                        approachSpeed: 1.25f);
-                    }
-                    if (UnityEngine.Random.value <= 0.15f)
-                    {
-                        _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, isolated: true,
-                        maxRadius: 3.35f,
-                        minRadius: 0.35f,
-                        angularSpeed: 1.45f,
-                        approachSpeed: 2.15f);
-                    }
+                    // FIXED: Offloaded tactical panic and paranoia soundtracks to the central Audio Director subsystem
+                    _plugin.AudioDirector?.ProcessLightsourceFlicker(player);
 
                     if (forceOff)
                     {
                         PlayLightsourceErrorFeedback(player);
                     }
-
                 }
 
                 int flickerCount = Math.Max(2, _random.Next(_config.MinFlickerCount, _config.MaxFlickerCount));
@@ -382,7 +332,6 @@ namespace SCP_575.Handlers
                     if (!_plugin.IsEventActive) break;
                     var p = Player.Get(userId);
 
-                    // FIX: Ensure the loop breaks immediately if item states diverge during asynchronous execution.
                     if (lightType == "WeaponFlashlight")
                     {
                         if (p?.CurrentItem is not FirearmItem f || !HasFlashlight(f)) break;
@@ -394,12 +343,9 @@ namespace SCP_575.Handlers
 
                     if (player != null)
                     {
-                        // ANTI-OVERLAP GUARD: If this is the final cycle and a forced blowout 
-                        // is imminent, we suppress the loop audio to prevent transient stacking.
                         bool isLastIteration = (i == flickerCount - 1);
                         if (!(isLastIteration && forceOff))
                         {
-                            // FIX: Forward the active loop player reference to secure structural anti-spam protection inside MEC frame routines.
                             _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.145f, isTransient: true, sourcePlayer: player);
                         }
                     }
@@ -408,9 +354,8 @@ namespace SCP_575.Handlers
                     yield return Timing.WaitForSeconds(delayPerFlicker);
                 }
 
-                if (forceOff && _plugin.IsEventActive)
+                if (forceOff && _plugin.IsEventActive && player != null)
                 {
-
                     setState(false);
                     _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.33f, isTransient: true, sourcePlayer: player);
                 }
@@ -421,21 +366,14 @@ namespace SCP_575.Handlers
             }
         }
 
-        /// <summary>
-        /// Verifies if the specified firearm has a flashlight attachment actively equipped by the player.
-        /// </summary>
         private bool HasFlashlight(FirearmItem firearm)
         {
             if (firearm?.Base?.Attachments == null) return false;
 
-            // FIX: On a dedicated server, gameObject.activeSelf is unreliable as physical sub-objects are not visually toggled.
-            // We must query the native 'IsEnabled' property compiled by the server from the item's attachment code bitmask.
+            // Queries native attachments via client network sync identity blocks rather than active visual transforms
             return firearm.Base.Attachments.Any(a => a != null && a.Name == AttachmentName.Flashlight && a.IsEnabled);
         }
 
-        /// <summary>
-        /// Executes a rate-limited local acoustic short-circuit artifact to notify the player of hardware failure or suppression.
-        /// </summary>
         private void PlayLightsourceErrorFeedback(Player player)
         {
             if (player == null) return;
@@ -460,8 +398,6 @@ namespace SCP_575.Handlers
 
                 if (_isDisposed || !_plugin.IsEventActive || _cooldownUntil.Count == 0) continue;
 
-                // Optimization: Enforce zero-allocation structural table scrubbing 
-                // by resolving state data in-place without copying keys via LINQ allocations.
                 DateTime now = DateTime.UtcNow;
                 var keys = _cooldownUntil.Keys.ToList();
 

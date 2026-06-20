@@ -7,7 +7,8 @@ namespace SCP_575
     using System;
 
     /// <summary>
-    /// The main plugin class for the SCP-575 NPC, responsible for managing event handlers and NPC behaviors.
+    /// Central initialization bootstrap layer for the SCP-575 plugin ecosystem.
+    /// Manages architectural dependencies, binds event tracking frameworks, and drives core subsystem lifecycles.
     /// </summary>
     public class Plugin : Exiled.API.Features.Plugin<Config>
     {
@@ -22,6 +23,7 @@ namespace SCP_575
 
         private NestingObjects.Npc _npc;
         private Scp575AudioManager _audioManager;
+        private Scp575AudioDirector _audioDirector;
         private LibraryLabAPI _libraryLabAPI;
 
         private bool _isEventActive = false;
@@ -31,7 +33,6 @@ namespace SCP_575
         public PlayerLightsourceHandler LightsourceHandler => _lightsourceHandler;
         public MapHandler MapHandler => _mapHandler;
 
-
         public bool IsEventActive
         {
             get => _isEventActive;
@@ -40,12 +41,13 @@ namespace SCP_575
 
         public NestingObjects.Npc Npc => _npc;
         public Scp575AudioManager AudioManager => _audioManager;
+        public Scp575AudioDirector AudioDirector => _audioDirector;
         public LibraryLabAPI LibraryLabAPI => _libraryLabAPI;
 
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
         public override string Prefix => "SCP575";
-        public override System.Version Version => new(9, 10, 2);
+        public override System.Version Version => new(10, 0, 0);
         public override System.Version RequiredExiledVersion => new(9, 9, 3);
 
         public override void OnEnabled()
@@ -68,21 +70,25 @@ namespace SCP_575
 
             try
             {
+                // Structural allocation order: Dependencies must be instantiated before the director consumes them
                 _audioManager = new Scp575AudioManager(this);
+                _sanityHandler = new PlayerSanityHandler(this);
+                _audioDirector = new Scp575AudioDirector(this, _audioManager, _sanityHandler);
 
                 _lifecycleHandler = new LifecycleHandler(this);
                 _generatorHandler = new GeneratorHandler(this);
                 _explosionHandler = new ExplosionHandler(this);
                 _damageHandler = new PlayerDamageHandler(this);
                 _ragdollHandler = new RagdollHandler(this);
-                _sanityHandler = new PlayerSanityHandler(this);
                 _lightsourceHandler = new PlayerLightsourceHandler(this);
                 _mapHandler = new MapHandler(this);
 
                 _npc = new NestingObjects.Npc(this);
 
+                // Wake up underlying process loops
                 _sanityHandler?.Initialize();
                 _lightsourceHandler?.Initialize();
+                _audioDirector?.Initialize();
 
                 RegisterEvents();
 
@@ -111,7 +117,16 @@ namespace SCP_575
 
             try
             {
-                _audioManager?.Clean();
+                _audioDirector?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                LibraryLabAPI.LogError("Plugin.OnDisabled", $"Error while disposing AudioDirector: {ex.Message}");
+            }
+
+            try
+            {
+                _audioManager?.Clean(fullShutdown: true);
             }
             catch (Exception ex)
             {
@@ -136,7 +151,7 @@ namespace SCP_575
                 LibraryLabAPI.LogError("Plugin.OnDisabled", $"Error while disposing LightsourceHandler: {ex.Message}");
             }
 
-            // Nullify in reverse order of initialization
+            // Teardown sequence executed in reverse structural order to ensure safe resource releases
             _npc = null;
             _lightsourceHandler = null;
             _sanityHandler = null;
@@ -147,6 +162,7 @@ namespace SCP_575
             _lifecycleHandler = null;
             _mapHandler = null;
 
+            _audioDirector = null;
             _audioManager = null;
             _libraryLabAPI = null;
             Singleton = null;

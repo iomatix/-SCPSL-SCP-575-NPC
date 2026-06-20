@@ -1,5 +1,6 @@
 ﻿namespace SCP_575.Handlers
 {
+    using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
     using MapGeneration;
@@ -10,6 +11,10 @@
     using System.Linq;
     using UnityEngine;
 
+    /// <summary>
+    /// Handles physical facility infrastructure layout transformations. Sets up resource grids 
+    /// and controls item injection algorithms post-generation while preserving network synchronization stability.
+    /// </summary>
     public class MapHandler : CustomEventsHandler
     {
         private readonly Plugin _plugin;
@@ -20,6 +25,22 @@
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
             _random = new System.Random();
         }
+
+        #region Lifecycle Management
+
+        /// <summary>
+        /// Instantly terminates trailing spatial item pipelines during macro round boundary transitions 
+        /// to safeguard the next round context against asynchronous heap pollution.
+        /// </summary>
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
+        public override void OnServerWaitingForPlayers() => Clean();
+
+        private void Clean()
+        {
+            Timing.KillCoroutines(CoroutineTags.MapCoroutines);
+        }
+
+        #endregion
 
         /// <summary>
         /// Public entrypoint invoked exclusively by the central NPC Lifecycle Orchestrator.
@@ -32,9 +53,13 @@
             Timing.RunCoroutine(SpawnFlashlightsPipeline(), CoroutineTags.MapCoroutines);
         }
 
+        /// <summary>
+        /// Drives the item injection sequence across valid zone boundaries.
+        /// Evaluates spatial distribution limits dynamically after scene layout compilation settles.
+        /// </summary>
         private IEnumerator<float> SpawnFlashlightsPipeline()
         {
-            // Safeguard delay allowing Unity scene graph and network transforms to fully compile.
+            // Introduces a strict temporal buffer allowing the native scene graph and network mirror transforms to initialize completely.
             yield return Timing.WaitForSeconds(2.5f);
 
             try
@@ -61,13 +86,14 @@
                     if (roll > spawnChance)
                         continue;
 
-                    // Elevated center point prevents early collisions with floor primitives during spawn frames.
+                    // Elevating the injection vector anchors the item in safe spatial air coordinates,
+                    // preventing premature mesh tracking failures or immediate physics intersection with floor primitives.
                     Vector3 spawnPosition = room.Position + new Vector3(0f, 0.6f, 0f);
 
                     var flashlightPickup = Pickup.Create(ItemType.Flashlight, spawnPosition, Quaternion.identity);
                     if (flashlightPickup != null)
                     {
-                        // Enqueuing the physics push to run asynchronously to ensure the engine registers the item's spawn lifecycle state.
+                        // Physics tasks must run out-of-frame asynchronously to bypass native inventory serialization blocks.
                         Timing.RunCoroutine(ApplyDelayedPhysicsPush(flashlightPickup), CoroutineTags.MapCoroutines);
                         totalSpawned++;
 
@@ -97,8 +123,8 @@
         }
 
         /// <summary>
-        /// Asynchronously delays physics execution by exactly one frame to ensure 
-        /// that the native base-game spawning logic doesn't overwrite our custom velocities.
+        /// Forces a single-frame deferral over the rigid-body state machine.
+        /// This ensures the engine registers native transform weights before we apply localized kinetic forces.
         /// </summary>
         private IEnumerator<float> ApplyDelayedPhysicsPush(Pickup pickup)
         {
@@ -113,22 +139,20 @@
 
             try
             {
-                // Force kinematic state to false to wake up the Unity physics processing pipeline on this network object.
+                // Disabling the kinematic gate wakes up the PhysX solver pipeline on this active networked entity.
                 rb.isKinematic = false;
 
-                // Generating a clean 3D force vector.
                 Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
 
-                // Reflection gate: prevents items from being driven straight down into floor mesh colliders.
+                // Restricts the drop angle projection plane to guarantee props scatter outward rather than sinking into ground mesh layers.
                 if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f)
                 {
                     randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
                 }
 
-                // Standard natural drop force magnitude for environment props layout.
+                // Generates organic dispersion variations to give items a natural fallen look across environment grids.
                 float dynamicMagnitude = UnityEngine.Random.Range(2.0f, 4.2f);
 
-                // Utilizing the modern Unity linearVelocity property discovered in your functional runtime code.
                 rb.linearVelocity = randomDirection * dynamicMagnitude;
                 rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 3.5f;
             }

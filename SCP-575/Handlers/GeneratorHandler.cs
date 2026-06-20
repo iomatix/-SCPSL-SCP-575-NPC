@@ -4,12 +4,11 @@
     using LabApi.Events.CustomHandlers;
     using MEC;
     using SCP_575.Shared;
-    using SCP_575.Shared.Audio.Enums;
     using System;
 
     /// <summary>
-    /// Orchestrates the entity's defensive reactions and containment mechanics as human forces 
-    /// restore power sub-stations across the facility infrastructure.
+    /// Orchestrates tactical facility infrastructure mutations and power state responses 
+    /// while offloading all emotional and defensive audio presentations to the central Audio Director.
     /// </summary>
     public class GeneratorHandler : CustomEventsHandler
     {
@@ -31,40 +30,32 @@
 
         #endregion
 
-        /// <summary>
-        /// Evaluates overall facility power status upon sub-station activation, triggering 
-        /// structural lighting overrides and localized or map-wide acoustic defensive behaviors.
-        /// </summary>
-        /// <param name="ev">The event arguments containing generator telemetry and location.</param>
         public override void OnServerGeneratorActivated(GeneratorActivatedEventArgs ev)
         {
-            // Prevent interaction overhead if the SCP-575 lifecycle is not initialized for this round.
-            if (!_plugin.IsEventActive)
-                return;
-
-            if (ev?.Generator == null)
+            if (!_plugin.IsEventActive || ev?.Generator == null)
                 return;
 
             var room = _lib.GetRoomAtPosition(ev.Generator.Position);
             if (room == null)
                 return;
 
-            LibraryLabAPI.LogInfo("GeneratorHandler", $"Generator activated in {room.Name}");
+            LibraryLabAPI.LogInfo("GeneratorHandler", $"Power substation initialized inside zone room: {room.Name}");
 
-            // Establish the substation as a persistent grid safety point that resists future blackouts.
+            // Overrides local dark zones by establishing a persistent illumination safety baseline
             _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
-            _plugin.AudioManager.PlayAtPosition(AudioKey.GeneratorHumDefense, ev.Generator.Position, loop: true);
 
-            // Evaluate final containment criteria before processing standard retaliation loops.
-            if (_plugin.Npc.Methods.AreAllGeneratorsEngaged())
+            bool allEngaged = _plugin.Npc.Methods.AreAllGeneratorsEngaged();
+            bool retaliationConfigured = _plugin.Config.BlackoutConfig.GeneratorActivationRetaliation;
+
+            // Delegate all audio feedback loops and environmental sound cues to the director layer
+            _plugin.AudioDirector?.ProcessGeneratorActivation(ev.Generator.Position, allEngaged, retaliationConfigured);
+
+            if (allEngaged)
             {
-                _plugin.AudioManager.PlayAtPosition(AudioKey.ScreamDying, ev.Generator.Position);
-
                 var coroutine = Timing.CallDelayed(3.75f, () =>
                 {
                     try
                     {
-                        // Handle permanent entity termination or suppress current wave while preserving random event loops.
                         if (_plugin.Config.NpcConfig.IsNpcKillable)
                         {
                             _plugin.Npc.Methods.Kill575();
@@ -86,41 +77,23 @@
                 return;
             }
 
-            // Process systemic entity aggression if configured for mechanical counter-play.
-            if (_plugin.Config.BlackoutConfig.GeneratorActivationRetaliation)
+            if (retaliationConfigured)
             {
-                _plugin.AudioManager.PlayOrbitingAudio(
-                    staticPosition: ev.Generator.Position,
-                    audioKey: AudioKey.ScreamAngry,
-                    maxRadius: 6.5f,
-                    minRadius: 1.5f,
-                    angularSpeed: 1.85f,
-                    approachSpeed: 2.15f
-                );
-
-                // Force a global state shift if the entity is currently dormant to penalize early activation.
                 if (!_plugin.Npc.Methods.IsBlackoutActive)
                 {
-                    // Delegating stack mutation and safety tagging to the central method to prevent cross-round dangling timers
                     _plugin.Npc.Methods.StartTimedBlackoutBoost(
                         _plugin.Config.BlackoutConfig.DurationMin,
                         "GeneratorHandler",
                         "Dormant SCP-575 awakened. Triggering emergency facility-wide blackout.",
-                        null, // Expiration log not requested for generator context
+                        null,
                         () => LabApi.Features.Wrappers.Map.TurnOffLights(_plugin.Config.BlackoutConfig.DurationMin)
                     );
                 }
                 else
                 {
-                    // Escalate localized structural failure if an environmental blackout is already active.
                     _lib.DisableRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.DurationMin);
                     LibraryLabAPI.LogInfo("GeneratorHandler", "SCP-575 escalated localized darkness during active blackout.");
                 }
-            }
-            else
-            {
-                var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.ScreamHurt + 1);
-                _plugin.AudioManager.PlayAtPosition(randomScream, ev.Generator.Position);
             }
         }
     }

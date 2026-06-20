@@ -12,6 +12,10 @@ namespace SCP_575.Npc
     using System.Linq;
     using UnityEngine;
 
+    /// <summary>
+    /// Executes core tactical algorithms, facility blackout events, and structural combat state logic 
+    /// for the SCP-575 entity framework. Handles synchronized timing loops for environmental progression.
+    /// </summary>
     public class Methods
     {
         private readonly Plugin _plugin;
@@ -49,7 +53,6 @@ namespace SCP_575.Npc
             LibraryLabAPI.LogDebug(nameof(Methods), "NPC Methods system linked with Handlers and LibraryAPI.");
         }
 
-        // Protect reads via locks or make properties access synchronized data strictly
         public bool IsBlackoutActive { get { lock (BlackoutLock) return _blackoutStacks > 0; } }
         public int GetCurrentBlackoutStacks { get { lock (BlackoutLock) return _blackoutStacks; } }
 
@@ -71,7 +74,7 @@ namespace SCP_575.Npc
                 StartSanityHandlerLoop();
                 _plugin.MapHandler?.ExecuteFlashlightDistribution();
 
-                // Fire the persistent filtered ambient track right as the event system spins up
+                _plugin.AudioDirector?.Initialize();
                 _plugin.AudioManager.PlayAmbience(loop: true, fadeInDuration: 3.0f);
 
                 foreach (var player in Player.ReadyList)
@@ -97,6 +100,7 @@ namespace SCP_575.Npc
             }
             LibraryLabAPI.LogDebug(nameof(Disable), "Killed all static SCP-575 coroutines via tags.");
 
+            _plugin.AudioDirector?.Clean();
             _plugin.AudioManager?.Clean(fullShutdown: true);
             _sanityHandler?.Clean();
             _plugin.LightsourceHandler?.Clean();
@@ -150,27 +154,24 @@ namespace SCP_575.Npc
                 TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
             }
 
-            // ===================================================================
-            // CORRECTED GLOBAL AUDIO ROUTING
-            // ===================================================================
-            // Using dedicated global methods for non-spatial environmental tracks instead of dummy vectors.
+            // Centralized environmental shockwaves triggered globally to mark structural state transition shifts
             _plugin.AudioManager.PlayGlobal(AudioKey.BlackoutImpactGlobal);
             _plugin.AudioManager.PlayGlobal(AudioKey.MonsterRoarGlobal);
 
-            // Spatialized cue for a specific vulnerable target to anchor localized direction.
             if (UnityEngine.Random.Range(0f, 100f) < 70f)
             {
-                // OPTIMIZATION: Allocation-free extraction pattern avoiding heavy LINQ OrderBy sorting execution
                 var validTargets = Player.ReadyList.Where(p => p.IsAlive && p.IsHuman).ToList();
                 if (validTargets.Count > 0)
                 {
                     var randomPlayer = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
-                    var randomScream = (AudioKey)UnityEngine.Random.Range((int)AudioKey.Scream_1, (int)AudioKey.Scream_3 + 1);
-                    _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, randomScream, isolated: true,
-                        maxRadius: 3.5f,
-                        minRadius: 0.25f,
-                        angularSpeed: 2.65f,
-                        approachSpeed: 2.25f);
+
+                    // FIXED: Replaced illegal legacy enum int casting block with semantically unified key
+                    // Spatial values tuned to create disorienting rapid rotation orbiting right as the lights go down
+                    _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, AudioKey.ScreamStandard, isolated: true,
+                        maxRadius: 5.5f,
+                        minRadius: 0.6f,
+                        angularSpeed: 3.4f,
+                        approachSpeed: 1.8f);
                 }
             }
 
@@ -367,21 +368,11 @@ namespace SCP_575.Npc
             }
         }
 
-        // Place this inside public class Methods (#region Blackout Management)
-
-        /// <summary>
-        /// Safely triggers a synchronized timed blackout boost, managing stacks under a tracked MEC tag
-        /// to prevent state leakage and dangling handles across lifecycle state changes.
-        /// </summary>
         public void StartTimedBlackoutBoost(float duration, string logContext, string startLog, string endLog, Action startAction = null)
         {
             Timing.RunCoroutine(TimedBlackoutBoostCoroutine(duration, logContext, startLog, endLog, startAction), CoroutineTags.BlackoutStacks);
         }
 
-        /// <summary>
-        /// Internal coroutine handling the lifecycle of a localized or sudden facility-wide blackout escalation.
-        /// Guaranteed execution pattern via deterministic try-finally structural blocks.
-        /// </summary>
         private IEnumerator<float> TimedBlackoutBoostCoroutine(float duration, string logContext, string startLog, string endLog, Action startAction = null)
         {
             IncrementBlackoutStack();
@@ -396,7 +387,6 @@ namespace SCP_575.Npc
             }
             finally
             {
-                // FIX: Finally block guarantees stack integrity even if startAction or the coroutine layer throws/aborts
                 DecrementBlackoutStack();
 
                 if (!string.IsNullOrEmpty(endLog))
@@ -439,14 +429,12 @@ namespace SCP_575.Npc
         {
             while (_isInitialized)
             {
-
                 float offset = UnityEngine.Random.Range(-_npcConfig.KeterActionDelayRandomizerValue, _npcConfig.KeterActionDelayRandomizerValue);
                 float finalDelay = _npcConfig.KeterActionDelay + offset;
 
                 if (finalDelay < 0.25f) finalDelay = 0.25f;
 
                 yield return Timing.WaitForSeconds(finalDelay);
-
 
                 if (!_plugin.IsEventActive || !IsBlackoutActive) continue;
 
@@ -461,11 +449,12 @@ namespace SCP_575.Npc
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
 
+                        // Master-crafted tight tracking variables to force hyper-claustrophobic stalker breathing loops directly on the neck
                         _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
-                        maxRadius: 1.75f,
-                        minRadius: 0.15f,
-                        angularSpeed: 1.25f,
-                        approachSpeed: 1.55f);
+                            maxRadius: 1.45f,
+                            minRadius: 0.35f,
+                            angularSpeed: 1.15f,
+                            approachSpeed: 1.95f);
 
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }
@@ -524,7 +513,6 @@ namespace SCP_575.Npc
 
             lock (BlackoutLock)
             {
-                // FIX: Enforcing critical section visibility across all threads to prevent mid-frame race conditions
                 _blackoutStacks = 0;
             }
 
