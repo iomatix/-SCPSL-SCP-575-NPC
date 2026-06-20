@@ -141,6 +141,8 @@ namespace SCP_575.Npc
 
         private IEnumerator<float> ExecuteBlackoutEvent()
         {
+            var audioConfig = _config.AudioConfig;
+
             if (!IsBlackoutActive)
             {
                 if (_config.CassieConfig.CassieMessageClearBeforeImportant)
@@ -165,13 +167,12 @@ namespace SCP_575.Npc
                 {
                     var randomPlayer = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
 
-                    // FIXED: Replaced illegal legacy enum int casting block with semantically unified key
-                    // Spatial values tuned to create disorienting rapid rotation orbiting right as the lights go down
+                    // PARAMETRIZED: Spatial values mapped smoothly from AudioConfig matrix
                     _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, AudioKey.ScreamStandard, isolated: true,
-                        maxRadius: 5.5f,
-                        minRadius: 0.6f,
-                        angularSpeed: 3.4f,
-                        approachSpeed: 1.8f);
+                        maxRadius: audioConfig.BlackoutScreamMaxRadius,
+                        minRadius: audioConfig.BlackoutScreamMinRadius,
+                        angularSpeed: audioConfig.BlackoutScreamAngularSpeed,
+                        approachSpeed: audioConfig.BlackoutScreamApproachSpeed);
                 }
             }
 
@@ -438,6 +439,8 @@ namespace SCP_575.Npc
 
                 if (!_plugin.IsEventActive || !IsBlackoutActive) continue;
 
+                var audioConfig = _config.AudioConfig;
+
                 foreach (Player player in Player.ReadyList)
                 {
                     try
@@ -449,12 +452,12 @@ namespace SCP_575.Npc
                         _sanityHandler.ApplyDamageToPlayer(player);
                         _sanityHandler.ApplyStageEffects(player);
 
-                        // Master-crafted tight tracking variables to force hyper-claustrophobic stalker breathing loops directly on the neck
+                        // PARAMETRIZED: Master-crafted tracking vectors decoupled via unified AudioConfig settings
                         _plugin.AudioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
-                            maxRadius: 1.45f,
-                            minRadius: 0.35f,
-                            angularSpeed: 1.15f,
-                            approachSpeed: 1.95f);
+                            maxRadius: audioConfig.HunterBreathMaxRadius,
+                            minRadius: audioConfig.HunterBreathMinRadius,
+                            angularSpeed: audioConfig.HunterBreathAngularSpeed,
+                            approachSpeed: audioConfig.HunterBreathApproachSpeed);
 
                         _lightsourceHandler.ApplyLightsourceEffects(player);
                     }

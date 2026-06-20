@@ -81,6 +81,18 @@
         public float StingerMinRadius { get; set; } = 0.5f;
         public float StingerAngularSpeed { get; set; } = 2.5f;
 
+        [Description("Blackout Event Initial Ambient Scream Orbit Metrics: Max Radius, Min Radius, Angular Speed, Approach Speed.")]
+        public float BlackoutScreamMaxRadius { get; set; } = 5.5f;
+        public float BlackoutScreamMinRadius { get; set; } = 0.6f;
+        public float BlackoutScreamAngularSpeed { get; set; } = 3.4f;
+        public float BlackoutScreamApproachSpeed { get; set; } = 1.8f;
+
+        [Description("Active Hunter Breath Loop Orbit Metrics (Keter Action Loop): Max Radius, Min Radius, Angular Speed, Approach Speed.")]
+        public float HunterBreathMaxRadius { get; set; } = 1.45f;
+        public float HunterBreathMinRadius { get; set; } = 0.35f;
+        public float HunterBreathAngularSpeed { get; set; } = 1.15f;
+        public float HunterBreathApproachSpeed { get; set; } = 1.95f;
+
         [Description("Helpful Projectile Vortex Metrics: Max Radius, Min Radius, Angular Speed, Spatial Convergence Approach Speed.")]
         public float HelpfulExplosionMaxRadius { get; set; } = 9.0f;
         public float HelpfulExplosionMinRadius { get; set; } = 0.5f;
@@ -138,6 +150,8 @@
             }
 
             StingerMinRadius = Mathf.Max(0.15f, StingerMinRadius);
+            BlackoutScreamMinRadius = Mathf.Max(0.15f, BlackoutScreamMinRadius);
+            HunterBreathMinRadius = Mathf.Max(0.15f, HunterBreathMinRadius);
             HelpfulExplosionMinRadius = Mathf.Max(0.15f, HelpfulExplosionMinRadius);
             DangerousExplosionMinRadius = Mathf.Max(0.15f, DangerousExplosionMinRadius);
             GeneratorMinRadius = Mathf.Max(0.15f, GeneratorMinRadius);
