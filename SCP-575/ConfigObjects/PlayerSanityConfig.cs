@@ -103,11 +103,13 @@
         /// <summary>
         /// Gets the pre-compiled baseline sanity decay units processed per single execution tick (second).
         /// </summary>
+        [Description("Decay rate per second is calculated, changing this value doesn't affect decay rate.")]
         public float DecayRateBase { get; private set; }
 
         /// <summary>
         /// Gets the pre-compiled baseline passive sanity recovery units processed per single execution tick (second).
         /// </summary>
+        [Description("Regen rate per second is calculated, changing this value doesn't affect decay rate.")]
         public float PassiveRegenRate { get; private set; }
 
         #endregion
