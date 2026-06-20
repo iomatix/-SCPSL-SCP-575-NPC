@@ -39,7 +39,7 @@
         #region Neurological Integrity Thresholds
 
         [Description("The neurological integrity percentage (Sanity) below which the persistent tracking panic sub-drone loop activates.")]
-        public float PanicDroneSanityThreshold { get; set; } = 15.0f;
+        public float PanicDroneSanityThreshold { get; set; } = 22.0f;
 
         [Description("The linear volume fade-in duration (seconds) allocated to the persistent panic drone streaming session.")]
         public float PanicDroneFadeInDuration { get; set; } = 3.5f;

@@ -43,22 +43,40 @@
 
         #region Public Playback API
 
+        /// <summary>
+        /// Plays a one-shot or looping global audio stinger across the entire facility.
+        /// Dedicated environmental ambience loops must be routed through PlayAmbience() instead.
+        /// </summary>
         public int PlayGlobal(AudioKey key, float? lifespan = null, bool queue = false, float fadeInDuration = 0f, bool loop = false)
         {
+            if (key == AudioKey.Ambience)
+            {
+                LibraryLabAPI.LogWarn("AudioManager.PlayGlobal", "Ambience key routed to PlayGlobal. Redirecting to PlayAmbience() to preserve blackout matrix filters.");
+                return PlayAmbience(loop, fadeInDuration == 0f ? 3.0f : fadeInDuration);
+            }
+
             var config = GetConfigOrThrow(key);
             if (IsScreamAsset(key) && !TryPassGlobalScreamCooldown()) return 0;
 
-            if (key == AudioKey.Ambience && _ambienceAudioSessionId != 0) StopAmbience();
+            float? finalLifespan = loop && (lifespan ?? config.DefaultLifespan) <= 0f ? null : (lifespan ?? config.DefaultLifespan);
 
             int sessionId = _audioEngine.PlayGlobalAudio(
-                config.Key, loop, config.Volume, config.Priority,
-                validPlayersFilter: null, queue, fadeInDuration, persistent: (key == AudioKey.Ambience), lifespan: lifespan, autoCleanup: true);
+                config.Key,
+                loop,
+                config.Volume,
+                config.Priority,
+                validPlayersFilter: null, // Safe for true global stinger roars
+                queue,
+                fadeInDuration,
+                persistent: false,
+                lifespan: finalLifespan,
+                autoCleanup: !loop); // Prevent infinite loops from committing suicide via timers
 
             if (sessionId != 0)
             {
-                if (key == AudioKey.Ambience) _ambienceAudioSessionId = sessionId;
-                else _activeTrackingSessionIds.Add(sessionId);
+                _activeTrackingSessionIds.Add(sessionId);
             }
+
             return sessionId;
         }
 
