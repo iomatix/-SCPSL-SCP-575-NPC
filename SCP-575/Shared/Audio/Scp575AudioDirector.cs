@@ -24,6 +24,9 @@
 
         private readonly Dictionary<string, PlayerTensionProfile> _tensionCache = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, DateTime> _acousticSuppressionCache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTime> _lastCombatAudioTime = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, int> _activePanicDroneSessions = new(StringComparer.OrdinalIgnoreCase);
+
         private readonly object _directorLock = new();
         private bool _isDisposed;
 
@@ -66,20 +69,18 @@
                 {
                     if (!_sanityHandler.IsValidPlayer(player))
                     {
-                        lock (_directorLock)
-                        {
-                            _tensionCache.Remove(player.UserId);
-                            _acousticSuppressionCache.Remove(player.UserId);
-                            _lastCombatAudioTime.Remove(player.UserId);
-                        }
+                        lock (_directorLock) { _tensionCache.Remove(player.UserId); }
                         continue;
                     }
 
-                    // Budgeting filter: Freeze tension accumulation if a heavy physical event took priority
+                    float currentSanity = _sanityHandler.GetCurrentSanity(player);
+                    bool isInDarkness = _plugin.LibraryLabAPI.IsPlayerInDarkRoom(player);
+
+                    EvaluatePersistentPanicDrone(player, currentSanity, isInDarkness);
+
                     if (IsAcousticBudgetSaturated(player, now))
                         continue;
 
-                    bool isInDarkness = _plugin.LibraryLabAPI.IsPlayerInDarkRoom(player);
                     if (isInDarkness)
                     {
                         ProcessPlayerStressTick(player, now);
@@ -105,6 +106,12 @@
                 _tensionCache.Remove(userId);
                 _acousticSuppressionCache.Remove(userId);
                 _lastCombatAudioTime.Remove(userId);
+
+                if (_activePanicDroneSessions.TryGetValue(userId, out int activeSession))
+                {
+                    // We will let the internal fadeout handler dissolve the channel gracefully
+                    _activePanicDroneSessions.Remove(userId);
+                }
             }
         }
 
@@ -339,10 +346,6 @@
             }
         }
 
-        // Add this private dictionary field near your other caches inside Scp575AudioDirector:
-        private readonly Dictionary<string, DateTime> _lastCombatAudioTime = new(StringComparer.OrdinalIgnoreCase);
-
-        // Add this public method to Scp575AudioDirector:
         /// <summary>
         /// Sequences anomalous combat audio stingers during trauma transactions.
         /// Enforces temporal spacing locks per client identity node to prevent voice channel accumulation artifacts.
@@ -394,6 +397,52 @@
             );
         }
 
+        /// <summary>
+        /// Continuously evaluates a player's cognitive threshold to toggle or sustain the persistent panic drone loop.
+        /// Automatically triggers a smooth fade-in during psychotic breaks or dissolves the channel upon medical recovery.
+        /// </summary>
+        private void EvaluatePersistentPanicDrone(Player player, float currentSanity, bool isInDarkness)
+        {
+            string userId = player.UserId;
+
+            // The drone activates strictly below 15% sanity and requires the player to remain in unlit zones
+            bool triggersPanicZone = currentSanity <= 15f && isInDarkness;
+
+            lock (_directorLock)
+            {
+                if (triggersPanicZone)
+                {
+                    // Throttle execution if the continuous tracking channel is already operational
+                    if (_activePanicDroneSessions.ContainsKey(userId))
+                        return;
+
+                    // Initialize the looping panic drone, isolated inside the victim's private headspace (hallucination)
+                    int sessionId = _audioManager.PlayAttached(player, AudioKey.WhispersPanicDrone,
+                        hearableForAll: false,
+                        fadeInDuration: 3.5f,
+                        loop: true);
+
+                    if (sessionId != 0)
+                    {
+                        _activePanicDroneSessions[userId] = sessionId;
+                        LibraryLabAPI.LogDebug("AudioDirector.Panic", $"Psychotic break checkpoint reached for {player.Nickname}. Persistent panic drone activated.");
+                    }
+                }
+                else
+                {
+                    // Gracefully wind down the loop if the player recovers sanity via medical consumables or enters light
+                    if (!_activePanicDroneSessions.TryGetValue(userId, out int sessionId))
+                        return;
+
+                    // ForceStopAllPlayerAudio handles the structural fadeout via the underlying audio manager config
+                    _audioManager.ForceStopAllPlayerAudio(player);
+                    _activePanicDroneSessions.Remove(userId);
+
+                    LibraryLabAPI.LogDebug("AudioDirector.Panic", $"Sanity stabilized or safe zone reached for {player.Nickname}. Dissolving panic drone.");
+                }
+            }
+        }
+
         public void Clean()
         {
             Timing.KillCoroutines(DirectorCoroutineTag);
@@ -402,6 +451,13 @@
                 _lastCombatAudioTime.Clear();
                 _tensionCache.Clear();
                 _acousticSuppressionCache.Clear();
+
+                foreach (int sessionId in _activePanicDroneSessions.Values)
+                {
+                    if (sessionId != 0)
+                        _audioManager.ForceStopAllPlayerAudio(Player.Get(sessionId)); // Or fallback to engine fadeout
+                }
+                _activePanicDroneSessions.Clear();
             }
         }
 
