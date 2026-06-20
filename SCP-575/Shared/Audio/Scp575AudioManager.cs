@@ -290,8 +290,9 @@
         /// </summary>
         public void PlayRandomAudioEffect(Player player, params AudioKey[] options)
         {
+            // FIXED: Updated legacy WhispersMixed identifier to its semantic equivalent WhispersPsychotic
             var pool = (options == null || options.Length == 0)
-                ? new[] { AudioKey.WhispersMixed, AudioKey.WhispersSubtle, AudioKey.WhispersDisturbed, AudioKey.ShadowClicking }
+                ? new[] { AudioKey.WhispersPsychotic, AudioKey.WhispersSubtle, AudioKey.WhispersDisturbed, AudioKey.ShadowClicking }
                 : options;
 
             PlayAttached(player, pool[UnityEngine.Random.Range(0, pool.Length)], hearableForAll: false);
