@@ -140,7 +140,7 @@
                 _painkillerSanityBoostExpiry.Remove(userId);
             }
 
-            _plugin.AudioDirector?.OnPlayerLeft(userId);
+            _plugin.AudioDirector?.OnPlayerLeft(ev.Player);
             _plugin.AudioManager.ForceStopAllPlayerAudio(ev.Player);
         }
 

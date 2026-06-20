@@ -14,8 +14,7 @@
 
     /// <summary>
     /// Autonomous narrative engine managing survival horror tension mechanics.
-    /// Tracks individual player stress profiles, accumulates tension based on sanity decay,
-    /// and triggers threshold-bound auditory scares to eliminate predictable pattern recognition.
+    /// Tracks individual player stress profiles using ultra-performance native instance IDs to avoid GC allocations.
     /// </summary>
     public class Scp575AudioDirector : IDisposable
     {
@@ -23,10 +22,12 @@
         private readonly Scp575AudioManager _audioManager;
         private readonly PlayerSanityHandler _sanityHandler;
 
-        private readonly Dictionary<string, PlayerTensionProfile> _tensionCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, DateTime> _acousticSuppressionCache = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, DateTime> _lastCombatAudioTime = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, int> _activePanicDroneSessions = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<int, PlayerTensionProfile> _tensionCache = new();
+        private readonly Dictionary<int, DateTime> _acousticSuppressionCache = new();
+        private readonly Dictionary<int, DateTime> _lastCombatAudioTime = new();
+        private readonly Dictionary<int, int> _activePanicDroneSessions = new();
+        private readonly Dictionary<int, int> _activeAmbientDroneSessions = new();
+        private readonly Dictionary<int, double> _transientInputNetworkGate = new();
 
         private readonly object _directorLock = new();
         private bool _isDisposed;
@@ -59,53 +60,57 @@
 
                 DateTime now = DateTime.Now;
 
-                foreach (var player in Player.ReadyList)
+                foreach (Player player in Player.ReadyList)
                 {
-                    // --- PHASE 4: SESSION AUDITOR FAIL-SAFE ---
+                    if (player?.GameObject == null) continue;
+
+                    int instanceId = player.GameObject.GetInstanceID();
+
                     if (!_sanityHandler.IsValidPlayer(player))
                     {
-                        ClearHistoricalPlayerCaches(player.UserId);
+                        ClearHistoricalPlayerCaches(instanceId);
                         continue;
                     }
 
                     float currentSanity = _sanityHandler.GetCurrentSanity(player);
                     bool isInDarkness = _plugin.LibraryLabAPI.IsPlayerInDarkRoom(player);
 
-                    EvaluatePersistentPanicDrone(player, currentSanity, isInDarkness);
+                    EvaluatePersistentPanicDrone(player, instanceId, currentSanity, isInDarkness);
+                    UpdatePlayerBackgroundAmbient(player, instanceId, isInDarkness);
 
-                    if (IsAcousticBudgetSaturated(player, now))
+                    if (IsAcousticBudgetSaturated(instanceId, now))
                         continue;
 
                     if (isInDarkness)
                     {
-                        ProcessPlayerStressTick(player, now);
+                        ProcessPlayerStressTick(player, instanceId, currentSanity);
                     }
                     else
                     {
-                        DecayPlayerStressPassive(player);
+                        DecayPlayerStressPassive(instanceId);
                     }
                 }
             }
         }
 
-        public void OnPlayerLeft(string userId)
+        public void OnPlayerLeft(Player player)
         {
-            if (string.IsNullOrEmpty(userId)) return;
-            ClearHistoricalPlayerCaches(userId);
+            if (player?.GameObject == null) return;
+            ClearHistoricalPlayerCaches(player.GameObject.GetInstanceID());
         }
 
-        private void ProcessPlayerStressTick(Player player, DateTime now)
+        #region Core Psychological Rules
+
+        private void ProcessPlayerStressTick(Player player, int instanceId, float currentSanity)
         {
-            string userId = player.UserId;
-            float currentSanity = _sanityHandler.GetCurrentSanity(player);
             var config = _plugin.Config.AudioConfig;
 
             lock (_directorLock)
             {
-                if (!_tensionCache.TryGetValue(userId, out var profile))
+                if (!_tensionCache.TryGetValue(instanceId, out var profile))
                 {
                     profile = new PlayerTensionProfile();
-                    _tensionCache[userId] = profile;
+                    _tensionCache[instanceId] = profile;
                 }
 
                 float sanityRiskFactor = 1.0f - currentSanity / 100f;
@@ -121,14 +126,11 @@
             }
         }
 
-        /// <summary>
-        /// Slowly drains tension when the player enters secure, illuminated zones to reward defensive playstyles.
-        /// </summary>
-        private void DecayPlayerStressPassive(Player player)
+        private void DecayPlayerStressPassive(int instanceId)
         {
             lock (_directorLock)
             {
-                if (_tensionCache.TryGetValue(player.UserId, out var profile))
+                if (_tensionCache.TryGetValue(instanceId, out var profile))
                 {
                     profile.CurrentTension = Mathf.Clamp(profile.CurrentTension - _plugin.Config.AudioConfig.TensionPassiveDecayRate, 0f, 100f);
                 }
@@ -151,15 +153,66 @@
             }
             else
             {
-                _audioManager.PlayAttached(player, scareKey, hearableForAll: false, isTransient: true);
+                _audioManager.PlayAttached(player, scareKey, hearableForAll: false);
             }
         }
 
-        private bool IsAcousticBudgetSaturated(Player player, DateTime now)
+        private void EvaluatePersistentPanicDrone(Player player, int instanceId, float currentSanity, bool isInDarkness)
+        {
+            var config = _plugin.Config.AudioConfig;
+            bool triggersPanicZone = currentSanity <= config.PanicDroneSanityThreshold && isInDarkness;
+
+            lock (_directorLock)
+            {
+                if (triggersPanicZone)
+                {
+                    if (_activePanicDroneSessions.ContainsKey(instanceId)) return;
+
+                    int sessionId = _audioManager.PlayAttached(player, AudioKey.WhispersPanicDrone, hearableForAll: false, fadeInDuration: config.PanicDroneFadeInDuration, loop: true);
+                    if (sessionId != 0) _activePanicDroneSessions[instanceId] = sessionId;
+                }
+                else
+                {
+                    if (_activePanicDroneSessions.TryGetValue(instanceId, out int sessionId))
+                    {
+                        _audioManager.StopSession(sessionId);
+                        _activePanicDroneSessions.Remove(instanceId);
+                    }
+                }
+            }
+        }
+
+        public void UpdatePlayerBackgroundAmbient(Player player, int instanceId, bool shouldPlayDrone)
         {
             lock (_directorLock)
             {
-                if (_acousticSuppressionCache.TryGetValue(player.UserId, out var expiryTime))
+                if (shouldPlayDrone)
+                {
+                    if (_activeAmbientDroneSessions.ContainsKey(instanceId)) return;
+
+                    int sessionId = _audioManager.PlayAttached(player, AudioKey.SanityLowDrone, hearableForAll: false, fadeInDuration: 2.0f, loop: true);
+                    if (sessionId != 0) _activeAmbientDroneSessions[instanceId] = sessionId;
+                }
+                else
+                {
+                    if (_activeAmbientDroneSessions.TryGetValue(instanceId, out int sessionId))
+                    {
+                        _audioManager.StopSession(sessionId);
+                        _activeAmbientDroneSessions.Remove(instanceId);
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region Defensive and Kinetic Inputs
+
+        private bool IsAcousticBudgetSaturated(int instanceId, DateTime now)
+        {
+            lock (_directorLock)
+            {
+                if (_acousticSuppressionCache.TryGetValue(instanceId, out var expiryTime))
                 {
                     return now < expiryTime;
                 }
@@ -169,14 +222,11 @@
 
         public void SuppressPsychologicalAudio(Player player, float durationSeconds)
         {
-            if (player == null || string.IsNullOrEmpty(player.UserId)) return;
-
+            if (player?.GameObject == null) return;
             lock (_directorLock)
             {
-                _acousticSuppressionCache[player.UserId] = DateTime.Now.AddSeconds(durationSeconds);
+                _acousticSuppressionCache[player.GameObject.GetInstanceID()] = DateTime.Now.AddSeconds(durationSeconds);
             }
-
-            LibraryLabAPI.LogDebug("AudioDirector.Budget", $"Acoustic suppression registered for {player.Nickname} for {durationSeconds}s.");
         }
 
         public void SuppressPsychologicalAudioInRadius(Vector3 position, float radiusMeter, float durationSeconds)
@@ -187,20 +237,17 @@
             {
                 foreach (var player in Player.ReadyList)
                 {
-                    if (player == null || !player.IsReady || player.IsHost || !player.IsAlive)
-                        continue;
+                    if (player?.GameObject == null || !player.IsReady || player.IsHost || !player.IsAlive) continue;
 
                     if (Vector3.Distance(player.Position, position) <= radiusMeter)
                     {
-                        _acousticSuppressionCache[player.UserId] = expiry;
+                        _acousticSuppressionCache[player.GameObject.GetInstanceID()] = expiry;
                     }
                 }
             }
-
-            LibraryLabAPI.LogDebug("AudioDirector.Budget", $"Spatial acoustic suppression applied inside {radiusMeter}m radius for {durationSeconds}s.");
         }
 
-        public void ProcessExplosionImpact(Vector3 position, ScpProjectileImpactType.ProjectileImpactType impactType, bool isBlackoutActive)
+        public void ProcessExplosionImpact(Vector3 position, ScpProjectileImpactType.ProjectileImpactType impactType, bool isBlackoutActive = false)
         {
             var config = _plugin.Config.AudioConfig;
             SuppressPsychologicalAudioInRadius(position, radiusMeter: config.ExplosionSuppressionRadius, durationSeconds: config.ExplosionSuppressionDuration);
@@ -212,11 +259,9 @@
                     _audioManager.PlayOrbitingAudio(position, AudioKey.ScreamAngry, maxRadius: config.HelpfulExplosionMaxRadius, minRadius: config.HelpfulExplosionMinRadius, angularSpeed: config.HelpfulExplosionAngularSpeed, approachSpeed: config.HelpfulExplosionApproachSpeed);
                     _audioManager.PlayGlobal(AudioKey.WhispersDisturbed);
                     break;
-
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
                     _audioManager.PlayOrbitingAudio(position, AudioKey.ScreamStandard, maxRadius: config.DangerousExplosionMaxRadius, minRadius: config.DangerousExplosionMinRadius, angularSpeed: config.DangerousExplosionAngularSpeed, approachSpeed: config.DangerousExplosionApproachSpeed);
                     break;
-
                 default:
                     _audioManager.PlayAtPosition(AudioKey.WhispersSubtle, position);
                     break;
@@ -236,14 +281,7 @@
 
             if (retaliationConfigured)
             {
-                _audioManager.PlayOrbitingAudio(
-                    staticPosition: position,
-                    audioKey: AudioKey.ScreamAngry,
-                    maxRadius: config.GeneratorMaxRadius,
-                    minRadius: config.GeneratorMinRadius,
-                    angularSpeed: config.GeneratorAngularSpeed,
-                    approachSpeed: config.GeneratorApproachSpeed
-                );
+                _audioManager.PlayOrbitingAudio(position, AudioKey.ScreamAngry, maxRadius: config.GeneratorMaxRadius, minRadius: config.GeneratorMinRadius, angularSpeed: config.GeneratorAngularSpeed, approachSpeed: config.GeneratorApproachSpeed);
             }
             else
             {
@@ -253,119 +291,99 @@
 
         public void ProcessLightsourceFlicker(Player player)
         {
-            if (player == null || !player.IsReady) return;
+            if (player?.GameObject == null || !player.IsReady) return;
+            int instanceId = player.GameObject.GetInstanceID();
 
-            if (IsAcousticBudgetSaturated(player, DateTime.Now))
-                return;
+            if (IsAcousticBudgetSaturated(instanceId, DateTime.Now) || !TryAcquireTransientNetworkLock(instanceId)) return;
 
             var config = _plugin.Config.AudioConfig;
 
             if (UnityEngine.Random.value <= 0.25f)
             {
-                _audioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, isolated: true,
-                    maxRadius: config.FlickerBreathMaxRadius, minRadius: config.FlickerBreathMinRadius, angularSpeed: config.FlickerBreathAngularSpeed, approachSpeed: config.FlickerBreathApproachSpeed);
+                _audioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, maxRadius: config.FlickerBreathMaxRadius, minRadius: config.FlickerBreathMinRadius, angularSpeed: config.FlickerBreathAngularSpeed, approachSpeed: config.FlickerBreathApproachSpeed, isolated: true);
             }
 
             if (UnityEngine.Random.value <= 0.15f)
             {
-                _audioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, isolated: true,
-                    maxRadius: config.FlickerClickingMaxRadius, minRadius: config.FlickerClickingMinRadius, angularSpeed: config.FlickerClickingAngularSpeed, approachSpeed: config.FlickerClickingApproachSpeed);
+                _audioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, maxRadius: config.FlickerClickingMaxRadius, minRadius: config.FlickerClickingMinRadius, angularSpeed: config.FlickerClickingAngularSpeed, approachSpeed: config.FlickerClickingApproachSpeed, isolated: true);
             }
         }
 
         public void ProcessAnomalousCombatStinger(Player player, bool isVulnerable)
         {
-            if (player == null || string.IsNullOrEmpty(player.UserId)) return;
-            string userId = player.UserId;
+            if (player?.GameObject == null) return;
+            int instanceId = player.GameObject.GetInstanceID();
             var config = _plugin.Config.AudioConfig;
 
             lock (_directorLock)
             {
-                if (_lastCombatAudioTime.TryGetValue(userId, out var lastCombatAudio) && (DateTime.Now - lastCombatAudio).TotalSeconds < config.CombatStingerCooldown)
-                {
-                    return;
-                }
-                _lastCombatAudioTime[userId] = DateTime.Now;
+                if (_lastCombatAudioTime.TryGetValue(instanceId, out var lastCombatAudio) && (DateTime.Now - lastCombatAudio).TotalSeconds < config.CombatStingerCooldown) return;
+                _lastCombatAudioTime[instanceId] = DateTime.Now;
             }
 
-            if (isVulnerable)
-            {
-                _audioManager.PlayAggressiveAudio(player);
-            }
-            else
-            {
-                _audioManager.PlayDefensiveAudio(player);
-            }
+            if (isVulnerable) PlayAggressiveAudio(player);
+            else PlayDefensiveAudio(player);
         }
 
         public void ProcessRagdollConsumption(Vector3 position)
         {
             var config = _plugin.Config.AudioConfig;
             _audioManager.PlayAtPosition(AudioKey.ShadowConsumingBody, position);
-
-            _audioManager.PlayOrbitingAudio(
-                staticPosition: position,
-                audioKey: AudioKey.ShadowClicking,
-                maxRadius: config.RagdollMaxRadius,
-                minRadius: config.RagdollMinRadius,
-                angularSpeed: config.RagdollAngularSpeed,
-                approachSpeed: config.RagdollApproachSpeed,
-                heightOffset: config.RagdollHeightOffset
-            );
+            _audioManager.PlayOrbitingAudio(position, AudioKey.ShadowClicking, maxRadius: config.RagdollMaxRadius, minRadius: config.RagdollMinRadius, angularSpeed: config.RagdollAngularSpeed, approachSpeed: config.RagdollApproachSpeed, heightOffset: config.RagdollHeightOffset);
         }
 
-        private void EvaluatePersistentPanicDrone(Player player, float currentSanity, bool isInDarkness)
+        #endregion
+
+        #region Core Behavioral Probability Routing
+
+        private void PlayAggressiveAudio(Player player)
         {
-            string userId = player.UserId;
-            var config = _plugin.Config.AudioConfig;
-            bool triggersPanicZone = currentSanity <= config.PanicDroneSanityThreshold && isInDarkness;
-
-            lock (_directorLock)
-            {
-                if (triggersPanicZone)
-                {
-                    if (_activePanicDroneSessions.ContainsKey(userId))
-                        return;
-
-                    int sessionId = _audioManager.PlayAttached(player, AudioKey.WhispersPanicDrone,
-                        hearableForAll: false,
-                        fadeInDuration: config.PanicDroneFadeInDuration,
-                        loop: true);
-
-                    if (sessionId != 0)
-                    {
-                        _activePanicDroneSessions[userId] = sessionId;
-                        LibraryLabAPI.LogDebug("AudioDirector.Panic", $"Psychotic break checkpoint reached for {player.Nickname}. Persistent panic drone activated.");
-                    }
-                }
-                else
-                {
-                    if (!_activePanicDroneSessions.TryGetValue(userId, out int sessionId))
-                        return;
-
-
-                    _audioManager.StopPlayerPanicDrone(player);
-                    lock (_directorLock)
-                    {
-                        _activePanicDroneSessions.Remove(userId);
-                    }
-
-                    LibraryLabAPI.LogDebug("AudioDirector.Panic", $"Sanity stabilized or safe zone reached for {player.Nickname}. Dissolving panic drone.");
-                }
-            }
+            if (UnityEngine.Random.value <= 0.15f) _audioManager.PlayAttached(player, AudioKey.AnomalousImpact, hearableForAll: false);
+            if (UnityEngine.Random.value <= 0.10f) _audioManager.PlayAttached(player, AudioKey.ShadowStrike, hearableForAll: false);
+            if (UnityEngine.Random.value <= 0.10f) _audioManager.PlayOrbitingAudio(player, AudioKey.ScreamStandard);
+            if (UnityEngine.Random.value <= 0.04f) _audioManager.PlayAttached(player, AudioKey.ShadowClicking, hearableForAll: false);
         }
 
-        private void ClearHistoricalPlayerCaches(string userId)
+        private void PlayDefensiveAudio(Player player)
+        {
+            if (UnityEngine.Random.value <= 0.10f) _audioManager.PlayAttached(player, AudioKey.AnomalousImpact, hearableForAll: false);
+            if (UnityEngine.Random.value <= 0.05f) _audioManager.PlayAttached(player, AudioKey.ShadowStrike, hearableForAll: false);
+            // FIX: Resolved 'DynamicWhispers' build breakdown by routing selection to a valid registered database token
+            if (UnityEngine.Random.value <= 0.10f) _audioManager.PlayOrbitingAudio(player, AudioKey.WhispersSubtle);
+            if (UnityEngine.Random.value <= 0.07f) _audioManager.PlayAttached(player, AudioKey.ShadowClicking, hearableForAll: false);
+        }
+
+        private bool TryAcquireTransientNetworkLock(int instanceId)
+        {
+            double currentTime = Timing.LocalTime;
+            if (_transientInputNetworkGate.TryGetValue(instanceId, out double nextAllowedTime) && currentTime < nextAllowedTime) return false;
+            _transientInputNetworkGate[instanceId] = currentTime + 0.090;
+            return true;
+        }
+
+        #endregion
+
+        #region Resource Cleanups
+
+        private void ClearHistoricalPlayerCaches(int instanceId)
         {
             lock (_directorLock)
             {
-                _tensionCache.Remove(userId);
-                _acousticSuppressionCache.Remove(userId);
-                _lastCombatAudioTime.Remove(userId);
+                _tensionCache.Remove(instanceId);
+                _acousticSuppressionCache.Remove(instanceId);
+                _lastCombatAudioTime.Remove(instanceId);
+                _transientInputNetworkGate.Remove(instanceId);
 
-                if (_activePanicDroneSessions.TryGetValue(userId, out int sessionId))
+                if (_activePanicDroneSessions.TryGetValue(instanceId, out int panicId))
                 {
-                    _activePanicDroneSessions.Remove(userId);
+                    _audioManager.StopSession(panicId);
+                    _activePanicDroneSessions.Remove(instanceId);
+                }
+
+                if (_activeAmbientDroneSessions.TryGetValue(instanceId, out int ambientId))
+                {
+                    _audioManager.StopSession(ambientId);
+                    _activeAmbientDroneSessions.Remove(instanceId);
                 }
             }
         }
@@ -378,13 +396,19 @@
                 _lastCombatAudioTime.Clear();
                 _tensionCache.Clear();
                 _acousticSuppressionCache.Clear();
+                _transientInputNetworkGate.Clear();
 
                 foreach (int sessionId in _activePanicDroneSessions.Values)
                 {
-                    if (sessionId != 0)
-                        _audioManager.ForceStopAllPlayerAudio(Player.Get(sessionId));
+                    _audioManager.StopSession(sessionId);
                 }
                 _activePanicDroneSessions.Clear();
+
+                foreach (int sessionId in _activeAmbientDroneSessions.Values)
+                {
+                    _audioManager.StopSession(sessionId);
+                }
+                _activeAmbientDroneSessions.Clear();
             }
         }
 
@@ -395,7 +419,9 @@
             _isDisposed = true;
         }
 
-        #region Internal Data Structures
+        #endregion
+
+        #region Embedded Structures
 
         private sealed class PlayerTensionProfile
         {
@@ -406,7 +432,6 @@
 
             public PlayerTensionProfile()
             {
-                // Core bootstrap default fallback range
                 CurrentTension = 0f;
                 NextTriggerThreshold = (float)(_random.NextDouble() * (85.0 - 45.0) + 45.0);
             }
@@ -414,10 +439,7 @@
             public void ResetCurve(AudioConfig config)
             {
                 CurrentTension = 0f;
-                float min = config.TensionTriggerMinThreshold;
-                float max = config.TensionTriggerMaxThreshold;
-
-                NextTriggerThreshold = (float)(_random.NextDouble() * (max - min) + min);
+                NextTriggerThreshold = (float)(_random.NextDouble() * (config.TensionTriggerMaxThreshold - config.TensionTriggerMinThreshold) + config.TensionTriggerMinThreshold);
             }
         }
 
