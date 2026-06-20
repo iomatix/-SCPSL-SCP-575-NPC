@@ -343,8 +343,12 @@
                     if (!_activePanicDroneSessions.TryGetValue(userId, out int sessionId))
                         return;
 
-                    _audioManager.ForceStopAllPlayerAudio(player);
-                    _activePanicDroneSessions.Remove(userId);
+
+                    _audioManager.StopPlayerPanicDrone(player);
+                    lock (_directorLock)
+                    {
+                        _activePanicDroneSessions.Remove(userId);
+                    }
 
                     LibraryLabAPI.LogDebug("AudioDirector.Panic", $"Sanity stabilized or safe zone reached for {player.Nickname}. Dissolving panic drone.");
                 }

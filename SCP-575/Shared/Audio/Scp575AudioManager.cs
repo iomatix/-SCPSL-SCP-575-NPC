@@ -389,8 +389,25 @@
             if (_activeDroneSessions.TryGetValue(player.UserId, out int sessionId))
             {
                 FadeOutSessionInternal(sessionId);
+                // TODO check if it really removes all player's audio sessions
+                _activeDroneSessions.Remove(player.UserId);
+                _pluginSessionIds.Remove(sessionId);
+            }
+        }
+
+        /// <summary>
+        /// Stops panic drones associated with a single client context.
+        /// </summary>
+        public void StopPlayerPanicDrone(Player player)
+        {
+            if (player == null || string.IsNullOrEmpty(player.UserId)) return;
+
+            if (_activeDroneSessions.TryGetValue(player.UserId, out int sessionId))
+            {
+                FadeOutSessionInternal(sessionId);
                 _pluginSessionIds.Remove(sessionId);
                 _activeDroneSessions.Remove(player.UserId);
+                Log.Debug($"[Scp575AudioManager] Successfully faded out drone session {sessionId} for {player.Nickname}");
             }
         }
 
