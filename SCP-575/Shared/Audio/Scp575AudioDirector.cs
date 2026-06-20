@@ -32,7 +32,6 @@
 
         private const string DirectorCoroutineTag = CoroutineTags.AudioCoroutines;
 
-
         public Scp575AudioDirector(Plugin plugin, Scp575AudioManager audioManager, PlayerSanityHandler sanityHandler)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
@@ -53,6 +52,7 @@
 
         /// <summary>
         /// Main execution thread evaluating spatial threat metrics to build up individual stress peaks.
+        /// Integrates the Phase 4 Session Auditor loop directly to clean up orphaned state references.
         /// </summary>
         private IEnumerator<float> HandleTensionPacingLoop()
         {
@@ -67,9 +67,10 @@
 
                 foreach (var player in Player.ReadyList)
                 {
+                    // --- PHASE 4: SESSION AUDITOR FAIL-SAFE ---
                     if (!_sanityHandler.IsValidPlayer(player))
                     {
-                        lock (_directorLock) { _tensionCache.Remove(player.UserId); }
+                        ClearHistoricalPlayerCaches(player.UserId);
                         continue;
                     }
 
@@ -100,19 +101,7 @@
         public void OnPlayerLeft(string userId)
         {
             if (string.IsNullOrEmpty(userId)) return;
-
-            lock (_directorLock)
-            {
-                _tensionCache.Remove(userId);
-                _acousticSuppressionCache.Remove(userId);
-                _lastCombatAudioTime.Remove(userId);
-
-                if (_activePanicDroneSessions.TryGetValue(userId, out int activeSession))
-                {
-                    // We will let the internal fadeout handler dissolve the channel gracefully
-                    _activePanicDroneSessions.Remove(userId);
-                }
-            }
+            ClearHistoricalPlayerCaches(userId);
         }
 
         /// <summary>
@@ -178,6 +167,7 @@
             // High-intensity breakthroughs or jumpscares utilize complex orbiting trajectories to confuse tracking vectors
             if (scareKey == AudioKey.WhispersShockStinger)
             {
+                player.EnableEffect<CustomPlayerEffects.Deafened>(intensity: 1, duration: 1.5f);
                 _audioManager.PlayOrbitingAudio(player, scareKey, maxRadius: 2.2f, minRadius: 0.5f, angularSpeed: 2.5f);
             }
             else
@@ -443,6 +433,24 @@
             }
         }
 
+        /// <summary>
+        /// Internal cleaner performing flat table scrubbing to eliminate hanging references across ticks or disconnects.
+        /// </summary>
+        private void ClearHistoricalPlayerCaches(string userId)
+        {
+            lock (_directorLock)
+            {
+                _tensionCache.Remove(userId);
+                _acousticSuppressionCache.Remove(userId);
+                _lastCombatAudioTime.Remove(userId);
+
+                if (_activePanicDroneSessions.TryGetValue(userId, out int sessionId))
+                {
+                    _activePanicDroneSessions.Remove(userId);
+                }
+            }
+        }
+
         public void Clean()
         {
             Timing.KillCoroutines(DirectorCoroutineTag);
@@ -455,7 +463,7 @@
                 foreach (int sessionId in _activePanicDroneSessions.Values)
                 {
                     if (sessionId != 0)
-                        _audioManager.ForceStopAllPlayerAudio(Player.Get(sessionId)); // Or fallback to engine fadeout
+                        _audioManager.ForceStopAllPlayerAudio(Player.Get(sessionId));
                 }
                 _activePanicDroneSessions.Clear();
             }
@@ -491,7 +499,6 @@
             public void ResetCurve()
             {
                 CurrentTension = 0f;
-                // Distributes scares dynamically between 45% and 85% of maximum accumulated stress
                 NextTriggerThreshold = (float)(_random.NextDouble() * (85.0 - 45.0) + 45.0);
             }
         }
