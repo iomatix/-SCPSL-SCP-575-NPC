@@ -168,7 +168,7 @@
                 {
                     if (_activePanicDroneSessions.ContainsKey(instanceId)) return;
 
-                    int sessionId = _audioManager.PlayAttached(player, AudioKey.WhispersPanicDrone, hearableForAll: false, fadeInDuration: config.PanicDroneFadeInDuration, loop: true);
+                    int sessionId = _audioManager.PlayAttached(player, AudioKey.WhispersPanicDrone, hearableForAll: false, fadeInDuration: config.PanicDroneFadeInDuration, lifespan: float.MaxValue, loop: true);
                     if (sessionId != 0) _activePanicDroneSessions[instanceId] = sessionId;
                 }
                 else
@@ -190,7 +190,7 @@
                 {
                     if (_activeAmbientDroneSessions.ContainsKey(instanceId)) return;
 
-                    int sessionId = _audioManager.PlayAttached(player, AudioKey.SanityLowDrone, hearableForAll: false, fadeInDuration: 2.0f, loop: true);
+                    int sessionId = _audioManager.PlayAttached(player, AudioKey.SanityLowDrone, hearableForAll: false, fadeInDuration: 2.0f, lifespan: float.MaxValue, loop: true);
                     if (sessionId != 0) _activeAmbientDroneSessions[instanceId] = sessionId;
                 }
                 else
@@ -276,7 +276,7 @@
         public void ProcessGeneratorActivation(Vector3 position, bool allGeneratorsEngaged, bool retaliationConfigured)
         {
             var config = _plugin.Config.AudioConfig;
-            _audioManager.PlayAtPosition(AudioKey.GeneratorHumDefense, position, loop: true);
+            _audioManager.PlayAtPosition(AudioKey.GeneratorHumDefense, position, lifespan: float.MaxValue, loop: true);
 
             if (allGeneratorsEngaged)
             {
