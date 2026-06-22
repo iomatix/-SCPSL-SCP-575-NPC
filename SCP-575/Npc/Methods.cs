@@ -53,7 +53,7 @@ namespace SCP_575.Npc
             Dormant,
             /// <summary> The entity is actively stalking and closing in on a subject holding an active light source. </summary>
             Stalking,
-            /// <summary> The entity undergoes breakthrough sza³u, executing targets left completely vulnerable in darkness. </summary>
+            /// <summary> The entity undergoes breakthrough, executing targets left completely vulnerable in darkness. </summary>
             Striking
         }
 
