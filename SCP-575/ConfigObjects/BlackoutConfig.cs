@@ -30,25 +30,25 @@
         /// Minimum duration of a blackout event, in seconds.
         /// </summary>
         [Description("Minimum blackout duration in seconds.")]
-        public float DurationMin { get; set; } = 210f;
+        public float DurationMin { get; set; } = 220f;
 
         /// <summary>
         /// Maximum duration of a blackout event, in seconds.
         /// </summary>
         [Description("Maximum blackout duration in seconds.")]
-        public float DurationMax { get; set; } = 490f;
+        public float DurationMax { get; set; } = 620f;
 
         /// <summary>
         /// Minimum delay between blackout events, in seconds.
         /// </summary>
         [Description("Minimum delay between events in seconds.")]
-        public int DelayMin { get; set; } = 335;
+        public int DelayMin { get; set; } = 340;
 
         /// <summary>
         /// Maximum delay between blackout events, in seconds.
         /// </summary>
         [Description("Maximum delay between events in seconds.")]
-        public int DelayMax { get; set; } = 980;
+        public int DelayMax { get; set; } = 1080;
 
         #endregion
 
@@ -82,7 +82,7 @@
         /// Chance (%) of a blackout in the Surface Zone.
         /// </summary>
         [Description("Chance (%) of outage in Surface Zone.")]
-        public float ChanceSurface { get; set; } = 25f;
+        public float ChanceSurface { get; set; } = 15f;
 
         /// <summary>
         /// Chance (%) of a blackout in an unspecified zone.

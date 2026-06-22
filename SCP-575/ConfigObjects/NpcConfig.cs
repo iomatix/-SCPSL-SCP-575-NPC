@@ -35,7 +35,7 @@ namespace SCP_575.ConfigObjects
         /// Delay in seconds between SCP-575 action ticks.
         /// </summary>
         [Description("The delay of receiving damage.")]
-        public float KeterActionDelay { get; set; } = 22.485f;
+        public float KeterActionDelay { get; set; } = 33.5f;
 
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace SCP_575.ConfigObjects
         /// e.g. KeterActionDelayRandomizerValue = 5 means a random between -5 and 5 seconds.
         /// </summary>
         [Description("The randomizer value for the delay of receiving damage.")]
-        public float KeterActionDelayRandomizerValue { get; set; } = 4.485f;
+        public float KeterActionDelayRandomizerValue { get; set; } = 6.5f;
 
 
         #endregion
@@ -54,7 +54,7 @@ namespace SCP_575.ConfigObjects
         /// Penetration modifier for SCP-575 damage (0.0 to 1.0).
         /// </summary>
         [Description("Penetration modifier same as in FirearmsDamageHandler.")]
-        public float KeterDamagePenetration { get; set; } = 0.75f;
+        public float KeterDamagePenetration { get; set; } = 0.85f;
 
         /// <summary>
         /// Modifier applied to player velocity when damaged by SCP-575.
