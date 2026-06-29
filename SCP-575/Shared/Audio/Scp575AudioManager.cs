@@ -197,7 +197,7 @@
             if (_ambienceAudioSessionId != 0) return _ambienceAudioSessionId;
 
             var config = GetConfigOrThrow(AudioKey.Ambience);
-            Func<Player, bool> blackoutFilter = p => p != null && p.IsReady && !p.IsHost && _plugin.IsEventActive && _plugin.LibraryLabAPI.IsPlayerInDarkRoom(p);
+            Func<Player, bool> blackoutFilter = p => p != null && p.IsReady && !p.IsHost && !p.IsSCP && _plugin.IsEventActive && _plugin.LibraryLabAPI.IsPlayerInDarkRoom(p);
 
             int sessionId = _audioEngine.PlayGlobalAudio(
                 config.Key, loop, config.Volume, config.Priority,
