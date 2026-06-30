@@ -5,8 +5,8 @@
     using UnityEngine;
 
     /// <summary>
-    /// Scentralizowany kontener konfiguracyjny dla podsystemu audio oraz reżysera pacingu horroru.
-    /// Definiuje czasy odnowienia, wielkości buforów wyciszenia oraz przestrzenne wymiary orbit.
+    /// Centralized container for audio configuration and horror pacing resizer.
+    /// Defines cooldown times, buffer sizes, and spatial dimensions for the horror pacing resizer.
     /// </summary>
     public sealed class AudioConfig
     {
