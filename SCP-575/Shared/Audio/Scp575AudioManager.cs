@@ -49,11 +49,6 @@
         /// </summary>
         public int PlayGlobal(AudioKey key, float? lifespan = null, bool queue = false, float fadeInDuration = 0f, bool loop = false)
         {
-            if (key == AudioKey.Ambience)
-            {
-                LibraryLabAPI.LogWarn("AudioManager.PlayGlobal", "Ambience key routed to PlayGlobal. Redirecting to PlayAmbience() to preserve blackout matrix filters.");
-                return PlayAmbience(loop, fadeInDuration == 0f ? 3.0f : fadeInDuration);
-            }
 
             var config = GetConfigOrThrow(key);
             if (IsScreamAsset(key) && !TryPassGlobalScreamCooldown()) return 0;

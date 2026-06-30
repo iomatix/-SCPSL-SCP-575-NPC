@@ -92,7 +92,6 @@ namespace SCP_575.Npc
                 _plugin.MapHandler?.ExecuteFlashlightDistribution();
 
                 _plugin.AudioDirector?.Initialize();
-                _plugin.AudioManager.PlayAmbience(loop: true, fadeInDuration: 3.0f);
 
                 foreach (var player in Player.ReadyList)
                 {
