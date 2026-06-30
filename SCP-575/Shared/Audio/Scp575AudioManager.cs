@@ -344,12 +344,14 @@
             _audioRegistry[AudioKey.ShadowConsumingBody] = new AudioTrackGroup(new AudioTrackProfile("scp575.shadow_consuming_body", 0.95f, 7.5f, 45f, true, AudioPriority.High, 5f));
             _audioRegistry[AudioKey.AnomalousImpact] = new AudioTrackGroup(new AudioTrackProfile("scp575.anomalous_impact", 0.9f, 3.5f, 25f, true, AudioPriority.High, 5f));
             _audioRegistry[AudioKey.GeneratorHumDefense] = new AudioTrackGroup(new AudioTrackProfile("scp575.generator_hum_defense", 0.7f, 6.5f, 45f, true, AudioPriority.Medium, 0f));
-            _audioRegistry[AudioKey.LightShortCircuit] = new AudioTrackGroup(new AudioTrackProfile("scp575.light_short_circuit", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f));
+            _audioRegistry[AudioKey.LightShortCircuit] = new AudioTrackGroup(new AudioTrackProfile("scp575.light_short_circuit", 0.75f, 2.5f, 15f, true, AudioPriority.Max, 1.5f));
             _audioRegistry[AudioKey.LightSwitch] = new AudioTrackGroup(
                 new AudioTrackProfile("scp575.light_switch_1", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f),
                 new AudioTrackProfile("scp575.light_switch_2", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f),
                 new AudioTrackProfile("scp575.light_switch_3", 0.85f, 2.5f, 18f, true, AudioPriority.Max, 1.5f)
             );
+            _audioRegistry[AudioKey.LightShortCircuitFinal] = new AudioTrackGroup(new AudioTrackProfile("scp575.light_short_circuit", 0.91f, 3.5f, 25.0f, true, AudioPriority.Max, 2.5f));
+
             _audioRegistry[AudioKey.StaticBuzz] = new AudioTrackGroup(new AudioTrackProfile("scp575.light_short_circuit", 0.45f, 1.5f, 10f, true, AudioPriority.Low, 0f));
             _audioRegistry[AudioKey.BlackoutImpactGlobal] = new AudioTrackGroup(new AudioTrackProfile("scp575.blackout_impact_global", 0.95f, 0f, 999.99f, false, AudioPriority.High, 13f));
             _audioRegistry[AudioKey.Ambience] = new AudioTrackGroup(new AudioTrackProfile("scp575.ambience", 0.6f, 0f, 999.99f, false, AudioPriority.Low, 0f));

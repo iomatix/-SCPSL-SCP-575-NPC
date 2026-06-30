@@ -106,6 +106,7 @@
         /// Intense over-voltage failure indications tracking localized infrastructure breakdowns or burnt bulbs.
         /// </summary>
         LightShortCircuit,
+        LightShortCircuitFinal,
 
         /// <summary>
         /// Transient acoustic feedback tracking tactical firearm-attached flashlight power state updates.

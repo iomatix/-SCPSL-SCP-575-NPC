@@ -330,7 +330,7 @@ namespace SCP_575.Handlers
                         bool isLastIteration = (i == flickerCount - 1);
                         if (!(isLastIteration && forceOff))
                         {
-                            _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, targetPlayer.Position, lifespan: 0.145f, isTransient: true, sourcePlayer: targetPlayer);
+                            _plugin.AudioDirector?.ProcessLightsourceSparkFeedback(targetPlayer, isFinalBlow: false);
                         }
                     }
 
@@ -342,7 +342,7 @@ namespace SCP_575.Handlers
                 if (forceOff && _plugin.IsEventActive && finalPlayer != null)
                 {
                     setState(false);
-                    _plugin.AudioManager.PlayAtPosition(AudioKey.LightShortCircuit, finalPlayer.Position, lifespan: 0.33f, isTransient: true, sourcePlayer: finalPlayer);
+                    _plugin.AudioDirector?.ProcessLightsourceSparkFeedback(finalPlayer, isFinalBlow: true);
                 }
             }
             finally

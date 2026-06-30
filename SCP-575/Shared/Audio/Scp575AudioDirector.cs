@@ -223,7 +223,24 @@
 
         #endregion
 
-        #region Defensive and Kinetic Inputs
+        #region Kinetic Inputs
+
+        public void ProcessBlackoutAudioSequence(Player randomTarget)
+        {
+            var audioConfig = _plugin.Config.AudioConfig;
+
+            _audioManager.PlayGlobal(AudioKey.BlackoutImpactGlobal);
+            _audioManager.PlayGlobal(AudioKey.MonsterRoarGlobal);
+
+            if (randomTarget != null && randomTarget.IsReady)
+            {
+                _audioManager.PlayOrbitingAudio(randomTarget, AudioKey.ScreamStandard, isolated: true,
+                    maxRadius: audioConfig.BlackoutScreamMaxRadius,
+                    minRadius: audioConfig.BlackoutScreamMinRadius,
+                    angularSpeed: audioConfig.BlackoutScreamAngularSpeed,
+                    approachSpeed: audioConfig.BlackoutScreamApproachSpeed);
+            }
+        }
 
         private bool IsAcousticBudgetSaturated(int instanceId, DateTime now)
         {
@@ -328,7 +345,7 @@
 
         public void ProcessLightsourceErrorFeedback(Player player)
         {
-            _audioManager.PlayTrackingAudio(player: player, audioKey: AudioKey.LightShortCircuit, hearableForAllPlayers: true);
+            _audioManager.PlayTrackingAudio(player: player, audioKey: AudioKey.LightShortCircuitFinal, hearableForAllPlayers: true);
         }
 
         public void ProcessLightsourceFlicker(Player player)
@@ -348,6 +365,24 @@
             if (UnityEngine.Random.value <= 0.15f)
             {
                 _audioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, maxRadius: config.FlickerClickingMaxRadius, minRadius: config.FlickerClickingMinRadius, angularSpeed: config.FlickerClickingAngularSpeed, approachSpeed: config.FlickerClickingApproachSpeed, isolated: true);
+            }
+        }
+
+        public void ProcessLightsourceSparkFeedback(Player player, bool isFinalBlow)
+        {
+            if (player?.GameObject == null || !player.IsReady) return;
+
+            int instanceId = player.GameObject.GetInstanceID();
+
+            if (IsAcousticBudgetSaturated(instanceId, DateTime.Now)) return;
+
+            if (isFinalBlow)
+            {
+                _audioManager.PlayAtPosition(AudioKey.LightShortCircuitFinal, player.Position, lifespan: 0.35f, isTransient: true, sourcePlayer: player);
+            }
+            else
+            {
+                _audioManager.PlayAtPosition(AudioKey.LightShortCircuit, player.Position, lifespan: 0.15f, isTransient: true, sourcePlayer: player);
             }
         }
 

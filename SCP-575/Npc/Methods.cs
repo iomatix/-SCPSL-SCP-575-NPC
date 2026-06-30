@@ -181,23 +181,16 @@ namespace SCP_575.Npc
                 TriggerCassieMessage(_config.CassieConfig.CassiePostMessage);
             }
 
-            _plugin.AudioManager.PlayGlobal(AudioKey.BlackoutImpactGlobal);
-            _plugin.AudioManager.PlayGlobal(AudioKey.MonsterRoarGlobal);
-
+            Player targetPlayer = null;
             if (UnityEngine.Random.Range(0f, 100f) < 70f)
             {
-                var validTargets = Player.ReadyList.Where(p => p.IsAlive && p.IsHuman).ToList();
+                var validTargets = Player.ReadyList.Where(p => p.IsAlive && p.IsHuman && _libraryLabAPI.IsPlayerInDarkRoom(p)).ToList();
                 if (validTargets.Count > 0)
                 {
-                    var randomPlayer = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
-
-                    _plugin.AudioManager.PlayOrbitingAudio(randomPlayer, AudioKey.ScreamStandard, isolated: true,
-                        maxRadius: audioConfig.BlackoutScreamMaxRadius,
-                        minRadius: audioConfig.BlackoutScreamMinRadius,
-                        angularSpeed: audioConfig.BlackoutScreamAngularSpeed,
-                        approachSpeed: audioConfig.BlackoutScreamApproachSpeed);
+                    targetPlayer = validTargets[UnityEngine.Random.Range(0, validTargets.Count)];
                 }
             }
+            _plugin.AudioDirector?.ProcessBlackoutAudioSequence(targetPlayer);
 
             float duration = _config.BlackoutConfig.RandomEvents
                 ? UnityEngine.Random.Range(_config.BlackoutConfig.DurationMin, _config.BlackoutConfig.DurationMax)
