@@ -164,8 +164,15 @@
 
             OrbitSettings orbitSettings = new(maxRadius, minRadius, angularSpeed, approachSpeed, 0.85f);
             int sessionId = _audioEngine.PlayOrbitingAudio(
-                profile.Key, () => player.Position, () => player != null && player.IsAlive, profile.Volume, profile.MinDistance, profile.MaxDistance,
-                orbitSettings, profile.Priority, effectiveLifespan,
+                profile.Key,
+                () => player.Position,
+                () => player != null && player.IsAlive && _plugin.LibraryLabAPI.IsPlayerInDarkRoom(player),
+                profile.Volume,
+                profile.MinDistance,
+                profile.MaxDistance,
+                orbitSettings,
+                profile.Priority,
+                effectiveLifespan,
                 targetPlayerFilter: isolated ? p => p != null && p.GameObject.GetInstanceID() == player.GameObject.GetInstanceID() : null
             );
 

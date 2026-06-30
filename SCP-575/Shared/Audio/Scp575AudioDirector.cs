@@ -25,6 +25,7 @@
         private readonly Dictionary<int, PlayerTensionProfile> _tensionCache = new();
         private readonly Dictionary<int, DateTime> _acousticSuppressionCache = new();
         private readonly Dictionary<int, DateTime> _lastCombatAudioTime = new();
+        private readonly Dictionary<int, int> _activeClimaxWhisperSessions = new();
         private readonly Dictionary<int, int> _activePanicDroneSessions = new();
         private readonly Dictionary<int, int> _activeAmbientDroneSessions = new();
         private readonly Dictionary<int, double> _transientInputNetworkGate = new();
@@ -101,6 +102,16 @@
                     else
                     {
                         DecayPlayerStressPassive(instanceId);
+
+                        lock (_directorLock)
+                        {
+                            // INTENT: Smoothly fade out remaining auditory remnants the exact millisecond a subject hits light coverage.
+                            if (_activeClimaxWhisperSessions.TryGetValue(instanceId, out int whisperSessionId))
+                            {
+                                _audioManager.StopSession(whisperSessionId);
+                                _activeClimaxWhisperSessions.Remove(instanceId);
+                            }
+                        }
                     }
                 }
             }
@@ -167,7 +178,17 @@
             }
             else
             {
-                _audioManager.PlayAttached(player, scareKey, hearableForAll: false);
+                int sessionId = _audioManager.PlayAttached(player, scareKey, hearableForAll: false);
+
+                if (player?.GameObject != null)
+                {
+                    int instanceId = player.GameObject.GetInstanceID();
+                    lock (_directorLock)
+                    {
+                        // INTENT: Secure the temporary one-shot tracking ID to prevent vocal cues from bleeding into illuminated safe-zones.
+                        if (sessionId != 0) _activeClimaxWhisperSessions[instanceId] = sessionId;
+                    }
+                }
             }
         }
 
@@ -425,7 +446,6 @@
         {
             if (UnityEngine.Random.value <= 0.10f) _audioManager.PlayAttached(player, AudioKey.AnomalousImpact, hearableForAll: false);
             if (UnityEngine.Random.value <= 0.05f) _audioManager.PlayAttached(player, AudioKey.ShadowStrike, hearableForAll: false);
-            // FIX: Resolved 'DynamicWhispers' build breakdown by routing selection to a valid registered database token
             if (UnityEngine.Random.value <= 0.10f) _audioManager.PlayOrbitingAudio(player, AudioKey.WhispersSubtle);
             if (UnityEngine.Random.value <= 0.07f) _audioManager.PlayAttached(player, AudioKey.ShadowClicking, hearableForAll: false);
         }
@@ -462,6 +482,12 @@
                     _audioManager.StopSession(ambientId);
                     _activeAmbientDroneSessions.Remove(instanceId);
                 }
+
+                if (_activeClimaxWhisperSessions.TryGetValue(instanceId, out int whisperId))
+                {
+                    _audioManager.StopSession(whisperId);
+                    _activeClimaxWhisperSessions.Remove(instanceId);
+                }
             }
         }
 
@@ -486,6 +512,13 @@
                     _audioManager.StopSession(sessionId);
                 }
                 _activeAmbientDroneSessions.Clear();
+
+                // INTENT: Flush remaining active transient arrays on round termination sequence to prevent hardware leak gates.
+                foreach (int sessionId in _activeClimaxWhisperSessions.Values)
+                {
+                    _audioManager.StopSession(sessionId);
+                }
+                _activeClimaxWhisperSessions.Clear();
             }
         }
 
