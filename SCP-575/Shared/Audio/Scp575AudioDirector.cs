@@ -68,6 +68,7 @@
 
                     if (!_sanityHandler.IsValidPlayer(player))
                     {
+                        _audioManager.StopAmbienceForPlayer(player);
                         ClearHistoricalPlayerCaches(instanceId);
                         continue;
                     }
@@ -75,8 +76,16 @@
                     float currentSanity = _sanityHandler.GetCurrentSanity(player);
                     bool isInDarkness = _plugin.LibraryLabAPI.IsPlayerInDarkRoom(player);
 
-                    bool triggersPanicZone = currentSanity <= _plugin.Config.AudioConfig.PanicDroneSanityThreshold && isInDarkness;
+                    if (isInDarkness)
+                    {
+                        _audioManager.PlayAmbienceForPlayer(player, fadeInDuration: 2.0f);
+                    }
+                    else
+                    {
+                        _audioManager.StopAmbienceForPlayer(player);
+                    }
 
+                    bool triggersPanicZone = currentSanity <= _plugin.Config.AudioConfig.PanicDroneSanityThreshold && isInDarkness;
                     float lowSanityThreshold = _plugin.Config.AudioConfig.Tier2DisturbedWhispersThreshold;
                     bool shouldPlayLowSanityDrone = isInDarkness && currentSanity <= lowSanityThreshold && !triggersPanicZone;
 
@@ -100,6 +109,7 @@
         public void OnPlayerLeft(Player player)
         {
             if (player?.GameObject == null) return;
+            _audioManager.StopAmbienceForPlayer(player);
             ClearHistoricalPlayerCaches(player.GameObject.GetInstanceID());
         }
 

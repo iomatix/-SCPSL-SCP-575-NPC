@@ -24,8 +24,8 @@
         private readonly Plugin _plugin;
         private readonly IAudioManager _audioEngine;
         private double _lastGlobalScreamTimeTicks = 0;
-        private int _ambienceAudioSessionId;
 
+        private readonly Dictionary<int, int> _playerAmbienceSessions = new Dictionary<int, int>();
         private readonly HashSet<int> _activeTrackingSessionIds = new();
         private readonly Dictionary<AudioKey, AudioTrackGroup> _audioRegistry = new();
         private readonly Dictionary<int, double> _transientCooldowns = new();
@@ -192,26 +192,47 @@
             if (sessionId != 0) _activeTrackingSessionIds.Add(sessionId);
         }
 
-        public int PlayAmbience(bool loop = true, float fadeInDuration = 3.0f)
+        public int PlayAmbienceForPlayer(Player player, float fadeInDuration = 3.0f)
         {
-            if (_ambienceAudioSessionId != 0) return _ambienceAudioSessionId;
+            if (player == null || !player.IsReady || player.IsSCP || player.IsHost) return 0;
+
+            int playerAssetId = player.GameObject.GetInstanceID();
+
+            if (_playerAmbienceSessions.TryGetValue(playerAssetId, out int existingSessionId) && existingSessionId != 0)
+            {
+                return existingSessionId;
+            }
 
             var config = GetConfigOrThrow(AudioKey.Ambience);
-            Func<Player, bool> blackoutFilter = p => p != null && p.IsReady && !p.IsHost && !p.IsSCP && _plugin.IsEventActive && _plugin.LibraryLabAPI.IsPlayerInDarkRoom(p);
 
-            int sessionId = _audioEngine.PlayGlobalAudio(
-                config.Key, loop, config.Volume, config.Priority,
-                validPlayersFilter: blackoutFilter, queue: false, fadeInDuration: fadeInDuration, persistent: true, lifespan: null, autoCleanup: true);
+            int sessionId = PlayAttached(
+                target: player,
+                key: AudioKey.Ambience,
+                hearableForAll: false,
+                lifespan: null,
+                fadeInDuration: fadeInDuration,
+                loop: true
+            );
 
-            if (sessionId != 0) _ambienceAudioSessionId = sessionId;
+            if (sessionId != 0)
+            {
+                _playerAmbienceSessions[playerAssetId] = sessionId;
+            }
+
             return sessionId;
         }
 
-        public void StopAmbience()
+        public void StopAmbienceForPlayer(Player player)
         {
-            if (_ambienceAudioSessionId == 0) return;
-            StopSession(_ambienceAudioSessionId);
-            _ambienceAudioSessionId = 0;
+            if (player == null) return;
+
+            int playerAssetId = player.GameObject.GetInstanceID();
+
+            if (_playerAmbienceSessions.TryGetValue(playerAssetId, out int sessionId) && sessionId != 0)
+            {
+                StopSession(sessionId);
+                _playerAmbienceSessions.Remove(playerAssetId);
+            }
         }
 
         public void StopSession(int sessionId)
@@ -237,7 +258,11 @@
 
             if (fullShutdown)
             {
-                StopAmbience();
+                foreach (int sessionId in _playerAmbienceSessions.Values.ToList())
+                {
+                    if (sessionId != 0) _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                }
+                _playerAmbienceSessions.Clear();
             }
 
             foreach (int id in _activeTrackingSessionIds.ToList())
