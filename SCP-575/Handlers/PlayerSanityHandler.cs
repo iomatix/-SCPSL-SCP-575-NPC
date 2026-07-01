@@ -241,9 +241,9 @@
 
         /// <summary>
         /// Translates cognitive decay milestones into tangible gameplay sensory impairments.
-        /// Hits bypass the rate-limiter completely, while the passive decay loop respects the burst cooldown window.
+        /// Enforces strict rate-limiting bounds across consecutive bursts to protect client rendering tracks.
         /// </summary>
-        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool ignoreCooldown = false)
+        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool forceIgnoreCooldown = false)
         {
             if (!IsValidPlayer(player)) return;
             if (IsProtectedByPainkillers(player)) return;
@@ -251,12 +251,12 @@
             int playerInstanceId = player.GameObject.GetInstanceID();
             DateTime currentTime = DateTime.UtcNow;
 
-            // Enforce rate-limiting ONLY on passive decay ticks; hits bypass this entirely
-            if (!ignoreCooldown)
+            // Strict protection barrier against consecutive sensory burst spams (e.g., rapid screen blur overrides)
+            if (!forceIgnoreCooldown)
             {
                 if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime) && currentTime < expiryTime)
                 {
-                    return; // Suppress background loop effect spam
+                    return;
                 }
             }
 
@@ -283,7 +283,7 @@
                         }
                     }
 
-                    // Refresh the cooldown window so the passive loop remains dormant for a few seconds after a burst
+                    // Impose the configuration-defined cooling window before another sensory explosion can be queued
                     float burstCooldown = _plugin.Config.SanityConfig.EffectsBurstCooldown;
                     if (burstCooldown > 0f)
                     {
@@ -313,16 +313,11 @@
 
             if (culmDamage <= 0) return;
 
-            float dropAmount = _plugin.Config.SanityConfig.ScpHitSanityDrop;
-            if (dropAmount > 0f)
-            {
-                float newSanity = ChangeSanityValue(player, -dropAmount);
-                LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity lowered by {dropAmount}. New sanity: {newSanity}");
-            }
-
             // Redirects combat audio stinger execution parameters completely to the director component boundary
             _plugin.AudioDirector?.ProcessAnomalousCombatStinger(player, isVulnerable);
 
+            // Delegate execution straight to the damage core.
+            // This will naturally fire OnPlayerHurting, centralizing the sanity drop and effects processing.
             Scp575DamageSystem.DamagePlayer(player, culmDamage);
         }
 
@@ -374,7 +369,7 @@
             bool requiresLowDrone = newSanity <= 35f;
 
             // Passive ticks are strictly bound to configuration rate-limiting bounds
-            ApplyStageEffects(player, bypassBlackoutGate: false, ignoreCooldown: false);
+            ApplyStageEffects(player, bypassBlackoutGate: false, forceIgnoreCooldown: false);
 
             int instanceId = player.GameObject.GetInstanceID();
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)

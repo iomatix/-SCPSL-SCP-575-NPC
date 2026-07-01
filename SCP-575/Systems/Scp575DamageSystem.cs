@@ -104,7 +104,7 @@ namespace SCP_575.Shared
                 float newSanity = plugin.SanityEventHandler.ChangeSanityValue(player, -dropAmount);
                 LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity slashed by {dropAmount}. New sanity: {newSanity}");
             }
-            plugin.SanityEventHandler.ApplyStageEffects(player, bypassBlackoutGate: true, ignoreCooldown: true);
+            plugin.SanityEventHandler.ApplyStageEffects(player, bypassBlackoutGate: true, forceIgnoreCooldown: false);
 
             // 2. Play Mild/Lighter Hurt Audio Cues (With Rate Limiting)
             if (DateTime.UtcNow - lastAttackAudioTime >= cooldown)
