@@ -309,7 +309,7 @@
 
         private bool TryAcquireTransientLock(int playerInstanceId, AudioKey key)
         {
-            double currentTime = Timing.LocalTime;
+            float currentTime = UnityEngine.Time.time;
             int compositeHash = playerInstanceId ^ (int)key;
 
             if (_transientCooldowns.TryGetValue(compositeHash, out double nextAllowedTime) && currentTime < nextAllowedTime) return false;

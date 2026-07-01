@@ -452,7 +452,7 @@
 
         private bool TryAcquireTransientNetworkLock(int instanceId)
         {
-            double currentTime = Timing.LocalTime;
+            float currentTime = UnityEngine.Time.time;
             if (_transientInputNetworkGate.TryGetValue(instanceId, out double nextAllowedTime) && currentTime < nextAllowedTime) return false;
             _transientInputNetworkGate[instanceId] = currentTime + 0.090;
             return true;

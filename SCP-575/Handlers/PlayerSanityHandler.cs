@@ -249,7 +249,7 @@
             if (IsProtectedByPainkillers(player)) return;
 
             int playerInstanceId = player.GameObject.GetInstanceID();
-            double currentTime = Timing.LocalTime;
+            float currentTime = UnityEngine.Time.time;
 
             // Enforce rate-limiting ONLY on passive decay ticks; hits bypass this entirely
             if (!ignoreCooldown)
