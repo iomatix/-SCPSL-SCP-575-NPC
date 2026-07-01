@@ -47,7 +47,7 @@ namespace SCP_575
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
         public override string Prefix => "SCP575";
-        public override System.Version Version => new(10, 1, 3);
+        public override System.Version Version => new(10, 2, 0);
         public override System.Version RequiredExiledVersion => new(9, 9, 3);
 
         public override void OnEnabled()

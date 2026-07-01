@@ -18,7 +18,6 @@
         private const string ItemPhysicsTag = CoroutineTags.ItemPhysics;
 
         private readonly Dictionary<int, DateTime> _playerLastAttackAudioTime = new();
-        private readonly TimeSpan _attackAudioCooldown = TimeSpan.FromSeconds(1.2);
 
         public PlayerDamageHandler(Plugin plugin)
         {
@@ -72,15 +71,16 @@
 
         /// <summary>
         /// Evaluates defensive parameters during incoming hits to prioritize high-energy impact reactions
-        /// over subtle psychological paranoia loops.
+        /// over subtle psychological paranoia loops. Supports both player-controlled SCPs and autonomous 575 strikes.
         /// </summary>
         public override void OnPlayerHurting(PlayerHurtingEventArgs ev)
         {
             if (!_plugin.IsEventActive || ev?.Player == null) return;
 
             bool isPhysicalScpAttack = ev.Attacker != null && ev.Attacker.IsSCP;
+            bool isCustom575Attack = ev.DamageHandler != null && Scp575DamageSystem.IsScp575Damage(ev.DamageHandler);
 
-            if (isPhysicalScpAttack)
+            if (isPhysicalScpAttack || isCustom575Attack)
             {
                 int instanceId = ev.Player.GameObject.GetInstanceID();
 
@@ -90,10 +90,13 @@
                 }
 
                 DateTime tempTime = lastTime;
-                Scp575DamageSystem.ProcessAnomalousTrauma(ev.Player, _plugin, ref tempTime, _attackAudioCooldown);
+
+                // Dynamically compile the TimeSpan tracking frame boundary straight from configuration allocations
+                TimeSpan audioCooldownWindow = TimeSpan.FromSeconds(_plugin.Config.SanityConfig.AttackAudioCooldownSeconds);
+
+                Scp575DamageSystem.ProcessAnomalousTrauma(ev.Player, _plugin, ref tempTime, audioCooldownWindow);
                 _playerLastAttackAudioTime[instanceId] = tempTime;
 
-                // Forces the Audio Director to clean up the mix, blinding out subtle whispers while raw meat-grinder sounds play out
                 _plugin.AudioDirector?.SuppressPsychologicalAudio(ev.Player, 3.5f);
             }
         }

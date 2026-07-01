@@ -117,6 +117,18 @@
         #region Stage Thresholds and Effects
 
         /// <summary>
+        /// Gets or sets the protection cooldown window in seconds to prevent multiple high-intensity sensory effects (like screen blur) from stacking up during rapid successive hits.
+        /// </summary>
+        [Description("Duration in seconds a player is protected from consecutive sensory effect bursts (e.g. blur spams) after the last burst sequence.")]
+        public float EffectsBurstCooldown { get; set; } = 4.25f;
+
+        /// <summary>
+        /// Gets or sets the audio rate-limiting window in seconds to intercept sound distortion or clipping during rapid combat sequences.
+        /// </summary>
+        [Description("Cooldown in seconds between consecutive anomalous impact sound triggers on the same player.")]
+        public float AttackAudioCooldownSeconds { get; set; } = 1.25f;
+
+        /// <summary>
         /// Gets or sets the list of sanity stages determining structural impairment profiles based on the player's remaining sanity range.
         /// </summary>
         [Description("Stages of sanity and their associated effects.")]
@@ -126,7 +138,7 @@
             {
                 MinThreshold = 90f,
                 MaxThreshold = 100f,
-                DamageOnStrike = 2f,
+                DamageOnStrike = 4f,
                 AdditionalDamagePerStack = 2f,
                 DamageOnStrikeWhenLightsourceActive = 0f,
                 AdditionalDamagePerStackWhenLightsourceActive = 1f,
@@ -143,7 +155,7 @@
             {
                 MinThreshold = 75f,
                 MaxThreshold = 90f,
-                DamageOnStrike = 4f,
+                DamageOnStrike = 8f,
                 AdditionalDamagePerStack = 3f,
                 DamageOnStrikeWhenLightsourceActive = 2f,
                 AdditionalDamagePerStackWhenLightsourceActive = 2f,
@@ -161,7 +173,7 @@
             {
                 MinThreshold = 50f,
                 MaxThreshold = 75f,
-                DamageOnStrike = 7f,
+                DamageOnStrike = 12f,
                 AdditionalDamagePerStack = 4f,
                 DamageOnStrikeWhenLightsourceActive = 4f,
                 AdditionalDamagePerStackWhenLightsourceActive = 3f,
@@ -179,7 +191,7 @@
             {
                 MinThreshold = 25f,
                 MaxThreshold = 50f,
-                DamageOnStrike = 10f,
+                DamageOnStrike = 20f,
                 AdditionalDamagePerStack = 6f,
                 DamageOnStrikeWhenLightsourceActive = 5f,
                 AdditionalDamagePerStackWhenLightsourceActive = 4f,
@@ -199,7 +211,7 @@
             {
                 MinThreshold = 10f,
                 MaxThreshold = 25f,
-                DamageOnStrike = 15f,
+                DamageOnStrike = 30f,
                 AdditionalDamagePerStack = 9f,
                 DamageOnStrikeWhenLightsourceActive = 8f,
                 AdditionalDamagePerStackWhenLightsourceActive = 6f,
@@ -219,7 +231,7 @@
             {
                 MinThreshold = 0f,
                 MaxThreshold = 10f,
-                DamageOnStrike = 20f,
+                DamageOnStrike = 45f,
                 AdditionalDamagePerStack = 15f,
                 DamageOnStrikeWhenLightsourceActive = 10f,
                 AdditionalDamagePerStackWhenLightsourceActive = 8f,
@@ -229,7 +241,7 @@
                     new() { EffectType = SanityEffectType.SilentWalk, Duration = 3.05f, Intensity = 10 },
                     new() { EffectType = SanityEffectType.Slowness, Duration = 3.15f, Intensity = 75 },
                     new() { EffectType = SanityEffectType.Exhausted, Duration = 0.65f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 2.95f, Intensity = 1 },
+                    new() { EffectType = SanityEffectType.Blurred, Duration = 2.65f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Blindness, Duration = 1.25f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Deafened, Duration = 2.75f, Intensity = 1 },
                     new() { EffectType = SanityEffectType.Flashed, Duration = 0.55f, Intensity = 1 },
@@ -276,6 +288,9 @@
                 Scp500RestoreMax = temp;
                 Logger.Warn("[PlayerSanityConfig] Scp500RestoreMin was greater than Scp500RestoreMax. Values have been swapped.");
             }
+
+            if (EffectsBurstCooldown < 0f) EffectsBurstCooldown = 0f;
+            if (AttackAudioCooldownSeconds < 0f) AttackAudioCooldownSeconds = 0f;
 
             if (SanityStages == null || SanityStages.Count == 0)
             {

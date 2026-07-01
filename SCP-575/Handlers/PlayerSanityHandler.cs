@@ -29,6 +29,7 @@
         private readonly Dictionary<int, DateTime> _lastHintTime = new();
         private readonly Dictionary<int, DateTime> _painkillerProtectionExpiry = new();
         private readonly Dictionary<int, DateTime> _painkillerSanityBoostExpiry = new();
+        private readonly Dictionary<int, double> _playerEffectsCooldownExpiry = new();
         private readonly List<PlayerSanityStageConfig> _orderedStages;
 
         private readonly float _hintCooldown;
@@ -88,6 +89,7 @@
                 _lastHintTime.Clear();
                 _painkillerProtectionExpiry.Clear();
                 _painkillerSanityBoostExpiry.Clear();
+                _playerEffectsCooldownExpiry.Clear();
             }
         }
 
@@ -131,6 +133,7 @@
                 _lastHintTime.Remove(instanceId);
                 _painkillerProtectionExpiry.Remove(instanceId);
                 _painkillerSanityBoostExpiry.Remove(instanceId);
+                _playerEffectsCooldownExpiry.Remove(instanceId);
             }
 
             // Direct decoupled notification to the director
@@ -237,12 +240,25 @@
         }
 
         /// <summary>
-        /// Translates cognitive decay milestones into tangible gameplay sensory impairments and physical restrictions.
+        /// Translates cognitive decay milestones into tangible gameplay sensory impairments.
+        /// Hits bypass the rate-limiter completely, while the passive decay loop respects the burst cooldown window.
         /// </summary>
-        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false)
+        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool ignoreCooldown = false)
         {
             if (!IsValidPlayer(player)) return;
             if (IsProtectedByPainkillers(player)) return;
+
+            int playerInstanceId = player.GameObject.GetInstanceID();
+            double currentTime = Timing.LocalTime;
+
+            // Enforce rate-limiting ONLY on passive decay ticks; hits bypass this entirely
+            if (!ignoreCooldown)
+            {
+                if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out double expiryTime) && currentTime < expiryTime)
+                {
+                    return; // Suppress background loop effect spam
+                }
+            }
 
             if (!_plugin.Npc.Methods.IsBlackoutActive && !bypassBlackoutGate)
                 return;
@@ -250,6 +266,7 @@
             var stage = GetCurrentSanityStage(player);
             if (stage == null) return;
 
+            // FLASHLIGHT PROTECTION GATE: Evaluates if holding a light source mitigates the panic effects
             if (Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection)
             {
                 if (stage.Effects != null)
@@ -264,6 +281,13 @@
                         {
                             LibraryLabAPI.LogWarn("PlayerSanityHandler", $"Failed to apply effect {effectConfig.EffectType} to {player.Nickname}: {ex.Message}");
                         }
+                    }
+
+                    // Refresh the cooldown window so the passive loop remains dormant for a few seconds after a burst
+                    float burstCooldown = _plugin.Config.SanityConfig.EffectsBurstCooldown;
+                    if (burstCooldown > 0f)
+                    {
+                        _playerEffectsCooldownExpiry[playerInstanceId] = currentTime + burstCooldown;
                     }
                 }
             }
@@ -349,7 +373,8 @@
 
             bool requiresLowDrone = newSanity <= 35f;
 
-            ApplyStageEffects(player);
+            // Passive ticks are strictly bound to configuration rate-limiting bounds
+            ApplyStageEffects(player, bypassBlackoutGate: false, ignoreCooldown: false);
 
             int instanceId = player.GameObject.GetInstanceID();
             if (_plugin.Config.HintsConfig.IsEnabledSanityHint)

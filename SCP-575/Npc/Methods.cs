@@ -484,7 +484,6 @@ namespace SCP_575.Npc
 
                         // Decoupled transaction dispatch execution execution pipelines
                         _sanityHandler.ApplyDamageToPlayer(player);
-                        _sanityHandler.ApplyStageEffects(player);
 
                         if (newState == NpcBehaviorState.Stalking)
                         {
