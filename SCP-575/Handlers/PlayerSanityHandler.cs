@@ -241,9 +241,9 @@
 
         /// <summary>
         /// Translates cognitive decay milestones into tangible gameplay sensory impairments.
-        /// Enforces strict rate-limiting bounds across consecutive bursts to protect client rendering tracks.
+        /// Features safe cross-threaded dictionary locks to prevent state corruption during high-frequency decay ticks.
         /// </summary>
-        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool forceIgnoreCooldown = false)
+        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool ignoreCooldown = false)
         {
             if (!IsValidPlayer(player)) return;
             if (IsProtectedByPainkillers(player)) return;
@@ -251,12 +251,15 @@
             int playerInstanceId = player.GameObject.GetInstanceID();
             DateTime currentTime = DateTime.UtcNow;
 
-            // Strict protection barrier against consecutive sensory burst spams (e.g., rapid screen blur overrides)
-            if (!forceIgnoreCooldown)
+            // ENFORCE THREAD SAFETY: Protect the storage bucket from concurrent loop collisions
+            if (!ignoreCooldown)
             {
-                if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime) && currentTime < expiryTime)
+                lock (_cacheLock)
                 {
-                    return;
+                    if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime) && currentTime < expiryTime)
+                    {
+                        return; // Successfully locked down background loop effect spam
+                    }
                 }
             }
 
@@ -283,11 +286,14 @@
                         }
                     }
 
-                    // Impose the configuration-defined cooling window before another sensory explosion can be queued
+                    // Refresh the cooldown window under a safe synchronized execution thread lock
                     float burstCooldown = _plugin.Config.SanityConfig.EffectsBurstCooldown;
                     if (burstCooldown > 0f)
                     {
-                        _playerEffectsCooldownExpiry[playerInstanceId] = currentTime + TimeSpan.FromSeconds(burstCooldown);
+                        lock (_cacheLock)
+                        {
+                            _playerEffectsCooldownExpiry[playerInstanceId] = currentTime + TimeSpan.FromSeconds(burstCooldown);
+                        }
                     }
                 }
             }
