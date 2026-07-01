@@ -258,12 +258,10 @@
                 {
                     if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime))
                     {
-                        LibraryLabAPI.LogDebug("SanityDiagnostic", $"[DECAY LOOP] Player: {player.Nickname} | Current: {currentTime:HH:mm:ss.fff} | Expiry: {expiryTime:HH:mm:ss.fff} | Match: {currentTime < expiryTime}");
                         if (currentTime < expiryTime)
                         {
                             return; // Shield active - block execution cleanly
                         }
-                        LibraryLabAPI.LogDebug("SanityDiagnostic", $"[DECAY LOOP] No active cooldown found in cache registry for {player.Nickname}. Proceeding to effect execution.");
                     }
                 }
             }
@@ -293,7 +291,6 @@
 
                     // Impose the configuration-defined cooling window before another sensory explosion can be queued
                     float burstCooldown = _sanityConfig.EffectsBurstCooldown;
-                    LibraryLabAPI.LogDebug("SanityDiagnostic", $"[EFFECTS APPLIED] Setting upcoming cooldown for {player.Nickname} using duration window: {burstCooldown}s");
                     if (burstCooldown > 0f)
                     {
                         lock (_cacheLock)
