@@ -35,7 +35,7 @@ namespace SCP_575.ConfigObjects
         /// Delay in seconds between SCP-575 action ticks.
         /// </summary>
         [Description("The delay of receiving damage.")]
-        public float KeterActionDelay { get; set; } = 33.5f;
+        public float KeterActionDelay { get; set; } = 47.75f;
 
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace SCP_575.ConfigObjects
         /// e.g. KeterActionDelayRandomizerValue = 5 means a random between -5 and 5 seconds.
         /// </summary>
         [Description("The randomizer value for the delay of receiving damage.")]
-        public float KeterActionDelayRandomizerValue { get; set; } = 6.5f;
+        public float KeterActionDelayRandomizerValue { get; set; } = 12.5f;
 
 
         #endregion
