@@ -60,7 +60,7 @@
                 if (!_plugin.IsEventActive)
                     continue;
 
-                DateTime now = DateTime.Now;
+                DateTime now = DateTime.UtcNow;
 
                 foreach (Player player in Player.ReadyList)
                 {
@@ -281,13 +281,13 @@
             if (player?.GameObject == null) return;
             lock (_directorLock)
             {
-                _acousticSuppressionCache[player.GameObject.GetInstanceID()] = DateTime.Now.AddSeconds(durationSeconds);
+                _acousticSuppressionCache[player.GameObject.GetInstanceID()] = DateTime.UtcNow.AddSeconds(durationSeconds);
             }
         }
 
         public void SuppressPsychologicalAudioInRadius(Vector3 position, float radiusMeter, float durationSeconds)
         {
-            DateTime expiry = DateTime.Now.AddSeconds(durationSeconds);
+            DateTime expiry = DateTime.UtcNow.AddSeconds(durationSeconds);
 
             lock (_directorLock)
             {
@@ -375,7 +375,7 @@
             if (player?.GameObject == null || !player.IsReady) return;
             int instanceId = player.GameObject.GetInstanceID();
 
-            if (IsAcousticBudgetSaturated(instanceId, DateTime.Now) || !TryAcquireTransientNetworkLock(instanceId)) return;
+            if (IsAcousticBudgetSaturated(instanceId, DateTime.UtcNow) || !TryAcquireTransientNetworkLock(instanceId)) return;
 
             var config = _plugin.Config.AudioConfig;
 
@@ -396,7 +396,7 @@
 
             int instanceId = player.GameObject.GetInstanceID();
 
-            if (IsAcousticBudgetSaturated(instanceId, DateTime.Now)) return;
+            if (IsAcousticBudgetSaturated(instanceId, DateTime.UtcNow)) return;
 
             if (isFinalBlow)
             {
@@ -416,8 +416,8 @@
 
             lock (_directorLock)
             {
-                if (_lastCombatAudioTime.TryGetValue(instanceId, out var lastCombatAudio) && (DateTime.Now - lastCombatAudio).TotalSeconds < config.CombatStingerCooldown) return;
-                _lastCombatAudioTime[instanceId] = DateTime.Now;
+                if (_lastCombatAudioTime.TryGetValue(instanceId, out var lastCombatAudio) && (DateTime.UtcNow - lastCombatAudio).TotalSeconds < config.CombatStingerCooldown) return;
+                _lastCombatAudioTime[instanceId] = DateTime.UtcNow;
             }
 
             if (isVulnerable) PlayAggressiveAudio(player);

@@ -77,7 +77,7 @@
             if (_isDisposed) return;
             var handle = Timing.RunCoroutine(HandleSanityDecay());
             handle.Tag = SanityCoroutineTag;
-            LibraryLabAPI.LogInfo("PlayerSanityHandler", "Sanity decay processing loop successfully started.");
+            LibraryLabAPI.LogDebug("PlayerSanityHandler", "Sanity decay processing loop successfully started.");
         }
 
         public void Clean()
@@ -153,8 +153,8 @@
             {
                 lock (_cacheLock)
                 {
-                    _painkillerProtectionExpiry[instanceId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersProtectionDuration);
-                    _painkillerSanityBoostExpiry[instanceId] = DateTime.Now.AddSeconds(_sanityConfig.PainkillersRegenDuration);
+                    _painkillerProtectionExpiry[instanceId] = DateTime.UtcNow.AddSeconds(_sanityConfig.PainkillersProtectionDuration);
+                    _painkillerSanityBoostExpiry[instanceId] = DateTime.UtcNow.AddSeconds(_sanityConfig.PainkillersRegenDuration);
                 }
 
                 if (_plugin.Config.Debug)
@@ -256,9 +256,14 @@
             {
                 lock (_cacheLock)
                 {
-                    if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime) && currentTime < expiryTime)
+                    if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime))
                     {
-                        return;
+                        LibraryLabAPI.LogDebug("SanityDiagnostic", $"[DECAY LOOP] Player: {player.Nickname} | Current: {currentTime:HH:mm:ss.fff} | Expiry: {expiryTime:HH:mm:ss.fff} | Match: {currentTime < expiryTime}");
+                        if (currentTime < expiryTime)
+                        {
+                            return; // Shield active - block execution cleanly
+                        }
+                        LibraryLabAPI.LogDebug("SanityDiagnostic", $"[DECAY LOOP] No active cooldown found in cache registry for {player.Nickname}. Proceeding to effect execution.");
                     }
                 }
             }
@@ -287,7 +292,8 @@
                     }
 
                     // Impose the configuration-defined cooling window before another sensory explosion can be queued
-                    float burstCooldown = _plugin.Config.SanityConfig.EffectsBurstCooldown;
+                    float burstCooldown = _sanityConfig.EffectsBurstCooldown;
+                    LibraryLabAPI.LogDebug("SanityDiagnostic", $"[EFFECTS APPLIED] Setting upcoming cooldown for {player.Nickname} using duration window: {burstCooldown}s");
                     if (burstCooldown > 0f)
                     {
                         lock (_cacheLock)
@@ -343,7 +349,7 @@
                 if (!_plugin.IsEventActive)
                     continue;
 
-                DateTime now = DateTime.Now;
+                DateTime now = DateTime.UtcNow;
 
                 foreach (var player in Player.ReadyList)
                 {
@@ -459,7 +465,7 @@
             {
                 if (_painkillerProtectionExpiry.TryGetValue(instanceId, out DateTime expiryTime))
                 {
-                    return DateTime.Now < expiryTime;
+                    return DateTime.UtcNow < expiryTime;
                 }
             }
             return false;

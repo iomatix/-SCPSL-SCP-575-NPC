@@ -120,7 +120,7 @@
         /// Gets or sets the protection cooldown window in seconds to prevent multiple high-intensity sensory effects (like screen blur) from stacking up during rapid successive hits.
         /// </summary>
         [Description("Duration in seconds a player is protected from consecutive sensory effect bursts (e.g. blur spams) after the last burst sequence.")]
-        public float EffectsBurstCooldown { get; set; } = 4.25f;
+        public float EffectsBurstCooldown { get; set; } = 3.35f;
 
         /// <summary>
         /// Gets or sets the audio rate-limiting window in seconds to intercept sound distortion or clipping during rapid combat sequences.
