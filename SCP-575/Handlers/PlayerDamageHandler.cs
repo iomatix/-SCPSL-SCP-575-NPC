@@ -77,10 +77,9 @@
         {
             if (!_plugin.IsEventActive || ev?.Player == null) return;
 
-            bool isPhysicalScpAttack = ev.Attacker != null && ev.Attacker.IsSCP;
             bool isCustom575Attack = ev.DamageHandler != null && Scp575DamageSystem.IsScp575Damage(ev.DamageHandler);
 
-            if (isPhysicalScpAttack || isCustom575Attack)
+            if (isCustom575Attack)
             {
                 int instanceId = ev.Player.GameObject.GetInstanceID();
 
