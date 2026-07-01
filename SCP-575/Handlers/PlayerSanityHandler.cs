@@ -29,7 +29,7 @@
         private readonly Dictionary<int, DateTime> _lastHintTime = new();
         private readonly Dictionary<int, DateTime> _painkillerProtectionExpiry = new();
         private readonly Dictionary<int, DateTime> _painkillerSanityBoostExpiry = new();
-        private readonly Dictionary<int, double> _playerEffectsCooldownExpiry = new();
+        private readonly Dictionary<int, DateTime> _playerEffectsCooldownExpiry = new();
         private readonly List<PlayerSanityStageConfig> _orderedStages;
 
         private readonly float _hintCooldown;
@@ -249,12 +249,12 @@
             if (IsProtectedByPainkillers(player)) return;
 
             int playerInstanceId = player.GameObject.GetInstanceID();
-            float currentTime = UnityEngine.Time.time;
+            DateTime currentTime = DateTime.UtcNow;
 
             // Enforce rate-limiting ONLY on passive decay ticks; hits bypass this entirely
             if (!ignoreCooldown)
             {
-                if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out double expiryTime) && currentTime < expiryTime)
+                if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime) && currentTime < expiryTime)
                 {
                     return; // Suppress background loop effect spam
                 }
@@ -287,7 +287,7 @@
                     float burstCooldown = _plugin.Config.SanityConfig.EffectsBurstCooldown;
                     if (burstCooldown > 0f)
                     {
-                        _playerEffectsCooldownExpiry[playerInstanceId] = currentTime + burstCooldown;
+                        _playerEffectsCooldownExpiry[playerInstanceId] = currentTime + TimeSpan.FromSeconds(burstCooldown);
                     }
                 }
             }

@@ -28,7 +28,7 @@
         private readonly Dictionary<int, int> _playerAmbienceSessions = new Dictionary<int, int>();
         private readonly HashSet<int> _activeTrackingSessionIds = new();
         private readonly Dictionary<AudioKey, AudioTrackGroup> _audioRegistry = new();
-        private readonly Dictionary<int, double> _transientCooldowns = new();
+        private readonly Dictionary<int, DateTime> _transientCooldowns = new();
 
         private const string AudioCoroutineTag = CoroutineTags.AudioCoroutines;
 
@@ -309,11 +309,11 @@
 
         private bool TryAcquireTransientLock(int playerInstanceId, AudioKey key)
         {
-            float currentTime = UnityEngine.Time.time;
+            DateTime currentTime = DateTime.UtcNow;
             int compositeHash = playerInstanceId ^ (int)key;
 
-            if (_transientCooldowns.TryGetValue(compositeHash, out double nextAllowedTime) && currentTime < nextAllowedTime) return false;
-            _transientCooldowns[compositeHash] = currentTime + 0.090;
+            if (_transientCooldowns.TryGetValue(compositeHash, out DateTime nextAllowedTime) && currentTime < nextAllowedTime) return false;
+            _transientCooldowns[compositeHash] = currentTime + TimeSpan.FromMilliseconds(90);
             return true;
         }
 

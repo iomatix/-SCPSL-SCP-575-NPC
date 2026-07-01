@@ -25,10 +25,11 @@
         private readonly Dictionary<int, PlayerTensionProfile> _tensionCache = new();
         private readonly Dictionary<int, DateTime> _acousticSuppressionCache = new();
         private readonly Dictionary<int, DateTime> _lastCombatAudioTime = new();
+        private readonly Dictionary<int, DateTime> _transientInputNetworkGate = new();
         private readonly Dictionary<int, int> _activeClimaxWhisperSessions = new();
         private readonly Dictionary<int, int> _activePanicDroneSessions = new();
         private readonly Dictionary<int, int> _activeAmbientDroneSessions = new();
-        private readonly Dictionary<int, double> _transientInputNetworkGate = new();
+
 
         private readonly object _directorLock = new();
         private bool _isDisposed;
@@ -452,9 +453,9 @@
 
         private bool TryAcquireTransientNetworkLock(int instanceId)
         {
-            float currentTime = UnityEngine.Time.time;
-            if (_transientInputNetworkGate.TryGetValue(instanceId, out double nextAllowedTime) && currentTime < nextAllowedTime) return false;
-            _transientInputNetworkGate[instanceId] = currentTime + 0.090;
+            DateTime currentTime = DateTime.UtcNow;
+            if (_transientInputNetworkGate.TryGetValue(instanceId, out DateTime nextAllowedTime) && currentTime < nextAllowedTime) return false;
+            _transientInputNetworkGate[instanceId] = currentTime + TimeSpan.FromMilliseconds(90);
             return true;
         }
 
