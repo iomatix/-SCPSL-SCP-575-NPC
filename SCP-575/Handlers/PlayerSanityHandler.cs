@@ -241,9 +241,9 @@
 
         /// <summary>
         /// Translates cognitive decay milestones into tangible gameplay sensory impairments.
-        /// Features safe cross-threaded dictionary locks to prevent state corruption during high-frequency decay ticks.
+        /// Enforces strict rate-limiting bounds across consecutive bursts to protect client rendering tracks.
         /// </summary>
-        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool ignoreCooldown = false)
+        public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool forceIgnoreCooldown = false)
         {
             if (!IsValidPlayer(player)) return;
             if (IsProtectedByPainkillers(player)) return;
@@ -251,14 +251,14 @@
             int playerInstanceId = player.GameObject.GetInstanceID();
             DateTime currentTime = DateTime.UtcNow;
 
-            // ENFORCE THREAD SAFETY: Protect the storage bucket from concurrent loop collisions
-            if (!ignoreCooldown)
+            // Strict protection barrier against consecutive sensory burst spams (e.g., rapid screen blur overrides)
+            if (!forceIgnoreCooldown)
             {
                 lock (_cacheLock)
                 {
                     if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime) && currentTime < expiryTime)
                     {
-                        return; // Successfully locked down background loop effect spam
+                        return;
                     }
                 }
             }
@@ -286,7 +286,7 @@
                         }
                     }
 
-                    // Refresh the cooldown window under a safe synchronized execution thread lock
+                    // Impose the configuration-defined cooling window before another sensory explosion can be queued
                     float burstCooldown = _plugin.Config.SanityConfig.EffectsBurstCooldown;
                     if (burstCooldown > 0f)
                     {
