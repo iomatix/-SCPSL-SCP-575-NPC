@@ -77,6 +77,7 @@
         {
             if (!_plugin.IsEventActive || ev?.Player == null) return;
 
+            bool isPhysicalScpAttack = ev.Attacker != null && ev.Attacker.IsSCP;
             bool isCustom575Attack = ev.DamageHandler != null && Scp575DamageSystem.IsScp575Damage(ev.DamageHandler);
 
             if (isCustom575Attack)
@@ -97,6 +98,15 @@
                 _playerLastAttackAudioTime[instanceId] = tempTime;
 
                 _plugin.AudioDirector?.SuppressPsychologicalAudio(ev.Player, 3.5f);
+            }
+            else if (isPhysicalScpAttack)
+            {
+                float dropAmount = _plugin.Config.SanityConfig.ScpHitSanityDrop;
+                if (dropAmount > 0f)
+                {
+                    // Directly slash sanity down without touching the client's visual rendering tracks
+                    _plugin.SanityEventHandler?.ChangeSanityValue(ev.Player, -dropAmount);
+                }
             }
         }
 
