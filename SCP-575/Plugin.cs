@@ -78,6 +78,15 @@ namespace SCP_575
             base.LoadConfigs();
             Config.Validate();
 
+            Audio = new AudioConfig();
+            Blackout = new BlackoutConfig();
+            FlashlightSpawn = new FlashlightSpawnConfig();
+            NpcConfig = new NpcConfig();
+            Sanity = new PlayerSanityConfig();
+            LightsourceConfig = new PlayerLightsourceConfig();
+            Hints = new HintsConfig();
+            Cassie = new CassieConfig();
+
             if (this.TryLoadConfig("audio_settings.yml", out AudioConfig loadedAudio))
             {
                 Audio = loadedAudio ?? new AudioConfig();
