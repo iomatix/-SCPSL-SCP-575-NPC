@@ -1,8 +1,8 @@
 ﻿namespace SCP_575.ConfigObjects
 {
     using System.ComponentModel;
-    using Exiled.API.Features;
     using UnityEngine;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     public sealed class BlackoutConfig
     {
@@ -101,13 +101,13 @@
             // --- 1. Timing and Duration Safe Guards ---
             if (DurationMin < 5f)
             {
-                Log.Warn($"[BlackoutConfig] DurationMin ({DurationMin}s) is too low for SCP-575 gameplay pacing. Forcing minimum of 5s.");
+                Logger.LogWarn(nameof(BlackoutConfig),$"DurationMin ({DurationMin}s) is too low for SCP-575 gameplay pacing. Forcing minimum of 5s.");
                 DurationMin = 5f;
             }
 
             if (DurationMax < DurationMin)
             {
-                Log.Warn("[BlackoutConfig] DurationMin was greater than DurationMax. Swapping boundaries.");
+                Logger.LogWarn(nameof(BlackoutConfig), "DurationMin was greater than DurationMax. Swapping boundaries.");
                 float temp = DurationMin;
                 DurationMin = DurationMax;
                 DurationMax = temp;
@@ -116,19 +116,19 @@
             // Guard against identical boundaries or sub-zero constraints to protect UnityEngine.Random.Range
             if (DelayMin < 10)
             {
-                Log.Warn($"[BlackoutConfig] DelayMin ({DelayMin}s) cannot be lower than 10 seconds. Adjusting.");
+                Logger.LogWarn(nameof(BlackoutConfig), $"DelayMin ({DelayMin}s) cannot be lower than 10 seconds. Adjusting.");
                 DelayMin = 10;
             }
 
             if (DelayMax <= DelayMin)
             {
-                Log.Warn($"[BlackoutConfig] DelayMax ({DelayMax}s) must be strictly greater than DelayMin ({DelayMin}s) to prevent coroutine thread choking. Adjusting.");
+                Logger.LogWarn(nameof(BlackoutConfig), $"DelayMax ({DelayMax}s) must be strictly greater than DelayMin ({DelayMin}s) to prevent coroutine thread choking. Adjusting.");
                 DelayMax = DelayMin + 30; // Safe window offset
             }
 
             if (InitialDelay < 0f)
             {
-                Log.Warn($"[BlackoutConfig] InitialDelay cannot be negative. Resetting to 0f.");
+                Logger.LogWarn(nameof(BlackoutConfig), $"InitialDelay cannot be negative. Resetting to 0f.");
                 InitialDelay = 0f;
             }
 
@@ -144,28 +144,28 @@
             // Fail-safe logic check: if all zone probabilities are 0 and facility blackout is disabled, plugin becomes dead weight.
             if (!EnableFacilityBlackout && ChanceHeavy <= 0f && ChanceLight <= 0f && ChanceEntrance <= 0f && ChanceSurface <= 0f && ChanceOther <= 0f)
             {
-                Log.Error("[BlackoutConfig] Critical Configuration Flaw: All zone chances are 0% AND EnableFacilityBlackout is false! Forcing EnableFacilityBlackout to TRUE to avoid empty events.");
+                Logger.LogError(nameof(BlackoutConfig), "Critical Configuration Flaw: All zone chances are 0% AND EnableFacilityBlackout is false! Forcing EnableFacilityBlackout to TRUE to avoid empty events.");
                 EnableFacilityBlackout = true;
             }
 
             // --- 3. Environmental Interactivity Tuning ---
             if (GeneratorStabilizationDuration < 0f)
             {
-                Log.Warn("[BlackoutConfig] GeneratorStabilizationDuration cannot be negative. Forcing 0s.");
+                Logger.LogWarn(nameof(BlackoutConfig), "GeneratorStabilizationDuration cannot be negative. Forcing 0s.");
                 GeneratorStabilizationDuration = 0f;
             }
 
             // --- 4. Coroutine Render Controls (Flicker & Vertex Shaders) ---
             if (FlickerDuration < 0f)
             {
-                Log.Warn("[BlackoutConfig] FlickerDuration cannot be negative. Forcing 0s.");
+                Logger.LogWarn(nameof(BlackoutConfig), "FlickerDuration cannot be negative. Forcing 0s.");
                 FlickerDuration = 0f;
             }
 
             // Crucial: if frequency is too low or negative, 1/f calculations for coroutine loop pacing will throw infinity anomalies
             if (FlickerFrequency < 0.1f)
             {
-                Log.Warn($"[BlackoutConfig] FlickerFrequency ({FlickerFrequency}) is too low and would freeze light loops. Forcing stable minimum (1.0f).");
+                Logger.LogWarn(nameof(BlackoutConfig), $"FlickerFrequency ({FlickerFrequency}) is too low and would freeze light loops. Forcing stable minimum (1.0f).");
                 FlickerFrequency = 1.0f;
             }
 

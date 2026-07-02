@@ -2,9 +2,9 @@
 {
     using System;
     using System.ComponentModel;
-    using Exiled.API.Features;
     using UnityEngine;
-
+    using Logger = SCP_575.Shared.LibraryLabAPI;
+    
     public sealed class AudioConfig
     {
         #region Baseline Engine Options
@@ -162,7 +162,7 @@
 
             if (maxRadius <= minRadius)
             {
-                Log.Warn($"[AudioConfig] MaxRadius ({maxRadius}) was upscaled past MinRadius ({minRadius}).");
+                Logger.LogWarn(nameof(AudioConfig), $"[AudioConfig] MaxRadius ({maxRadius}) was upscaled past MinRadius ({minRadius}).");
                 maxRadius = minRadius + 1.0f;
             }
 

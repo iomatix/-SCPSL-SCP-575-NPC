@@ -1,8 +1,8 @@
 ﻿namespace SCP_575.ConfigObjects
 {
     using System.ComponentModel;
-    using Exiled.API.Features;
     using UnityEngine;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     public sealed class FlashlightSpawnConfig
     {
@@ -41,7 +41,7 @@
             // This bypasses unnecessary Room-iteration loops on RoundStart, saving CPU cycles during heavy initialization tasks.
             if (IsEnabled && ChanceLight <= 0f && ChanceHeavy <= 0f && ChanceEntrance <= 0f && ChanceSurface <= 0f && ChanceOther <= 0f)
             {
-                Log.Warn("[FlashlightSpawnConfig] IsEnabled is true, but all room spawn chances are set to 0%. Disabling pipeline to conserve server resources.");
+                Logger.LogWarn(nameof(FlashlightSpawnConfig), "IsEnabled is true, but all room spawn chances are set to 0%. Disabling pipeline to conserve server resources.");
                 IsEnabled = false;
             }
         }

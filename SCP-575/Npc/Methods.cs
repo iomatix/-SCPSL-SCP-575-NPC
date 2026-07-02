@@ -171,7 +171,7 @@ namespace SCP_575.Npc
             if (!IsBlackoutActive)
             {
                 if (_config.CassieConfig.CassieMessageClearBeforeImportant)
-                    LibraryExiledAPI.ClearCassieQueue();
+                    Announcer.Clear();
 
                 TriggerCassieMessage(_config.CassieConfig.CassieMessageStart, true);
                 if (_config.BlackoutConfig.FlickerLights)
@@ -423,12 +423,14 @@ namespace SCP_575.Npc
             _cassieState = CassieStatus.Playing;
 
             if (_config.CassieConfig.CassieMessageClearBeforeImportant)
-                LibraryExiledAPI.ClearCassieQueue();
+                Announcer.Clear();
 
-            if (isGlitchy) LibraryExiledAPI.SendGlitchyCassieMessage(message);
-            else LibraryExiledAPI.SendCleanCassieMessage(message);
+            if (isGlitchy) Announcer.GlitchyMessage(message, _config.CassieConfig.GlitchChance, _config.CassieConfig.JamChance);
+            else Announcer.Message(message, message, playBackground: false, priority: 0.65f, glitchScale: 0f);
+            {
 
-            StartCassieCooldown();
+                StartCassieCooldown();
+            }
         }
 
         private IEnumerator<float> CassieCooldownRoutine()

@@ -20,10 +20,6 @@
 
             try
             {
-                // 1. Safe validation for Exiled API proxy modules to prevent catch-block leaks.
-                var exiledPlayer = LibraryExiledAPI.ToExiledPlayer(player);
-                if (exiledPlayer != null && exiledPlayer.HasFlashlightModuleEnabled)
-                    return false;
 
                 var currentItem = player.CurrentItem;
                 if (currentItem == null) return true;

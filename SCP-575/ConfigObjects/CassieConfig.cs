@@ -1,8 +1,8 @@
 ﻿namespace SCP_575.ConfigObjects
 {
     using System.ComponentModel;
-    using Exiled.API.Features;
     using UnityEngine;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     public sealed class CassieConfig
     {
@@ -18,7 +18,7 @@
         /// Clear Cassie’s message queue before important announcements.
         /// </summary>
         [Description("Clear message queue before important messages.")]
-        public bool CassieMessageClearBeforeImportant { get; set; } = true;
+        public bool CassieMessageClearBeforeImportant { get; set; } = false;
 
         #endregion
 
@@ -128,13 +128,13 @@
         /// Chance (%) of a glitch per word in Cassie’s speech.
         /// </summary>
         [Description("Glitch chance per word in Cassie messages.")]
-        public float GlitchChance { get; set; } = 15f;
+        public float GlitchChance { get; set; } = 0.15f;
 
         /// <summary>
         /// Chance (%) of jamming per word in Cassie’s speech.
         /// </summary>
         [Description("Jam chance per word in Cassie messages.")]
-        public float JamChance { get; set; } = 10f;
+        public float JamChance { get; set; } = 0.10f;
 
         /// <summary>
         /// The “Keter” sound Cassie plays during blackout.
@@ -152,20 +152,20 @@
             // --- 1. General & Priority Guard ---
             if (CassieMessagePriority < 0f)
             {
-                Log.Warn($"[CassieConfig] CassieMessagePriority ({CassieMessagePriority}) cannot be negative. Resetting to default (3.1f).");
+                Logger.LogWarn(nameof(CassieConfig), $"CassieMessagePriority ({CassieMessagePriority}) cannot be negative. Resetting to default (3.1f).");
                 CassieMessagePriority = 3.1f;
             }
 
             // --- 2. Timing Settings Validation ---
             if (TimeBetweenSentenceAndStart < 0f)
             {
-                Log.Warn("[CassieConfig] TimeBetweenSentenceAndStart cannot be negative. Resetting to 0.");
+                Logger.LogWarn(nameof(CassieConfig), "TimeBetweenSentenceAndStart cannot be negative. Resetting to 0.");
                 TimeBetweenSentenceAndStart = 0f;
             }
 
             if (TimeBetweenSentenceAndEnd < 0f)
             {
-                Log.Warn("[CassieConfig] TimeBetweenSentenceAndEnd cannot be negative. Resetting to 0.");
+                Logger.LogWarn(nameof(CassieConfig), "TimeBetweenSentenceAndEnd cannot be negative. Resetting to 0.");
                 TimeBetweenSentenceAndEnd = 0f;
             }
 

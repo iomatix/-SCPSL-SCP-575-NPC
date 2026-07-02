@@ -1,7 +1,7 @@
 ﻿namespace SCP_575.ConfigObjects
 {
     using CustomPlayerEffects;
-    using Exiled.API.Features;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
     using SCP_575.Types;
     using System;
     using System.ComponentModel;
@@ -69,13 +69,13 @@
         {
             if (Duration < 0f)
             {
-                Log.Warn($"[SanityEffectConfig] Effect {EffectType} duration cannot be negative. Resetting to 0.");
+                Logger.LogWarn(nameof(PlayerSanityEffectConfig), $"Effect {EffectType} duration cannot be negative. Resetting to 0.");
                 Duration = 0f;
             }
 
             if (Intensity < 1)
             {
-                Log.Warn($"[SanityEffectConfig] Effect {EffectType} intensity cannot be less than 1. Resetting to 1.");
+                Logger.LogWarn(nameof(PlayerSanityEffectConfig), $"Effect {EffectType} intensity cannot be less than 1. Resetting to 1.");
                 Intensity = 1;
             }
         }

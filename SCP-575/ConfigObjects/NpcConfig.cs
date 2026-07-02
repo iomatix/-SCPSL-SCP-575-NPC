@@ -1,8 +1,8 @@
 namespace SCP_575.ConfigObjects
 {
     using System.ComponentModel;
-    using Exiled.API.Features;
     using UnityEngine;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     public sealed class NpcConfig
     {
@@ -91,7 +91,7 @@ namespace SCP_575.ConfigObjects
             // Critical: Ensure lower bound calculation (Delay - Randomizer) never yields 0s or negative timing increments
             if (KeterActionDelay - KeterActionDelayRandomizerValue < 0.2f)
             {
-                Log.Warn("[NpcConfig] KeterActionDelayRandomizerValue creates a risk of zero or sub-zero runtime windows. Enforcing safety margin.");
+                Logger.LogWarn(nameof(NpcConfig), "KeterActionDelayRandomizerValue creates a risk of zero or sub-zero runtime windows. Enforcing safety margin.");
                 KeterActionDelayRandomizerValue = Mathf.Max(0f, KeterActionDelay - 0.2f);
             }
 
@@ -108,7 +108,7 @@ namespace SCP_575.ConfigObjects
 
             if (KeterForceMinModifier > KeterForceMaxModifier)
             {
-                Log.Warn("[NpcConfig] KeterForceMinModifier was greater than KeterForceMaxModifier. Swapping boundaries.");
+                Logger.LogWarn(nameof(NpcConfig), "KeterForceMinModifier was greater than KeterForceMaxModifier. Swapping boundaries.");
                 (KeterForceMinModifier, KeterForceMaxModifier) = (KeterForceMaxModifier, KeterForceMinModifier);
             }
 

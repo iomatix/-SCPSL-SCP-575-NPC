@@ -2,7 +2,7 @@
 {
     using System;
     using System.ComponentModel;
-    using Exiled.API.Features;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     public sealed class HintsConfig
     {
@@ -54,7 +54,7 @@
 
             if (!sourceHint.Contains(expectedToken))
             {
-                Log.Warn($"[HintsConfig] Missing token '{expectedToken}' inside layout string. Reverting.");
+                Logger.LogWarn(nameof(HintsConfig), $"Missing token '{expectedToken}' inside layout string. Reverting.");
                 return safeFallback;
             }
 
@@ -65,7 +65,7 @@
             }
             catch (FormatException)
             {
-                Log.Error("[HintsConfig] Malformed formatting syntax intercepted. Reverting to fallback configuration.");
+                Logger.LogError(nameof(HintsConfig), "Malformed formatting syntax intercepted. Reverting to fallback configuration.");
                 return safeFallback;
             }
         }

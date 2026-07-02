@@ -2,7 +2,7 @@
 {
     using System;
     using System.ComponentModel;
-    using Exiled.API.Features;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
     using UnityEngine;
 
     public sealed class PlayerLightsourceConfig
@@ -45,7 +45,7 @@
             // --- 1. Cooldown Integrity Safeguard ---
             if (KeterLightsourceCooldown < 0f)
             {
-                Log.Warn("[PlayerLightsourceConfig] KeterLightsourceCooldown cannot be negative. Resetting to 0f.");
+                Logger.LogWarn(nameof(PlayerLightsourceConfig), "KeterLightsourceCooldown cannot be negative. Resetting to 0f.");
                 KeterLightsourceCooldown = 0f;
             }
 
@@ -56,7 +56,7 @@
 
             if (MinFlickerCount > MaxFlickerCount)
             {
-                Log.Warn("[PlayerLightsourceConfig] MinFlickerCount was greater than MaxFlickerCount. Swapping boundaries.");
+                Logger.LogWarn(nameof(PlayerLightsourceConfig), "[PlayerLightsourceConfig] MinFlickerCount was greater than MaxFlickerCount. Swapping boundaries.");
                 (MinFlickerCount, MaxFlickerCount) = (MaxFlickerCount, MinFlickerCount);
             }
 
@@ -67,7 +67,7 @@
 
             if (MinFlickerDurationMs > MaxFlickerDurationMs)
             {
-                Log.Warn("[PlayerLightsourceConfig] MinFlickerDurationMs was greater than MaxFlickerDurationMs. Swapping boundaries.");
+                Logger.LogWarn(nameof(PlayerLightsourceConfig), "MinFlickerDurationMs was greater than MaxFlickerDurationMs. Swapping boundaries.");
                 (MinFlickerDurationMs, MaxFlickerDurationMs) = (MaxFlickerDurationMs, MinFlickerDurationMs);
             }
 
