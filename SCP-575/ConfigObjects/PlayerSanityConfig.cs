@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.ComponentModel;
     using UnityEngine;
+    using YamlDotNet.Serialization;
     using Logger = SCP_575.Shared.LibraryLabAPI;
 
     /// <summary>
@@ -61,10 +62,11 @@
 
         #region Runtime Backing Fields (Pre-calculated for performance)
 
-        [Description("Decay rate per second is calculated, changing this value doesn't affect decay rate.")]
+
+        [YamlIgnore]
         public float DecayRateBase { get; private set; }
 
-        [Description("Regen rate per second is calculated, changing this value doesn't affect decay rate.")]
+        [YamlIgnore]
         public float PassiveRegenRate { get; private set; }
 
         #endregion
@@ -171,6 +173,14 @@
             }
         };
 
+        #endregion
+
+        #region Constructor
+        public PlayerSanityConfig()
+        {
+            DecayRateBase = BaseDecayPerMinute / 60f;
+            PassiveRegenRate = PassiveRegenPerMinute / 60f;
+        }
         #endregion
 
         /// <summary>

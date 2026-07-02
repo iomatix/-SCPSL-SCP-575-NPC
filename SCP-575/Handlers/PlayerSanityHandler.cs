@@ -48,7 +48,7 @@
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _libraryLabAPI = _plugin.LibraryLabAPI;
-            _sanityConfig = plugin.Sanity ?? throw new InvalidOperationException("SanityConfig is not initialized.");
+            _sanityConfig = _plugin.Sanity ?? throw new InvalidOperationException("SanityConfig is not initialized.");
             _hintCooldown = _sanityConfig.DecayRateBase * 20f;
 
             if (_sanityConfig.SanityStages == null || !_sanityConfig.SanityStages.Any())
