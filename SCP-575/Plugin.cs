@@ -8,6 +8,8 @@ namespace SCP_575
     using SCP_575.Shared.Audio;
     using System;
 
+    using Logger = SCP_575.Shared.LibraryLabAPI;
+
     /// <summary>
     /// Central initialization bootstrap layer for the SCP-575 plugin ecosystem inside LabAPI.
     /// </summary>
@@ -31,6 +33,8 @@ namespace SCP_575
         private bool _isEventActive = false;
 
         public static Plugin Singleton { get; private set; }
+
+        private bool _isConfigLoaded = false;
 
         #region Independent Sub-Configurations
 
@@ -77,6 +81,8 @@ namespace SCP_575
         /// </summary>
         public override void LoadConfigs()
         {
+            Logger.LogInfo(nameof(LoadConfigs), " started for SCP-575 NPC");
+
             base.LoadConfigs();
             Config.Validate();
 
@@ -144,6 +150,8 @@ namespace SCP_575
                 Cassie.Validate();
                 this.TrySaveConfig(Cassie, "cassie_announcements.yml");
             }
+
+            _isConfigLoaded = true;
         }
 
         /// <summary>
@@ -151,6 +159,14 @@ namespace SCP_575
         /// </summary>
         public override void Enable()
         {
+
+            // To ensure Exiled compatibility, we will call LoadConfigs() because it hasn't been called.
+            if (!_isConfigLoaded)
+            {
+                Logger.LogWarn(nameof(Enable), "LoadConfigs was not called before Enable(), calling it now for compatibility.");
+                LoadConfigs();
+            }
+
             Singleton = this;
 
             try
