@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.ComponentModel;
     using UnityEngine;
-    using Logger = Shared.LibraryLabAPI;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     /// <summary>
     /// Configuration for player sanity system behavior throughout the round.
