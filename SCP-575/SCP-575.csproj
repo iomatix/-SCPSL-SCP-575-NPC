@@ -38,8 +38,40 @@
 		<PackageReference Include="Lib.Harmony" Version="2.4.2" />
 		<PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" IncludeAssets="All" />
 	</ItemGroup>
-
 	<ItemGroup>
+		<Reference Include="Assembly-CSharp">
+			<HintPath>$(SCPSL_References)\Assembly-CSharp.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="CommandSystem.Core">
+			<HintPath>$(SCPSL_References)\CommandSystem.Core.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="PlayerRoles">
+			<HintPath>$(SCPSL_References)\PlayerRoles.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="MapGeneration">
+			<HintPath>$(SCPSL_References)\MapGeneration.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="PlayerStats">
+			<HintPath>$(SCPSL_References)\PlayerStats.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="InventorySystem">
+			<HintPath>$(SCPSL_References)\InventorySystem.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Interactables">
+			<HintPath>$(SCPSL_References)\Interactables.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="NorthwoodLib">
+			<HintPath>$(SCPSL_References)\NorthwoodLib.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+
 		<Reference Include="Assembly-CSharp-firstpass">
 			<HintPath>$(SCPSL_References)\Assembly-CSharp-firstpass.dll</HintPath>
 			<Private>False</Private>
