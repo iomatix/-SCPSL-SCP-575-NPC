@@ -7,7 +7,9 @@ namespace SCP_575
     using SCP_575.Shared;
     using SCP_575.Shared.Audio;
     using System;
-
+    using System.Diagnostics;
+    using System.IO;
+    using System.Runtime.InteropServices;
     using Logger = SCP_575.Shared.LibraryLabAPI;
 
     /// <summary>
@@ -164,6 +166,7 @@ namespace SCP_575
             if (!_isConfigLoaded)
             {
                 Logger.LogWarn(nameof(Enable), "LoadConfigs was not called before Enable(), calling it now for compatibility.");
+                TryCreateExiledSymlink();
                 LoadConfigs();
             }
 
@@ -271,5 +274,53 @@ namespace SCP_575
             CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
             CustomHandlersManager.UnregisterEventsHandler(_mapHandler);
         }
-    }
+
+        private void TryCreateExiledSymlink()
+        {
+            try
+            {
+                DirectoryInfo labApiConfigDir = this.GetConfigDirectory(isGlobal: false);
+                string exiledConfigPath = Path.Combine(
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SCP Secret Laboratory", ".EXILED", "Configs"),
+                    Name
+                );
+
+                if (!Directory.Exists(exiledConfigPath) && Directory.Exists(labApiConfigDir.FullName))
+                { 
+                    bool success = CreateJunction(exiledConfigPath, labApiConfigDir.FullName);
+                    if (success)
+                        Logger.LogInfo(nameof(TryCreateExiledSymlink),$"Created junction from Exiled config to LabAPI");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarn(nameof(TryCreateExiledSymlink),$"Failed to create Exiled junction: {ex.Message}");
+            }
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CreateSymbolicLink(
+            string lpSymlinkFileName,
+            string lpTargetFileName,
+            int dwFlags);
+
+        private bool CreateJunction(string junctionPath, string targetPath)
+        {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", $"/c mklink /J \"{junctionPath}\" \"{targetPath}\"")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+                Process.Start(psi)?.WaitForExit();
+                return Directory.Exists(junctionPath);
+            }
+            catch
+            {
+                return false;
+            }
+        }
 }
