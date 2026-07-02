@@ -286,15 +286,15 @@ namespace SCP_575
                 );
 
                 if (!Directory.Exists(exiledConfigPath) && Directory.Exists(labApiConfigDir.FullName))
-                { 
+                {
                     bool success = CreateJunction(exiledConfigPath, labApiConfigDir.FullName);
                     if (success)
-                        Logger.LogInfo(nameof(TryCreateExiledSymlink),$"Created junction from Exiled config to LabAPI");
+                        Logger.LogInfo(nameof(TryCreateExiledSymlink), $"Created junction from Exiled config to LabAPI");
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogWarn(nameof(TryCreateExiledSymlink),$"Failed to create Exiled junction: {ex.Message}");
+                Logger.LogWarn(nameof(TryCreateExiledSymlink), $"Failed to create Exiled junction: {ex.Message}");
             }
         }
 
@@ -323,4 +323,5 @@ namespace SCP_575
                 return false;
             }
         }
+    }
 }
