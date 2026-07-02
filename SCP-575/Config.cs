@@ -1,110 +1,56 @@
 namespace SCP_575
 {
     using System.ComponentModel;
-    using Exiled.API.Features;
-    using Exiled.API.Interfaces;
+    using UnityEngine;
     using SCP_575.ConfigObjects;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     /// <summary>
-    /// Configuration settings for the SCP-575 plugin, controlling blackout events,
-    /// NPC behavior, player systems, and message hints.
+    /// Master configuration settings for the SCP-575 plugin ecosystem inside LabAPI.
     /// </summary>
-    public class Config : IConfig
+    public sealed class Config
     {
         #region General Settings
 
-        [Description("Enable or disable SCP-575.")]
+        [Description("Enable or disable the SCP-575 plugin infrastructure entirely.")]
         public bool IsEnabled { get; set; } = true;
 
-        [Description("Enable debug logging.")]
+        [Description("Enable enhanced debug logging statements within the server console.")]
         public bool Debug { get; set; } = false;
-
-        #endregion
-
-        #region Blackout Settings
-
-        [Description("Configuration settings for blackout mechanics.")]
-        public BlackoutConfig BlackoutConfig { get; set; } = new BlackoutConfig();
-
-        [Description("Configuration settings for flashlight spawn mechanics.")]
-        public FlashlightSpawnConfig FlashlightSpawnConfig { get; set; } = new FlashlightSpawnConfig();
-
-        #endregion
-
-        #region NPC Settings
-
-        [Description("Configuration settings for SCP-575 NPC behaviors.")]
-        public NpcConfig NpcConfig { get; set; } = new NpcConfig();
-
-        #endregion
-
-        #region Player Settings
-
-        [Description("Sanity system configuration.")]
-        public PlayerSanityConfig SanityConfig { get; set; } = new PlayerSanityConfig();
-
-        [Description("Light source system configuration.")]
-        public PlayerLightsourceConfig LightsourceConfig { get; set; } = new PlayerLightsourceConfig();
-
-        #endregion
-
-        #region Hint and Message Settings
-
-        [Description("Hints configuration settings.")]
-        public HintsConfig HintsConfig { get; set; } = new HintsConfig();
-
-        [Description("Cassie announcement configuration settings.")]
-        public CassieConfig CassieConfig { get; set; } = new CassieConfig();
-
-        #endregion
-
-        #region Audio
-
-        [Description("Audio system configuration.")]
-        public AudioConfig AudioConfig { get; set; } = new AudioConfig();
 
         #endregion
 
         #region Utilities
 
-        [Description("Interval for automatic cleanup of event handlers (seconds).")]
+        [Description("Interval in seconds for automatic execution of internal memory and event handler cleanup loops.")]
         public float HandlerCleanupInterval { get; set; } = 90f;
+
+        #endregion
+
+        #region Backwards Compatibility Redirect Proxies (Ignored by YAML Serializer)
+
+        public BlackoutConfig BlackoutConfig => Plugin.Singleton.Blackout;
+        public FlashlightSpawnConfig FlashlightSpawnConfig => Plugin.Singleton.FlashlightSpawn;
+        public NpcConfig NpcConfig => Plugin.Singleton.NpcConfig;
+        public PlayerSanityConfig SanityConfig => Plugin.Singleton.Sanity;
+        public PlayerLightsourceConfig LightsourceConfig => Plugin.Singleton.LightsourceConfig;
+        public HintsConfig HintsConfig => Plugin.Singleton.Hints;
+        public CassieConfig CassieConfig => Plugin.Singleton.Cassie;
 
         #endregion
 
         #region Validation
 
+        /// <summary>
+        /// Validates master tracking configurations and forces fail-safe adjustments on invalid values.
+        /// </summary>
         public void Validate()
         {
-            if (HandlerCleanupInterval < 0f)
+            if (HandlerCleanupInterval < 5f)
             {
-                Log.Warn("[Config] HandlerCleanupInterval cannot be negative. Resetting to default (90f).");
+                Logger.LogWarn(nameof(Config), "[Config] HandlerCleanupInterval cannot be less than 5 seconds. Resetting to safe baseline (90f).");
                 HandlerCleanupInterval = 90f;
             }
-
-            // FIXED: Added defensive fallback instantiation pattern during validation loop executions.
-            // If the YAML parser deserializes a section as null due to formatting errors or omissions,
-            // we force-rebuild the object configuration layout using standard default parameters to eliminate downstream NRE crashes.
-            if (AudioConfig == null) AudioConfig = new AudioConfig();
-            else AudioConfig.Validate();
-
-            if (BlackoutConfig == null) BlackoutConfig = new BlackoutConfig();
-            else BlackoutConfig.Validate();
-
-            if (CassieConfig == null) CassieConfig = new CassieConfig();
-            else CassieConfig.Validate();
-
-            if (HintsConfig == null) HintsConfig = new HintsConfig();
-            else HintsConfig.Validate();
-
-            if (NpcConfig == null) NpcConfig = new NpcConfig();
-            else NpcConfig.Validate();
-
-            if (LightsourceConfig == null) LightsourceConfig = new PlayerLightsourceConfig();
-            else LightsourceConfig.Validate();
-
-            if (SanityConfig == null) SanityConfig = new PlayerSanityConfig();
-            else SanityConfig.Validate();
         }
 
         #endregion
