@@ -37,14 +37,12 @@ namespace SCP_575.ConfigObjects
         [Description("The delay of receiving damage.")]
         public float KeterActionDelay { get; set; } = 47.75f;
 
-
         /// <summary>
         /// Randomizer value for the delay in seconds between SCP-575 action ticks.
         /// e.g. KeterActionDelayRandomizerValue = 5 means a random between -5 and 5 seconds.
         /// </summary>
         [Description("The randomizer value for the delay of receiving damage.")]
         public float KeterActionDelayRandomizerValue { get; set; } = 12.5f;
-
 
         #endregion
 
@@ -85,41 +83,39 @@ namespace SCP_575.ConfigObjects
         /// </summary>
         public void Validate()
         {
-            if (KeterActionDelay < 0f)
+            // --- 1. Thread Action Loop Timing Safeguards ---
+            // Ensure the background action loop doesn't spin infinitely on a 0s tick interval
+            KeterActionDelay = Mathf.Max(0.5f, KeterActionDelay);
+            KeterActionDelayRandomizerValue = Mathf.Max(0f, KeterActionDelayRandomizerValue);
+
+            // Critical: Ensure lower bound calculation (Delay - Randomizer) never yields 0s or negative timing increments
+            if (KeterActionDelay - KeterActionDelayRandomizerValue < 0.2f)
             {
-                Log.Warn("[NpcConfig] KeterActionDelay cannot be negative. Resetting to 0.");
-                KeterActionDelay = 0f;
+                Log.Warn("[NpcConfig] KeterActionDelayRandomizerValue creates a risk of zero or sub-zero runtime windows. Enforcing safety margin.");
+                KeterActionDelayRandomizerValue = Mathf.Max(0f, KeterActionDelay - 0.2f);
             }
 
-            if (KeterActionDelayRandomizerValue < 0f)
-            {
-                Log.Warn("[NpcConfig] KeterActionDelayRandomizerValue cannot be negative. Resetting to 0.");
-                KeterActionDelayRandomizerValue = 0f;
-            }
+            // --- 2. Armor Penetration Matrix Processing ---
+            KeterDamagePenetration = Mathf.Clamp01(KeterDamagePenetration);
 
-            if (KeterActionDelayRandomizerValue >= KeterActionDelay)
-            {
-                Log.Warn("[NpcConfig] KeterActionDelayRandomizerValue cannot be greater than KeterActionDelay. Resetting to 0.");
-                KeterActionDelayRandomizerValue = 0f;
-            }
+            // --- 3. Velocity & Displacement Limiting (PhysX Boundary Protection) ---
+            // Forces reasonable boundaries to prevent players from clipping through geometry on impact
+            KeterDamageVelocityModifier = Mathf.Clamp(KeterDamageVelocityModifier, 0f, 75f);
 
-            KeterDamagePenetration = Mathf.Clamp(KeterDamagePenetration, 0f, 1f);
-
-            if (KeterDamageVelocityModifier < 0f)
-            {
-                Log.Warn("[NpcConfig] KeterDamageVelocityModifier cannot be negative. Resetting to 0.");
-                KeterDamageVelocityModifier = 0f;
-            }
-
-            if (KeterForceMinModifier < 0f) KeterForceMinModifier = 0f;
-            if (KeterForceMaxModifier < 0f) KeterForceMaxModifier = 0f;
+            // --- 4. Ragdoll RigidBody Impulse Constraints ---
+            KeterForceMinModifier = Mathf.Clamp(KeterForceMinModifier, 0f, 150f);
+            KeterForceMaxModifier = Mathf.Clamp(KeterForceMaxModifier, 0f, 150f);
 
             if (KeterForceMinModifier > KeterForceMaxModifier)
             {
-                float temp = KeterForceMinModifier;
-                KeterForceMinModifier = KeterForceMaxModifier;
-                KeterForceMaxModifier = temp;
-                Log.Warn("[NpcConfig] KeterForceMinModifier was greater than KeterForceMaxModifier. Values have been swapped.");
+                Log.Warn("[NpcConfig] KeterForceMinModifier was greater than KeterForceMaxModifier. Swapping boundaries.");
+                (KeterForceMinModifier, KeterForceMaxModifier) = (KeterForceMaxModifier, KeterForceMinModifier);
+            }
+
+            // Prevent exact single-point distribution vectors if variance calculation requires a delta range
+            if (Mathf.Abs(KeterForceMaxModifier - KeterForceMinModifier) < 0.01f)
+            {
+                KeterForceMaxModifier += 0.5f;
             }
         }
     }

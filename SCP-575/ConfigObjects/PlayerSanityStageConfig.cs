@@ -1,8 +1,9 @@
 ﻿namespace SCP_575.ConfigObjects
 {
-    using Exiled.API.Features;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using Exiled.API.Features;
+    using UnityEngine;
 
     /// <summary>
     /// Defines a stage of player sanity, including thresholds and which effects
@@ -36,38 +37,29 @@
 
         public void Validate()
         {
-            if (DamageOnStrike < 0f)
-            {
-                Log.Warn($"[SanityStageConfig] DamageOnStrike cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
-                DamageOnStrike = 0f;
-            }
-
-            if (AdditionalDamagePerStack < 0f)
-            {
-                Log.Warn($"[SanityStageConfig] AdditionalDamagePerStack cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
-                AdditionalDamagePerStack = 0f;
-            }
+            DamageOnStrike = Mathf.Max(0f, DamageOnStrike);
+            AdditionalDamagePerStack = Mathf.Max(0f, AdditionalDamagePerStack);
 
             if (DamageOnStrikeWhenLightsourceActive < 0f)
             {
-                Log.Warn($"[SanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                Log.Warn($"[PlayerSanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
                 DamageOnStrikeWhenLightsourceActive = 0f;
             }
             else if (DamageOnStrikeWhenLightsourceActive > DamageOnStrike)
             {
-                Log.Warn($"[SanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be greater than to DamageOnStrike for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
-                DamageOnStrikeWhenLightsourceActive = 0f;
+                Log.Warn($"[PlayerSanityStageConfig] DamageOnStrikeWhenLightsourceActive cannot be greater than DamageOnStrike for stage {MinThreshold}-{MaxThreshold}. Adjusting to equal DamageOnStrike.");
+                DamageOnStrikeWhenLightsourceActive = DamageOnStrike;
             }
 
             if (AdditionalDamagePerStackWhenLightsourceActive < 0f)
             {
-                Log.Warn($"[SanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                Log.Warn($"[PlayerSanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
                 AdditionalDamagePerStackWhenLightsourceActive = 0f;
             }
             else if (AdditionalDamagePerStackWhenLightsourceActive > AdditionalDamagePerStack)
             {
-                Log.Warn($"[SanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be greater than AdditionalDamagePerStack for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
-                AdditionalDamagePerStackWhenLightsourceActive = 0f;
+                Log.Warn($"[PlayerSanityStageConfig] AdditionalDamagePerStackWhenLightsourceActive cannot be greater than AdditionalDamagePerStack for stage {MinThreshold}-{MaxThreshold}. Adjusting to equal AdditionalDamagePerStack.");
+                AdditionalDamagePerStackWhenLightsourceActive = AdditionalDamagePerStack;
             }
 
             if (Effects != null)

@@ -144,11 +144,19 @@
 
         #endregion
 
-        /// <summary>
+        ////// <summary>
         /// Validates the Cassie configuration parameters and corrects invalid input.
         /// </summary>
         public void Validate()
         {
+            // --- 1. General & Priority Guard ---
+            if (CassieMessagePriority < 0f)
+            {
+                Log.Warn($"[CassieConfig] CassieMessagePriority ({CassieMessagePriority}) cannot be negative. Resetting to default (3.1f).");
+                CassieMessagePriority = 3.1f;
+            }
+
+            // --- 2. Timing Settings Validation ---
             if (TimeBetweenSentenceAndStart < 0f)
             {
                 Log.Warn("[CassieConfig] TimeBetweenSentenceAndStart cannot be negative. Resetting to 0.");
@@ -161,9 +169,38 @@
                 TimeBetweenSentenceAndEnd = 0f;
             }
 
-            // Clamp probabilities between 0% and 100%
+            // --- 3. Audio Effects & Probabilities ---
             GlitchChance = Mathf.Clamp(GlitchChance, 0f, 100f);
             JamChance = Mathf.Clamp(JamChance, 0f, 100f);
+
+            // --- 4. String Sanitization (Preserves empty strings for intent-based silencing) ---
+            CassieMessageCountdown = SanitizeCassieString(CassieMessageCountdown);
+            CassieMessageStart = SanitizeCassieString(CassieMessageStart);
+            CassiePostMessage = SanitizeCassieString(CassiePostMessage);
+            CassieMessageWrong = SanitizeCassieString(CassieMessageWrong);
+            CassieMessageEnd = SanitizeCassieString(CassieMessageEnd);
+
+            CassieMessageFacility = SanitizeCassieString(CassieMessageFacility);
+            CassieMessageEntrance = SanitizeCassieString(CassieMessageEntrance);
+            CassieMessageLight = SanitizeCassieString(CassieMessageLight);
+            CassieMessageHeavy = SanitizeCassieString(CassieMessageHeavy);
+            CassieMessageSurface = SanitizeCassieString(CassieMessageSurface);
+            CassieMessageOther = SanitizeCassieString(CassieMessageOther);
+            CassieKeter = SanitizeCassieString(CassieKeter);
+        }
+
+        /// <summary>
+        /// Strips whitespace corruption and newline formatting while preserving empty strings for intentional text muting.
+        /// </summary>
+        private string SanitizeCassieString(string rawMessage)
+        {
+            if (string.IsNullOrWhiteSpace(rawMessage))
+            {
+                return string.Empty;
+            }
+
+            // Sanitizes hidden YAML newline injection characters (\r\n) that break the native voice engine parser
+            return rawMessage.Replace("\r", "").Replace("\n", " ").Trim();
         }
     }
 }

@@ -1,102 +1,73 @@
 ﻿namespace SCP_575.ConfigObjects
 {
+    using System;
     using System.ComponentModel;
+    using Exiled.API.Features;
 
     public sealed class HintsConfig
     {
         #region Player Hints
-
-        /// <summary>
-        /// Whether to show hint messages when players are affected by SCP-575 actions.
-        /// </summary>
-        [Description("Inform players when affected by SCP-575 via hint messages.")]
         public bool IsEnabledKeterHint { get; set; } = true;
-
-        /// <summary>
-        /// Whether to show hint messages when players sanity is affected.
-        /// </summary>
-        [Description("Inform players when thier sanity is affected.")]
         public bool IsEnabledSanityHint { get; set; } = true;
-
-        /// <summary>  
-        /// Hint message shown when a player's sanity decreases.
-        /// </summary>  
-        [Description("Hint shown when player's sanity level decreases. {0} = current sanity value")]
-        public string SanityDecreasedHint { get; set; } = "Your sanity is decreasing!\n Sanity: {0}. Find light sources or medical items to recover.";
-
-        /// <summary>  
-        /// Hint message shown when a player's sanity increases.
-        /// </summary>  
-        [Description("Hint shown when player's sanity level increases. {0} = current sanity value")]
-        public string SanityIncreasedHint { get; set; } = "Your sanity is recovering!\n Sanity: {0}. You are safe for now.";
-
-        /// <summary>  
-        /// Hint message shown when a player's sanity increases from medical items.
-        /// </summary>  
-        [Description("Hint shown when player's sanity recovers from medical treatment. {0} = new sanity value")]
-        public string SanityIncreasedMedicalHint { get; set; } = "Your sanity is recovering!\n Sanity: {0} thanks to medical treatment!";
-
-        /// <summary>
-        /// Hint message shown when a player is affected by SCP-575 action.
-        /// </summary>
-        [Description("Hint shown when player is affected by SCP-575.")]
-        public string KeterHint { get; set; } = "You were affected by actions of SCP-575! Equip a flashlight!";
-
-        /// <summary>
-        /// Whether to show a hint when a light source is on cooldown.
-        /// </summary>
-        [Description("Inform players about cooldown of light emitter.")]
+        public string SanityDecreasedHint { get; set; } = "Your sanity is decreasing!\n Sanity: {0}.";
+        public string SanityIncreasedHint { get; set; } = "Your sanity is recovering!\n Sanity: {0}.";
+        public string SanityIncreasedMedicalHint { get; set; } = "Your sanity is recovering!\n Sanity: {0}.";
+        public string KeterHint { get; set; } = "You were affected by actions of SCP-575!";
         public bool IsEnabledLightEmitterCooldownHint { get; set; } = true;
-
-        /// <summary>
-        /// Hint message shown when a light source is on cooldown.
-        /// </summary>
-        [Description("Hint shown when using light source on cooldown.")]
         public string LightEmitterCooldownHint { get; set; } = "Your light source is on cooldown!";
-
-        /// <summary>
-        /// Hint message shown when a light source is disabled by SCP-575.
-        /// </summary>
-        [Description("Hint shown when light source is disabled by SCP-575.")]
         public string LightEmitterDisabledHint { get; set; } = "Your light source has been disabled!";
-
         #endregion
 
         #region Death Information
-
-        /// <summary>
-        /// Name displayed in a player's death information.
-        /// </summary>
-        [Description("Name displayed in death info.")]
         public string KilledBy { get; set; } = "SCP-575";
-
-        /// <summary>
-        /// Message shown in a player's death information.
-        /// </summary>
-        [Description("Message displayed when killed by SCP-575.")]
         public string KilledByMessage { get; set; } = "Shredded apart by SCP-575";
-
-        /// <summary>
-        /// Text displayed when inspecting a ragdoll killed by SCP-575.
-        /// </summary>
-        [Description("Ragdoll inspection text after death by SCP-575.")]
-        public string RagdollInspectText { get; set; } = "Flesh stripped by shadow tendrils, leaving a shadowy skeleton.";
-
+        public string RagdollInspectText { get; set; } = "Flesh stripped by shadow tendrils.";
         #endregion
 
-        /// <summary>
-        /// Validates string parameters and prevents null reference exceptions.
-        /// </summary>
         public void Validate()
         {
-            SanityDecreasedHint ??= string.Empty;
-            SanityIncreasedMedicalHint ??= string.Empty;
-            KeterHint ??= string.Empty;
-            LightEmitterCooldownHint ??= string.Empty;
-            LightEmitterDisabledHint ??= string.Empty;
-            KilledBy ??= string.Empty;
-            KilledByMessage ??= string.Empty;
-            RagdollInspectText ??= string.Empty;
+            SanityDecreasedHint = SanitizeHintString(SanityDecreasedHint);
+            SanityIncreasedHint = SanitizeHintString(SanityIncreasedHint);
+            SanityIncreasedMedicalHint = SanitizeHintString(SanityIncreasedMedicalHint);
+            KeterHint = SanitizeHintString(KeterHint);
+            LightEmitterCooldownHint = SanitizeHintString(LightEmitterCooldownHint);
+            LightEmitterDisabledHint = SanitizeHintString(LightEmitterDisabledHint);
+
+            KilledBy = string.IsNullOrWhiteSpace(KilledBy) ? "SCP-575" : KilledBy.Trim();
+            KilledByMessage = string.IsNullOrWhiteSpace(KilledByMessage) ? "Shredded apart by SCP-575" : KilledByMessage.Trim();
+            RagdollInspectText = string.IsNullOrWhiteSpace(RagdollInspectText) ? "Flesh stripped by shadow tendrils." : RagdollInspectText.Trim();
+
+            // Safe value assignments returning checked configurations
+            SanityDecreasedHint = GetValidatedTokenString(SanityDecreasedHint, "{0}", "Your sanity is decreasing! Sanity: {0}.");
+            SanityIncreasedHint = GetValidatedTokenString(SanityIncreasedHint, "{0}", "Your sanity is recovering! Sanity: {0}.");
+            SanityIncreasedMedicalHint = GetValidatedTokenString(SanityIncreasedMedicalHint, "{0}", "Your sanity is recovering! Sanity: {0}.");
+        }
+
+        private string SanitizeHintString(string rawHint)
+        {
+            return string.IsNullOrWhiteSpace(rawHint) ? string.Empty : rawHint.Replace("\r", "").Trim();
+        }
+
+        private string GetValidatedTokenString(string sourceHint, string expectedToken, string safeFallback)
+        {
+            if (string.IsNullOrEmpty(sourceHint)) return string.Empty;
+
+            if (!sourceHint.Contains(expectedToken))
+            {
+                Log.Warn($"[HintsConfig] Missing token '{expectedToken}' inside layout string. Reverting.");
+                return safeFallback;
+            }
+
+            try
+            {
+                _ = string.Format(sourceHint, "100");
+                return sourceHint;
+            }
+            catch (FormatException)
+            {
+                Log.Error("[HintsConfig] Malformed formatting syntax intercepted. Reverting to fallback configuration.");
+                return safeFallback;
+            }
         }
     }
 }
