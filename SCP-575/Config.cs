@@ -34,6 +34,7 @@ namespace SCP_575
         public NpcConfig NpcConfig => Plugin.Singleton.NpcConfig;
         public PlayerSanityConfig SanityConfig => Plugin.Singleton.Sanity;
         public PlayerLightsourceConfig LightsourceConfig => Plugin.Singleton.LightsourceConfig;
+        public AudioConfig AudioConfig => Plugin.Singleton.Audio;
         public HintsConfig HintsConfig => Plugin.Singleton.Hints;
         public CassieConfig CassieConfig => Plugin.Singleton.Cassie;
 
