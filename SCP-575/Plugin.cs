@@ -2,14 +2,12 @@ namespace SCP_575
 {
     using LabApi.Events.CustomHandlers;
     using LabApi.Loader;
+    using SCP_575.Compatibility; // Imported compatibility domain namespace
     using SCP_575.ConfigObjects;
     using SCP_575.Handlers;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio;
     using System;
-    using System.Diagnostics;
-    using System.IO;
-    using System.Runtime.InteropServices;
     using Logger = SCP_575.Shared.LibraryLabAPI;
 
     /// <summary>
@@ -33,10 +31,9 @@ namespace SCP_575
         private LibraryLabAPI _libraryLabAPI;
 
         private bool _isEventActive = false;
+        private bool _isConfigLoaded = false;
 
         public static Plugin Singleton { get; private set; }
-
-        private bool _isConfigLoaded = false;
 
         #region Independent Sub-Configurations
 
@@ -69,7 +66,6 @@ namespace SCP_575
         public Scp575AudioDirector AudioDirector => _audioDirector;
         public LibraryLabAPI LibraryLabAPI => _libraryLabAPI;
 
-        // Mandated LabAPI Abstract Overrides
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
         public override string Description => "Advanced horror pacing sub-drone shadow entity that makes darkness dangerous.";
@@ -87,15 +83,6 @@ namespace SCP_575
 
             base.LoadConfigs();
             Config.Validate();
-
-            Audio = new AudioConfig();
-            Blackout = new BlackoutConfig();
-            FlashlightSpawn = new FlashlightSpawnConfig();
-            Npc = new NpcConfig();
-            Sanity = new PlayerSanityConfig();
-            Lightsource = new PlayerLightsourceConfig();
-            Hints = new HintsConfig();
-            Cassie = new CassieConfig();
 
             if (this.TryLoadConfig("audio_settings.yml", out AudioConfig loadedAudio))
             {
@@ -156,18 +143,12 @@ namespace SCP_575
             _isConfigLoaded = true;
         }
 
-        /// <summary>
-        /// LabAPI structural entry point substitution for EXILED's OnEnabled.
-        /// </summary>
         public override void Enable()
         {
-
-            // To ensure Exiled compatibility, we will call LoadConfigs() because it hasn't been called.
+            // Clean abstraction detour execution for Exiled environments setup configurations
             if (!_isConfigLoaded)
             {
-                Logger.LogWarn(nameof(Enable), "LoadConfigs was not called before Enable(), calling it now for compatibility.");
-                TryCreateExiledSymlink();
-                LoadConfigs();
+                ExiledCompatibilityLayer.ExecuteFallback(this);
             }
 
             Singleton = this;
@@ -176,7 +157,7 @@ namespace SCP_575
             {
                 _libraryLabAPI = new LibraryLabAPI(this);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _libraryLabAPI = null;
                 Singleton = null;
@@ -212,9 +193,6 @@ namespace SCP_575
             }
         }
 
-        /// <summary>
-        /// LabAPI structural teardown substitution for EXILED's OnDisabled.
-        /// </summary>
         public override void Disable()
         {
             _isEventActive = false;
@@ -273,55 +251,6 @@ namespace SCP_575
             CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
             CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
             CustomHandlersManager.UnregisterEventsHandler(_mapHandler);
-        }
-
-        private void TryCreateExiledSymlink()
-        {
-            try
-            {
-                DirectoryInfo labApiConfigDir = this.GetConfigDirectory(isGlobal: false);
-                string exiledConfigPath = Path.Combine(
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SCP Secret Laboratory", ".EXILED", "Configs"),
-                    Name
-                );
-
-                if (!Directory.Exists(exiledConfigPath) && Directory.Exists(labApiConfigDir.FullName))
-                {
-                    bool success = CreateJunction(exiledConfigPath, labApiConfigDir.FullName);
-                    if (success)
-                        Logger.LogInfo(nameof(TryCreateExiledSymlink), $"Created junction from Exiled config to LabAPI");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarn(nameof(TryCreateExiledSymlink), $"Failed to create Exiled junction: {ex.Message}");
-            }
-        }
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool CreateSymbolicLink(
-            string lpSymlinkFileName,
-            string lpTargetFileName,
-            int dwFlags);
-
-        private bool CreateJunction(string junctionPath, string targetPath)
-        {
-            try
-            {
-                ProcessStartInfo psi = new ProcessStartInfo("cmd.exe", $"/c mklink /J \"{junctionPath}\" \"{targetPath}\"")
-                {
-                    CreateNoWindow = true,
-                    UseShellExecute = false,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                };
-                Process.Start(psi)?.WaitForExit();
-                return Directory.Exists(junctionPath);
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }
