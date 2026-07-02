@@ -3,7 +3,6 @@
     using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
     using SCP_575.Shared;
-    using SCP_575.Shared.Audio.Enums;
     using System;
     using Types;
     using UnityEngine;
@@ -65,7 +64,7 @@
                             "ProjectileImpact",
                             $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks + 1}",
                             $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}",
-                            () => _plugin.AudioDirector?.ProcessExplosionImpactBoostFeedback() 
+                            () => _plugin.AudioDirector?.ProcessExplosionImpactBoostFeedback()
                         );
                     }
                     break;

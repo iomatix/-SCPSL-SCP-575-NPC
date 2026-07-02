@@ -1,9 +1,7 @@
 namespace SCP_575
 {
     using LabApi.Events.CustomHandlers;
-    using LabApi.Features.Console;
     using LabApi.Loader;
-    using LabApi.Loader.Features.Plugins;
     using SCP_575.ConfigObjects;
     using SCP_575.Handlers;
     using SCP_575.Shared;
@@ -67,7 +65,7 @@ namespace SCP_575
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
         public override string Description => "Advanced horror pacing sub-drone shadow entity that makes darkness dangerous.";
-        public override Version Version => new(10, 3, 0);
+        public override Version Version => new(11, 0, 0);
         public override Version RequiredApiVersion => new(1, 0, 0);
 
         #endregion

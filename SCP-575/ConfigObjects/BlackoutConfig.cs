@@ -101,7 +101,7 @@
             // --- 1. Timing and Duration Safe Guards ---
             if (DurationMin < 5f)
             {
-                Logger.LogWarn(nameof(BlackoutConfig),$"DurationMin ({DurationMin}s) is too low for SCP-575 gameplay pacing. Forcing minimum of 5s.");
+                Logger.LogWarn(nameof(BlackoutConfig), $"DurationMin ({DurationMin}s) is too low for SCP-575 gameplay pacing. Forcing minimum of 5s.");
                 DurationMin = 5f;
             }
 

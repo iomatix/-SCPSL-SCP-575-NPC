@@ -94,7 +94,7 @@
                     ItemType.SCP2176 => ProjectileImpactType.Helpful,
                     ItemType.GrenadeFlash => ProjectileImpactType.Dangerous,
                     // Disable to avoid duplication
-                    ItemType.GrenadeHE => ProjectileImpactType.Disabled, 
+                    ItemType.GrenadeHE => ProjectileImpactType.Disabled,
                     ItemType.ParticleDisruptor => ProjectileImpactType.Disabled,
                     ItemType.Jailbird => ProjectileImpactType.Disabled,
                     ItemType.SCP018 => ProjectileImpactType.Disabled,

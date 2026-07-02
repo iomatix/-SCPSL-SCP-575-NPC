@@ -1,10 +1,10 @@
 ﻿namespace SCP_575.Shared
 {
-    using System;
-    using System.Linq;
     using InventorySystem.Items.Firearms.Attachments;
     using InventorySystem.Items.ToggleableLights;
     using LabApi.Features.Wrappers;
+    using System;
+    using System.Linq;
     using UnityEngine;
 
     public static class Helpers

@@ -1,8 +1,6 @@
 namespace SCP_575.Handlers
 {
-    using InventorySystem.Items.Firearms;
     using InventorySystem.Items.Firearms.Attachments;
-    using InventorySystem.Items.ToggleableLights;
     using LabApi.Events.Arguments.PlayerEvents;
     using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
@@ -11,7 +9,6 @@ namespace SCP_575.Handlers
     using MEC;
     using SCP_575.ConfigObjects;
     using SCP_575.Shared;
-    using SCP_575.Shared.Audio.Enums;
     using System;
     using System.Collections.Generic;
     using System.Linq;

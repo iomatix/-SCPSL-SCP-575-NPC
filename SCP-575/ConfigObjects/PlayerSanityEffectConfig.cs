@@ -1,10 +1,10 @@
 ﻿namespace SCP_575.ConfigObjects
 {
 
-    using Logger = SCP_575.Shared.LibraryLabAPI;
     using SCP_575.Types;
     using System;
     using System.ComponentModel;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     /// <summary>
     /// Configuration for a sanity status effect, defining its type, duration, and intensity.

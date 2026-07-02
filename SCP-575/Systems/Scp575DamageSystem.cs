@@ -1,11 +1,16 @@
 namespace SCP_575.Shared
 {
-    using System;
-    using System.Collections.Generic;
+    using InventorySystem.Items.Armor;
     using LabApi.Features.Wrappers;
     using MEC;
-    using UnityEngine;
+    using PlayerRoles;
+    using PlayerRoles.PlayableScps.Scp3114;
+    using PlayerRoles.Ragdolls;
+    using PlayerStatsSystem;
     using SCP_575.Shared.Audio.Enums;
+    using System;
+    using System.Collections.Generic;
+    using UnityEngine;
 
     public static class Scp575DamageSystem
     {

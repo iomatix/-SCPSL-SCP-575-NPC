@@ -2,12 +2,10 @@ namespace SCP_575.Shared
 {
     using Cassie;
     using Interactables.Interobjects.DoorUtils;
-    using LabApi.Features.Console;
     using LabApi.Features.Wrappers;
     using MapGeneration;
     using MEC;
     using SCP_575.Npc;
-    using SCP_575.Shared;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;

@@ -1,7 +1,6 @@
 ﻿namespace SCP_575.ConfigObjects
 {
     using System;
-    using System.ComponentModel;
     using Logger = SCP_575.Shared.LibraryLabAPI;
 
     public sealed class HintsConfig

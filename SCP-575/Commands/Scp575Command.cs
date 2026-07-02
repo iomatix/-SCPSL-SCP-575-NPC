@@ -1,8 +1,8 @@
 ﻿namespace SCP_575.Commands
 {
-    using System;
     using CommandSystem;
     using RemoteAdmin;
+    using System;
 
     /// <summary>
     /// Administrative command router for SCP-575 plugin management.

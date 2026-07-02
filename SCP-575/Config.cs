@@ -1,8 +1,7 @@
 namespace SCP_575
 {
-    using System.ComponentModel;
-    using UnityEngine;
     using SCP_575.ConfigObjects;
+    using System.ComponentModel;
     using Logger = SCP_575.Shared.LibraryLabAPI;
 
     /// <summary>

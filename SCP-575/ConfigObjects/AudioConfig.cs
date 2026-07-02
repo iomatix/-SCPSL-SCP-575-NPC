@@ -1,10 +1,9 @@
 ﻿namespace SCP_575.ConfigObjects
 {
-    using System;
     using System.ComponentModel;
     using UnityEngine;
     using Logger = SCP_575.Shared.LibraryLabAPI;
-    
+
     public sealed class AudioConfig
     {
         #region Baseline Engine Options

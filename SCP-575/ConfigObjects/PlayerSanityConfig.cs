@@ -1,7 +1,6 @@
 ﻿namespace SCP_575.ConfigObjects
 {
     using SCP_575.Types;
-    using System;
     using System.Collections.Generic;
     using System.ComponentModel;
     using UnityEngine;

@@ -2,8 +2,8 @@
 {
     using System.Collections.Generic;
     using System.ComponentModel;
-    using Logger = SCP_575.Shared.LibraryLabAPI;
     using UnityEngine;
+    using Logger = SCP_575.Shared.LibraryLabAPI;
 
     /// <summary>
     /// Defines a stage of player sanity, including thresholds and which effects
