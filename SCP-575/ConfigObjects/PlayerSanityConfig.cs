@@ -18,19 +18,19 @@
         public float InitialSanity { get; set; } = 100f;
 
         [Description("How much sanity (0-100) a player naturally loses PER MINUTE in baseline conditions.")]
-        public float BaseDecayPerMinute { get; set; } = 5.65f;
+        public float BaseDecayPerMinute { get; set; } = 6.65f;
 
         [Description("Decay multiplier applied during an active SCP-575 Blackout event.")]
         public float DecayMultiplierBlackout { get; set; } = 1.65f;
 
         [Description("Harsh decay multiplier applied when the player has NO active personal light source (flashlight/weapon light) in the dark.")]
-        public float DecayMultiplierDarkness { get; set; } = 2.45f;
+        public float DecayMultiplierDarkness { get; set; } = 2.55f;
 
         [Description("How much sanity (0-100) a player passively regenerates PER MINUTE when inside safe, lit zones.")]
-        public float PassiveRegenPerMinute { get; set; } = 3.38f;
+        public float PassiveRegenPerMinute { get; set; } = 4.35f;
 
         [Description("Amount of sanity lost instantly when attacked/hit by any SCP entity.")]
-        public float ScpHitSanityDrop { get; set; } = 4f;
+        public float ScpHitSanityDrop { get; set; } = 3f;
 
         #endregion
 
@@ -46,13 +46,13 @@
         public float PainkillersExtraSanityRegen { get; set; } = 0.65f;
 
         [Description("Duration in seconds of the regen effect if the player is in the bright room.")]
-        public float PainkillersRegenDuration { get; set; } = 13.5f;
+        public float PainkillersRegenDuration { get; set; } = 12.75f;
 
         [Description("Duration in seconds of the protection effect. SCP-575 will not deal any damage nor apply any effects to the player for this duration.")]
-        public float PainkillersProtectionDuration { get; set; } = 3.25f;
+        public float PainkillersProtectionDuration { get; set; } = 3.35f;
 
         [Description("Minimum sanity restore percent from SCP-500.")]
-        public float Scp500RestoreMin { get; set; } = 85f;
+        public float Scp500RestoreMin { get; set; } = 90f;
 
         [Description("Maximum sanity restore percent from SCP-500.")]
         public float Scp500RestoreMax { get; set; } = 100f;
@@ -72,7 +72,7 @@
         #region Stage Thresholds and Effects
 
         [Description("Duration in seconds a player is protected from consecutive sensory effect bursts (e.g. blur spams) after the last burst sequence.")]
-        public float EffectsBurstCooldown { get; set; } = 3.35f;
+        public float EffectsBurstCooldown { get; set; } = 4.25f;
 
         [Description("Cooldown in seconds between consecutive anomalous impact sound triggers on the same player.")]
         public float AttackAudioCooldownSeconds { get; set; } = 1.25f;
