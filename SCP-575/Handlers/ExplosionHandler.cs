@@ -43,7 +43,7 @@
             var room = _lib.GetRoomAtPosition(position);
             if (room == null) return;
 
-            bool isBlackoutActive = _plugin.Npc.Methods.IsBlackoutActive;
+            bool isBlackoutActive = _plugin.NpcNestingObj.Methods.IsBlackoutActive;
 
             if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && room.LightController.LightsEnabled)
                 return;
@@ -59,18 +59,18 @@
 
                     if (isBlackoutActive)
                     {
-                        _plugin.Npc.Methods.StartTimedBlackoutBoost(
-                            _plugin.Config.BlackoutConfig.DurationMin,
+                        _plugin.NpcNestingObj.Methods.StartTimedBlackoutBoost(
+                            _plugin.Blackout.DurationMin,
                             "ProjectileImpact",
-                            $"Blackout intensified via tactical projectile! Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks + 1}",
-                            $"Tactical projectile blackout boost expired. Current stacks: {_plugin.Npc.Methods.GetCurrentBlackoutStacks}",
+                            $"Blackout intensified via tactical projectile! Current stacks: {_plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks + 1}",
+                            $"Tactical projectile blackout boost expired. Current stacks: {_plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks}",
                             () => _plugin.AudioDirector?.ProcessExplosionImpactBoostFeedback()
                         );
                     }
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-                    _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
+                    _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Blackout.ElevatorLockdownProbability);
                     break;
             }
         }

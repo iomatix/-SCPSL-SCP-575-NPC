@@ -32,10 +32,10 @@
                 if (ev?.Player == null || ev.Ragdoll == null || ev.DamageHandler == null)
                     return;
 
-                if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler))
+                if (!_plugin.DamageSystem.IsScp575Damage(ev.DamageHandler))
                     return;
 
-                if (_plugin.Config.NpcConfig.DisableRagdolls)
+                if (_plugin.Npc.DisableRagdolls)
                 {
                     LibraryLabAPI.LogDebug("RagdollHandler", "DisableRagdolls enabled. Destroying ragdoll.");
                     ev.Ragdoll.Destroy();
@@ -50,7 +50,7 @@
                     _plugin.AudioDirector?.ProcessRagdollConsumption(position);
 
                     // Execute downstream physiological status tracking updates
-                    Scp575DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
+                    _plugin.DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
                 }
             }
             catch (Exception ex)

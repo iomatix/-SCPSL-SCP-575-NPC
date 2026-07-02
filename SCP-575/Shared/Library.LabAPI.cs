@@ -26,8 +26,7 @@ namespace SCP_575.Shared
 
         #region Properties
 
-        public Methods Methods => _plugin.Npc.Methods;
-        public Config Config => _plugin.Config;
+        public Methods Methods => _plugin.NpcNestingObj.Methods;
         public IReadOnlyCollection<Player> Players => Player.List;
         public IReadOnlyCollection<Room> Rooms => Room.List;
         public IReadOnlyCollection<Elevator> Elevators => Elevator.List;
@@ -119,7 +118,7 @@ namespace SCP_575.Shared
 
             foreach (LightsController controller in room.AllLightControllers)
             {
-                controller.FlickerLights(Config.BlackoutConfig.FlickerDuration);
+                controller.FlickerLights(_plugin.Blackout.FlickerDuration);
             }
 
             // FIXED: Utilizing explicit foreach iterations to resolve HashSet elements securely.
@@ -130,13 +129,13 @@ namespace SCP_575.Shared
 
                 foreach (LightsController controller in r.AllLightControllers)
                 {
-                    controller.FlickerLights(Config.BlackoutConfig.FlickerDuration);
+                    controller.FlickerLights(_plugin.Blackout.FlickerDuration);
                 }
 
-                HandleElevatorsForRoom(r, elevatorAffectChance, Config.BlackoutConfig.FlickerDuration, elevator =>
+                HandleElevatorsForRoom(r, elevatorAffectChance, _plugin.Blackout.FlickerDuration, elevator =>
                 {
                     elevator.LockAllDoors();
-                    var coroutine = Timing.CallDelayed(Config.BlackoutConfig.FlickerDuration, () => elevator.UnlockAllDoors());
+                    var coroutine = Timing.CallDelayed(_plugin.Blackout.FlickerDuration, () => elevator.UnlockAllDoors());
                     coroutine.Tag = CoroutineTags.Temp;
                 });
             }
@@ -147,7 +146,7 @@ namespace SCP_575.Shared
             if (room == null) return;
 
             bool attemptFirstSuccess = false;
-            float blackoutDuration = blackoutDurationBase + UnityEngine.Random.Range(Config.BlackoutConfig.DurationMin, Config.BlackoutConfig.DurationMax);
+            float blackoutDuration = blackoutDurationBase + UnityEngine.Random.Range(_plugin.Blackout.DurationMin, _plugin.Blackout.DurationMax);
 
             if (Methods.AttemptRoomBlackout(room, blackoutDuration, silent: true, forced: forced))
             {
@@ -272,12 +271,12 @@ namespace SCP_575.Shared
 
         public void CassieGlitchyMessage(string message)
         {
-            message = CassieGlitchifier.Glitchify(message, Config.CassieConfig.GlitchChance / 100, Config.CassieConfig.JamChance / 100);
+            message = CassieGlitchifier.Glitchify(message, _plugin.Cassie.GlitchChance / 100, _plugin.Cassie.JamChance / 100);
             Announcer.Message($"pitch_1.15 {message}", string.Empty, playBackground: false);
         }
 
         public void CassieMessage(string message) =>
-            Announcer.Message($"pitch_0.95 {message}", playBackground: false, priority: Plugin.Singleton.Config.CassieConfig.CassieMessagePriority);
+            Announcer.Message($"pitch_0.95 {message}", playBackground: false, priority: _plugin.Cassie.CassieMessagePriority);
 
         #endregion
 

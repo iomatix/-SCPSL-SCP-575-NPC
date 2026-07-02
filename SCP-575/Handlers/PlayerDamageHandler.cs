@@ -59,9 +59,9 @@
 
             try
             {
-                if (!Scp575DamageSystem.IsScp575Damage(ev.DamageHandler)) return;
+                if (!_plugin.DamageSystem.IsScp575Damage(ev.DamageHandler)) return;
 
-                Scp575DamageSystem.ProcessLethalStrike(ev.Player, _plugin);
+                _plugin.DamageSystem.ProcessLethalStrike(ev.Player);
             }
             catch (Exception ex)
             {
@@ -78,7 +78,7 @@
             if (!_plugin.IsEventActive || ev?.Player == null) return;
 
             bool isPhysicalScpAttack = ev.Attacker != null && ev.Attacker.IsSCP;
-            bool isCustom575Attack = ev.DamageHandler != null && Scp575DamageSystem.IsScp575Damage(ev.DamageHandler);
+            bool isCustom575Attack = ev.DamageHandler != null && _plugin.DamageSystem.IsScp575Damage(ev.DamageHandler);
 
             if (isCustom575Attack)
             {
@@ -92,16 +92,16 @@
                 DateTime tempTime = lastTime;
 
                 // Dynamically compile the TimeSpan tracking frame boundary straight from configuration allocations
-                TimeSpan audioCooldownWindow = TimeSpan.FromSeconds(_plugin.Config.SanityConfig.AttackAudioCooldownSeconds);
+                TimeSpan audioCooldownWindow = TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds);
 
-                Scp575DamageSystem.ProcessAnomalousTrauma(ev.Player, _plugin, ref tempTime, audioCooldownWindow);
+                _plugin.DamageSystem.ProcessAnomalousTrauma(ev.Player, ref tempTime, audioCooldownWindow);
                 _playerLastAttackAudioTime[instanceId] = tempTime;
 
                 _plugin.AudioDirector?.SuppressPsychologicalAudio(ev.Player, 3.5f);
             }
             else if (isPhysicalScpAttack)
             {
-                float dropAmount = _plugin.Config.SanityConfig.ScpHitSanityDrop;
+                float dropAmount = _plugin.Sanity.ScpHitSanityDrop;
                 if (dropAmount > 0f)
                 {
                     // Directly slash sanity down without touching the client's visual rendering tracks

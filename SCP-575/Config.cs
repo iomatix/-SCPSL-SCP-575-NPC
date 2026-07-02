@@ -27,27 +27,6 @@ namespace SCP_575
 
         #endregion
 
-        #region Backwards Compatibility Redirect Proxies (Ignored by YAML Serializer)
-
-        [YamlIgnore]
-        public BlackoutConfig BlackoutConfig => Plugin.Singleton.Blackout;
-        [YamlIgnore]
-        public FlashlightSpawnConfig FlashlightSpawnConfig => Plugin.Singleton.FlashlightSpawn;
-        [YamlIgnore]
-        public NpcConfig NpcConfig => Plugin.Singleton.NpcConfig;
-        [YamlIgnore]
-        public PlayerSanityConfig SanityConfig => Plugin.Singleton.Sanity;
-        [YamlIgnore]
-        public PlayerLightsourceConfig LightsourceConfig => Plugin.Singleton.LightsourceConfig;
-        [YamlIgnore]
-        public AudioConfig AudioConfig => Plugin.Singleton.Audio;
-        [YamlIgnore]
-        public HintsConfig HintsConfig => Plugin.Singleton.Hints;
-        [YamlIgnore]
-        public CassieConfig CassieConfig => Plugin.Singleton.Cassie;
-
-        #endregion
-
         #region Validation
 
         /// <summary>

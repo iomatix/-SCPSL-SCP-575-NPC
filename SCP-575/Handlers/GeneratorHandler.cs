@@ -42,28 +42,28 @@
             LibraryLabAPI.LogInfo("GeneratorHandler", $"Power substation initialized inside zone room: {room.Name}");
 
             // Overrides local dark zones by establishing a persistent illumination safety baseline
-            _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Config.BlackoutConfig.ElevatorLockdownProbability);
+            _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Blackout.ElevatorLockdownProbability);
 
-            bool allEngaged = _plugin.Npc.Methods.AreAllGeneratorsEngaged();
-            bool retaliationConfigured = _plugin.Config.BlackoutConfig.GeneratorActivationRetaliation;
+            bool allEngaged = _plugin.NpcNestingObj.Methods.AreAllGeneratorsEngaged();
+            bool retaliationConfigured = _plugin.Blackout.GeneratorActivationRetaliation;
 
             // Delegate all audio feedback loops and environmental sound cues to the director layer
             _plugin.AudioDirector?.ProcessGeneratorActivation(pos, allEngaged, retaliationConfigured);
 
             if (allEngaged)
             {
-                _plugin.Npc.Methods.ProcessFullGridRestorationTeardown();
+                _plugin.NpcNestingObj.Methods.ProcessFullGridRestorationTeardown();
                 return;
             }
 
             if (retaliationConfigured)
             {
-                _plugin.Npc.Methods.StartTimedBlackoutBoost(
-                    _plugin.Config.BlackoutConfig.DurationMin,
+                _plugin.NpcNestingObj.Methods.StartTimedBlackoutBoost(
+                    _plugin.Blackout.DurationMin,
                     "GeneratorHandler",
                     $"Dormant SCP-575 awakened. Triggering emergency blackout in {room.Name}.",
                     null,
-                    () => _plugin.Npc.Methods.ExecuteLocalizedRetaliationSurge(room)
+                    () => _plugin.NpcNestingObj.Methods.ExecuteLocalizedRetaliationSurge(room)
                 );
             }
         }

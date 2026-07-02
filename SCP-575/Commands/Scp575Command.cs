@@ -45,7 +45,7 @@
             }
 
             var plugin = Plugin.Singleton;
-            if (plugin == null || plugin.Npc?.Methods == null)
+            if (plugin == null || plugin.NpcNestingObj?.Methods == null)
             {
                 response = "Execution critical failure: The core SCP-575 runtime singleton or NPC system wrapper is unavailable.";
                 return false;
@@ -64,7 +64,7 @@
                     }
 
                     // Passing default parameter triggers absolute bypass of standard configuration roll percentage weights
-                    plugin.Npc.Methods.Init();
+                    plugin.NpcNestingObj.Methods.Init();
                     response = "SUCCESS: SCP-575 event architecture has been forced online. Environmental trackers, audio emitters, and decay graphs are now initialized.";
                     return true;
 
@@ -77,7 +77,7 @@
                     }
 
                     // Enforces the immediate invocation of the CASSIE notification and light-suppression state pipelines
-                    plugin.Npc.Methods.ForceGlobalBlackoutEvent();
+                    plugin.NpcNestingObj.Methods.ForceGlobalBlackoutEvent();
                     response = "SUCCESS: Immediate global blackout event dispatched. Processing soundscape triggers and network illumination updates.";
                     return true;
 
@@ -89,7 +89,7 @@
                         return false;
                     }
 
-                    plugin.Npc.Methods.Disable();
+                    plugin.NpcNestingObj.Methods.Disable();
                     response = "SUCCESS: Explicit runtime teardown committed. Active visual flickers, audio processing modules, and context dictionaries purged.";
                     return true;
 
@@ -108,22 +108,22 @@
 
                     if (targetStacks == 0)
                     {
-                        plugin.Npc.Methods.Reset575();
+                        plugin.NpcNestingObj.Methods.Reset575();
                         response = "SUCCESS: Blackout stack register cleared to 0. Facility electrical frameworks and illumination fields restored.";
                         return true;
                     }
 
                     // Increment or decrement the locked atomic state tracking cells until alignment with the admin input is verified
-                    while (plugin.Npc.Methods.GetCurrentBlackoutStacks < targetStacks)
+                    while (plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks < targetStacks)
                     {
-                        plugin.Npc.Methods.IncrementBlackoutStack();
+                        plugin.NpcNestingObj.Methods.IncrementBlackoutStack();
                     }
-                    while (plugin.Npc.Methods.GetCurrentBlackoutStacks > targetStacks)
+                    while (plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks > targetStacks)
                     {
-                        plugin.Npc.Methods.DecrementBlackoutStack();
+                        plugin.NpcNestingObj.Methods.DecrementBlackoutStack();
                     }
 
-                    response = $"SUCCESS: Environmental threat matrix compiled. Current blackout stack accumulation locked at: {plugin.Npc.Methods.GetCurrentBlackoutStacks}";
+                    response = $"SUCCESS: Environmental threat matrix compiled. Current blackout stack accumulation locked at: {plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks}";
                     return true;
 
                 default:

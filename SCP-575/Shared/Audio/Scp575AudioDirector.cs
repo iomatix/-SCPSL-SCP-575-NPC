@@ -87,8 +87,8 @@
                         _audioManager.StopAmbienceForPlayer(player);
                     }
 
-                    bool triggersPanicZone = currentSanity <= _plugin.Config.AudioConfig.PanicDroneSanityThreshold && isInDarkness;
-                    float lowSanityThreshold = _plugin.Config.AudioConfig.Tier2DisturbedWhispersThreshold;
+                    bool triggersPanicZone = currentSanity <= _plugin.Audio.PanicDroneSanityThreshold && isInDarkness;
+                    float lowSanityThreshold = _plugin.Audio.Tier2DisturbedWhispersThreshold;
                     bool shouldPlayLowSanityDrone = isInDarkness && currentSanity <= lowSanityThreshold && !triggersPanicZone;
 
                     EvaluatePersistentPanicDrone(player, instanceId, currentSanity, isInDarkness);
@@ -129,7 +129,7 @@
 
         private void ProcessPlayerStressTick(Player player, int instanceId, float currentSanity)
         {
-            var config = _plugin.Config.AudioConfig;
+            var config = _plugin.Audio;
 
             lock (_directorLock)
             {
@@ -140,7 +140,7 @@
                 }
 
                 float sanityRiskFactor = 1.0f - currentSanity / 100f;
-                float tensionGain = _plugin.Config.SanityConfig.DecayRateBase * (1.0f + sanityRiskFactor * config.TensionSanityRiskMultiplier);
+                float tensionGain = _plugin.Sanity.DecayRateBase * (1.0f + sanityRiskFactor * config.TensionSanityRiskMultiplier);
 
                 profile.CurrentTension = Mathf.Clamp(profile.CurrentTension + tensionGain, 0f, 100f);
 
@@ -158,14 +158,14 @@
             {
                 if (_tensionCache.TryGetValue(instanceId, out var profile))
                 {
-                    profile.CurrentTension = Mathf.Clamp(profile.CurrentTension - _plugin.Config.AudioConfig.TensionPassiveDecayRate, 0f, 100f);
+                    profile.CurrentTension = Mathf.Clamp(profile.CurrentTension - _plugin.Audio.TensionPassiveDecayRate, 0f, 100f);
                 }
             }
         }
 
         private void ExecuteAuditoryClimax(Player player, float currentSanity)
         {
-            var config = _plugin.Config.AudioConfig;
+            var config = _plugin.Audio;
             AudioKey scareKey = AudioKey.WhispersSubtle;
 
             if (currentSanity <= config.Tier4ShockStingerThreshold) scareKey = AudioKey.WhispersShockStinger;
@@ -195,7 +195,7 @@
 
         private void EvaluatePersistentPanicDrone(Player player, int instanceId, float currentSanity, bool isInDarkness)
         {
-            var config = _plugin.Config.AudioConfig;
+            var config = _plugin.Audio;
             bool triggersPanicZone = currentSanity <= config.PanicDroneSanityThreshold && isInDarkness;
 
             lock (_directorLock)
@@ -249,7 +249,7 @@
 
         public void ProcessBlackoutAudioSequence(Player randomTarget)
         {
-            var audioConfig = _plugin.Config.AudioConfig;
+            var audioConfig = _plugin.Audio;
 
             _audioManager.PlayGlobal(AudioKey.BlackoutImpactGlobal);
             _audioManager.PlayGlobal(AudioKey.MonsterRoarGlobal);
@@ -305,7 +305,7 @@
 
         public void ProcessExplosionImpact(Vector3 position, ScpProjectileImpactType.ProjectileImpactType impactType, bool isBlackoutActive = false)
         {
-            var config = _plugin.Config.AudioConfig;
+            var config = _plugin.Audio;
             SuppressPsychologicalAudioInRadius(position, radiusMeter: config.ExplosionSuppressionRadius, durationSeconds: config.ExplosionSuppressionDuration);
             _audioManager.PlayAtPosition(AudioKey.AnomalousImpact, position);
 
@@ -331,7 +331,7 @@
 
         public void ProcessGeneratorActivation(Vector3 position, bool allGeneratorsEngaged, bool retaliationConfigured)
         {
-            var config = _plugin.Config.AudioConfig;
+            var config = _plugin.Audio;
             _audioManager.PlayAtPosition(AudioKey.GeneratorHumDefense, position, loop: true);
 
             if (allGeneratorsEngaged)
@@ -377,7 +377,7 @@
 
             if (IsAcousticBudgetSaturated(instanceId, DateTime.UtcNow) || !TryAcquireTransientNetworkLock(instanceId)) return;
 
-            var config = _plugin.Config.AudioConfig;
+            var config = _plugin.Audio;
 
             if (UnityEngine.Random.value <= 0.25f)
             {
@@ -412,7 +412,7 @@
         {
             if (player?.GameObject == null) return;
             int instanceId = player.GameObject.GetInstanceID();
-            var config = _plugin.Config.AudioConfig;
+            var config = _plugin.Audio;
 
             lock (_directorLock)
             {
@@ -426,7 +426,7 @@
 
         public void ProcessRagdollConsumption(Vector3 position)
         {
-            var config = _plugin.Config.AudioConfig;
+            var config = _plugin.Audio;
             _audioManager.PlayAtPosition(AudioKey.ShadowConsumingBody, position);
             _audioManager.PlayOrbitingAudio(position, AudioKey.ShadowClicking, maxRadius: config.RagdollMaxRadius, minRadius: config.RagdollMinRadius, angularSpeed: config.RagdollAngularSpeed, approachSpeed: config.RagdollApproachSpeed, heightOffset: config.RagdollHeightOffset);
         }

@@ -21,7 +21,7 @@ namespace SCP_575.Handlers
     {
         private readonly Plugin _plugin;
         private readonly LibraryLabAPI _libraryLabAPI;
-        private readonly PlayerLightsourceConfig _config;
+        private readonly PlayerLightsourceConfig _lightSourceConfig;
 
         private readonly Dictionary<int, DateTime> _cooldownUntil = new();
         private readonly Dictionary<int, DateTime> _lastCooldownAudioTime = new();
@@ -40,7 +40,7 @@ namespace SCP_575.Handlers
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _libraryLabAPI = _plugin.LibraryLabAPI;
-            _config = plugin.Config?.LightsourceConfig ?? throw new InvalidOperationException("LightsourceConfig is not initialized.");
+            _lightSourceConfig = _plugin.Lightsource ?? throw new InvalidOperationException("LightsourceConfig is not initialized.");
         }
 
         #region Lifecycle Management
@@ -138,7 +138,7 @@ namespace SCP_575.Handlers
                 try
                 {
                     stateModificationActions.Invoke();
-                    if (_plugin.Config.Debug) LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Enforced dark-state on inventory swap for {ev.Player.Nickname}.");
+                    LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Enforced dark-state on inventory swap for {ev.Player.Nickname}.");
                 }
                 finally
                 {
@@ -151,7 +151,7 @@ namespace SCP_575.Handlers
         {
             if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || !IsBlackout() || ev.Player.CurrentItem is not LightItem) return;
 
-            (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
+            (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Hints.LightEmitterCooldownHint);
         }
 
         public override void OnPlayerTogglingWeaponFlashlight(PlayerTogglingWeaponFlashlightEventArgs ev)
@@ -159,7 +159,7 @@ namespace SCP_575.Handlers
             if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !IsBlackout() || !HasFlashlight(ev.FirearmItem))
                 return;
 
-            (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Config.HintsConfig.LightEmitterCooldownHint);
+            (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Hints.LightEmitterCooldownHint);
         }
 
         public override void OnPlayerToggledFlashlight(PlayerToggledFlashlightEventArgs ev)
@@ -240,7 +240,7 @@ namespace SCP_575.Handlers
         {
             if (!IsValidPlayer(player)) return;
             ApplyCooldown(player);
-            if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint) player.SendHint(_plugin.Config.HintsConfig.LightEmitterCooldownHint, 1.75f);
+            if (_plugin.Hints.IsEnabledLightEmitterCooldownHint) player.SendHint(_plugin.Hints.LightEmitterCooldownHint, 1.75f);
         }
 
         public void ClearCooldown(Player player = null)
@@ -254,7 +254,7 @@ namespace SCP_575.Handlers
         #region Helper Methods
 
         private bool IsValidPlayer(Player player) => player?.GameObject != null;
-        private bool IsBlackout() => _plugin.Npc?.Methods?.IsBlackoutActive == true;
+        private bool IsBlackout() => _plugin.NpcNestingObj?.Methods?.IsBlackoutActive == true;
 
         private bool IsPlayerInDarkRoom(Player player)
         {
@@ -263,7 +263,7 @@ namespace SCP_575.Handlers
         }
 
         private float CleanupInterval => _plugin.Config?.HandlerCleanupInterval ?? 160f;
-        private TimeSpan CooldownDuration => TimeSpan.FromSeconds(Math.Max(1, _config.KeterLightsourceCooldown));
+        private TimeSpan CooldownDuration => TimeSpan.FromSeconds(Math.Max(1, _lightSourceConfig.KeterLightsourceCooldown));
 
         private void ApplyCooldown(Player player)
         {
@@ -280,7 +280,7 @@ namespace SCP_575.Handlers
 
             if (_cooldownUntil.TryGetValue(instanceId, out var until) && DateTime.UtcNow < until)
             {
-                if (_plugin.Config.HintsConfig.IsEnabledLightEmitterCooldownHint) player.SendHint(message, 1.0f);
+                if (_plugin.Hints.IsEnabledLightEmitterCooldownHint) player.SendHint(message, 1.0f);
                 PlayLightsourceErrorFeedback(player, instanceId);
                 return (true, false);
             }
@@ -301,8 +301,8 @@ namespace SCP_575.Handlers
                     if (forceOff) PlayLightsourceErrorFeedback(player, playerInstanceId);
                 }
 
-                int flickerCount = Math.Max(2, _random.Next(_config.MinFlickerCount, _config.MaxFlickerCount));
-                int totalDurationMs = _random.Next(_config.MinFlickerDurationMs, _config.MaxFlickerDurationMs + 1);
+                int flickerCount = Math.Max(2, _random.Next(_lightSourceConfig.MinFlickerCount, _lightSourceConfig.MaxFlickerCount));
+                int totalDurationMs = _random.Next(_lightSourceConfig.MinFlickerDurationMs, _lightSourceConfig.MaxFlickerDurationMs + 1);
                 float delayPerFlicker = (totalDurationMs / 1000f) / flickerCount;
 
                 var targetPlayer = Player.ReadyList.FirstOrDefault(p => p.GameObject != null && p.GameObject.GetInstanceID() == playerInstanceId);

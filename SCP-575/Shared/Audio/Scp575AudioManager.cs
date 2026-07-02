@@ -242,7 +242,7 @@
             if (sessionId == 0) return;
             try
             {
-                _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                _audioEngine.FadeOutAudio(sessionId, _plugin.Audio.DefaultFadeDuration);
             }
             catch (Exception ex)
             {
@@ -262,7 +262,7 @@
             {
                 foreach (int sessionId in _playerAmbienceSessions.Values.ToList())
                 {
-                    if (sessionId != 0) _audioEngine.FadeOutAudio(sessionId, _plugin.Config.AudioConfig.DefaultFadeDuration);
+                    if (sessionId != 0) _audioEngine.FadeOutAudio(sessionId, _plugin.Audio.DefaultFadeDuration);
                 }
                 _playerAmbienceSessions.Clear();
             }
@@ -285,7 +285,7 @@
         private bool TryPassGlobalScreamCooldown()
         {
             double secondsSinceLastScream = Timing.LocalTime - _lastGlobalScreamTimeTicks;
-            if (secondsSinceLastScream < _plugin.Config.AudioConfig.GlobalScreamCooldown) return false;
+            if (secondsSinceLastScream < _plugin.Audio.GlobalScreamCooldown) return false;
             _lastGlobalScreamTimeTicks = Timing.LocalTime;
             return true;
         }

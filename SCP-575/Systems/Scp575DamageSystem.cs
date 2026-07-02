@@ -12,7 +12,7 @@ namespace SCP_575.Shared
     using System.Collections.Generic;
     using UnityEngine;
 
-    public static class Scp575DamageSystem
+    public class Scp575DamageSystem
     {
         #region Constants and Static Properties  
 
@@ -29,9 +29,16 @@ namespace SCP_575.Shared
 
         #region Properties  
 
-        public static float DamagePenetration => Plugin.Singleton.Config.NpcConfig.KeterDamagePenetration;
-        public static string DeathScreenText => Plugin.Singleton.Config.HintsConfig.KilledByMessage;
-        public static string RagdollInspectText => Plugin.Singleton.Config.HintsConfig.RagdollInspectText;
+        private readonly Plugin _plugin;
+
+        public Scp575DamageSystem(Plugin plugin)
+        {
+            _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
+        }
+
+        public float DamagePenetration => _plugin.Npc.KeterDamagePenetration;
+        public string DeathScreenText => _plugin.Hints.KilledByMessage;
+        public string RagdollInspectText => _plugin.Hints.RagdollInspectText;
 
         #endregion
 
@@ -40,10 +47,10 @@ namespace SCP_575.Shared
         /// <summary>
         /// Inflicts processed damage onto a target player with custom death screen indicators.
         /// </summary>
-        public static bool DamagePlayer(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox = HitboxType.Body)
+        public bool DamagePlayer(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox = HitboxType.Body)
         {
             if (target?.ReferenceHub == null) return false;
-            if (Plugin.Singleton?.SanityEventHandler != null && Plugin.Singleton.SanityEventHandler.IsProtectedByPainkillers(target)) return false;
+            if (_plugin?.SanityEventHandler != null && _plugin.SanityEventHandler.IsProtectedByPainkillers(target)) return false;
             if (damage < 0f) return false;
 
 
@@ -51,7 +58,7 @@ namespace SCP_575.Shared
             return target.Damage(processedDamage, DeathScreenText);
         }
 
-        private static float DamageProcessor(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
+        private float DamageProcessor(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
         {
             if (damage <= 0f) return damage;
 
@@ -65,7 +72,7 @@ namespace SCP_575.Shared
             return processedDamage;
         }
 
-        private static float ProcessArmorInteraction(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
+        private float ProcessArmorInteraction(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
         {
             if (damage <= 0f || target.ReferenceHub == null) return damage;
 
@@ -92,39 +99,39 @@ namespace SCP_575.Shared
         /// <summary>
         /// Processes non-lethal anomalous attacks by decreasing sanity and executing anti-spam soundscapes.
         /// </summary>
-        public static void ProcessAnomalousTrauma(LabApi.Features.Wrappers.Player player, Plugin plugin, ref DateTime lastAttackAudioTime, TimeSpan cooldown)
+        public void ProcessAnomalousTrauma(LabApi.Features.Wrappers.Player player, ref DateTime lastAttackAudioTime, TimeSpan cooldown)
         {
-            if (player == null || plugin == null) return;
-            if (plugin.SanityEventHandler != null && plugin.SanityEventHandler.IsProtectedByPainkillers(player)) return;
+            if (player == null || _plugin == null) return;
+            if (_plugin.SanityEventHandler != null && _plugin.SanityEventHandler.IsProtectedByPainkillers(player)) return;
 
             // 1. Process Sanity Reduction & Consequences
-            float dropAmount = plugin.Config.SanityConfig.ScpHitSanityDrop;
+            float dropAmount = _plugin.Sanity.ScpHitSanityDrop;
             if (dropAmount > 0f)
             {
-                float newSanity = plugin.SanityEventHandler.ChangeSanityValue(player, -dropAmount);
+                float newSanity = _plugin.SanityEventHandler.ChangeSanityValue(player, -dropAmount);
                 LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity slashed by {dropAmount}. New sanity: {newSanity}");
             }
-            plugin.SanityEventHandler.ApplyStageEffects(player, bypassBlackoutGate: true, forceIgnoreCooldown: true);
+            _plugin.SanityEventHandler.ApplyStageEffects(player, bypassBlackoutGate: true, forceIgnoreCooldown: true);
 
             // 2. Play Mild/Lighter Hurt Audio Cues (With Rate Limiting)
             if (DateTime.UtcNow - lastAttackAudioTime >= cooldown)
             {
                 lastAttackAudioTime = DateTime.UtcNow;
-                plugin.AudioManager.PlayAtPosition(AudioKey.AnomalousImpact, player.Position);
+                _plugin.AudioManager.PlayAtPosition(AudioKey.AnomalousImpact, player.Position);
             }
         }
 
         /// <summary>
         /// Handles the definitive post-mortem execution logic, managing audio stingers and item scatters.
         /// </summary>
-        public static void ProcessLethalStrike(LabApi.Features.Wrappers.Player player, Plugin plugin)
+        public void ProcessLethalStrike(LabApi.Features.Wrappers.Player player)
         {
-            if (player == null || plugin == null) return;
+            if (player == null || _plugin == null) return;
 
             LibraryLabAPI.LogDebug(IdentifierName, $"Death confirmed from {IdentifierName} for {player.Nickname}. Triggering item physics and lethal soundscape.");
 
             // ShadowStrike is strictly reserved for lethal impact synchronization
-            plugin.AudioManager.PlayAtPosition(AudioKey.ShadowStrike, player.Position);
+            _plugin.AudioManager.PlayAtPosition(AudioKey.ShadowStrike, player.Position);
 
             // Offload item kinetic scatter calculations to an isolated coroutine to prevent main-thread choking
             Timing.RunCoroutine(DropAndPushItems(player), CoroutineTags.ItemPhysics);
@@ -134,9 +141,9 @@ namespace SCP_575.Shared
 
         #region Ragdoll Processing  
 
-        private static readonly NorthwoodLib.Pools.ListPool<Rigidbody> RigidbodyPool = NorthwoodLib.Pools.ListPool<Rigidbody>.Shared;
+        private readonly NorthwoodLib.Pools.ListPool<Rigidbody> RigidbodyPool = NorthwoodLib.Pools.ListPool<Rigidbody>.Shared;
 
-        public static void RagdollProcessor(Player player, Ragdoll ragdoll)
+        public void RagdollProcessor(Player player, Ragdoll ragdoll)
         {
             if (ragdoll == null || player == null || !player.IsReady) return;
 
@@ -151,7 +158,7 @@ namespace SCP_575.Shared
             }
         }
 
-        private static IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll, Player player, RoleTypeId oldRole)
+        private IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll, Player player, RoleTypeId oldRole)
         {
             if (ragdoll?.Base?.gameObject == null) yield break;
 
@@ -181,7 +188,7 @@ namespace SCP_575.Shared
             }
         }
 
-        private static Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll, RoleTypeId oldRole)
+        private Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll, RoleTypeId oldRole)
         {
             if (player == null || originalRagdoll?.Base == null) return null;
 
@@ -229,7 +236,7 @@ namespace SCP_575.Shared
             }
         }
 
-        private static void ApplyStandardRagdollPhysics(List<Rigidbody> rigidbodies, Vector3 upwardForce, float randomForceMagnitude)
+        private void ApplyStandardRagdollPhysics(List<Rigidbody> rigidbodies, Vector3 upwardForce, float randomForceMagnitude)
         {
             if (rigidbodies == null || rigidbodies.Count == 0) return;
 
@@ -247,12 +254,12 @@ namespace SCP_575.Shared
 
                 rb.AddForce(combinedForce, ForceMode.Impulse);
 
-                float torqueModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+                float torqueModifier = _plugin.Npc.KeterDamageVelocityModifier;
                 rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.Impulse);
             }
         }
 
-        private static void ConvertToBones(Ragdoll ragdoll)
+        private void ConvertToBones(Ragdoll ragdoll)
         {
             if (ragdoll?.Base == null) return;
 
@@ -273,12 +280,12 @@ namespace SCP_575.Shared
 
         #region Utility Methods  
 
-        private static bool IsDynamicRagdoll(Ragdoll ragdoll)
+        private bool IsDynamicRagdoll(Ragdoll ragdoll)
         {
             return ragdoll?.Base?.TryGetComponent<DynamicRagdoll>(out _) == true;
         }
 
-        public static IEnumerator<float> DropAndPushItems(Player player)
+        public IEnumerator<float> DropAndPushItems(Player player)
         {
             if (player == null || !player.IsReady || player.IsHost) yield break;
 
@@ -303,7 +310,7 @@ namespace SCP_575.Shared
                 yield return Timing.WaitForOneFrame;
             }
 
-            float configModifier = Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier;
+            float configModifier = _plugin.Npc.KeterDamageVelocityModifier;
 
             float internalSharedModifier = 1.45f * Mathf.Log(configModifier) * CalculateForcePush(configModifier);
             float forcePushMagnitude = CalculateForcePush(1.35f);
@@ -343,28 +350,28 @@ namespace SCP_575.Shared
             yield return Timing.WaitForOneFrame;
         }
 
-        public static bool IsScp575Damage(DamageHandlerBase handler)
+        public bool IsScp575Damage(DamageHandlerBase handler)
         {
             return handler is CustomReasonDamageHandler customHandler &&
                    customHandler.DeathScreenText == DeathScreenText;
         }
 
-        public static bool IsScp575BodyRagdoll(DamageHandlerBase handler)
+        public bool IsScp575BodyRagdoll(DamageHandlerBase handler)
         {
             return handler is CustomReasonDamageHandler customHandler &&
                    customHandler.RagdollInspectText == RagdollInspectText;
         }
 
-        private static float CalculateForcePush(float baseValue = 1.0f)
+        private float CalculateForcePush(float baseValue = 1.0f)
         {
             float randomFactor = UnityEngine.Random.Range(
-                Plugin.Singleton.Config.NpcConfig.KeterForceMinModifier,
-                Plugin.Singleton.Config.NpcConfig.KeterForceMaxModifier);
+                _plugin.Npc.KeterForceMinModifier,
+                _plugin.Npc.KeterForceMaxModifier);
 
             return baseValue * randomFactor;
         }
 
-        private static Vector3 GetRandomUnitSphereVelocity(float baseVelocityValue = 1.0f)
+        private Vector3 GetRandomUnitSphereVelocity(float baseVelocityValue = 1.0f)
         {
             Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
 
@@ -374,8 +381,8 @@ namespace SCP_575.Shared
             }
 
             float modifier = baseVelocityValue *
-                           Mathf.Log(Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier) *
-                           CalculateForcePush(Plugin.Singleton.Config.NpcConfig.KeterDamageVelocityModifier);
+                           Mathf.Log(_plugin.Npc.KeterDamageVelocityModifier) *
+                           CalculateForcePush(_plugin.Npc.KeterDamageVelocityModifier);
 
             return randomDirection * modifier;
         }

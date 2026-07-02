@@ -22,7 +22,8 @@ namespace SCP_575
         private PlayerLightsourceHandler _lightsourceHandler;
         private MapHandler _mapHandler;
 
-        private NestingObjects.Npc _npc;
+        private NestingObjects.Npc _npcNestingObj;
+        private Scp575DamageSystem _damageSystem;
         private Scp575AudioManager _audioManager;
         private Scp575AudioDirector _audioDirector;
         private LibraryLabAPI _libraryLabAPI;
@@ -36,9 +37,9 @@ namespace SCP_575
         public AudioConfig Audio { get; private set; }
         public BlackoutConfig Blackout { get; private set; }
         public FlashlightSpawnConfig FlashlightSpawn { get; private set; }
-        public NpcConfig NpcConfig { get; private set; }
+        public NpcConfig Npc { get; private set; }
         public PlayerSanityConfig Sanity { get; private set; }
-        public PlayerLightsourceConfig LightsourceConfig { get; private set; }
+        public PlayerLightsourceConfig Lightsource { get; private set; }
         public HintsConfig Hints { get; private set; }
         public CassieConfig Cassie { get; private set; }
 
@@ -56,7 +57,8 @@ namespace SCP_575
             set => _isEventActive = value;
         }
 
-        public NestingObjects.Npc Npc => _npc;
+        public NestingObjects.Npc NpcNestingObj => _npcNestingObj;
+        public Scp575DamageSystem DamageSystem => _damageSystem;
         public Scp575AudioManager AudioManager => _audioManager;
         public Scp575AudioDirector AudioDirector => _audioDirector;
         public LibraryLabAPI LibraryLabAPI => _libraryLabAPI;
@@ -65,7 +67,7 @@ namespace SCP_575
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
         public override string Description => "Advanced horror pacing sub-drone shadow entity that makes darkness dangerous.";
-        public override Version Version => new(11, 0, 0);
+        public override Version Version => new(12, 0, 0);
         public override Version RequiredApiVersion => new(1, 0, 0);
 
         #endregion
@@ -81,9 +83,9 @@ namespace SCP_575
             Audio = new AudioConfig();
             Blackout = new BlackoutConfig();
             FlashlightSpawn = new FlashlightSpawnConfig();
-            NpcConfig = new NpcConfig();
+            Npc = new NpcConfig();
             Sanity = new PlayerSanityConfig();
-            LightsourceConfig = new PlayerLightsourceConfig();
+            Lightsource = new PlayerLightsourceConfig();
             Hints = new HintsConfig();
             Cassie = new CassieConfig();
 
@@ -110,9 +112,9 @@ namespace SCP_575
 
             if (this.TryLoadConfig("npc_behavior.yml", out NpcConfig loadedNpc))
             {
-                NpcConfig = loadedNpc ?? new NpcConfig();
-                NpcConfig.Validate();
-                this.TrySaveConfig(NpcConfig, "npc_behavior.yml");
+                Npc = loadedNpc ?? new NpcConfig();
+                Npc.Validate();
+                this.TrySaveConfig(Npc, "npc_behavior.yml");
             }
 
             if (this.TryLoadConfig("sanity_progression.yml", out PlayerSanityConfig loadedSanity))
@@ -124,9 +126,9 @@ namespace SCP_575
 
             if (this.TryLoadConfig("player_lightsources.yml", out PlayerLightsourceConfig loadedLights))
             {
-                LightsourceConfig = loadedLights ?? new PlayerLightsourceConfig();
-                LightsourceConfig.Validate();
-                this.TrySaveConfig(LightsourceConfig, "player_lightsources.yml");
+                Lightsource = loadedLights ?? new PlayerLightsourceConfig();
+                Lightsource.Validate();
+                this.TrySaveConfig(Lightsource, "player_lightsources.yml");
             }
 
             if (this.TryLoadConfig("hints_placement.yml", out HintsConfig loadedHints))
@@ -164,6 +166,7 @@ namespace SCP_575
 
             try
             {
+                _damageSystem = new Scp575DamageSystem(this);
                 _audioManager = new Scp575AudioManager(this);
                 _sanityHandler = new PlayerSanityHandler(this);
                 _audioDirector = new Scp575AudioDirector(this, _audioManager, _sanityHandler);
@@ -176,7 +179,7 @@ namespace SCP_575
                 _lightsourceHandler = new PlayerLightsourceHandler(this);
                 _mapHandler = new MapHandler(this);
 
-                _npc = new NestingObjects.Npc(this);
+                _npcNestingObj = new NestingObjects.Npc(this);
 
                 _sanityHandler?.Initialize();
                 _lightsourceHandler?.Initialize();
@@ -212,7 +215,7 @@ namespace SCP_575
             try { _lightsourceHandler?.Dispose(); }
             catch (Exception) { }
 
-            _npc = null;
+            _npcNestingObj = null;
             _lightsourceHandler = null;
             _sanityHandler = null;
             _ragdollHandler = null;
@@ -222,6 +225,7 @@ namespace SCP_575
             _lifecycleHandler = null;
             _mapHandler = null;
 
+            _damageSystem = null;
             _audioDirector = null;
             _audioManager = null;
             _libraryLabAPI = null;

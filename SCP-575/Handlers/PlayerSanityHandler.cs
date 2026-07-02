@@ -48,7 +48,7 @@
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
             _libraryLabAPI = _plugin.LibraryLabAPI;
-            _sanityConfig = plugin.Config?.SanityConfig ?? throw new InvalidOperationException("SanityConfig is not initialized.");
+            _sanityConfig = plugin.Sanity ?? throw new InvalidOperationException("SanityConfig is not initialized.");
             _hintCooldown = _sanityConfig.DecayRateBase * 20f;
 
             if (_sanityConfig.SanityStages == null || !_sanityConfig.SanityStages.Any())
@@ -158,20 +158,14 @@
                     _painkillerSanityBoostExpiry[instanceId] = DateTime.UtcNow.AddSeconds(_sanityConfig.PainkillersRegenDuration);
                 }
 
-                if (_plugin.Config.Debug)
-                {
-                    LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Painkillers consumed by {ev.Player.Nickname}. Protection registered for {_sanityConfig.PainkillersProtectionDuration}s, Sanity boost registered for {_sanityConfig.PainkillersRegenDuration}s.");
-                }
+                LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Painkillers consumed by {ev.Player.Nickname}. Protection registered for {_sanityConfig.PainkillersProtectionDuration}s, Sanity boost registered for {_sanityConfig.PainkillersRegenDuration}s.");
             }
 
             float newSanity = ChangeSanityValue(ev.Player, restoreAmount);
-            if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
-                SendSanityHint(ev.Player, _plugin.Config.HintsConfig.SanityIncreasedMedicalHint, newSanity);
+            if (_plugin.Hints.IsEnabledSanityHint)
+                SendSanityHint(ev.Player, _plugin.Hints.SanityIncreasedMedicalHint, newSanity);
 
-            if (_plugin.Config.Debug)
-            {
-                LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Restored {restoreAmount} sanity to {ev.Player.Nickname}. New sanity: {newSanity}");
-            }
+            LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Restored {restoreAmount} sanity to {ev.Player.Nickname}. New sanity: {newSanity}");
         }
 
         #endregion
@@ -267,7 +261,7 @@
                 }
             }
 
-            if (!_plugin.Npc.Methods.IsBlackoutActive && !bypassBlackoutGate)
+            if (!_plugin.NpcNestingObj.Methods.IsBlackoutActive && !bypassBlackoutGate)
                 return;
 
             var stage = GetCurrentSanityStage(player);
@@ -318,8 +312,8 @@
             bool isVulnerable = Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection;
 
             float culmDamage = isVulnerable
-                ? stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.Npc.Methods.GetCurrentBlackoutStacks)
-                : stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.Npc.Methods.GetCurrentBlackoutStacks);
+                ? stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks)
+                : stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks);
 
             if (culmDamage <= 0) return;
 
@@ -328,7 +322,7 @@
 
             // Delegate execution straight to the damage core.
             // This will naturally fire OnPlayerHurting, centralizing the sanity drop and effects processing.
-            Scp575DamageSystem.DamagePlayer(player, culmDamage);
+            _plugin.DamageSystem.DamagePlayer(player, culmDamage);
         }
 
         #endregion
@@ -382,11 +376,11 @@
             ApplyStageEffects(player, bypassBlackoutGate: false, forceIgnoreCooldown: false);
 
             int instanceId = player.GameObject.GetInstanceID();
-            if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
+            if (_plugin.Hints.IsEnabledSanityHint)
             {
                 if (!_lastHintTime.TryGetValue(instanceId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
                 {
-                    SendSanityHint(player, _plugin.Config.HintsConfig.SanityDecreasedHint, newSanity);
+                    SendSanityHint(player, _plugin.Hints.SanityDecreasedHint, newSanity);
                     _lastHintTime[instanceId] = now;
                 }
             }
@@ -411,11 +405,11 @@
 
             float newSanity = ChangeSanityValue(player, regenRate);
 
-            if (_plugin.Config.HintsConfig.IsEnabledSanityHint)
+            if (_plugin.Hints.IsEnabledSanityHint)
             {
                 if (!_lastHintTime.TryGetValue(instanceId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
                 {
-                    SendSanityHint(player, _plugin.Config.HintsConfig.SanityIncreasedHint, newSanity);
+                    SendSanityHint(player, _plugin.Hints.SanityIncreasedHint, newSanity);
                     _lastHintTime[instanceId] = now;
                 }
             }
@@ -424,7 +418,7 @@
         private float CalculateDecayRate(Player player)
         {
             float decayRate = _sanityConfig.DecayRateBase;
-            if (_plugin.Npc?.Methods?.IsBlackoutActive == true)
+            if (_plugin.NpcNestingObj?.Methods?.IsBlackoutActive == true)
                 decayRate *= _sanityConfig.DecayMultiplierBlackout;
             if (Helpers.IsHumanWithoutLight(player))
                 decayRate *= _sanityConfig.DecayMultiplierDarkness;

@@ -25,7 +25,7 @@
         /// </summary>
         public override void OnServerWaitingForPlayers()
         {
-            _plugin.Npc?.Methods?.Disable();
+            _plugin.NpcNestingObj?.Methods?.Disable();
             LibraryLabAPI.LogInfo("Lifecycle", "Round reset. SCP-575 ready for next session.");
         }
 
@@ -57,8 +57,8 @@
             {
                 try
                 {
-                    if (_plugin.IsEventActive || _plugin.Npc?.Methods == null) return;
-                    _plugin.Npc.Methods.Init(roll);
+                    if (_plugin.IsEventActive || _plugin.NpcNestingObj?.Methods == null) return;
+                    _plugin.NpcNestingObj.Methods.Init(roll);
                 }
                 catch (Exception ex)
                 {
@@ -74,7 +74,7 @@
         /// <param name="ev">Telemetry data regarding the round finalization state.</param>
         public override void OnServerRoundEnded(RoundEndedEventArgs ev)
         {
-            _plugin.Npc?.Methods?.Disable();
+            _plugin.NpcNestingObj?.Methods?.Disable();
             LibraryLabAPI.LogInfo("Lifecycle", "Round ended confirmed. SCP-575 systems safely disabled.");
         }
     }

@@ -47,7 +47,7 @@
         /// </summary>
         public void ExecuteFlashlightDistribution()
         {
-            if (_plugin.Config?.FlashlightSpawnConfig == null || !_plugin.Config.FlashlightSpawnConfig.IsEnabled)
+            if (_plugin.FlashlightSpawn == null || !_plugin.FlashlightSpawn.IsEnabled)
                 return;
 
             Timing.RunCoroutine(SpawnFlashlightsPipeline(), CoroutineTags.MapCoroutines);
@@ -111,7 +111,7 @@
 
         private float GetZoneSpawnChance(FacilityZone zone)
         {
-            var config = _plugin.Config.FlashlightSpawnConfig;
+            var config = _plugin.FlashlightSpawn;
             switch (zone)
             {
                 case FacilityZone.LightContainment: return config.ChanceLight;
