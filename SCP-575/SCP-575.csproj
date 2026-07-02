@@ -43,6 +43,15 @@
 			<HintPath>$(SCPSL_References)\Assembly-CSharp.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
+		<Reference Include="Assembly-CSharp-firstpass">
+			<HintPath>$(SCPSL_References)\Assembly-CSharp-firstpass.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="NorthwoodLib">
+			<HintPath>$(SCPSL_References)\NorthwoodLib.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+
 		<Reference Include="CommandSystem.Core">
 			<HintPath>$(SCPSL_References)\CommandSystem.Core.dll</HintPath>
 			<Private>False</Private>
@@ -67,13 +76,12 @@
 			<HintPath>$(SCPSL_References)\Interactables.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
-		<Reference Include="NorthwoodLib">
-			<HintPath>$(SCPSL_References)\NorthwoodLib.dll</HintPath>
+		<Reference Include="CustomPlayerEffects">
+			<HintPath>$(SCPSL_References)\CustomPlayerEffects.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
-
-		<Reference Include="Assembly-CSharp-firstpass">
-			<HintPath>$(SCPSL_References)\Assembly-CSharp-firstpass.dll</HintPath>
+		<Reference Include="VoiceChat">
+			<HintPath>$(SCPSL_References)\VoiceChat.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="Mirror">
@@ -90,6 +98,14 @@
 		</Reference>
 		<Reference Include="UnityEngine.PhysicsModule">
 			<HintPath>$(SCPSL_References)\UnityEngine.PhysicsModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.AudioModule">
+			<HintPath>$(SCPSL_References)\UnityEngine.AudioModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.AnimationModule">
+			<HintPath>$(SCPSL_References)\UnityEngine.AnimationModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 	</ItemGroup>
