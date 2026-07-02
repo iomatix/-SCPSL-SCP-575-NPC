@@ -3,7 +3,6 @@
     using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
     using LabApi.Features.Wrappers;
-    using MapGeneration;
     using MEC;
     using SCP_575.Shared;
     using System;

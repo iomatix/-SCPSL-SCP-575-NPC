@@ -1,6 +1,6 @@
 ﻿namespace SCP_575.ConfigObjects
 {
-    using CustomPlayerEffects;
+
     using Logger = SCP_575.Shared.LibraryLabAPI;
     using SCP_575.Types;
     using System;

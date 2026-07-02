@@ -20,7 +20,7 @@ If you appreciate my work, you can support me by [buying me a coffee](https://bu
   <img src="https://contrib.rocks/image?repo=iomatix/-SCPSL-SCP-575-NPC" />
 </a>
 
-## Release – SCP-575 NPC for Exiled Mod
+## Release – SCP-575 NPC for **LibAPI** (works with the **Exiled** too!)
 
 This is the very first official build of the SCP-575 NPC mod, hosted in its own independent repo to fully decouple from the original fork.
 

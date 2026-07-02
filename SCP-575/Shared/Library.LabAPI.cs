@@ -283,41 +283,6 @@ namespace SCP_575.Shared
 
         #endregion
 
-        #region Adapters
-
-        public Player? ToLabAPIPlayer(Exiled.API.Features.Player? exiledPlayer) =>
-            exiledPlayer?.ReferenceHub == null ? null : Player.Get(exiledPlayer.ReferenceHub);
-
-        public Ragdoll? ToLabAPIRagdoll(Exiled.API.Features.Ragdoll? exiledRagdoll) =>
-            exiledRagdoll?.Base == null ? null : Ragdoll.Get(exiledRagdoll.Base);
-
-        public Room? ToLabApiRoom(Exiled.API.Features.Room? exiledRoom)
-        {
-            // FIXED: Using highly optimized square distance delta scanning.
-            // Bypasses missing .Base and netId definitions entirely, ensuring robust multi-framework cross-compatibility.
-            if (exiledRoom == null) return null;
-            Vector3 targetPos = exiledRoom.Position;
-
-            foreach (var r in Rooms)
-            {
-                if (Vector3.SqrMagnitude(r.Position - targetPos) < 0.05f)
-                    return r;
-            }
-            return null;
-        }
-
-        public FacilityZone? ConvertToLabApiZone(Exiled.API.Enums.ZoneType exiledZone) =>
-            exiledZone switch
-            {
-                Exiled.API.Enums.ZoneType.LightContainment => FacilityZone.LightContainment,
-                Exiled.API.Enums.ZoneType.HeavyContainment => FacilityZone.HeavyContainment,
-                Exiled.API.Enums.ZoneType.Entrance => FacilityZone.Entrance,
-                Exiled.API.Enums.ZoneType.Surface => FacilityZone.Surface,
-                _ => null
-            };
-
-        #endregion
-
         #region Private Helpers
 
         private void HandleElevatorsForRoom(Room room, float affectChance, float duration, Action<Elevator> elevatorAction)

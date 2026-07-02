@@ -1,55 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		
-		<AssemblyName Condition="'$(Configuration)' == 'Debug'">$(MSBuildProjectName)-DEBUG</AssemblyName>
-		<AssemblyName Condition="'$(Configuration)' != 'Debug'">$(MSBuildProjectName)</AssemblyName>
+		<TargetFramework>net48</TargetFramework>
+		<LangVersion>9.0</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+
 		<Version>1.0.0</Version>
-		<TargetFramework>net48</TargetFramework>
 		<AssemblyVersion>5.0.2</AssemblyVersion>
 		<FileVersion>5.0.2</FileVersion>
-		<LangVersion>9.0</LangVersion>
+
+		<AssemblyName Condition="'$(Configuration)' == 'Debug'">$(MSBuildProjectName)-DEBUG</AssemblyName>
+		<AssemblyName Condition="'$(Configuration)' != 'Debug'">$(MSBuildProjectName)</AssemblyName>
 	</PropertyGroup>
+
+	<PropertyGroup>
+		<SCPSL_References Condition="'$(SCPSL_References)' == ''">C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed</SCPSL_References>
+	</PropertyGroup>
+
 	<ItemGroup>
-		<None Remove="Shared\Audio\ambience.wav" />
-		<None Remove="Shared\Audio\Files\Ambience\scp575.ambience.wav" />
-		<None Remove="Shared\Audio\Files\Ambience\scp575.blackout_impact_global.wav" />
-		<None Remove="Shared\Audio\Files\Ambience\scp575.sanity_low_drone.wav" />
-		<None Remove="Shared\Audio\Files\Interactions\scp575.anomalous_impact.wav" />
-		<None Remove="Shared\Audio\Files\Interactions\scp575.generator_hum_defense.wav" />
-		<None Remove="Shared\Audio\Files\Interactions\scp575.light_short_circuit.wav" />
-		<None Remove="Shared\Audio\Files\Interactions\scp575.shadow_consuming_body.wav" />
-		<None Remove="Shared\Audio\Files\Interactions\scp575.shadow_strike.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.monster_breath_local.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.shadow_clicking.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_1.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_2.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_3.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_4.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_5.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_6.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_7.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_bang.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_bang_alt.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_long_drones.wav" />
-		<None Remove="Shared\Audio\Files\Paranoia\scp575.whispers_mixed.wav" />
-		<None Remove="Shared\Audio\Files\Vocalization\scp575.monster_roar_global.wav" />
-		<None Remove="Shared\Audio\Files\Vocalization\scp575.scream_1.wav" />
-		<None Remove="Shared\Audio\Files\Vocalization\scp575.scream_2.wav" />
-		<None Remove="Shared\Audio\Files\Vocalization\scp575.scream_3.wav" />
-		<None Remove="Shared\Audio\Files\Vocalization\scp575.scream_angry.wav" />
-		<None Remove="Shared\Audio\Files\Vocalization\scp575.scream_dying.wav" />
-		<None Remove="Shared\Audio\Files\Vocalization\scp575.scream_hurt.wav" />
-		<None Remove="Shared\Audio\scream-angry.wav" />
-		<None Remove="Shared\Audio\scream-dying.wav" />
-		<None Remove="Shared\Audio\scream.wav" />
-		<None Remove="Shared\Audio\whispers-bang.wav" />
-		<None Remove="Shared\Audio\whispers-mixed.wav" />
-		<None Remove="Shared\Audio\whispers.wav" />
+		<None Remove="Shared\Audio\**\*.wav" />
+		<EmbeddedResource Include="Shared\Audio\**\*.wav" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -59,111 +32,34 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Shared\Audio\Files\Ambience\scp575.blackout_impact_global.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Ambience\scp575.sanity_low_drone.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_switch_3.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_switch_2.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.anomalous_impact.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.generator_hum_defense.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_short_circuit.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.light_switch_1.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.shadow_consuming_body.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Interactions\scp575.shadow_strike.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.monster_breath_local.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.shadow_clicking.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_1.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_2.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_3.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_4.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_5.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_6.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_7.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_bang.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_bang_alt.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_long_drones.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Paranoia\scp575.whispers_mixed.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.monster_roar_global.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.scream_1.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.scream_2.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.scream_3.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.scream_angry.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.scream_dying.wav" />
-		<EmbeddedResource Include="Shared\Audio\Files\Vocalization\scp575.scream_hurt.wav" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="ExMod.Exiled" Version="9.14.2" />
 		<PackageReference Include="Northwood.LabAPI" Version="1.1.7" />
 		<PackageReference Include="SCPSL-AudioManagerAPI" Version="2.3.6" />
-		<PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" IncludeAssets="All" PrivateAssets="All" />
-		<PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 		<PackageReference Include="YamlDotNet" Version="18.1.0" />
 		<PackageReference Include="Lib.Harmony" Version="2.4.2" />
+		<PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556" PrivateAssets="All" IncludeAssets="All" />
 	</ItemGroup>
 
-	<PropertyGroup>
-		<SCPSL_MANAGED Condition="'$(SCPSL_MANAGED)' == ''">..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed</SCPSL_MANAGED>
-		<EXILED_API Condition="'$(EXILED_API)' == ''">..\..\\_API\7.2.0</EXILED_API>
-	</PropertyGroup>
-
 	<ItemGroup>
-	  <EmbeddedResource Include="Shared\Audio\Files\Ambience\scp575.ambience.wav" />
-	</ItemGroup>
-	<ItemGroup>
-		<!-- EXILED API References -->
-		<Reference Include="0Harmony">
-			<HintPath>$(EXILED_API)\0Harmony.dll</HintPath>
-		</Reference>
 		<Reference Include="Assembly-CSharp-firstpass">
-		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
-		</Reference>
-		<Reference Include="CommandSystem.Core">
-			<HintPath>$(EXILED_API)\CommandSystem.Core.dll</HintPath>
-		</Reference>
-		<Reference Include="Exiled.API">
-			<HintPath>$(EXILED_API)\Exiled.API.dll</HintPath>
-		</Reference>
-		<Reference Include="Exiled.CreditTags">
-			<HintPath>$(EXILED_API)\Exiled.CreditTags.dll</HintPath>
-		</Reference>
-		<Reference Include="Exiled.Events">
-			<HintPath>$(EXILED_API)\Exiled.Events.dll</HintPath>
-		</Reference>
-		<Reference Include="Exiled.Loader">
-			<HintPath>$(EXILED_API)\Exiled.Loader.dll</HintPath>
-		</Reference>
-		<Reference Include="Exiled.Permissions">
-			<HintPath>$(EXILED_API)\Exiled.Permissions.dll</HintPath>
-		</Reference>
-		<Reference Include="LabApi">
-		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\LabApi.dll</HintPath>
+			<HintPath>$(SCPSL_References)\Assembly-CSharp-firstpass.dll</HintPath>
+			<Private>False</Private>
 		</Reference>
 		<Reference Include="Mirror">
-		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Mirror.dll</HintPath>
-		</Reference>
-		<Reference Include="NorthwoodLib">
-			<HintPath>$(EXILED_API)\NorthwoodLib.dll</HintPath>
+			<HintPath>$(SCPSL_References)\Mirror.dll</HintPath>
+			<Private>False</Private>
 		</Reference>
 		<Reference Include="Pooling">
-		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
-		</Reference>
-		<Reference Include="System.ComponentModel.DataAnnotations">
-			<HintPath>$(EXILED_API)\System.ComponentModel.DataAnnotations.dll</HintPath>
+			<HintPath>$(SCPSL_References)\Pooling.dll</HintPath>
+			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.CoreModule">
-		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+			<HintPath>$(SCPSL_References)\UnityEngine.CoreModule.dll</HintPath>
+			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.PhysicsModule">
-		  <HintPath>C:\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+			<HintPath>$(SCPSL_References)\UnityEngine.PhysicsModule.dll</HintPath>
+			<Private>False</Private>
 		</Reference>
-		<Reference Include="YamlDotNet">
-			<HintPath>$(EXILED_API)\YamlDotNet.dll</HintPath>
-		</Reference>
-
-		<!-- SCP:SL Game References -->
 	</ItemGroup>
+
 </Project>
