@@ -66,9 +66,9 @@ namespace SCP_575
         // Mandated LabAPI Abstract Overrides
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
-        public override string Description => "Advanced horror pacing sub-drone shadow entity.";
+        public override string Description => "Advanced horror pacing sub-drone shadow entity that makes darkness dangerous.";
         public override Version Version => new(10, 3, 0);
-        public override Version RequiredApiVersion => new(1, 0, 0); // Target runtime API layer
+        public override Version RequiredApiVersion => new(1, 0, 0);
 
         #endregion
 
