@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.ComponentModel;
     using UnityEngine;
-    using Logger = LabApi.Features.Console.Logger;
+    using Logger = Shared.LibraryLabAPI;
 
     /// <summary>
     /// Configuration for player sanity system behavior throughout the round.
@@ -201,7 +201,7 @@
 
             if (PainkillersRestoreMin > PainkillersRestoreMax)
             {
-                Logger.Warn("[PlayerSanityConfig] PainkillersRestoreMin was greater than Max. Swapping boundaries.");
+                Logger.LogWarn(nameof(PlayerSanityConfig), "PainkillersRestoreMin was greater than Max. Swapping boundaries.");
                 (PainkillersRestoreMin, PainkillersRestoreMax) = (PainkillersRestoreMax, PainkillersRestoreMin);
             }
 
@@ -214,14 +214,14 @@
 
             if (Scp500RestoreMin > Scp500RestoreMax)
             {
-                Logger.Warn("[PlayerSanityConfig] Scp500RestoreMin was greater than Max. Swapping boundaries.");
+                Logger.LogWarn(nameof(PlayerSanityConfig),"Scp500RestoreMin was greater than Max. Swapping boundaries.");
                 (Scp500RestoreMin, Scp500RestoreMax) = (Scp500RestoreMax, Scp500RestoreMin);
             }
 
             // --- 3. Matrix Hierarchy Collection Auditing ---
             if (SanityStages == null || SanityStages.Count == 0)
             {
-                Logger.Warn("[PlayerSanityConfig] SanityStages matrix was missing or empty. Re-injecting full 6-tier orchestration schema.");
+                Logger.LogWarn(nameof(PlayerSanityConfig), "SanityStages matrix was missing or empty. Re-injecting full 6-tier orchestration schema.");
                 InjectDefaultSanityStages();
                 return;
             }
@@ -249,7 +249,7 @@
 
             if (generationFaultDetected)
             {
-                Logger.Warn("[PlayerSanityConfig] Configured thresholds do not contiguously frame the full 0-100 range. Forcing baseline 6-tier rewrite script.");
+                Logger.LogWarn(nameof(PlayerSanityConfig), "Configured thresholds do not contiguously frame the full 0-100 range. Forcing baseline 6-tier rewrite script.");
                 InjectDefaultSanityStages();
                 return;
             }
