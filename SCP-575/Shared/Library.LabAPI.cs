@@ -269,14 +269,73 @@ namespace SCP_575.Shared
 
         public void CassieClear() => Announcer.Clear();
 
-        public void CassieGlitchyMessage(string message)
+        /// <summary>
+        /// Constructs a glitched vocal broadcast sequence, forces execution transmission, 
+        /// and dynamically maps the structural output timeline track width in seconds.
+        /// </summary>
+        /// <returns>Duration in seconds</returns>
+        public double Cassie_GlitchyMessage(string message, float glitchChance, float jamChance)
         {
-            message = CassieGlitchifier.Glitchify(message, _plugin.Cassie.GlitchChance / 100, _plugin.Cassie.JamChance / 100);
-            Announcer.Message($"pitch_1.15 {message}", string.Empty, playBackground: false);
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                LogWarn("Cassie.GlitchyMessage", "Vocal deployment sequence aborted: Targeted message content evaluates to null or blank space.");
+                return 0.0;
+            }
+
+            try
+            {
+                // Assuming CassieGlitchifier is available in your shared utilities
+                string glitchedText = CassieGlitchifier.Glitchify(message, glitchChance, jamChance);
+
+                CassiePlaybackModifiers playbackModifiers = default;
+                playbackModifiers.Pitch = 0.95f;
+
+                string finalPayload = $"pitch_0.95 {glitchedText}";
+
+                // Utilizing the native LabAPI Announcer engine
+                Announcer.Message(finalPayload, string.Empty, playBackground: false);
+                LogDebug("Cassie.GlitchyMessage", $"Sent glitched CASSIE message payload: {finalPayload}");
+
+                return Announcer.CalculateDuration(glitchedText, playbackModifiers);
+            }
+            catch (Exception ex)
+            {
+                LogError("Cassie.GlitchyMessage", $"Execution runtime suspension tracking crash handled: {ex.Message}");
+                return 0.0;
+            }
         }
 
-        public void CassieMessage(string message) =>
-            Announcer.Message($"pitch_0.95 {message}", playBackground: false, priority: _plugin.Cassie.CassieMessagePriority);
+        /// <summary>
+        /// Dispatches a clean vocal notification broadcast across global audio fields 
+        /// and returns explicit track width estimations.
+        /// </summary>
+        /// <returns>Duration in seconds</returns>
+        public double Cassie_Message(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                LogWarn("Cassie.Message", "Vocal deployment sequence aborted: Targeted message content evaluates to null or blank space.");
+                return 0.0;
+            }
+
+            try
+            {
+                CassiePlaybackModifiers playbackModifiers = default;
+                playbackModifiers.Pitch = 1.05f;
+
+                string finalPayload = $"pitch_1.05 {message}";
+
+                Announcer.Message(finalPayload, string.Empty, playBackground: false);
+                LogDebug("Cassie.Message", $"Sent clean CASSIE message payload: {finalPayload}");
+
+                return Announcer.CalculateDuration(message, playbackModifiers);
+            }
+            catch (Exception ex)
+            {
+                LogError("Cassie.Message", $"Vocal pipeline delivery grid malfunction caught: {ex.Message}");
+                return 0.0;
+            }
+        }
 
         #endregion
 

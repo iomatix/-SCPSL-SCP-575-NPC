@@ -416,26 +416,36 @@ namespace SCP_575.Npc
         #region CASSIE Management
 
         /// <summary>
-        /// Fires specific vocal announcements and returns accurate track lengths utilizing native wrappers.
+        /// Deploys specific vocal notification strings and captures explicit asset playback duration tracking.
+        /// Features automatic radio congestion deflection filtering.
         /// </summary>
-        private double TriggerCassieMessage(string message, bool isGlitchy = false)
+        private double TriggerCassieMessage(string message, bool isGlitchy = false, bool force = false)
         {
-            if (string.IsNullOrWhiteSpace(message) || _cassieState != CassieStatus.Idle) return 0.0;
+            if (string.IsNullOrWhiteSpace(message)) return 0.0;
+
+            // 1. ADVANCED CONGESTION POLICY: Verify server-wide announcer broadcasting status
+            if (!force && Announcer.IsSpeaking)
+            {
+                LibraryLabAPI.LogDebug("TriggerCassieMessage", $"Global radio congestion detected. Dropping delayed message to prevent state desync: {message}");
+                return 0.0;
+            }
+
+            // 2. Local State Lockout Guard
+            if (!force && _cassieState != CassieStatus.Idle)
+            {
+                LibraryLabAPI.LogDebug("TriggerCassieMessage", $"Local pipeline transmission blocked: State machine busy. Status: [{_cassieState}].");
+                return 0.0;
+            }
 
             _cassieState = CassieStatus.Playing;
 
             if (_plugin.Cassie.CassieMessageClearBeforeImportant)
                 Announcer.Clear();
 
-            CassiePlaybackModifiers playbackModifiers = default;
-            playbackModifiers.Pitch = 1.0f;
-
-            if (isGlitchy)
-                Announcer.GlitchyMessage(message, _plugin.Cassie.GlitchChance, _plugin.Cassie.JamChance);
-            else
-                Announcer.Message(message, message, playBackground: false, priority: 0.65f, glitchScale: 0f);
-
-            double duration = Announcer.CalculateDuration(message, playbackModifiers);
+            // 3. Execution routed seamlessly via our freshly integrated instance library methods
+            double duration = isGlitchy
+                ? _libraryLabAPI.Cassie_GlitchyMessage(message, _plugin.Cassie.GlitchChance, _plugin.Cassie.JamChance)
+                : _libraryLabAPI.Cassie_Message(message);
 
             StartCassieCooldown(duration);
             return duration;
@@ -449,6 +459,7 @@ namespace SCP_575.Npc
 
         private IEnumerator<float> CassieCooldownRoutine(double duration)
         {
+            // Fully integrated dynamic duration pipeline utilizing our solid 0.5s tail-buffer
             yield return Timing.WaitForSeconds((float)duration + 0.5f);
             _cassieState = CassieStatus.Cooldown;
             yield return Timing.WaitForSeconds(1f);
