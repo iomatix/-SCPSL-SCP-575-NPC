@@ -38,22 +38,6 @@
 
         #endregion
 
-        #region Timing Settings
-
-        /// <summary>
-        /// Seconds between Cassie’s pre-countdown sentence and the countdown.
-        /// </summary>
-        [Description("Time between sentence and countdown.")]
-        public float TimeBetweenSentenceAndStart { get; set; } = 5.0f;
-
-        /// <summary>
-        /// Seconds between blackout end and Cassie’s end message.
-        /// </summary>
-        [Description("Time between blackout end and end message.")]
-        public float TimeBetweenSentenceAndEnd { get; set; } = 3.0f;
-
-        #endregion
-
         #region Core Announcements
 
         /// <summary>
@@ -156,24 +140,11 @@
                 CassieMessagePriority = 3.1f;
             }
 
-            // --- 2. Timing Settings Validation ---
-            if (TimeBetweenSentenceAndStart < 0f)
-            {
-                Logger.LogWarn(nameof(CassieConfig), "TimeBetweenSentenceAndStart cannot be negative. Resetting to 0.");
-                TimeBetweenSentenceAndStart = 0f;
-            }
-
-            if (TimeBetweenSentenceAndEnd < 0f)
-            {
-                Logger.LogWarn(nameof(CassieConfig), "TimeBetweenSentenceAndEnd cannot be negative. Resetting to 0.");
-                TimeBetweenSentenceAndEnd = 0f;
-            }
-
-            // --- 3. Audio Effects & Probabilities ---
+            // --- 2. Audio Effects & Probabilities ---
             GlitchChance = Mathf.Clamp(GlitchChance, 0f, 100f);
             JamChance = Mathf.Clamp(JamChance, 0f, 100f);
 
-            // --- 4. String Sanitization (Preserves empty strings for intent-based silencing) ---
+            // --- 3. String Sanitization (Preserves empty strings for intent-based silencing) ---
             CassieMessageCountdown = SanitizeCassieString(CassieMessageCountdown);
             CassieMessageStart = SanitizeCassieString(CassieMessageStart);
             CassiePostMessage = SanitizeCassieString(CassiePostMessage);

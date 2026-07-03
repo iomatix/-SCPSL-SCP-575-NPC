@@ -1,10 +1,10 @@
 namespace SCP_575.Npc
 {
+    using Cassie;
     using Handlers;
     using LabApi.Features.Wrappers;
     using MapGeneration;
     using MEC;
-    using SCP_575.ConfigObjects;
     using SCP_575.Shared;
     using System;
     using System.Collections.Generic;
@@ -168,11 +168,13 @@ namespace SCP_575.Npc
                 if (_plugin.Cassie.CassieMessageClearBeforeImportant)
                     Announcer.Clear();
 
-                TriggerCassieMessage(_plugin.Cassie.CassieMessageStart, true);
+                // Dynamic track duration mapping resolving old config dependencies safely
+                double startMessageDuration = TriggerCassieMessage(_plugin.Cassie.CassieMessageStart, true);
+
                 if (_plugin.Blackout.FlickerLights)
                     FlickerAffectedZones(_plugin.Blackout.FlickerDuration);
 
-                yield return Timing.WaitForSeconds(_plugin.Cassie.TimeBetweenSentenceAndStart);
+                yield return Timing.WaitForSeconds((float)startMessageDuration + 0.5f);
                 TriggerCassieMessage(_plugin.Cassie.CassiePostMessage);
             }
 
@@ -261,6 +263,8 @@ namespace SCP_575.Npc
             if (!IsBlackoutActive) TriggerCassieMessage(cassie, true);
             return true;
         }
+
+        private void TriggerFacilityWideLockout(float duration) => TriggerFacilityWideBlackout(duration);
 
         private void TriggerFacilityWideBlackout(float duration)
         {
@@ -364,8 +368,8 @@ namespace SCP_575.Npc
 
             if (!IsBlackoutActive)
             {
-                TriggerCassieMessage(_plugin.Cassie.CassieMessageEnd);
-                yield return Timing.WaitForSeconds(_plugin.Cassie.TimeBetweenSentenceAndEnd);
+                double endMessageDuration = TriggerCassieMessage(_plugin.Cassie.CassieMessageEnd);
+                yield return Timing.WaitForSeconds((float)endMessageDuration + 0.5f);
                 ResetTeslaGates();
                 _triggeredZones.Clear();
                 _plugin.AudioManager.Clean();
@@ -411,26 +415,41 @@ namespace SCP_575.Npc
 
         #region CASSIE Management
 
-        private void TriggerCassieMessage(string message, bool isGlitchy = false)
+        /// <summary>
+        /// Fires specific vocal announcements and returns accurate track lengths utilizing native wrappers.
+        /// </summary>
+        private double TriggerCassieMessage(string message, bool isGlitchy = false)
         {
-            if (string.IsNullOrWhiteSpace(message) || _cassieState != CassieStatus.Idle) return;
+            if (string.IsNullOrWhiteSpace(message) || _cassieState != CassieStatus.Idle) return 0.0;
 
             _cassieState = CassieStatus.Playing;
 
             if (_plugin.Cassie.CassieMessageClearBeforeImportant)
                 Announcer.Clear();
 
-            if (isGlitchy) Announcer.GlitchyMessage(message, _plugin.Cassie.GlitchChance, _plugin.Cassie.JamChance);
-            else Announcer.Message(message, message, playBackground: false, priority: 0.65f, glitchScale: 0f);
-            {
+            CassiePlaybackModifiers playbackModifiers = default;
+            playbackModifiers.Pitch = 1.0f;
 
-                StartCassieCooldown();
-            }
+            if (isGlitchy)
+                Announcer.GlitchyMessage(message, _plugin.Cassie.GlitchChance, _plugin.Cassie.JamChance);
+            else
+                Announcer.Message(message, message, playBackground: false, priority: 0.65f, glitchScale: 0f);
+
+            double duration = Announcer.CalculateDuration(message, playbackModifiers);
+
+            StartCassieCooldown(duration);
+            return duration;
         }
 
-        private IEnumerator<float> CassieCooldownRoutine()
+        private void StartCassieCooldown(double duration)
         {
-            yield return Timing.WaitForSeconds(_plugin.Cassie.TimeBetweenSentenceAndStart + 0.5f);
+            Timing.KillCoroutines(CoroutineTags.CassieCooldown);
+            Timing.RunCoroutine(CassieCooldownRoutine(duration), CoroutineTags.CassieCooldown);
+        }
+
+        private IEnumerator<float> CassieCooldownRoutine(double duration)
+        {
+            yield return Timing.WaitForSeconds((float)duration + 0.5f);
             _cassieState = CassieStatus.Cooldown;
             yield return Timing.WaitForSeconds(1f);
             _cassieState = CassieStatus.Idle;
@@ -464,7 +483,6 @@ namespace SCP_575.Npc
 
                     try
                     {
-                        // FIX: Zero-allocation lookup targeting native GameObject instance identifier integers
                         int playerInstanceId = player.GameObject.GetInstanceID();
                         bool isInDarkness = _libraryLabAPI.IsPlayerInDarkRoom(player);
 
@@ -479,7 +497,6 @@ namespace SCP_575.Npc
                         NpcBehaviorState newState = hasActiveLight ? NpcBehaviorState.Stalking : NpcBehaviorState.Striking;
                         _playerAiStates[playerInstanceId] = newState;
 
-                        // Decoupled transaction dispatch execution execution pipelines
                         _sanityHandler.ApplyDamageToPlayer(player);
 
                         if (newState == NpcBehaviorState.Stalking)
@@ -497,7 +514,7 @@ namespace SCP_575.Npc
 
         #endregion
 
-        #region Utility Methods
+        #region Utility Loops Setup
 
         public void StartBlackoutEventLoop()
         {
@@ -515,12 +532,6 @@ namespace SCP_575.Npc
         {
             Timing.KillCoroutines(CoroutineTags.SanityHandler);
             Timing.RunCoroutine(_sanityHandler.HandleSanityDecay(), CoroutineTags.SanityHandler);
-        }
-
-        public void StartCassieCooldown()
-        {
-            Timing.KillCoroutines(CoroutineTags.CassieCooldown);
-            Timing.RunCoroutine(CassieCooldownRoutine(), CoroutineTags.CassieCooldown);
         }
 
         public void IncrementBlackoutStack() { lock (BlackoutLock) _blackoutStacks++; }
@@ -573,32 +584,22 @@ namespace SCP_575.Npc
         public void ExecuteLocalizedRetaliationSurge(Room generatorRoom)
         {
             if (generatorRoom == null) return;
-
-            // Fire the dual-phase stabilization pipeline using MEC
             Timing.RunCoroutine(ExecuteStabilizationPipelineCoroutine(generatorRoom), CoroutineTags.GeneratorSurge);
         }
 
-
         private IEnumerator<float> ExecuteStabilizationPipelineCoroutine(Room generatorRoom)
         {
-            // Wait 110ms to let the native base-game generator scripts finish forcing the lights ON, 
-            // before our anomaly clamps the grid back into tactical darkness.
             yield return Timing.WaitForSeconds(0.11f);
 
             if (generatorRoom == null || !_plugin.IsEventActive) yield break;
 
-            // Phase 1: Localized grid overload (The monster's desperate counter-attack)
             float stabilizationWindow = _plugin.Blackout.GeneratorStabilizationDuration;
 
             _libraryLabAPI.DisableRoomAndNeighborLights(generatorRoom, stabilizationWindow, forced: true);
-
-            // Hand off the overload scare design entirely to the director layer
             _plugin.AudioDirector?.ProcessGeneratorOverloadRetaliation(generatorRoom.Position);
 
-            // Wait out the high-tension stabilization window
             yield return Timing.WaitForSeconds(stabilizationWindow);
 
-            // Phase 2: Grid Lock (The generator fully stabilizes and locks out the anomaly)
             if (_plugin.IsEventActive && generatorRoom != null)
             {
                 _libraryLabAPI.EnableAndFlickerRoomAndNeighborLights(generatorRoom, 0f);
@@ -621,8 +622,6 @@ namespace SCP_575.Npc
             Map.TurnOnLights();
             _triggeredZones.Clear();
             ResetTeslaGates();
-
-            // Evict structural tracking coordinates safely to enforce cross-round data isolation models
             _playerAiStates.Clear();
         }
 
@@ -641,7 +640,6 @@ namespace SCP_575.Npc
         public void ForceGlobalBlackoutEvent()
         {
             if (!_isInitialized || !_plugin.IsEventActive) return;
-
             Timing.RunCoroutine(ExecuteBlackoutEvent(), CoroutineTags.Temp);
         }
 
