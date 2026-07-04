@@ -1,150 +1,112 @@
-﻿namespace SCP_575.ConfigObjects
-{
-    using System.ComponentModel;
-    using UnityEngine;
-    using Logger = SCP_575.Shared.LibraryLabAPI;
+﻿using LabApi.Extensions;
+using System.ComponentModel;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.ConfigObjects
+{
+    /// <summary>
+    /// Configuration settings managing public public address announcements, vocal matrices, 
+    /// queue priorities, and real-time corruption distortions for CASSIE transmissions.
+    /// </summary>
     public sealed class CassieConfig
     {
-        #region General Options
-
-        /// <summary>
-        /// Enable Cassie’s countdown announcement.
-        /// </summary>
-        [Description("Enable Cassie countdown announcement.")]
-        public bool IsCountdownEnabled { get; set; } = true;
-
-        /// <summary>
-        /// Clear Cassie’s message queue before important announcements.
-        /// </summary>
-        [Description("Clear message queue before important messages.")]
-        public bool CassieMessageClearBeforeImportant { get; set; } = false;
-
+        #region Factory Baseline Constants
+        private const string DefaultCountdown = "pitch_0.9 power failure . pitch_1";
+        private const string DefaultStart = "warning . facility power grid failure imminent . anomalous activity detected .";
+        private const string DefaultPost = "pitch_0.8 darkness is no longer safe . stay in light areas . pitch_1";
+        private const string DefaultWrong = "pitch_1.1 . power grid stabilized . false alert detected . pitch_1";
+        private const string DefaultEnd = "pitch_1.15 facility power system now operational . pitch_1";
+        private const string DefaultFacility = "The Facility .";
+        private const string DefaultEntrance = "The Entrance Zone .";
+        private const string DefaultLight = "The Light Containment Zone .";
+        private const string DefaultHeavy = "The Heavy Containment Zone.";
+        private const string DefaultSurface = "The Surface .";
+        private const string DefaultOther = ". pitch_0.35 .g6 pitch_0.95 the malfunction is Unspecified .";
+        private const string DefaultKeter = "pitch_0.15 .g7";
         #endregion
 
-        /// <summary>
-        /// Priority level for Cassie’s important messages. Higher values will skip more of the message queue before playing these announcements.
-        /// </summary>
-        [Description("Priority for important Cassie messages.")]
+        #region General Options
+        [Description("Enable Cassie's countdown announcement loop shortly before an environmental blackout triggers.")]
+        public bool IsCountdownEnabled { get; set; } = true;
+
+        [Description("Force-flush the active global CASSIE broadcast queue aggressively before executing critical anomaly announcements.")]
+        public bool CassieMessageClearBeforeImportant { get; set; } = false;
+
+        [Description("Priority scheduling weight coefficient assigned to important announcements. Higher channels bypass more queued elements.")]
         public float CassieMessagePriority { get; set; } = 3.1f;
+        #endregion
 
         #region Countdown Message
-
-        /// <summary>
-        /// Cassie’s countdown just before blackout (3…2…1).
-        /// </summary>
-        [Description("Cassie countdown before blackout.")]
-        public string CassieMessageCountdown { get; set; } = "pitch_0.9 power failure . pitch_1";
-
+        [Description("The CASSIE countdown message sequence broadcasted to facility sectors right before complete darkness falls.")]
+        public string CassieMessageCountdown { get; set; } = DefaultCountdown;
         #endregion
 
         #region Core Announcements
+        [Description("The foundational emergency CASSIE notification sequence delivered when the anomaly event initiates.")]
+        public string CassieMessageStart { get; set; } = DefaultStart;
 
-        /// <summary>
-        /// Cassie’s message at blackout start.
-        /// </summary>
-        [Description("Cassie message at blackout start.")]
-        public string CassieMessageStart { get; set; } = "warning . facility power grid failure imminent . anomalous activity detected .";
+        [Description("Follow-up tactical warning broadcasted immediately across global public address systems after power grids collapse.")]
+        public string CassiePostMessage { get; set; } = DefaultPost;
 
-        /// <summary>
-        /// Cassie’s follow-up message immediately after blackout begins.
-        /// </summary>
-        [Description("Cassie post-blackout-start message.")]
-        public string CassiePostMessage { get; set; } = "pitch_0.8 darkness is no longer safe . stay in light areas . pitch_1";
+        [Description("Fallback notification broadcasted if an active initialization countdown is stabilized or cancelled.")]
+        public string CassieMessageWrong { get; set; } = DefaultWrong;
 
-        /// <summary>
-        /// Cassie’s message if no blackout occurs.
-        /// </summary>
-        [Description("Cassie message if no blackout occurs.")]
-        public string CassieMessageWrong { get; set; } = "pitch_1.1 . power grid stabilized . false alert detected . pitch_1";
-
-        /// <summary>
-        /// Cassie’s message when blackout ends.
-        /// </summary>
-        [Description("Cassie message at blackout end.")]
-        public string CassieMessageEnd { get; set; } = "pitch_1.15 facility power system now operational . pitch_1";
-
+        [Description("Resolution notification broadcasted to all active facility grids indicating that power grids are restored to a stable operational baseline.")]
+        public string CassieMessageEnd { get; set; } = DefaultEnd;
         #endregion
 
         #region Zone-Specific Messages
+        [Description("Vocal identifier token appended to announcements impacting the entire facility grid structure simultaneously.")]
+        public string CassieMessageFacility { get; set; } = DefaultFacility;
 
-        /// <summary>
-        /// Facility-wide blackout announcement.
-        /// </summary>
-        [Description("Message for facility-wide blackout.")]
-        public string CassieMessageFacility { get; set; } = "The Facility .";
+        [Description("Vocal identifier token appended to announcements impacting the Entrance Zone grid infrastructure.")]
+        public string CassieMessageEntrance { get; set; } = DefaultEntrance;
 
-        /// <summary>
-        /// Entrance Zone blackout announcement.
-        /// </summary>
-        [Description("Message for Entrance Zone blackout.")]
-        public string CassieMessageEntrance { get; set; } = "The Entrance Zone .";
+        [Description("Vocal identifier token appended to announcements impacting the Light Containment Zone grid infrastructure.")]
+        public string CassieMessageLight { get; set; } = DefaultLight;
 
-        /// <summary>
-        /// Light Containment Zone blackout announcement.
-        /// </summary>
-        [Description("Message for Light Containment Zone blackout.")]
-        public string CassieMessageLight { get; set; } = "The Light Containment Zone .";
+        [Description("Vocal identifier token appended to announcements impacting the Heavy Containment Zone grid infrastructure.")]
+        public string CassieMessageHeavy { get; set; } = DefaultHeavy;
 
-        /// <summary>
-        /// Heavy Containment Zone blackout announcement.
-        /// </summary>
-        [Description("Message for Heavy Containment Zone blackout.")]
-        public string CassieMessageHeavy { get; set; } = "The Heavy Containment Zone.";
+        [Description("Vocal identifier token appended to announcements impacting Surface sector structural quadrants.")]
+        public string CassieMessageSurface { get; set; } = DefaultSurface;
 
-        /// <summary>
-        /// Surface Zone blackout announcement.
-        /// </summary>
-        [Description("Message for Surface Zone blackout.")]
-        public string CassieMessageSurface { get; set; } = "The Surface .";
-
-        /// <summary>
-        /// Announcement for unspecified/other zones.
-        /// </summary>
-        [Description("Message for unspecified zone blackout.")]
-        public string CassieMessageOther { get; set; } = ". pitch_0.35 .g6 pitch_0.95 the malfunction is Unspecified .";
-
+        [Description("Vocal identifier token appended to announcements targeting unmapped, custom, or custom-built facility zone spaces.")]
+        public string CassieMessageOther { get; set; } = DefaultOther;
         #endregion
 
-        #region Audio Effects
-
-        /// <summary>
-        /// Chance (%) of a glitch per word in Cassie’s speech.
-        /// </summary>
-        [Description("Glitch chance per word in Cassie messages.")]
+        #region Audio Effects & Anomaly Chances
+        [Description("The probability percentage chance (0% - 100%) of an individual word experiencing structural vocal glitch modulation.")]
         public float GlitchChance { get; set; } = 0.15f;
 
-        /// <summary>
-        /// Chance (%) of jamming per word in Cassie’s speech.
-        /// </summary>
-        [Description("Jam chance per word in Cassie messages.")]
+        [Description("The probability percentage chance (0% - 100%) of an individual word sustaining terminal audio jamming degradation.")]
         public float JamChance { get; set; } = 0.10f;
 
-        /// <summary>
-        /// The “Keter” sound Cassie plays during blackout.
-        /// </summary>
-        [Description("Cassie Keter sound during blackout.")]
-        public string CassieKeter { get; set; } = "pitch_0.15 .g7";
-
+        [Description("The dedicated low-frequency structural background environmental tracking overlay sound triggered during a blackout.")]
+        public string CassieKeter { get; set; } = DefaultKeter;
         #endregion
 
-        ////// <summary>
-        /// Validates the Cassie configuration parameters and corrects invalid input.
+        #region Validation Engine
+        /// <summary>
+        /// Validates CASSIE message profiles, sanitizes probability scales via fluent math primitives, 
+        /// and scrubs spacing corruptions to insulate vocal synthesizers against sub-frame execution failures.
         /// </summary>
         public void Validate()
         {
-            // --- 1. General & Priority Guard ---
+            // --- 1. Priority & Scale Bounds Safeguards ---
+            // Fluent API Upgrade: Enforce non-negative priority indices cleanly via math limit extensions
             if (CassieMessagePriority < 0f)
             {
-                Logger.LogWarn(nameof(CassieConfig), $"CassieMessagePriority ({CassieMessagePriority}) cannot be negative. Resetting to default (3.1f).");
+                Logger.Warn(nameof(CassieConfig), $"CassieMessagePriority ({CassieMessagePriority}) cannot evaluate to a negative metric index track. Resetting back to safe factory default baseline (3.1f).");
                 CassieMessagePriority = 3.1f;
             }
 
-            // --- 2. Audio Effects & Probabilities ---
-            GlitchChance = Mathf.Clamp(GlitchChance, 0f, 100f);
-            JamChance = Mathf.Clamp(JamChance, 0f, 100f);
+            // Fluent API Upgrade: Clamp audio effect probabilities smoothly into real percentage spaces (0% - 100%)
+            GlitchChance = GlitchChance.Clamp(0f, 100f);
+            JamChance = JamChance.Clamp(0f, 100f);
 
-            // --- 3. String Sanitization (Preserves empty strings for intent-based silencing) ---
+            // --- 2. Complete DRY-Compliant String Sanitization Matrix ---
+            // Clean out line breaks and white space parameters safely while guaranteeing string validity
             CassieMessageCountdown = SanitizeCassieString(CassieMessageCountdown);
             CassieMessageStart = SanitizeCassieString(CassieMessageStart);
             CassiePostMessage = SanitizeCassieString(CassiePostMessage);
@@ -161,17 +123,19 @@
         }
 
         /// <summary>
-        /// Strips whitespace corruption and newline formatting while preserving empty strings for intentional text muting.
+        /// Systematically scrubs raw text fields, stripping hidden carriage returns and formatting errors 
+        /// while safely preserving empty strings for intentional text muting configurations.
         /// </summary>
-        private string SanitizeCassieString(string rawMessage)
+        private static string SanitizeCassieString(string rawMessage)
         {
             if (string.IsNullOrWhiteSpace(rawMessage))
             {
                 return string.Empty;
             }
 
-            // Sanitizes hidden YAML newline injection characters (\r\n) that break the native voice engine parser
+            // Clears hidden YAML formatting characters (\r\n) to safeguard native speech synthesis processors against thread choking artifacts
             return rawMessage.Replace("\r", "").Replace("\n", " ").Trim();
         }
+        #endregion
     }
 }
