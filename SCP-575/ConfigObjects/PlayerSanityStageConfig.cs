@@ -1,74 +1,83 @@
-﻿namespace SCP_575.ConfigObjects
-{
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using UnityEngine;
-    using Logger = SCP_575.Shared.LibraryLabAPI;
+﻿using LabApi.Extensions;
+using System.Collections.Generic;
+using System.ComponentModel;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.ConfigObjects
+{
     /// <summary>
-    /// Defines a stage of player sanity, including thresholds and which effects
-    /// to apply when sanity falls within this range.
+    /// Defines an operational stage of player sanity, outlining threshold boundaries 
+    /// and specific sensory status effects applied when sanity tracking drops within this range.
     /// </summary>
     public sealed class PlayerSanityStageConfig
     {
-        [Description("Min sanity % to activate this stage.")]
+        #region Structural Thresholds & Modifiers
+        [Description("Min sanity percentage required to activate this stage boundary.")]
         public float MinThreshold { get; set; }
 
-        [Description("Max sanity % to activate this stage.")]
+        [Description("Max sanity percentage required to activate this stage boundary.")]
         public float MaxThreshold { get; set; }
 
-        [Description("Damage to apply on SCP-575 strike at this sanity level.")]
+        [Description("Base damage applied on a direct SCP-575 strike sequence at this sanity level.")]
         public float DamageOnStrike { get; set; }
 
-        [Description("Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event.")]
+        [Description("Additional damage applied on an SCP-575 strike sequence per each active stack of the blackout event.")]
         public float AdditionalDamagePerStack { get; set; }
 
-        [Description("Damage to apply on SCP-575 strike at this sanity level when the player is holding a lightsource ON in the room with lights off.")]
+        [Description("Damage applied on an SCP-575 strike sequence when the victim is holding an active light source in a dark room.")]
         public float DamageOnStrikeWhenLightsourceActive { get; set; }
 
-        [Description("Additional damage to apply on SCP-575 strike at this sanity level per each active stack of the blackout event when the player is holding a lightsource ON in the room with lights off.")]
+        [Description("Additional stack damage applied on an SCP-575 strike sequence when the victim is holding an active light source in a dark room.")]
         public float AdditionalDamagePerStackWhenLightsourceActive { get; set; }
 
-        [Description("Determines whether negative sanity effects and full damage should be applied even when the player is holding a lightsource in the room with lights off.")]
+        [Description("If set to true, negative sanity effects and full strike damage ignore personal light source protections.")]
         public bool OverrideLightSourceSanityProtection { get; set; }
 
-        [Description("List of effects to apply to the player during this sanity stage.")]
+        [Description("List of distinct status effect configurations applied to the player during this tracking stage.")]
         public List<PlayerSanityEffectConfig> Effects { get; set; } = new();
+        #endregion
 
+        #region Validation Engine
+        /// <summary>
+        /// Validates stage threshold modifiers and applies fluent boundary guards onto tracking values.
+        /// </summary>
         public void Validate()
         {
-            DamageOnStrike = Mathf.Max(0f, DamageOnStrike);
-            AdditionalDamagePerStack = Mathf.Max(0f, AdditionalDamagePerStack);
+            // Fluent API Upgrade: Enforce non-negative baselines using primitive inline limit extensions
+            DamageOnStrike = DamageOnStrike.LimitMin(0f);
+            AdditionalDamagePerStack = AdditionalDamagePerStack.LimitMin(0f);
 
+            // Audit operational light source configurations relative to base strike metrics
             if (DamageOnStrikeWhenLightsourceActive < 0f)
             {
-                Logger.LogWarn(nameof(PlayerSanityStageConfig), $"DamageOnStrikeWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                Logger.Warn(nameof(PlayerSanityStageConfig), $"DamageOnStrikeWhenLightsourceActive was negative for stage range [{MinThreshold}% - {MaxThreshold}%]. Resetting baseline to 0.");
                 DamageOnStrikeWhenLightsourceActive = 0f;
             }
             else if (DamageOnStrikeWhenLightsourceActive > DamageOnStrike)
             {
-                Logger.LogWarn(nameof(PlayerSanityStageConfig), $"DamageOnStrikeWhenLightsourceActive cannot be greater than DamageOnStrike for stage {MinThreshold}-{MaxThreshold}. Adjusting to equal DamageOnStrike.");
+                Logger.Warn(nameof(PlayerSanityStageConfig), $"DamageOnStrikeWhenLightsourceActive exceeded base DamageOnStrike for stage range [{MinThreshold}% - {MaxThreshold}%]. Clamping to balance constraints.");
                 DamageOnStrikeWhenLightsourceActive = DamageOnStrike;
             }
 
             if (AdditionalDamagePerStackWhenLightsourceActive < 0f)
             {
-                Logger.LogWarn(nameof(PlayerSanityStageConfig), $"AdditionalDamagePerStackWhenLightsourceActive cannot be negative for stage {MinThreshold}-{MaxThreshold}. Resetting to 0.");
+                Logger.Warn(nameof(PlayerSanityStageConfig), $"AdditionalDamagePerStackWhenLightsourceActive was negative for stage range [{MinThreshold}% - {MaxThreshold}%]. Resetting baseline to 0.");
                 AdditionalDamagePerStackWhenLightsourceActive = 0f;
             }
             else if (AdditionalDamagePerStackWhenLightsourceActive > AdditionalDamagePerStack)
             {
-                Logger.LogWarn(nameof(PlayerSanityStageConfig), $"AdditionalDamagePerStackWhenLightsourceActive cannot be greater than AdditionalDamagePerStack for stage {MinThreshold}-{MaxThreshold}. Adjusting to equal AdditionalDamagePerStack.");
+                Logger.Warn(nameof(PlayerSanityStageConfig), $"AdditionalDamagePerStackWhenLightsourceActive exceeded base AdditionalDamagePerStack for stage range [{MinThreshold}% - {MaxThreshold}%]. Clamping to balance constraints.");
                 AdditionalDamagePerStackWhenLightsourceActive = AdditionalDamagePerStack;
             }
 
-            if (Effects != null)
+            // Propagate deep validation routines down nested matrix elements safely
+            if (Effects == null) return;
+
+            for (int i = 0; i < Effects.Count; i++)
             {
-                foreach (var effect in Effects)
-                {
-                    effect?.Validate();
-                }
+                Effects[i]?.Validate();
             }
         }
+        #endregion
     }
 }

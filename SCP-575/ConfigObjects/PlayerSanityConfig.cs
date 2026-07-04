@@ -1,12 +1,12 @@
-﻿namespace SCP_575.ConfigObjects
-{
-    using SCP_575.Types;
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using UnityEngine;
-    using YamlDotNet.Serialization;
-    using Logger = SCP_575.Shared.LibraryLabAPI;
+﻿using LabApi.Extensions;
+using System.Collections.Generic;
+using System.ComponentModel;
+using UnityEngine;
+using YamlDotNet.Serialization;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.ConfigObjects
+{
     /// <summary>
     /// Configuration for player sanity system behavior throughout the round.
     /// Controls decay, regeneration, medical recovery, and stage-based visual/physical effects.
@@ -14,368 +14,278 @@
     public sealed class PlayerSanityConfig
     {
         #region Sanity Flow Settings
-
-        [Description("Initial sanity value (0–100) on spawn.")]
+        [Description("Initial sanity value (0–100) allocated instantly on role instantiation.")]
         public float InitialSanity { get; set; } = 100f;
 
-        [Description("How much sanity (0-100) a player naturally loses PER MINUTE in baseline conditions.")]
+        [Description("The flat value scale a player naturally loses PER MINUTE under standard baseline environments.")]
         public float BaseDecayPerMinute { get; set; } = 6.65f;
 
-        [Description("Decay multiplier applied during an active SCP-575 Blackout event.")]
+        [Description("Decay multiplication factor applied continuously during an active SCP-575 Blackout event cascade.")]
         public float DecayMultiplierBlackout { get; set; } = 1.65f;
 
-        [Description("Harsh decay multiplier applied when the player has NO active personal light source (flashlight/weapon light) in the dark.")]
+        [Description("Severe decay multiplication factor applied when the player has NO active mobile light sources in complete darkness.")]
         public float DecayMultiplierDarkness { get; set; } = 2.55f;
 
-        [Description("How much sanity (0-100) a player passively regenerates PER MINUTE when inside safe, lit zones.")]
+        [Description("The flat value scale a player passively regenerates PER MINUTE while standing inside safe, active light zones.")]
         public float PassiveRegenPerMinute { get; set; } = 4.35f;
 
-        [Description("Amount of sanity lost instantly when attacked/hit by any SCP entity.")]
+        [Description("Instant sanity drop applied the exact moment a player sustains damage from an anomalous entity source.")]
         public float ScpHitSanityDrop { get; set; } = 3f;
-
         #endregion
 
         #region Medical Recovery Settings
-
-        [Description("Minimum sanity restore percent from medical pills.")]
+        [Description("Minimum sanity recovery allocation factor delivered by standard medical pills.")]
         public float PainkillersRestoreMin { get; set; } = 4f;
 
-        [Description("Maximum sanity restore percent from medical pills.")]
+        [Description("Maximum sanity recovery allocation factor delivered by standard medical pills.")]
         public float PainkillersRestoreMax { get; set; } = 12f;
 
-        [Description("Amount added to sanity per second if the player is in the bright room.")]
+        [Description("Incremental baseline value injected into sanity tracking per second if the user digests pills within a lit room context.")]
         public float PainkillersExtraSanityRegen { get; set; } = 0.65f;
 
-        [Description("Duration in seconds of the regen effect if the player is in the bright room.")]
+        [Description("The temporal duration track in seconds governing the extended pill-induced regeneration timeline.")]
         public float PainkillersRegenDuration { get; set; } = 12.75f;
 
-        [Description("Duration in seconds of the protection effect. SCP-575 will not deal any damage nor apply any effects to the player for this duration.")]
+        [Description("The absolute protection window in seconds during which SCP-575 ignores the player completely post-medication.")]
         public float PainkillersProtectionDuration { get; set; } = 3.35f;
 
-        [Description("Minimum sanity restore percent from SCP-500.")]
+        [Description("Minimum sanity structural restoration percentage delivered by consuming SCP-500.")]
         public float Scp500RestoreMin { get; set; } = 90f;
 
-        [Description("Maximum sanity restore percent from SCP-500.")]
+        [Description("Maximum sanity structural restoration percentage delivered by consuming SCP-500.")]
         public float Scp500RestoreMax { get; set; } = 100f;
-
         #endregion
 
-        #region Runtime Backing Fields (Pre-calculated for performance)
-
-
+        #region Runtime Backing Fields
         [YamlIgnore]
         public float DecayRateBase { get; private set; }
 
         [YamlIgnore]
         public float PassiveRegenRate { get; private set; }
-
         #endregion
 
-        #region Stage Thresholds and Effects
-
-        [Description("Duration in seconds a player is protected from consecutive sensory effect bursts (e.g. blur spams) after the last burst sequence.")]
+        #region Stage Thresholds and Effects Matrix
+        [Description("Temporal immunity window in seconds preventing rapid sensory burst feedback loop triggers on the same subject.")]
         public float EffectsBurstCooldown { get; set; } = 4.25f;
 
-        [Description("Cooldown in seconds between consecutive anomalous impact sound triggers on the same player.")]
+        [Description("Cooldown gate in seconds separating independent spatial audio ambient hit tracks tracking on the same player.")]
         public float AttackAudioCooldownSeconds { get; set; } = 1.25f;
 
-        [Description("Stages of sanity and their associated effects.")]
-        public List<PlayerSanityStageConfig> SanityStages { get; set; } = new()
-        {
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 90f, MaxThreshold = 100f, DamageOnStrike = 4f, AdditionalDamagePerStack = 2f,
-                DamageOnStrikeWhenLightsourceActive = 0f, AdditionalDamagePerStackWhenLightsourceActive = 1f,
-                OverrideLightSourceSanityProtection = false,
-                Effects = new()
-                {
-                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 0.35f, Intensity = 2 },
-                    new() { EffectType = SanityEffectType.Slowness, Duration = 0.5f, Intensity = 15 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 0.45f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 0.25f, Intensity = 1 }
-                }
-            },
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 75f, MaxThreshold = 90f, DamageOnStrike = 8f, AdditionalDamagePerStack = 3f,
-                DamageOnStrikeWhenLightsourceActive = 2f, AdditionalDamagePerStackWhenLightsourceActive = 2f,
-                OverrideLightSourceSanityProtection = false,
-                Effects = new()
-                {
-                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 0.65f, Intensity = 4 },
-                    new() { EffectType = SanityEffectType.Slowness, Duration = 0.85f, Intensity = 25 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 0.75f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.25f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 0.45f, Intensity = 1 }
-                }
-            },
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 50f, MaxThreshold = 75f, DamageOnStrike = 12f, AdditionalDamagePerStack = 4f,
-                DamageOnStrikeWhenLightsourceActive = 4f, AdditionalDamagePerStackWhenLightsourceActive = 3f,
-                OverrideLightSourceSanityProtection = false,
-                Effects = new()
-                {
-                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 1.15f, Intensity = 6 },
-                    new() { EffectType = SanityEffectType.Slowness, Duration = 1.35f, Intensity = 35 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 1.25f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.35f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 0.95f, Intensity = 1 }
-                }
-            },
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 25f, MaxThreshold = 50f, DamageOnStrike = 20f, AdditionalDamagePerStack = 6f,
-                DamageOnStrikeWhenLightsourceActive = 5f, AdditionalDamagePerStackWhenLightsourceActive = 4f,
-                OverrideLightSourceSanityProtection = false,
-                Effects = new()
-                {
-                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 1.45f, Intensity = 8 },
-                    new() { EffectType = SanityEffectType.Slowness, Duration = 1.85f, Intensity = 45 },
-                    new() { EffectType = SanityEffectType.Exhausted, Duration = 0.25f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 1.65f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.55f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 1.45f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.25f, Intensity = 1 }
-                }
-            },
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 10f, MaxThreshold = 25f, DamageOnStrike = 30f, AdditionalDamagePerStack = 9f,
-                DamageOnStrikeWhenLightsourceActive = 8f, AdditionalDamagePerStackWhenLightsourceActive = 6f,
-                OverrideLightSourceSanityProtection = false,
-                Effects = new()
-                {
-                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 1.85f, Intensity = 9 },
-                    new() { EffectType = SanityEffectType.Slowness, Duration = 2.15f, Intensity = 60 },
-                    new() { EffectType = SanityEffectType.Exhausted, Duration = 0.35f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 1.95f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 0.75f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 1.75f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.35f, Intensity = 1 }
-                }
-            },
-            new PlayerSanityStageConfig
-            {
-                MinThreshold = 0f, MaxThreshold = 10f, DamageOnStrike = 45f, AdditionalDamagePerStack = 15f,
-                DamageOnStrikeWhenLightsourceActive = 10f, AdditionalDamagePerStackWhenLightsourceActive = 8f,
-                OverrideLightSourceSanityProtection = true,
-                Effects = new()
-                {
-                    new() { EffectType = SanityEffectType.SilentWalk, Duration = 3.05f, Intensity = 10 },
-                    new() { EffectType = SanityEffectType.Slowness, Duration = 3.15f, Intensity = 75 },
-                    new() { EffectType = SanityEffectType.Exhausted, Duration = 0.65f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blurred, Duration = 2.65f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Blindness, Duration = 1.25f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Deafened, Duration = 2.75f, Intensity = 1 },
-                    new() { EffectType = SanityEffectType.Flashed, Duration = 0.55f, Intensity = 1 }
-                }
-            }
-        };
-
+        [Description("The orchestrated progression matrix mapping exact sanity thresholds directly onto specific status profile blocks.")]
+        public List<PlayerSanityStageConfig> SanityStages { get; set; } = CreateDefaultStagesFactory();
         #endregion
 
-        #region Constructor
-        public PlayerSanityConfig()
+        #region Pre-Calculated Frequency Rates Initialization
+        public PlayerSanityConfig() => RecalculateRuntimeExecutionRates();
+
+        private void RecalculateRuntimeExecutionRates()
         {
             DecayRateBase = BaseDecayPerMinute / 60f;
             PassiveRegenRate = PassiveRegenPerMinute / 60f;
         }
         #endregion
 
+        #region Validation Engine
         /// <summary>
-        /// Validates the player sanity configuration parameters and compiles intuitive human-readable metrics into high-speed runtime decimals.
+        /// Validates sanity metrics, sanitizes medical sub-threshold distributions, 
+        /// and conducts a linear mathematical audit confirming the contiguous continuity of the 0-100 threshold range.
         /// </summary>
         public void Validate()
         {
-            // --- 1. Basic Boundary Adjustments ---
-            InitialSanity = Mathf.Clamp(InitialSanity, 0f, 100f);
+            // Fluent API Upgrade: Sanitize standard boundaries with high-speed inline primitive math extensions
+            InitialSanity = InitialSanity.Clamp(0f, 100f);
 
-            BaseDecayPerMinute = Mathf.Max(0f, BaseDecayPerMinute);
-            PassiveRegenPerMinute = Mathf.Max(0f, PassiveRegenPerMinute);
+            BaseDecayPerMinute = BaseDecayPerMinute.LimitMin(0f);
+            PassiveRegenPerMinute = PassiveRegenPerMinute.LimitMin(0f);
+            DecayMultiplierBlackout = DecayMultiplierBlackout.LimitMin(0f);
+            DecayMultiplierDarkness = DecayMultiplierDarkness.LimitMin(0f);
 
-            DecayMultiplierBlackout = Mathf.Max(0f, DecayMultiplierBlackout);
-            DecayMultiplierDarkness = Mathf.Max(0f, DecayMultiplierDarkness);
+            RecalculateRuntimeExecutionRates();
 
-            // Thread performance conversions
-            DecayRateBase = BaseDecayPerMinute / 60f;
-            PassiveRegenRate = PassiveRegenPerMinute / 60f;
+            ScpHitSanityDrop = ScpHitSanityDrop.LimitMin(0f);
+            EffectsBurstCooldown = EffectsBurstCooldown.LimitMin(0f);
+            AttackAudioCooldownSeconds = AttackAudioCooldownSeconds.LimitMin(0f);
 
-            ScpHitSanityDrop = Mathf.Max(0f, ScpHitSanityDrop);
-            EffectsBurstCooldown = Mathf.Max(0f, EffectsBurstCooldown);
-            AttackAudioCooldownSeconds = Mathf.Max(0f, AttackAudioCooldownSeconds);
+            PainkillersRestoreMin = PainkillersRestoreMin.Clamp(0f, 100f);
+            PainkillersRestoreMax = PainkillersRestoreMax.Clamp(0f, 100f);
 
-            // --- 2. Medical Item Clamping & ValueTuple Swapping ---
-            PainkillersRestoreMin = Mathf.Clamp(PainkillersRestoreMin, 0f, 100f);
-            PainkillersRestoreMax = Mathf.Clamp(PainkillersRestoreMax, 0f, 100f);
-
+            // Modern Tuple Swap Pattern to secure min-max boundary relationships flawlessly
             if (PainkillersRestoreMin > PainkillersRestoreMax)
             {
-                Logger.LogWarn(nameof(PlayerSanityConfig), "PainkillersRestoreMin was greater than Max. Swapping boundaries.");
+                Logger.Warn(nameof(PlayerSanityConfig), "Pill restoration threshold out of order: PainkillersRestoreMin was greater than Max. Executing tuple-swap correction...");
                 (PainkillersRestoreMin, PainkillersRestoreMax) = (PainkillersRestoreMax, PainkillersRestoreMin);
             }
 
-            PainkillersExtraSanityRegen = Mathf.Max(0f, PainkillersExtraSanityRegen);
-            PainkillersRegenDuration = Mathf.Max(0f, PainkillersRegenDuration);
-            PainkillersProtectionDuration = Mathf.Max(0f, PainkillersProtectionDuration);
+            PainkillersExtraSanityRegen = PainkillersExtraSanityRegen.LimitMin(0f);
+            PainkillersRegenDuration = PainkillersRegenDuration.LimitMin(0f);
+            PainkillersProtectionDuration = PainkillersProtectionDuration.LimitMin(0f);
 
-            Scp500RestoreMin = Mathf.Clamp(Scp500RestoreMin, 0f, 100f);
-            Scp500RestoreMax = Mathf.Clamp(Scp500RestoreMax, 0f, 100f);
+            Scp500RestoreMin = Scp500RestoreMin.Clamp(0f, 100f);
+            Scp500RestoreMax = Scp500RestoreMax.Clamp(0f, 100f);
 
             if (Scp500RestoreMin > Scp500RestoreMax)
             {
-                Logger.LogWarn(nameof(PlayerSanityConfig),"Scp500RestoreMin was greater than Max. Swapping boundaries.");
+                Logger.Warn(nameof(PlayerSanityConfig), "SCP-500 restoration threshold out of order: Scp500RestoreMin was greater than Max. Executing tuple-swap correction...");
                 (Scp500RestoreMin, Scp500RestoreMax) = (Scp500RestoreMax, Scp500RestoreMin);
             }
 
-            // --- 3. Matrix Hierarchy Collection Auditing ---
+            // High-precision linear boundary continuity audit
             if (SanityStages == null || SanityStages.Count == 0)
             {
-                Logger.LogWarn(nameof(PlayerSanityConfig), "SanityStages matrix was missing or empty. Re-injecting full 6-tier orchestration schema.");
+                Logger.Warn(nameof(PlayerSanityConfig), "SanityStages matrix evaluates to null or empty space. Force re-injecting pristine 6-tier configuration layout map.");
                 InjectDefaultSanityStages();
                 return;
             }
 
-            // Sort ascending to perform domain continuity audits
+            // Order ascending using clean collection sorting predicates
             SanityStages.Sort((a, b) => a.MinThreshold.CompareTo(b.MinThreshold));
 
-            bool generationFaultDetected = false;
+            bool flowMatrixFaultDetected = SanityStages[0].MinThreshold > 0f || SanityStages[^1].MaxThreshold < 100f;
 
-            // Audit bound boundaries 
-            if (SanityStages[0].MinThreshold > 0f || SanityStages[SanityStages.Count - 1].MaxThreshold < 100f)
+            if (!flowMatrixFaultDetected)
             {
-                generationFaultDetected = true;
-            }
-
-            // Audit contiguous flow matrix gaps
-            for (int i = 0; i < SanityStages.Count - 1; i++)
-            {
-                if (Mathf.Abs(SanityStages[i].MaxThreshold - SanityStages[i + 1].MinThreshold) > 0.01f)
+                for (int i = 0; i < SanityStages.Count - 1; i++)
                 {
-                    generationFaultDetected = true;
-                    break;
+                    // Audit contiguous flow matrix gaps with a tight float variance allowance limit
+                    if (Mathf.Abs(SanityStages[i].MaxThreshold - SanityStages[i + 1].MinThreshold) > 0.01f)
+                    {
+                        flowMatrixFaultDetected = true;
+                        break;
+                    }
                 }
             }
 
-            if (generationFaultDetected)
+            if (flowMatrixFaultDetected)
             {
-                Logger.LogWarn(nameof(PlayerSanityConfig), "Configured thresholds do not contiguously frame the full 0-100 range. Forcing baseline 6-tier rewrite script.");
+                Logger.Warn(nameof(PlayerSanityConfig), "Configured sanity thresholds do not contiguously frame the full 0-100% range. Overriding matrix with standard 6-tier fallback blueprint.");
                 InjectDefaultSanityStages();
                 return;
             }
 
-            // Complete standard verification down individual elements inside collection safely
-            foreach (var stage in SanityStages)
+            // Safe element-wise internal object array validation step
+            for (int i = 0; i < SanityStages.Count; i++)
             {
+                var stage = SanityStages[i];
                 if (stage == null) continue;
 
-                // Ensure internal collection instantiations are clean
-                if (stage.Effects == null)
-                    stage.Effects = new List<PlayerSanityEffectConfig>();
-
+                stage.Effects ??= new List<PlayerSanityEffectConfig>();
                 stage.Validate();
             }
         }
 
         /// <summary>
-        /// Instantly mirrors your exact custom 6-tier horror architecture to recover from a production layout formatting failure.
+        /// Recovers the configuration matrix back into a contiguous layout to resolve deployment formatting anomalies.
         /// </summary>
         private void InjectDefaultSanityStages()
         {
-            SanityStages = new List<PlayerSanityStageConfig>
+            SanityStages = CreateDefaultStagesFactory();
+
+            for (int i = 0; i < SanityStages.Count; i++)
             {
-                new PlayerSanityStageConfig
+                SanityStages[i].Validate();
+            }
+        }
+        #endregion
+
+        #region Static Factory Data Source
+        /// <summary>
+        /// Creates a fresh instance of the default 6-tier horror progression matrix layout cleanly mapping FacilityEffectType components.
+        /// </summary>
+        private static List<PlayerSanityStageConfig> CreateDefaultStagesFactory()
+        {
+            return new List<PlayerSanityStageConfig>
+            {
+                new()
                 {
                     MinThreshold = 0f, MaxThreshold = 10f, DamageOnStrike = 45f, AdditionalDamagePerStack = 15f,
                     DamageOnStrikeWhenLightsourceActive = 10f, AdditionalDamagePerStackWhenLightsourceActive = 8f,
                     OverrideLightSourceSanityProtection = true,
                     Effects = new()
                     {
-                        new() { EffectType = SanityEffectType.SilentWalk, Duration = 3.05f, Intensity = 10 },
-                        new() { EffectType = SanityEffectType.Slowness, Duration = 3.15f, Intensity = 75 },
-                        new() { EffectType = SanityEffectType.Exhausted, Duration = 0.65f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Blurred, Duration = 2.65f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Blindness, Duration = 1.25f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Deafened, Duration = 2.75f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Flashed, Duration = 0.55f, Intensity = 1 }
+                        new() { EffectType = FacilityEffectType.SilentWalk, Duration = 3.05f, Intensity = 10 },
+                        new() { EffectType = FacilityEffectType.Slowness, Duration = 3.15f, Intensity = 75 },
+                        new() { EffectType = FacilityEffectType.Exhausted, Duration = 0.65f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Blurred, Duration = 2.65f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Blindness, Duration = 1.25f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Deafened, Duration = 2.75f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Flashed, Duration = 0.55f, Intensity = 1 }
                     }
                 },
-                new PlayerSanityStageConfig
+                new()
                 {
                     MinThreshold = 10f, MaxThreshold = 25f, DamageOnStrike = 30f, AdditionalDamagePerStack = 9f,
                     DamageOnStrikeWhenLightsourceActive = 8f, AdditionalDamagePerStackWhenLightsourceActive = 6f,
                     OverrideLightSourceSanityProtection = false,
                     Effects = new()
                     {
-                        new() { EffectType = SanityEffectType.SilentWalk, Duration = 1.85f, Intensity = 9 },
-                        new() { EffectType = SanityEffectType.Slowness, Duration = 2.15f, Intensity = 60 },
-                        new() { EffectType = SanityEffectType.Exhausted, Duration = 0.35f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Blurred, Duration = 1.95f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Blindness, Duration = 0.75f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Deafened, Duration = 1.75f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Flashed, Duration = 0.35f, Intensity = 1 }
+                        new() { EffectType = FacilityEffectType.SilentWalk, Duration = 1.85f, Intensity = 9 },
+                        new() { EffectType = FacilityEffectType.Slowness, Duration = 2.15f, Intensity = 60 },
+                        new() { EffectType = FacilityEffectType.Exhausted, Duration = 0.35f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Blurred, Duration = 1.95f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Blindness, Duration = 0.75f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Deafened, Duration = 1.75f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Flashed, Duration = 0.35f, Intensity = 1 }
                     }
                 },
-                new PlayerSanityStageConfig
+                new()
                 {
                     MinThreshold = 25f, MaxThreshold = 50f, DamageOnStrike = 20f, AdditionalDamagePerStack = 6f,
                     DamageOnStrikeWhenLightsourceActive = 5f, AdditionalDamagePerStackWhenLightsourceActive = 4f,
                     OverrideLightSourceSanityProtection = false,
                     Effects = new()
                     {
-                        new() { EffectType = SanityEffectType.SilentWalk, Duration = 1.45f, Intensity = 8 },
-                        new() { EffectType = SanityEffectType.Slowness, Duration = 1.85f, Intensity = 45 },
-                        new() { EffectType = SanityEffectType.Exhausted, Duration = 0.25f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Blurred, Duration = 1.65f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Blindness, Duration = 0.55f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Deafened, Duration = 1.45f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Flashed, Duration = 0.25f, Intensity = 1 }
+                        new() { EffectType = FacilityEffectType.SilentWalk, Duration = 1.45f, Intensity = 8 },
+                        new() { EffectType = FacilityEffectType.Slowness, Duration = 1.85f, Intensity = 45 },
+                        new() { EffectType = FacilityEffectType.Exhausted, Duration = 0.25f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Blurred, Duration = 1.65f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Blindness, Duration = 0.55f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Deafened, Duration = 1.45f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Flashed, Duration = 0.25f, Intensity = 1 }
                     }
                 },
-                new PlayerSanityStageConfig
+                new()
                 {
                     MinThreshold = 50f, MaxThreshold = 75f, DamageOnStrike = 12f, AdditionalDamagePerStack = 4f,
                     DamageOnStrikeWhenLightsourceActive = 4f, AdditionalDamagePerStackWhenLightsourceActive = 3f,
                     OverrideLightSourceSanityProtection = false,
                     Effects = new()
                     {
-                        new() { EffectType = SanityEffectType.SilentWalk, Duration = 1.15f, Intensity = 6 },
-                        new() { EffectType = SanityEffectType.Slowness, Duration = 1.35f, Intensity = 35 },
-                        new() { EffectType = SanityEffectType.Blurred, Duration = 1.25f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Blindness, Duration = 0.35f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Deafened, Duration = 0.95f, Intensity = 1 }
+                        new() { EffectType = FacilityEffectType.SilentWalk, Duration = 1.15f, Intensity = 6 },
+                        new() { EffectType = FacilityEffectType.Slowness, Duration = 1.35f, Intensity = 35 },
+                        new() { EffectType = FacilityEffectType.Blurred, Duration = 1.25f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Blindness, Duration = 0.35f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Deafened, Duration = 0.95f, Intensity = 1 }
                     }
                 },
-                new PlayerSanityStageConfig
+                new()
                 {
                     MinThreshold = 75f, MaxThreshold = 90f, DamageOnStrike = 8f, AdditionalDamagePerStack = 3f,
                     DamageOnStrikeWhenLightsourceActive = 2f, AdditionalDamagePerStackWhenLightsourceActive = 2f,
                     OverrideLightSourceSanityProtection = false,
                     Effects = new()
                     {
-                        new() { EffectType = SanityEffectType.SilentWalk, Duration = 0.65f, Intensity = 4 },
-                        new() { EffectType = SanityEffectType.Slowness, Duration = 0.85f, Intensity = 25 },
-                        new() { EffectType = SanityEffectType.Blurred, Duration = 0.75f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Blindness, Duration = 0.25f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Deafened, Duration = 0.45f, Intensity = 1 }
+                        new() { EffectType = FacilityEffectType.SilentWalk, Duration = 0.65f, Intensity = 4 },
+                        new() { EffectType = FacilityEffectType.Slowness, Duration = 0.85f, Intensity = 25 },
+                        new() { EffectType = FacilityEffectType.Blurred, Duration = 0.75f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Blindness, Duration = 0.25f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Deafened, Duration = 0.45f, Intensity = 1 }
                     }
                 },
-                new PlayerSanityStageConfig
+                new()
                 {
                     MinThreshold = 90f, MaxThreshold = 100f, DamageOnStrike = 4f, AdditionalDamagePerStack = 2f,
                     DamageOnStrikeWhenLightsourceActive = 0f, AdditionalDamagePerStackWhenLightsourceActive = 1f,
                     OverrideLightSourceSanityProtection = false,
                     Effects = new()
                     {
-                        new() { EffectType = SanityEffectType.SilentWalk, Duration = 0.35f, Intensity = 2 },
-                        new() { EffectType = SanityEffectType.Slowness, Duration = 0.5f, Intensity = 15 },
-                        new() { EffectType = SanityEffectType.Blurred, Duration = 0.45f, Intensity = 1 },
-                        new() { EffectType = SanityEffectType.Deafened, Duration = 0.25f, Intensity = 1 }
+                        new() { EffectType = FacilityEffectType.SilentWalk, Duration = 0.35f, Intensity = 2 },
+                        new() { EffectType = FacilityEffectType.Slowness, Duration = 0.5f, Intensity = 15 },
+                        new() { EffectType = FacilityEffectType.Blurred, Duration = 0.45f, Intensity = 1 },
+                        new() { EffectType = FacilityEffectType.Deafened, Duration = 0.25f, Intensity = 1 }
                     }
                 }
             };
-
-            foreach (var stage in SanityStages) stage.Validate();
         }
+        #endregion
     }
 }
