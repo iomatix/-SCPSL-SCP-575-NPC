@@ -2,7 +2,6 @@
 {
     using LabApi.Events.Arguments.ServerEvents;
     using LabApi.Events.CustomHandlers;
-    using SCP_575.Shared;
     using System;
     using Types;
     using UnityEngine;
