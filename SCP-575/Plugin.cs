@@ -1,20 +1,24 @@
+using LabApi.Extensions;
+using LabApi.Extensions.Nesting;
+using LabApi.Loader.Features.Plugins;
+using SCP_575.Compatibility;
+using SCP_575.ConfigObjects;
+using SCP_575.Handlers;
+using SCP_575.Npc;
+using SCP_575.Shared;
+using SCP_575.Shared.Audio;
+using System;
+using Logger = LabApi.Extensions.Misc.iLogger;
+
 namespace SCP_575
 {
-    using LabApi.Events.CustomHandlers;
-    using LabApi.Loader;
-    using SCP_575.Compatibility; // Imported compatibility domain namespace
-    using SCP_575.ConfigObjects;
-    using SCP_575.Handlers;
-    using SCP_575.Shared;
-    using SCP_575.Shared.Audio;
-    using System;
-    using Logger = SCP_575.Shared.LibraryLabAPI;
-
     /// <summary>
     /// Central initialization bootstrap layer for the SCP-575 plugin ecosystem inside LabAPI.
+    /// Deploys fluent builder pipelines and generic composition nodes to guarantee zero-boilerplate execution.
     /// </summary>
-    public class Plugin : LabApi.Loader.Features.Plugins.Plugin<Config>
+    public class Plugin : Plugin<Config>
     {
+        #region Private Subsystem Handlers
         private LifecycleHandler _lifecycleHandler;
         private GeneratorHandler _generatorHandler;
         private ExplosionHandler _explosionHandler;
@@ -24,19 +28,64 @@ namespace SCP_575
         private PlayerLightsourceHandler _lightsourceHandler;
         private MapHandler _mapHandler;
 
-        private NestingObjects.Npc _npcNestingObj;
         private Scp575DamageSystem _damageSystem;
         private Scp575AudioManager _audioManager;
         private Scp575AudioDirector _audioDirector;
-        private LibraryLabAPI _libraryLabAPI;
 
-        private bool _isEventActive = false;
-        private bool _isConfigLoaded = false;
+        // Generic structural node completely replacing old custom NestingObjects.Npc boilerplate class
+        private NestingNode<Plugin, Methods> _npcNode;
 
+        private bool _isEventActive;
+        private bool _isConfigLoaded;
+        #endregion
+
+        #region Operational API Properties
+        /// <summary>
+        /// Gets the global thread-safe singleton instance of the plugin context.
+        /// </summary>
         public static Plugin Singleton { get; private set; }
 
-        #region Independent Sub-Configurations
+        /// <summary>
+        /// Gets the contextual event handler tracking player sanity metrics.
+        /// </summary>
+        public PlayerSanityHandler SanityEventHandler => _sanityHandler;
 
+        /// <summary>
+        /// Gets the contextual event handler tracking player light sources.
+        /// </summary>
+        public PlayerLightsourceHandler LightsourceHandler => _lightsourceHandler;
+
+        /// <summary>
+        /// Gets the master map modification handler tracking environmental illumination states.
+        /// </summary>
+        public MapHandler MapHandler => _mapHandler;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether an active anomaly event cycle is currently executing.
+        /// </summary>
+        public bool IsEventActive
+        {
+            get => _isEventActive;
+            set => _isEventActive = value;
+        }
+
+        /// <summary>
+        /// Gets the decoupled composition node exposing core NPC execution methods safely.
+        /// </summary>
+        public NestingNode<Plugin, Methods> NpcNestingObj => _npcNode;
+
+        public Scp575DamageSystem DamageSystem => _damageSystem;
+        public Scp575AudioManager AudioManager => _audioManager;
+        public Scp575AudioDirector AudioDirector => _audioDirector;
+
+        public override string Author => "iomatix";
+        public override string Name => "SCP-575 NPC";
+        public override string Description => "Advanced horror pacing sub-drone shadow entity that makes darkness dangerous.";
+        public override Version Version => new(12, 0, 0);
+        public override Version RequiredApiVersion => new(1, 0, 0);
+        #endregion
+
+        #region Independent Sub-Configurations
         public AudioConfig Audio { get; private set; }
         public BlackoutConfig Blackout { get; private set; }
         public FlashlightSpawnConfig FlashlightSpawn { get; private set; }
@@ -45,107 +94,37 @@ namespace SCP_575
         public PlayerLightsourceConfig Lightsource { get; private set; }
         public HintsConfig Hints { get; private set; }
         public CassieConfig Cassie { get; private set; }
-
         #endregion
 
-        #region Operational API Properties
-
-        public PlayerSanityHandler SanityEventHandler => _sanityHandler;
-        public PlayerLightsourceHandler LightsourceHandler => _lightsourceHandler;
-        public MapHandler MapHandler => _mapHandler;
-
-        public bool IsEventActive
-        {
-            get => _isEventActive;
-            set => _isEventActive = value;
-        }
-
-        public NestingObjects.Npc NpcNestingObj => _npcNestingObj;
-        public Scp575DamageSystem DamageSystem => _damageSystem;
-        public Scp575AudioManager AudioManager => _audioManager;
-        public Scp575AudioDirector AudioDirector => _audioDirector;
-        public LibraryLabAPI LibraryLabAPI => _libraryLabAPI;
-
-        public override string Author => "iomatix";
-        public override string Name => "SCP-575 NPC";
-        public override string Description => "Advanced horror pacing sub-drone shadow entity that makes darkness dangerous.";
-        public override Version Version => new(12, 0, 0);
-        public override Version RequiredApiVersion => new(1, 0, 0);
-
-        #endregion
-
+        #region Plugin Lifecycle Management
         /// <summary>
-        /// Native LabAPI configuration framework hook. Processes decoupled sub-configs.
+        /// Native LabAPI configuration framework hook. Processes decoupled sub-configs seamlessly.
         /// </summary>
         public override void LoadConfigs()
         {
-            Logger.LogInfo(nameof(LoadConfigs), " started for SCP-575 NPC");
+            Logger.Info(nameof(Plugin), "Initializing sub-configuration matrix for SCP-575 NPC.");
 
             base.LoadConfigs();
             Config.Validate();
 
-            if (this.TryLoadConfig("audio_settings.yml", out AudioConfig loadedAudio))
-            {
-                Audio = loadedAudio ?? new AudioConfig();
-                Audio.Validate();
-                this.TrySaveConfig(Audio, "audio_settings.yml");
-            }
-
-            if (this.TryLoadConfig("blackout_engine.yml", out BlackoutConfig loadedBlackout))
-            {
-                Blackout = loadedBlackout ?? new BlackoutConfig();
-                Blackout.Validate();
-                this.TrySaveConfig(Blackout, "blackout_engine.yml");
-            }
-
-            if (this.TryLoadConfig("flashlight_spawning.yml", out FlashlightSpawnConfig loadedFlashlight))
-            {
-                FlashlightSpawn = loadedFlashlight ?? new FlashlightSpawnConfig();
-                FlashlightSpawn.Validate();
-                this.TrySaveConfig(FlashlightSpawn, "flashlight_spawning.yml");
-            }
-
-            if (this.TryLoadConfig("npc_behavior.yml", out NpcConfig loadedNpc))
-            {
-                Npc = loadedNpc ?? new NpcConfig();
-                Npc.Validate();
-                this.TrySaveConfig(Npc, "npc_behavior.yml");
-            }
-
-            if (this.TryLoadConfig("sanity_progression.yml", out PlayerSanityConfig loadedSanity))
-            {
-                Sanity = loadedSanity ?? new PlayerSanityConfig();
-                Sanity.Validate();
-                this.TrySaveConfig(Sanity, "sanity_progression.yml");
-            }
-
-            if (this.TryLoadConfig("player_lightsources.yml", out PlayerLightsourceConfig loadedLights))
-            {
-                Lightsource = loadedLights ?? new PlayerLightsourceConfig();
-                Lightsource.Validate();
-                this.TrySaveConfig(Lightsource, "player_lightsources.yml");
-            }
-
-            if (this.TryLoadConfig("hints_placement.yml", out HintsConfig loadedHints))
-            {
-                Hints = loadedHints ?? new HintsConfig();
-                Hints.Validate();
-                this.TrySaveConfig(Hints, "hints_placement.yml");
-            }
-
-            if (this.TryLoadConfig("cassie_announcements.yml", out CassieConfig loadedCassie))
-            {
-                Cassie = loadedCassie ?? new CassieConfig();
-                Cassie.Validate();
-                this.TrySaveConfig(Cassie, "cassie_announcements.yml");
-            }
+            // Fluent API Implementation: Manage all sub-configs atomically with absolute type safety
+            Audio = this.LoadOrCreateSubConfig<Config, AudioConfig>("audio_settings.yml", config => config.Validate());
+            Blackout = this.LoadOrCreateSubConfig<Config, BlackoutConfig>("blackout_engine.yml", config => config.Validate());
+            FlashlightSpawn = this.LoadOrCreateSubConfig<Config, FlashlightSpawnConfig>("flashlight_spawning.yml", config => config.Validate());
+            Npc = this.LoadOrCreateSubConfig<Config, NpcConfig>("npc_behavior.yml", config => config.Validate());
+            Sanity = this.LoadOrCreateSubConfig<Config, PlayerSanityConfig>("sanity_progression.yml", config => config.Validate());
+            Lightsource = this.LoadOrCreateSubConfig<Config, PlayerLightsourceConfig>("player_lightsources.yml", config => config.Validate());
+            Hints = this.LoadOrCreateSubConfig<Config, HintsConfig>("hints_placement.yml", config => config.Validate());
+            Cassie = this.LoadOrCreateSubConfig<Config, CassieConfig>("cassie_announcements.yml", config => config.Validate());
 
             _isConfigLoaded = true;
         }
 
+        /// <summary>
+        /// Instantiates runtime subsystems, registers pipeline hooks, and sets up the anomaly context.
+        /// </summary>
         public override void Enable()
         {
-            // Clean abstraction detour execution for Exiled environments setup configurations
             if (!_isConfigLoaded)
             {
                 ExiledCompatibilityLayer.ExecuteFallback(this);
@@ -155,22 +134,13 @@ namespace SCP_575
 
             try
             {
-                _libraryLabAPI = new LibraryLabAPI(this);
-            }
-            catch (Exception)
-            {
-                _libraryLabAPI = null;
-                Singleton = null;
-                return;
-            }
-
-            try
-            {
+                // Instantiate core operational logic tracking pipelines
                 _damageSystem = new Scp575DamageSystem(this);
                 _audioManager = new Scp575AudioManager(this);
                 _sanityHandler = new PlayerSanityHandler(this);
                 _audioDirector = new Scp575AudioDirector(this, _audioManager, _sanityHandler);
 
+                // Initialize runtime event handling proxies
                 _lifecycleHandler = new LifecycleHandler(this);
                 _generatorHandler = new GeneratorHandler(this);
                 _explosionHandler = new ExplosionHandler(this);
@@ -179,40 +149,54 @@ namespace SCP_575
                 _lightsourceHandler = new PlayerLightsourceHandler(this);
                 _mapHandler = new MapHandler(this);
 
-                _npcNestingObj = new NestingObjects.Npc(this);
+                // Fluent API Upgrade: Bind the logic layer safely without custom boilerplate files
+                _npcNode = new NestingNode<Plugin, Methods>(this, plugin => new Methods(plugin));
 
-                _sanityHandler?.Initialize();
-                _lightsourceHandler?.Initialize();
-                _audioDirector?.Initialize();
+                // Wake up complex nested tracking loops safely
+                _sanityHandler.Initialize();
+                _lightsourceHandler.Initialize();
+                _audioDirector.Initialize();
 
-                RegisterEvents();
+                // Fluent API Upgrade: Atomic bulk event handler subscription registration via collection extensions
+                HandlerExtensions.RegisterAll(
+                    _lifecycleHandler, _generatorHandler, _explosionHandler, _damageHandler,
+                    _ragdollHandler, _lightsourceHandler, _sanityHandler, _mapHandler
+                );
+
+                Logger.Info(nameof(Plugin), "SCP-575 runtime infrastructure successfully established and online.");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.Error(nameof(Plugin), $"Critical failure during initialization cascade: {ex.Message}");
+                Disable();
                 throw;
             }
         }
 
+        /// <summary>
+        /// Discharges active streaming references, unbinds system events, and purges the operational singleton context.
+        /// </summary>
         public override void Disable()
         {
             _isEventActive = false;
 
-            try { UnregisterEvents(); }
-            catch (Exception) { }
+            try
+            {
+                // Atomic mass unregistration pattern safeguarding against leaked event handlers
+                HandlerExtensions.UnregisterAll(
+                    _lifecycleHandler, _generatorHandler, _explosionHandler, _damageHandler,
+                    _ragdollHandler, _lightsourceHandler, _sanityHandler, _mapHandler
+                );
+            }
+            catch (Exception ex) { Logger.Debug(nameof(Plugin), $"Suppressed event unregistration artifact: {ex.Message}", Config.Debug); }
 
-            try { _audioDirector?.Dispose(); }
-            catch (Exception) { }
+            // Gracefully wind down independent tracking sub-modules defensively
+            try { _audioDirector?.Dispose(); } catch (Exception ex) { Logger.Debug(nameof(Plugin), ex.Message, Config.Debug); }
+            try { _audioManager?.Clean(fullShutdown: true); } catch (Exception ex) { Logger.Debug(nameof(Plugin), ex.Message, Config.Debug); }
+            try { _sanityHandler?.Dispose(); } catch (Exception ex) { Logger.Debug(nameof(Plugin), ex.Message, Config.Debug); }
+            try { _lightsourceHandler?.Dispose(); } catch (Exception ex) { Logger.Debug(nameof(Plugin), ex.Message, Config.Debug); }
 
-            try { _audioManager?.Clean(fullShutdown: true); }
-            catch (Exception) { }
-
-            try { _sanityHandler?.Dispose(); }
-            catch (Exception) { }
-
-            try { _lightsourceHandler?.Dispose(); }
-            catch (Exception) { }
-
-            _npcNestingObj = null;
+            // Break reference maps down to let garbage collectors reclaim allocations cleanly
             _lightsourceHandler = null;
             _sanityHandler = null;
             _ragdollHandler = null;
@@ -225,32 +209,11 @@ namespace SCP_575
             _damageSystem = null;
             _audioDirector = null;
             _audioManager = null;
-            _libraryLabAPI = null;
+            _npcNode = null;
             Singleton = null;
-        }
 
-        private void RegisterEvents()
-        {
-            CustomHandlersManager.RegisterEventsHandler(_lifecycleHandler);
-            CustomHandlersManager.RegisterEventsHandler(_generatorHandler);
-            CustomHandlersManager.RegisterEventsHandler(_explosionHandler);
-            CustomHandlersManager.RegisterEventsHandler(_damageHandler);
-            CustomHandlersManager.RegisterEventsHandler(_ragdollHandler);
-            CustomHandlersManager.RegisterEventsHandler(_lightsourceHandler);
-            CustomHandlersManager.RegisterEventsHandler(_sanityHandler);
-            CustomHandlersManager.RegisterEventsHandler(_mapHandler);
+            Logger.Info(nameof(Plugin), "SCP-575 framework teardown completed successfully.");
         }
-
-        private void UnregisterEvents()
-        {
-            CustomHandlersManager.UnregisterEventsHandler(_lifecycleHandler);
-            CustomHandlersManager.UnregisterEventsHandler(_generatorHandler);
-            CustomHandlersManager.UnregisterEventsHandler(_explosionHandler);
-            CustomHandlersManager.UnregisterEventsHandler(_damageHandler);
-            CustomHandlersManager.UnregisterEventsHandler(_ragdollHandler);
-            CustomHandlersManager.UnregisterEventsHandler(_lightsourceHandler);
-            CustomHandlersManager.UnregisterEventsHandler(_sanityHandler);
-            CustomHandlersManager.UnregisterEventsHandler(_mapHandler);
-        }
+        #endregion
     }
 }

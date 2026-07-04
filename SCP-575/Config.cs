@@ -1,14 +1,13 @@
 namespace SCP_575
 {
-    using SCP_575.ConfigObjects;
+    using LabApi.Loader.Features.Configuration;
     using System.ComponentModel;
-    using YamlDotNet.Serialization;
-    using Logger = SCP_575.Shared.LibraryLabAPI;
+    using Logger = LabApi.Extensions.Misc.iLogger;
 
     /// <summary>
     /// Master configuration settings for the SCP-575 plugin ecosystem inside LabAPI.
     /// </summary>
-    public sealed class Config
+    public sealed class Config : LabApiConfig
     {
         #region General Settings
 
@@ -36,7 +35,7 @@ namespace SCP_575
         {
             if (HandlerCleanupInterval < 5f)
             {
-                Logger.LogWarn(nameof(Config), "[Config] HandlerCleanupInterval cannot be less than 5 seconds. Resetting to safe baseline (90f).");
+                Logger.Warn(nameof(Config), "HandlerCleanupInterval cannot be less than 5 seconds. Resetting to safe baseline (90f).");
                 HandlerCleanupInterval = 90f;
             }
         }
