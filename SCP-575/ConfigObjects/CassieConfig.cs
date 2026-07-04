@@ -107,34 +107,19 @@ namespace SCP_575.ConfigObjects
 
             // --- 2. Complete DRY-Compliant String Sanitization Matrix ---
             // Clean out line breaks and white space parameters safely while guaranteeing string validity
-            CassieMessageCountdown = SanitizeCassieString(CassieMessageCountdown);
-            CassieMessageStart = SanitizeCassieString(CassieMessageStart);
-            CassiePostMessage = SanitizeCassieString(CassiePostMessage);
-            CassieMessageWrong = SanitizeCassieString(CassieMessageWrong);
-            CassieMessageEnd = SanitizeCassieString(CassieMessageEnd);
+            CassieMessageCountdown.SanitizeCassieString();
+            CassieMessageStart.SanitizeCassieString();
+            CassiePostMessage.SanitizeCassieString();
+            CassieMessageWrong.SanitizeCassieString();
+            CassieMessageEnd.SanitizeCassieString();
 
-            CassieMessageFacility = SanitizeCassieString(CassieMessageFacility);
-            CassieMessageEntrance = SanitizeCassieString(CassieMessageEntrance);
-            CassieMessageLight = SanitizeCassieString(CassieMessageLight);
-            CassieMessageHeavy = SanitizeCassieString(CassieMessageHeavy);
-            CassieMessageSurface = SanitizeCassieString(CassieMessageSurface);
-            CassieMessageOther = SanitizeCassieString(CassieMessageOther);
-            CassieKeter = SanitizeCassieString(CassieKeter);
-        }
-
-        /// <summary>
-        /// Systematically scrubs raw text fields, stripping hidden carriage returns and formatting errors 
-        /// while safely preserving empty strings for intentional text muting configurations.
-        /// </summary>
-        private static string SanitizeCassieString(string rawMessage)
-        {
-            if (string.IsNullOrWhiteSpace(rawMessage))
-            {
-                return string.Empty;
-            }
-
-            // Clears hidden YAML formatting characters (\r\n) to safeguard native speech synthesis processors against thread choking artifacts
-            return rawMessage.Replace("\r", "").Replace("\n", " ").Trim();
+            CassieMessageFacility.SanitizeCassieString();
+            CassieMessageEntrance.SanitizeCassieString();
+            CassieMessageLight.SanitizeCassieString();
+            CassieMessageHeavy.SanitizeCassieString();
+            CassieMessageSurface.SanitizeCassieString();
+            CassieMessageOther.SanitizeCassieString();
+            CassieKeter.SanitizeCassieString();
         }
         #endregion
     }
