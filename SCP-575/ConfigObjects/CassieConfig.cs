@@ -107,19 +107,19 @@ namespace SCP_575.ConfigObjects
 
             // --- 2. Complete DRY-Compliant String Sanitization Matrix ---
             // Clean out line breaks and white space parameters safely while guaranteeing string validity
-            CassieMessageCountdown.SanitizeCassieString();
-            CassieMessageStart.SanitizeCassieString();
-            CassiePostMessage.SanitizeCassieString();
-            CassieMessageWrong.SanitizeCassieString();
-            CassieMessageEnd.SanitizeCassieString();
+            CassieMessageCountdown = CassieMessageCountdown.SanitizeCassieString();
+            CassieMessageStart = CassieMessageStart.SanitizeCassieString();
+            CassiePostMessage = CassiePostMessage.SanitizeCassieString();
+            CassieMessageWrong = CassieMessageWrong.SanitizeCassieString();
+            CassieMessageEnd = CassieMessageEnd.SanitizeCassieString();
 
-            CassieMessageFacility.SanitizeCassieString();
-            CassieMessageEntrance.SanitizeCassieString();
-            CassieMessageLight.SanitizeCassieString();
-            CassieMessageHeavy.SanitizeCassieString();
-            CassieMessageSurface.SanitizeCassieString();
-            CassieMessageOther.SanitizeCassieString();
-            CassieKeter.SanitizeCassieString();
+            CassieMessageFacility = CassieMessageFacility.SanitizeCassieString();
+            CassieMessageEntrance = CassieMessageEntrance.SanitizeCassieString();
+            CassieMessageLight = CassieMessageLight.SanitizeCassieString();
+            CassieMessageHeavy = CassieMessageHeavy.SanitizeCassieString();
+            CassieMessageSurface = CassieMessageSurface.SanitizeCassieString();
+            CassieMessageOther = CassieMessageOther.SanitizeCassieString();
+            CassieKeter = CassieKeter.SanitizeCassieString();
         }
         #endregion
     }
