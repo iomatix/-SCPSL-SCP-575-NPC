@@ -45,10 +45,12 @@ To prevent malicious execution, all subcommands require the native `- FacilityMa
 
 | Command | Syntax | Description |
 | :--- | :--- | :--- |
-| **Initialize Framework** | `scp575 init` / `scp575 start` | Bypasses configuration spawn weights and forces the SCP-575 environment online mid-round. Spins up coroutines, sets player baselines, and plays background ambience. |
-| **Trigger Blackout** | `scp575 blackout` / `scp575 trigger` | Forces an immediate global blackout event. Dispatches glitchy CASSIE broadcasts, fires 3D jumpscare soundscapes, and overrides illumination fields. |
-| **Emergency Disable** | `scp575 stop` / `scp575 disable` | Instantly terminates the event. Kills active loops, ucisza all custom speakers, clears dictionary caches, and restores structural facility lighting. |
-| **Set Blackout Stacks** | `scp575 setstacks [value]` | Explicitly sets the current blackout stack register (e.g., `scp575 setstacks 3`). Higher stacks heavily escalate sanity decay and physical damage. Passing '0' restores facility power. |
+| **Initialize Framework** | `scp575 init` / `scp575 start` | Bypasses configuration spawn weights and forces the SCP-575 environment online mid-round. Spins up execution coroutines, sets baseline parameters, and awakens tracking loops. |
+| **Trigger Blackout** | `scp575 blackout [zone]` / `scp575 trigger [zone]` | Forces an immediate global or zone-specific blackout event. Supports fuzzy parsing and acronym expansions (e.g., `lcz`, `hcz`, `ez`, `surface`). Dispatches custom CASSIE broadcasts and overrides illumination fields. |
+| **Emergency Disable** | `scp575 stop` / `scp575 disable` | Instantly terminates the anomaly event lifecycle. Kills active loops, silences custom audio modules, clears structural dictionary caches, and restores facility lighting. |
+| **Set Blackout Stacks** | `scp575 setstacks [value]` | Explicitly overrides the running blackout stack register to a fixed baseline (e.g., `scp575 setstacks 3`). Higher stacks heavily escalate sanity decay multipliers and physical entity strike damage. Passing `0` clears the matrix and restores facility power. |
+| **Shift Blackout Stacks** | `scp575 changestacks [delta]` | Shifts the running blackout stack count up or down using relative integer modifiers (e.g., `scp575 changestacks -2` or `scp575 changestacks 3`). Automatically applies safe clamps to prevent sub-zero alokacji errors. |
+| **Modify Player Sanity** | `scp575 sanity [player] [action] [value]` | Seamlessly modifies a targeted player's neuro-integrity metrics. Evaluates action modifiers via typo-tolerant fuzzy cascades supporting `set`, `add`, and `sub` (subtract) vectors within a safe `0-100%` range boundary clamp. |
 
 ### 💡 Execution Examples
 
