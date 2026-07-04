@@ -1,122 +1,94 @@
+using LabApi.Extensions;
+using System.ComponentModel;
+using UnityEngine;
+using Logger = LabApi.Extensions.Misc.iLogger;
+
 namespace SCP_575.ConfigObjects
 {
-    using System.ComponentModel;
-    using UnityEngine;
-    using Logger = SCP_575.Shared.LibraryLabAPI;
-
+    /// <summary>
+    /// Configuration settings governing the behavioral physics, combat modifiers, 
+    /// tick rates, and termination constraints of the SCP-575 entity instance.
+    /// </summary>
     public sealed class NpcConfig
     {
         #region NPC Termination Behavior
-
-        /// <summary>
-        /// Specifies whether SCP-575 can be terminated when all generators are engaged.
-        /// If false, generator activation only halts SCP-575's behavior and resets its event state.
-        /// </summary>
-        [Description("Specifies whether SCP-575 can be terminated when all generators are engaged.")]
+        [Description("Specifies whether SCP-575 can be terminated when all facility generators are fully engaged. If false, generator activation only resets its threat cycle.")]
         public bool IsNpcKillable { get; set; } = false;
-
         #endregion
 
         #region Ragdoll Settings
-
-        /// <summary>
-        /// Determines how kills by SCP-575 handle ragdolls.
-        /// If false, a skeleton ragdoll is spawned instead of the default one.
-        /// If true, no ragdoll is created upon death.
-        /// </summary>
-        [Description("Determines whether to disable ragdolls for SCP-575 kills.")]
+        [Description("Determines how kills by SCP-575 handle physical ragdoll assets. If true, no ragdoll is created on death, preventing physical tracking clutter.")]
         public bool DisableRagdolls { get; set; } = false;
-
         #endregion
 
         #region Timing Settings
-
-        /// <summary>
-        /// Delay in seconds between SCP-575 action ticks.
-        /// </summary>
-        [Description("The delay of receiving damage.")]
+        [Description("Baseline delay interval in seconds between consecutive SCP-575 behavior and damage ticking actions.")]
         public float KeterActionDelay { get; set; } = 47.75f;
 
-        /// <summary>
-        /// Randomizer value for the delay in seconds between SCP-575 action ticks.
-        /// e.g. KeterActionDelayRandomizerValue = 5 means a random between -5 and 5 seconds.
-        /// </summary>
-        [Description("The randomizer value for the delay of receiving damage.")]
+        [Description("Variance randomizer threshold in seconds applied to the baseline ticking action delay (e.g., a value of 5 means a variance within a +/- 5s window).")]
         public float KeterActionDelayRandomizerValue { get; set; } = 12.5f;
-
         #endregion
 
         #region Damage Modifiers
-
-        /// <summary>
-        /// Penetration modifier for SCP-575 damage (0.0 to 1.0).
-        /// </summary>
-        [Description("Penetration modifier same as in FirearmsDamageHandler.")]
+        [Description("Armor penetration modifier coefficient assigned to SCP-575 damage profiles (0.0 for zero penetration, 1.0 for absolute true armor bypassing).")]
         public float KeterDamagePenetration { get; set; } = 0.85f;
 
-        /// <summary>
-        /// Modifier applied to player velocity when damaged by SCP-575.
-        /// </summary>
-        [Description("The modifier applied to velocity when players are damaged by SCP-575.")]
+        [Description("Velocity displacement scalar force applied to player movement tracks when sustaining a physical hit from SCP-575.")]
         public float KeterDamageVelocityModifier { get; set; } = 2.65f;
-
         #endregion
 
         #region Physics Force Modifiers
-
-        /// <summary>
-        /// Minimum force modifier applied to ragdolls damaged by SCP-575.
-        /// </summary>
-        [Description("The minimum modifier applied to ragdolls when they were damaged by SCP-575.")]
+        [Description("Minimum impulse force modifier applied onto rigid-body ragdoll systems when struck by SCP-575.")]
         public float KeterForceMinModifier { get; set; } = 1.55f;
 
-        /// <summary>
-        /// Maximum force modifier applied to ragdolls damaged by SCP-575.
-        /// </summary>
-        [Description("The maximum modifier applied to ragdolls when they were damaged by SCP-575.")]
+        [Description("Maximum impulse force modifier applied onto rigid-body ragdoll systems when struck by SCP-575.")]
         public float KeterForceMaxModifier { get; set; } = 2.45f;
-
         #endregion
 
+        #region Validation Engine
         /// <summary>
-        /// Validates the NPC configuration parameters and corrects invalid input.
+        /// Validates core NPC configuration boundaries, sanitizing ticking metrics and protecting physics spaces against extreme limits.
         /// </summary>
         public void Validate()
         {
             // --- 1. Thread Action Loop Timing Safeguards ---
-            // Ensure the background action loop doesn't spin infinitely on a 0s tick interval
-            KeterActionDelay = Mathf.Max(0.5f, KeterActionDelay);
-            KeterActionDelayRandomizerValue = Mathf.Max(0f, KeterActionDelayRandomizerValue);
+            // Fluent API Upgrade: Sanitize action deltas to prevent division-by-zero or infinite sub-frame loops
+            KeterActionDelay = KeterActionDelay.LimitMin(0.5f);
+            KeterActionDelayRandomizerValue = KeterActionDelayRandomizerValue.LimitMin(0f);
 
-            // Critical: Ensure lower bound calculation (Delay - Randomizer) never yields 0s or negative timing increments
+            // Defensive Check: Banish any risk of randomizer variance collapsing the lower-bound processing execution delays below 0.2s
             if (KeterActionDelay - KeterActionDelayRandomizerValue < 0.2f)
             {
-                Logger.LogWarn(nameof(NpcConfig), "KeterActionDelayRandomizerValue creates a risk of zero or sub-zero runtime windows. Enforcing safety margin.");
-                KeterActionDelayRandomizerValue = Mathf.Max(0f, KeterActionDelay - 0.2f);
+                Logger.Warn(nameof(NpcConfig), $"Configured KeterActionDelayRandomizerValue ({KeterActionDelayRandomizerValue}s) creates a severe risk of sub-zero runtime timing scales against base delay ({KeterActionDelay}s). Normalizing to safe margin delta.");
+                KeterActionDelayRandomizerValue = (KeterActionDelay - 0.2f).LimitMin(0f);
             }
 
             // --- 2. Armor Penetration Matrix Processing ---
-            KeterDamagePenetration = Mathf.Clamp01(KeterDamagePenetration);
+            // Fluent API Upgrade: Binds firearms penetration metrics smoothly to normal percentage ranges (0.0 - 1.0)
+            KeterDamagePenetration = KeterDamagePenetration.Clamp(0f, 1f);
 
             // --- 3. Velocity & Displacement Limiting (PhysX Boundary Protection) ---
-            // Forces reasonable boundaries to prevent players from clipping through geometry on impact
-            KeterDamageVelocityModifier = Mathf.Clamp(KeterDamageVelocityModifier, 0f, 75f);
+            // Fluent API Upgrade: Restricts velocity forces to structural boundaries to insulate target movement against map geometry clipping artifacts
+            KeterDamageVelocityModifier = KeterDamageVelocityModifier.Clamp(0f, 75f);
 
             // --- 4. Ragdoll RigidBody Impulse Constraints ---
-            KeterForceMinModifier = Mathf.Clamp(KeterForceMinModifier, 0f, 150f);
-            KeterForceMaxModifier = Mathf.Clamp(KeterForceMaxModifier, 0f, 150f);
+            // Fluent API Upgrade: Clamp force coefficients inline to insulate Unity PhysX allocations against floating point infinity crashes
+            KeterForceMinModifier = KeterForceMinModifier.Clamp(0f, 150f);
+            KeterForceMaxModifier = KeterForceMaxModifier.Clamp(0f, 150f);
 
             if (KeterForceMinModifier > KeterForceMaxModifier)
             {
-                Logger.LogWarn(nameof(NpcConfig), "KeterForceMinModifier was greater than KeterForceMaxModifier. Swapping boundaries.");
+                Logger.Warn(nameof(NpcConfig), $"Ragdoll force coefficient bounds out of order: KeterForceMinModifier ({KeterForceMinModifier}) exceeded Max ({KeterForceMaxModifier}). Executing tuple-swap correction...");
                 (KeterForceMinModifier, KeterForceMaxModifier) = (KeterForceMaxModifier, KeterForceMinModifier);
             }
 
-            // Prevent exact single-point distribution vectors if variance calculation requires a delta range
+            // Secure a nominal variance envelope track if vector calculations require a minimal delta offset value
             if (Mathf.Abs(KeterForceMaxModifier - KeterForceMinModifier) < 0.01f)
             {
+                Logger.Warn(nameof(NpcConfig), "Identical min/max ragdoll force multipliers detected. Injected a safe 0.5 unit variance buffer envelope to the maximum bound threshold.");
                 KeterForceMaxModifier += 0.5f;
             }
         }
+        #endregion
     }
 }
