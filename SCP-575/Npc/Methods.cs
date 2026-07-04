@@ -1,6 +1,5 @@
 namespace SCP_575.Npc
 {
-    using Cassie;
     using Handlers;
     using LabApi.Features.Wrappers;
     using MapGeneration;
