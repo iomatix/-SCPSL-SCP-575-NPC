@@ -1,178 +1,157 @@
-﻿namespace SCP_575.ConfigObjects
-{
-    using System.ComponentModel;
-    using UnityEngine;
-    using Logger = SCP_575.Shared.LibraryLabAPI;
+﻿using LabApi.Extensions;
+using System.ComponentModel;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.ConfigObjects
+{
+    /// <summary>
+    /// Configuration settings managing the central temporal loops, zone-based outage probabilities, 
+    /// interactive environment triggers, and color spectrum rendering for blackout events.
+    /// </summary>
     public sealed class BlackoutConfig
     {
         #region General Settings
-
-        [Description("The chance that a Round even has SCP-575 blackouts")]
+        [Description("The percentage probability chance (0% - 100%) that a round lifecycle will permit SCP-575 blackout event cascades.")]
         public float EventChance { get; set; } = 55f;
 
-        [Description("Enable or disable randomly timed blackout events.")]
+        [Description("Enable or disable randomly timed automated blackout events throughout the round state.")]
         public bool RandomEvents { get; set; } = true;
 
-        [Description("Delay before first event of each round.")]
+        [Description("Standby delay interval in seconds executing on round start before the first blackout threat assessment begins.")]
         public float InitialDelay { get; set; } = 300f;
 
-        [Description("Minimum blackout duration in seconds.")]
+        [Description("Minimum total operational duration window in seconds for an individual blackout event track.")]
         public float DurationMin { get; set; } = 220f;
 
-        [Description("Maximum blackout duration in seconds.")]
+        [Description("Maximum total operational duration window in seconds for an individual blackout event track.")]
         public float DurationMax { get; set; } = 620f;
 
-        [Description("Minimum delay between events in seconds.")]
+        [Description("Minimum legal delay window in seconds enforced between successive blackout event cycles.")]
         public int DelayMin { get; set; } = 340;
 
-        [Description("Maximum delay between events in seconds.")]
+        [Description("Maximum legal delay window in seconds enforced between successive blackout event cycles.")]
         public int DelayMax { get; set; } = 1080;
-
         #endregion
 
         #region Zone Probabilities
-
-        [Description("Enable facility-wide blackout if no zones selected.")]
+        [Description("Force a unified, facility-wide blackout sequence if all individual sector probability evaluations roll a failure state.")]
         public bool EnableFacilityBlackout { get; set; } = true;
 
-        [Description("Chance (%) of outage in Heavy Containment Zone.")]
+        [Description("Outage probability percentage chance (0% - 100%) calculated per individual room located inside the Heavy Containment Zone.")]
         public float ChanceHeavy { get; set; } = 85f;
 
-        [Description("Chance (%) of outage in Light Containment Zone.")]
+        [Description("Outage probability percentage chance (0% - 100%) calculated per individual room located inside the Light Containment Zone.")]
         public float ChanceLight { get; set; } = 35f;
 
-        [Description("Chance (%) of outage in Entrance Zone.")]
+        [Description("Outage probability percentage chance (0% - 100%) calculated per individual room located inside the Entrance Zone.")]
         public float ChanceEntrance { get; set; } = 65f;
 
-        [Description("Chance (%) of outage in Surface Zone.")]
+        [Description("Outage probability percentage chance (0% - 100%) calculated per individual room mapped onto Surface sector boundaries.")]
         public float ChanceSurface { get; set; } = 15f;
 
-        [Description("Chance (%) of outage in unspecified zones.")]
+        [Description("Outage probability percentage chance (0% - 100%) calculated per individual room inside unindexed or custom zone spaces.")]
         public float ChanceOther { get; set; } = 0f;
 
-        [Description("Elevator lockdown probability (%) when a connected room loses power")]
+        [Description("The structural elevator cabin lock state probability percentage chance (0% - 100%) triggered when a connected room node drops power grid connection.")]
         public float ElevatorLockdownProbability { get; set; } = 35f;
 
-        [Description("Use per-room chance settings instead of per-zone.")]
+        [Description("If true, the generation engine runs independent probability assessments per room node instead of macro sector zone evaluations.")]
         public bool UsePerRoomChances { get; set; } = true;
-
         #endregion
 
-        #region Facility Effects
-
-        [Description("Disable Tesla gates during blackout.")]
+        #region Facility Effects & Interactivity
+        [Description("Forcibly put all active facility Tesla gates into a safe, completely inactive operational cooldown loop throughout a blackout.")]
         public bool DisableTeslas { get; set; } = true;
 
-        [Description("Cancel nuke detonation during blackout.")]
+        [Description("Forcibly abort and completely cancel ongoing Alpha Warhead detonation countdown timelines if a blackout event triggers.")]
         public bool DisableNuke { get; set; } = true;
 
-        [Description("If true, activating a generator will make SCP-575 retaliate by aggressively forcing a blackout in that sector and adding a global blackout stack (increasing its rage and damage).")]
+        [Description("If true, fully engaging a facility generator provokes immediate SCP-575 retaliation, forcing an isolated blackout loop onto that sector.")]
         public bool GeneratorActivationRetaliation { get; set; } = true;
 
-        [Description("The duration (in seconds) the generator room remains in darkness during the stabilization phase if retaliation is active.")]
+        [Description("The chronological duration window in seconds that a retaliated generator sector stays locked in pitch darkness before stabilization completes.")]
         public float GeneratorStabilizationDuration { get; set; } = 20f;
 
-        [Description("Flicker lights when blackout starts.")]
+        [Description("Trigger a rapid environmental lighting flicker effect across target nodes the exact millisecond a blackout event initiates.")]
         public bool FlickerLights { get; set; } = true;
 
-        [Description("Duration of initial light flickering in seconds.")]
+        [Description("Total duration window in seconds assigned for the initial light flickering execution phase loop.")]
         public float FlickerDuration { get; set; } = 2.35f;
 
-        [Description("Frequency of light flickering.")]
+        [Description("Frequency modulation coefficient determining the rapid velocity pacing of the initial light flickering loops.")]
         public float FlickerFrequency { get; set; } = 1.35f;
 
-        [Description("Red channel of lights color during blackout.")]
+        [Description("Normalized Red spectrum value channel (0.0 - 1.0) applied to light controllers during an active blackout event track.")]
         public float LightsColorR { get; set; } = 0.9f;
 
-        [Description("Green channel of lights color during blackout.")]
+        [Description("Normalized Green spectrum value channel (0.0 - 1.0) applied to light controllers during an active blackout event track.")]
         public float LightsColorG { get; set; } = 0.05f;
 
-        [Description("Blue channel of lights color during blackout.")]
+        [Description("Normalized Blue spectrum value channel (0.0 - 1.0) applied to light controllers during an active blackout event track.")]
         public float LightsColorB { get; set; } = 0.2f;
-
         #endregion
 
+        #region Validation Engine
         /// <summary>
-        /// Validates the blackout configuration parameters and corrects invalid input.
+        /// Validates blackout timelines, clamps probability matrices via fluent extensions, 
+        /// and sanitizes light frequency rendering channels to insulate threads against math anomalies.
         /// </summary>
         public void Validate()
         {
             // --- 1. Timing and Duration Safe Guards ---
-            if (DurationMin < 5f)
+            // Fluent API Upgrade: Enforce strict minimum pacing limits inline using math extensions
+            DurationMin = DurationMin.LimitMin(5f);
+
+            // Type-Safe Upgrade: Replace legacy temporary assignment loops with pure atomic tuple boundary swaps
+            if (DurationMin > DurationMax)
             {
-                Logger.LogWarn(nameof(BlackoutConfig), $"DurationMin ({DurationMin}s) is too low for SCP-575 gameplay pacing. Forcing minimum of 5s.");
-                DurationMin = 5f;
+                Logger.Warn(nameof(BlackoutConfig), $"Blackout duration boundaries out of order: DurationMin ({DurationMin}s) was greater than Max ({DurationMax}s). Executing tuple-swap correction...");
+                (DurationMin, DurationMax) = (DurationMax, DurationMin);
             }
 
-            if (DurationMax < DurationMin)
-            {
-                Logger.LogWarn(nameof(BlackoutConfig), "DurationMin was greater than DurationMax. Swapping boundaries.");
-                float temp = DurationMin;
-                DurationMin = DurationMax;
-                DurationMax = temp;
-            }
-
-            // Guard against identical boundaries or sub-zero constraints to protect UnityEngine.Random.Range
-            if (DelayMin < 10)
-            {
-                Logger.LogWarn(nameof(BlackoutConfig), $"DelayMin ({DelayMin}s) cannot be lower than 10 seconds. Adjusting.");
-                DelayMin = 10;
-            }
+            // Guard against identical boundaries or sub-zero constraints to insulate safe random tracking generations
+            DelayMin = DelayMin.LimitMin(10);
 
             if (DelayMax <= DelayMin)
             {
-                Logger.LogWarn(nameof(BlackoutConfig), $"DelayMax ({DelayMax}s) must be strictly greater than DelayMin ({DelayMin}s) to prevent coroutine thread choking. Adjusting.");
-                DelayMax = DelayMin + 30; // Safe window offset
+                Logger.Warn(nameof(BlackoutConfig), $"DelayMax ({DelayMax}s) must evaluate to a scale strictly greater than DelayMin ({DelayMin}s) to isolate loops against thread choking anomalies. Adjusting window envelope.");
+                DelayMax = DelayMin + 30;
             }
 
-            if (InitialDelay < 0f)
-            {
-                Logger.LogWarn(nameof(BlackoutConfig), $"InitialDelay cannot be negative. Resetting to 0f.");
-                InitialDelay = 0f;
-            }
+            InitialDelay = InitialDelay.LimitMin(0f);
 
             // --- 2. Probability Bounds Validation ---
-            EventChance = Mathf.Clamp(EventChance, 0f, 100f);
-            ChanceHeavy = Mathf.Clamp(ChanceHeavy, 0f, 100f);
-            ChanceLight = Mathf.Clamp(ChanceLight, 0f, 100f);
-            ChanceEntrance = Mathf.Clamp(ChanceEntrance, 0f, 100f);
-            ChanceSurface = Mathf.Clamp(ChanceSurface, 0f, 100f);
-            ChanceOther = Mathf.Clamp(ChanceOther, 0f, 100f);
-            ElevatorLockdownProbability = Mathf.Clamp(ElevatorLockdownProbability, 0f, 100f);
+            // Fluent API Upgrade: Clamp all chance parameters cleanly using fluent single-precision primitive math limits
+            EventChance = EventChance.Clamp(0f, 100f);
+            ChanceHeavy = ChanceHeavy.Clamp(0f, 100f);
+            ChanceLight = ChanceLight.Clamp(0f, 100f);
+            ChanceEntrance = ChanceEntrance.Clamp(0f, 100f);
+            ChanceSurface = ChanceSurface.Clamp(0f, 100f);
+            ChanceOther = ChanceOther.Clamp(0f, 100f);
+            ElevatorLockdownProbability = ElevatorLockdownProbability.Clamp(0f, 100f);
 
-            // Fail-safe logic check: if all zone probabilities are 0 and facility blackout is disabled, plugin becomes dead weight.
+            // Structural Integrity Safe Check: If all sub-zone distribution channels are muted and facility-wide fallout is disabled,
+            // the plugin runs as complete dead server weight. Intercept execution boundaries and force-revert to preserve stability.
             if (!EnableFacilityBlackout && ChanceHeavy <= 0f && ChanceLight <= 0f && ChanceEntrance <= 0f && ChanceSurface <= 0f && ChanceOther <= 0f)
             {
-                Logger.LogError(nameof(BlackoutConfig), "Critical Configuration Flaw: All zone chances are 0% AND EnableFacilityBlackout is false! Forcing EnableFacilityBlackout to TRUE to avoid empty events.");
+                Logger.Error(nameof(BlackoutConfig), "Critical Configuration Matrix Flaw: Every localized zone chance evaluates to 0% AND EnableFacilityBlackout is toggled false! Forcibly re-activating EnableFacilityBlackout to prevent dead execution events.");
                 EnableFacilityBlackout = true;
             }
 
             // --- 3. Environmental Interactivity Tuning ---
-            if (GeneratorStabilizationDuration < 0f)
-            {
-                Logger.LogWarn(nameof(BlackoutConfig), "GeneratorStabilizationDuration cannot be negative. Forcing 0s.");
-                GeneratorStabilizationDuration = 0f;
-            }
+            GeneratorStabilizationDuration = GeneratorStabilizationDuration.LimitMin(0f);
 
-            // --- 4. Coroutine Render Controls (Flicker & Vertex Shaders) ---
-            if (FlickerDuration < 0f)
-            {
-                Logger.LogWarn(nameof(BlackoutConfig), "FlickerDuration cannot be negative. Forcing 0s.");
-                FlickerDuration = 0f;
-            }
+            // --- 4. Coroutine Render Controls (Flicker Calculations) ---
+            FlickerDuration = FlickerDuration.LimitMin(0f);
 
-            // Crucial: if frequency is too low or negative, 1/f calculations for coroutine loop pacing will throw infinity anomalies
-            if (FlickerFrequency < 0.1f)
-            {
-                Logger.LogWarn(nameof(BlackoutConfig), $"FlickerFrequency ({FlickerFrequency}) is too low and would freeze light loops. Forcing stable minimum (1.0f).");
-                FlickerFrequency = 1.0f;
-            }
+            // Crucial: Enforce strict minimum frequency limits. Values collapsing below 0.1f induce infinity exceptions during reciprocal loop delays (1/f)
+            FlickerFrequency.LimitMin(0.15f);
 
-            // Clamp HDR colors safely within normalized float structures for Map Generation Shaders
-            LightsColorR = Mathf.Clamp01(LightsColorR);
-            LightsColorG = Mathf.Clamp01(LightsColorG);
-            LightsColorB = Mathf.Clamp01(LightsColorB);
+            // Fluent API Upgrade: Clamp color spectrum arrays inline inside safe byte parameters (0.0 - 1.0)
+            LightsColorR = LightsColorR.Clamp(0f, 1f);
+            LightsColorG = LightsColorG.Clamp(0f, 1f);
+            LightsColorB = LightsColorB.Clamp(0f, 1f);
         }
+        #endregion
     }
 }
