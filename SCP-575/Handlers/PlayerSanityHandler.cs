@@ -50,7 +50,7 @@ namespace SCP_575.Handlers
         public PlayerSanityHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin context unavailable.");
-            _sanityConfig = _plugin.Sanity ?? throw new InvalidOperationException("Sanity configuration not bound.");
+            _sanityConfig = _plugin.Sanity ?? throw new InvalidOperationException("SanityConfig is not initialized.");
             _hintCooldown = _sanityConfig.DecayRateBase * 20f;
 
             if (_sanityConfig.SanityStages is null || !_sanityConfig.SanityStages.Any())
@@ -147,7 +147,6 @@ namespace SCP_575.Handlers
             {
                 lock (_cacheLock)
                 {
-                    // Fluent API Alignment: Leverage structural cooldown locks directly from unified extensions
                     _painkillerProtectionExpiry.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_sanityConfig.PainkillersProtectionDuration));
                     _painkillerSanityBoostExpiry.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_sanityConfig.PainkillersRegenDuration));
                 }
@@ -155,7 +154,6 @@ namespace SCP_575.Handlers
                 Logger.Debug(nameof(PlayerSanityHandler), $"Medical mitigation markers committed for {ev.Player.Nickname}.", _plugin.Debug);
             }
 
-            // FIXED: Naming layout fully unified under the requested ChangeSanityValue method
             float newSanity = ChangeSanityValue(ev.Player, restoreAmount);
 
             if (_plugin.Hints.IsEnabledSanityHint)
@@ -195,8 +193,6 @@ namespace SCP_575.Handlers
             if (player?.GameObject is null) return 0f;
 
             int instanceId = player.GameObject.GetInstanceID();
-
-            // Fluent API Alignment: Replaced custom engine clamping with high-performance math extensions
             float clampedSanity = sanity.Clamp(0f, 100f);
 
             lock (_cacheLock)
@@ -206,9 +202,6 @@ namespace SCP_575.Handlers
             return clampedSanity;
         }
 
-        /// <summary>
-        /// Seamless atomic entry point to execute relative adjustments on a player's core mental capacity pool.
-        /// </summary>
         public float ChangeSanityValue(Player player, float amount)
         {
             if (!IsValidPlayer(player)) return 0f;
@@ -233,16 +226,12 @@ namespace SCP_575.Handlers
             return GetCurrentSanityStage(GetCurrentSanity(player));
         }
 
-        /// <summary>
-        /// Enforces status alterations and sensory impairments based on historical stage curves.
-        /// </summary>
         public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool forceIgnoreCooldown = false)
         {
             if (!IsValidPlayer(player) || IsProtectedByPainkillers(player)) return;
 
             int playerInstanceId = player.GameObject.GetInstanceID();
 
-            // Fluent API Alignment: Enforced atomic rate-limiting checks via verified extension modules
             if (!forceIgnoreCooldown && _playerEffectsCooldownExpiry.IsCooldownActive(playerInstanceId)) return;
 
             if (!_plugin.NpcLogic.IsBlackoutActive && !bypassBlackoutGate) return;
@@ -250,15 +239,12 @@ namespace SCP_575.Handlers
             var stage = GetCurrentSanityStage(player);
             if (stage?.Effects is null) return;
 
-            // Fluent API Alignment: Replaced custom procedural flashlight checks with native extensions
             if (!player.HasActiveLightSource() || stage.OverrideLightSourceSanityProtection)
             {
                 foreach (var effectConfig in stage.Effects)
                 {
                     try
                     {
-                        // Fluent API Upgrade: Eradicated the legacy 40-line switch block!
-                        // Dynamically maps configurations using the framework's semantic enum parsers flawlessly.
                         FacilityEffectType targetEffect = effectConfig.EffectType.ToString().ParseOrDefault<FacilityEffectType>();
                         player.EnableEffect(targetEffect, effectConfig.Intensity, effectConfig.Duration);
                     }
@@ -279,9 +265,6 @@ namespace SCP_575.Handlers
             }
         }
 
-        /// <summary>
-        /// Calculates cumulative structural damage curves and feeds parameters straight to the central AudioDirector.
-        /// </summary>
         public void ApplyDamageToPlayer(Player player)
         {
             if (!IsValidPlayer(player) || IsProtectedByPainkillers(player)) return;
@@ -317,13 +300,11 @@ namespace SCP_575.Handlers
 
                 DateTime now = DateTime.UtcNow;
 
-                // Foreach loops applied strictly across high-level abstract controller iterations
                 foreach (Player player in Player.ReadyList)
                 {
                     if (!IsValidPlayer(player)) continue;
 
-                    // Fluent API Alignment: Direct native extraction hooks mapping darkness topologies
-                    if (player.IsInDarkRoom())
+                    if (player.IsInTrueDarkness())
                     {
                         ProcessDecayTick(player, now);
                     }
@@ -345,7 +326,6 @@ namespace SCP_575.Handlers
             int instanceId = player.GameObject.GetInstanceID();
             if (_plugin.Hints.IsEnabledSanityHint)
             {
-                // Fluent API Alignment: Atomic locking evaluation replacing manual structural DateTime subtraction scripts
                 if (_lastHintTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_hintCooldown)))
                 {
                     SendSanityHint(player, _plugin.Hints.SanityDecreasedHint, newSanity);
@@ -387,17 +367,16 @@ namespace SCP_575.Handlers
             if (_plugin.NpcLogic.IsBlackoutActive)
                 decayRate *= _sanityConfig.DecayMultiplierBlackout;
 
-            if (!player.HasActiveLightSource())
+            if (!player.HasActiveLightSource() || player.IsInTrueDarkness())
                 decayRate *= _sanityConfig.DecayMultiplierDarkness;
 
             return decayRate;
         }
         #endregion
 
-        #region Technical Infrastructure Hooks
+        #region Technical Infrastructure Hooks & Context Resolvers
         public bool IsValidPlayer(Player player)
         {
-            // Fluent API Alignment: Fully migrated procedural validations to core player expansion filters
             return player is not null &&
                    !string.IsNullOrEmpty(player.UserId) &&
                    player.IsLivingHuman() &&

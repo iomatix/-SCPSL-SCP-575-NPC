@@ -214,7 +214,7 @@ namespace SCP_575.Npc
                 if (_plugin.Blackout.FlickerLights)
                     FlickerAffectedZones();
 
-                yield return Timing.WaitForSeconds((float)startMessageDuration + 0.5f);
+                yield return Timing.WaitForSeconds((float)startMessageDuration + _plugin.Blackout.BlackoutBufferTime);
                 TriggerCassieMessage(_plugin.Cassie.CassiePostMessage);
             }
 
@@ -469,7 +469,7 @@ namespace SCP_575.Npc
                     Timing.RunCoroutine(zone.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
                 }
 
-                yield return Timing.WaitForSeconds((float)startMessageDuration + 0.5f);
+                yield return Timing.WaitForSeconds((float)startMessageDuration + _plugin.Blackout.BlackoutBufferTime);
 
                 string zoneCassie = zone switch
                 {
@@ -600,7 +600,7 @@ namespace SCP_575.Npc
                     try
                     {
                         int playerInstanceId = player.GameObject.GetInstanceID();
-                        bool isInDarkness = player.IsInDarkRoom();
+                        bool isInDarkness = player.IsInTrueDarkness();
 
                         if (!isInDarkness || !_sanityHandler.IsValidPlayer(player))
                         {
