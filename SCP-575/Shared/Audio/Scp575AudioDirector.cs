@@ -1,5 +1,5 @@
-﻿
-using LabApi.Extensions;
+﻿using LabApi.Extensions;
+using LabApi.Extensions.Misc;
 using LabApi.Features.Wrappers;
 using MEC;
 using SCP_575.ConfigObjects;
@@ -9,13 +9,13 @@ using SCP_575.Types;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+
 using Logger = LabApi.Extensions.Misc.iLogger;
 
 namespace SCP_575.Shared.Audio
 {
-
     /// <summary>
-    /// Manages survival horror tension audio pacing and player psychological stress tracks.
+    /// Manages survival horror tension audio pacing mapping directly across 3 independent player psychological stress states.
     /// </summary>
     public class Scp575AudioDirector : IDisposable
     {
@@ -48,10 +48,7 @@ namespace SCP_575.Shared.Audio
         }
         #endregion
 
-        #region Initialization & Core Loops
-        /// <summary>
-        /// Registers background pacing loops and triggers operational states.
-        /// </summary>
+        #region Initialization & Main State Engine
         public void Initialize()
         {
             if (_isDisposed) return;
@@ -60,6 +57,9 @@ namespace SCP_575.Shared.Audio
             handle.Tag = DirectorCoroutineTag;
         }
 
+        /// <summary>
+        /// Orchestrates real-time state machine transitions evaluating absolute spatial darkness matrices.
+        /// </summary>
         private IEnumerator<float> HandleTensionPacingLoop()
         {
             while (true)
@@ -84,34 +84,54 @@ namespace SCP_575.Shared.Audio
 
                     float currentSanity = _sanityHandler.GetCurrentSanity(player);
 
-                    // Fluent API Alignment: Replaced custom procedural dark room queries with native extension hooks
-                    bool isInDarkness = player.IsInDarkRoom();
+                    // MASTER-LEVEL ARCHITECTURE ALIGNMENT: 
+                    // Querying both independent spatial hooks to separate State 2 (Gray) from State 3 (True Darkness)
+                    bool isInTrueDarkness = player.IsInTrueDarkness();
+                    bool isInDarkRoom = player.IsInDarkRoom();
 
-                    if (isInDarkness)
+                    // =================================================================================
+                    // STATE 3: TRUE DARKNESS (Mrok — Sanity falling, full horror orchestration)
+                    // =================================================================================
+                    if (isInTrueDarkness)
                     {
                         _audioManager.PlayAmbienceForPlayer(player, fadeInDuration: 2.0f);
+
+                        bool triggersPanicZone = currentSanity <= _plugin.Audio.PanicDroneSanityThreshold;
+                        float lowSanityThreshold = _plugin.Audio.Tier2DisturbedWhispersThreshold;
+                        bool shouldPlayLowSanityDrone = currentSanity <= lowSanityThreshold && !triggersPanicZone;
+
+                        EvaluatePersistentPanicDrone(player, instanceId, currentSanity, true);
+                        EvaluateLowSanityDrone(player, instanceId, shouldPlayLowSanityDrone);
+
+                        if (!_acousticSuppressionCache.IsCooldownActive(instanceId))
+                        {
+                            ProcessPlayerStressTick(player, instanceId, currentSanity);
+                        }
                     }
+                    // =================================================================================
+                    // STATE 2: DARK ROOM ONLY / ELEVATOR NEIGHBOR (Szarość — Safe Zone, creepy environment)
+                    // =================================================================================
+                    else if (isInDarkRoom)
+                    {
+                        // Play smoothed out environmental soundscapes, but entirely bypass stress gains
+                        _audioManager.PlayAmbienceForPlayer(player, fadeInDuration: 4.0f);
+
+                        // Safely evict and terminate high-intensity combat/panic background drones
+                        EvaluatePersistentPanicDrone(player, instanceId, currentSanity, false);
+                        EvaluateLowSanityDrone(player, instanceId, false);
+                        DecayPlayerStressPassive(instanceId);
+
+                        // Fire a completely harmless, non-lethal background structural audio creep effect
+                        ExecuteSubtleEnvironmentCreep(player, instanceId);
+                    }
+                    // =================================================================================
+                    // STATE 1: PURE ILLUMINATION (Jasność — Absolute safety and mental recovery)
+                    // =================================================================================
                     else
                     {
                         _audioManager.StopAmbienceForPlayer(player);
-                    }
-
-                    bool triggersPanicZone = currentSanity <= _plugin.Audio.PanicDroneSanityThreshold && isInDarkness;
-                    float lowSanityThreshold = _plugin.Audio.Tier2DisturbedWhispersThreshold;
-                    bool shouldPlayLowSanityDrone = isInDarkness && currentSanity <= lowSanityThreshold && !triggersPanicZone;
-
-                    EvaluatePersistentPanicDrone(player, instanceId, currentSanity, isInDarkness);
-                    EvaluateLowSanityDrone(player, instanceId, shouldPlayLowSanityDrone);
-
-                    // Fluent API Alignment: Utilizing collection-based time tracking parameters directly
-                    if (_acousticSuppressionCache.IsCooldownActive(instanceId)) continue;
-
-                    if (isInDarkness)
-                    {
-                        ProcessPlayerStressTick(player, instanceId, currentSanity);
-                    }
-                    else
-                    {
+                        EvaluatePersistentPanicDrone(player, instanceId, currentSanity, false);
+                        EvaluateLowSanityDrone(player, instanceId, false);
                         DecayPlayerStressPassive(instanceId);
 
                         lock (_directorLock)
@@ -135,7 +155,30 @@ namespace SCP_575.Shared.Audio
         }
         #endregion
 
-        #region Stress Mechanics
+        #region Environmental Soundscape Injection (State 2 Primitives)
+        /// <summary>
+        /// Injects subtle audio feedback loops into the transitional gray zone without triggering mechanical gameplay harms.
+        /// </summary>
+        private void ExecuteSubtleEnvironmentCreep(Player player, int instanceId)
+        {
+            // Cooldown protection layer prevents tracking registry overhead or audio channel spamming inside elevators
+            if (!_transientInputNetworkGate.TryAcquireLock(instanceId, TimeSpan.FromSeconds(15f))) return;
+
+            // Fluent API Upgrade: Leveraged high-performance thread-isolated SafeRandom loops over procedural checks
+            if (SafeRandom.RollSuccess(40f))
+            {
+                // 40% probability rate to hear an unstable, flickering fluorescent power grid buzz
+                _audioManager.PlayAttached(player, AudioKey.StaticBuzz, hearableForAll: false);
+            }
+            else if (SafeRandom.RollSuccess(20f))
+            {
+                // 20% fallback chance to inject distant, low-volume ghostly whispers that don't harm sanity
+                _audioManager.PlayAttached(player, AudioKey.WhispersSubtle, hearableForAll: false);
+            }
+        }
+        #endregion
+
+        #region Stress Mechanics (State 3 Exclusives)
         private void ProcessPlayerStressTick(Player player, int instanceId, float currentSanity)
         {
             AudioConfig config = _plugin.Audio;
@@ -151,7 +194,6 @@ namespace SCP_575.Shared.Audio
                 float sanityRiskFactor = 1.0f - currentSanity / 100f;
                 float tensionGain = _plugin.Sanity.DecayRateBase * (1.0f + sanityRiskFactor * config.TensionSanityRiskMultiplier);
 
-                // Fluent API Alignment: Upgraded procedural clamping to math-extension pipelines cleanly
                 profile.CurrentTension = (profile.CurrentTension + tensionGain).Clamp(0f, 100f);
 
                 if (profile.CurrentTension >= profile.NextTriggerThreshold)
@@ -203,11 +245,11 @@ namespace SCP_575.Shared.Audio
         }
         #endregion
 
-        #region Drone Tracking
-        private void EvaluatePersistentPanicDrone(Player player, int instanceId, float currentSanity, bool isInDarkness)
+        #region Drone Management Loops
+        private void EvaluatePersistentPanicDrone(Player player, int instanceId, float currentSanity, bool activeInDarkness)
         {
             AudioConfig config = _plugin.Audio;
-            bool triggersPanicZone = currentSanity <= config.PanicDroneSanityThreshold && isInDarkness;
+            bool triggersPanicZone = activeInDarkness && currentSanity <= config.PanicDroneSanityThreshold;
 
             lock (_directorLock)
             {
@@ -252,13 +294,9 @@ namespace SCP_575.Shared.Audio
         }
         #endregion
 
-        #region Event Dispatches & Kinetics
-        /// <summary>
-        /// Sequences standard unspatialized environmental markers upon scheduled facility grid collapses.
-        /// </summary>
+        #region External Game Telemetry Dispatches
         public void ProcessBlackoutAudioSequence(Player randomTarget)
         {
-            // Fluent API Alignment: Leveraged temporal locking hooks to completely protect global broadcast structures
             if (!_audioCooldowns.TryAcquireLock(AudioKey.MonsterRoarGlobal, TimeSpan.FromSeconds(45f)))
             {
                 Logger.Debug("AudioDirector", "Execution blocked: MonsterRoarGlobal channel active.", _plugin.Debug);
@@ -286,7 +324,6 @@ namespace SCP_575.Shared.Audio
 
             lock (_directorLock)
             {
-                // Fluent API Alignment: Direct Future lock expiration commits to isolate acoustic budgets seamlessly
                 _acousticSuppressionCache.TryAcquireLock(player.GameObject.GetInstanceID(), TimeSpan.FromSeconds(durationSeconds));
             }
         }
@@ -301,7 +338,6 @@ namespace SCP_575.Shared.Audio
                 {
                     if (player?.GameObject is null || !player.IsReady || player.IsHost || !player.IsAlive) continue;
 
-                    // Fluent API Alignment: Vector performance shortcuts wrapped directly via Player extensions
                     if (player.IsWithinDistance(position, radiusMeter))
                     {
                         _acousticSuppressionCache.TryAcquireLock(player.GameObject.GetInstanceID(), durationSpan);
@@ -331,10 +367,7 @@ namespace SCP_575.Shared.Audio
             }
         }
 
-        public void ProcessExplosionImpactBoostFeedback()
-        {
-            _audioManager.PlayGlobal(AudioKey.MonsterBreathLocal);
-        }
+        public void ProcessExplosionImpactBoostFeedback() => _audioManager.PlayGlobal(AudioKey.MonsterBreathLocal);
 
         public void ProcessGeneratorActivation(Vector3 position, bool allGeneratorsEngaged, bool retaliationConfigured)
         {
@@ -363,37 +396,25 @@ namespace SCP_575.Shared.Audio
             _audioManager.PlayAtPosition(AudioKey.ScreamAngry, position);
         }
 
-        public void ProcessGeneratorStabilizedFeedback(Vector3 position)
-        {
-            _audioManager.PlayAtPosition(AudioKey.LightSwitch, position);
-        }
-
-        public void ProcessLightSwitchClick(Vector3 position)
-        {
-            _audioManager.PlayAtPosition(AudioKey.LightSwitch, position);
-        }
-
-        public void ProcessLightsourceErrorFeedback(Player player)
-        {
-            _audioManager.PlayTrackingAudio(player: player, audioKey: AudioKey.LightShortCircuitFinal, hearableForAllPlayers: true);
-        }
+        public void ProcessGeneratorStabilizedFeedback(Vector3 position) => _audioManager.PlayAtPosition(AudioKey.LightSwitch, position);
+        public void ProcessLightSwitchClick(Vector3 position) => _audioManager.PlayAtPosition(AudioKey.LightSwitch, position);
+        public void ProcessLightsourceErrorFeedback(Player player) => _audioManager.PlayTrackingAudio(player: player, audioKey: AudioKey.LightShortCircuitFinal, hearableForAllPlayers: true);
 
         public void ProcessLightsourceFlicker(Player player)
         {
             if (player?.GameObject is null || !player.IsReady) return;
             int instanceId = player.GameObject.GetInstanceID();
 
-            // Fluent API Alignment: Simplified atomic cooldown locks executed cleanly across networks
             if (_acousticSuppressionCache.IsCooldownActive(instanceId) || !_transientInputNetworkGate.TryAcquireLock(instanceId, TimeSpan.FromMilliseconds(90))) return;
 
             AudioConfig config = _plugin.Audio;
 
-            if (UnityEngine.Random.value <= 0.25f)
+            if (SafeRandom.Range(0f, 1f) <= 0.25f)
             {
                 _audioManager.PlayOrbitingAudio(player, AudioKey.MonsterBreathLocal, maxRadius: config.FlickerBreathMaxRadius, minRadius: config.FlickerBreathMinRadius, angularSpeed: config.FlickerBreathAngularSpeed, approachSpeed: config.FlickerBreathApproachSpeed, isolated: true);
             }
 
-            if (UnityEngine.Random.value <= 0.15f)
+            if (SafeRandom.Range(0f, 1f) <= 0.15f)
             {
                 _audioManager.PlayOrbitingAudio(player, AudioKey.ShadowClicking, maxRadius: config.FlickerClickingMaxRadius, minRadius: config.FlickerClickingMinRadius, angularSpeed: config.FlickerClickingAngularSpeed, approachSpeed: config.FlickerClickingApproachSpeed, isolated: true);
             }
@@ -424,7 +445,6 @@ namespace SCP_575.Shared.Audio
 
             lock (_directorLock)
             {
-                // Fluent API Alignment: Converted manual DateTime math equations into generic lock evaluations
                 if (!_lastCombatAudioTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(config.CombatStingerCooldown))) return;
             }
 
@@ -440,10 +460,10 @@ namespace SCP_575.Shared.Audio
         }
         #endregion
 
-        #region Probability Routing
+        #region Probability Profiles Maps
         private void PlayAggressiveAudio(Player player)
         {
-            float rand = UnityEngine.Random.value;
+            float rand = SafeRandom.Range(0f, 1f);
             if (rand <= 0.15f) _audioManager.PlayAttached(player, AudioKey.AnomalousImpact, hearableForAll: false);
             if (rand <= 0.10f) _audioManager.PlayAttached(player, AudioKey.ShadowStrike, hearableForAll: false);
             if (rand <= 0.10f) _audioManager.PlayOrbitingAudio(player, AudioKey.ScreamStandard);
@@ -452,7 +472,7 @@ namespace SCP_575.Shared.Audio
 
         private void PlayDefensiveAudio(Player player)
         {
-            float rand = UnityEngine.Random.value;
+            float rand = SafeRandom.Range(0f, 1f);
             if (rand <= 0.10f) _audioManager.PlayAttached(player, AudioKey.AnomalousImpact, hearableForAll: false);
             if (rand <= 0.05f) _audioManager.PlayAttached(player, AudioKey.ShadowStrike, hearableForAll: false);
             if (rand <= 0.10f) _audioManager.PlayOrbitingAudio(player, AudioKey.WhispersSubtle);
@@ -460,7 +480,7 @@ namespace SCP_575.Shared.Audio
         }
         #endregion
 
-        #region Cleanups
+        #region Cleanup Routines
         private void ClearHistoricalPlayerCaches(int instanceId)
         {
             lock (_directorLock)
@@ -492,7 +512,7 @@ namespace SCP_575.Shared.Audio
 
         public void Clean()
         {
-            Timing.KillCoroutines(DirectorCoroutineTag);
+            DirectorCoroutineTag.KillCoroutine();
             lock (_directorLock)
             {
                 _lastCombatAudioTime.Clear();
@@ -500,22 +520,13 @@ namespace SCP_575.Shared.Audio
                 _acousticSuppressionCache.Clear();
                 _transientInputNetworkGate.Clear();
 
-                foreach (int sessionId in _activePanicDroneSessions.Values)
-                {
-                    _audioManager.StopSession(sessionId);
-                }
+                foreach (int sessionId in _activePanicDroneSessions.Values) _audioManager.StopSession(sessionId);
                 _activePanicDroneSessions.Clear();
 
-                foreach (int sessionId in _activeAmbientDroneSessions.Values)
-                {
-                    _audioManager.StopSession(sessionId);
-                }
+                foreach (int sessionId in _activeAmbientDroneSessions.Values) _audioManager.StopSession(sessionId);
                 _activeAmbientDroneSessions.Clear();
 
-                foreach (int sessionId in _activeClimaxWhisperSessions.Values)
-                {
-                    _audioManager.StopSession(sessionId);
-                }
+                foreach (int sessionId in _activeClimaxWhisperSessions.Values) _audioManager.StopSession(sessionId);
                 _activeClimaxWhisperSessions.Clear();
             }
         }
@@ -528,24 +539,22 @@ namespace SCP_575.Shared.Audio
         }
         #endregion
 
-        #region Nested Profiles
+        #region Nested Profile Structures
         private sealed class PlayerTensionProfile
         {
-            private static readonly System.Random _random = new();
-
             public float CurrentTension { get; set; }
             public float NextTriggerThreshold { get; private set; }
 
             public PlayerTensionProfile()
             {
                 CurrentTension = 0f;
-                NextTriggerThreshold = (float)(_random.NextDouble() * (85.0 - 45.0) + 45.0);
+                NextTriggerThreshold = SafeRandom.Range(45.0f, 85.0f);
             }
 
             public void ResetCurve(AudioConfig config)
             {
                 CurrentTension = 0f;
-                NextTriggerThreshold = (float)(_random.NextDouble() * (config.TensionTriggerMaxThreshold - config.TensionTriggerMinThreshold) + config.TensionTriggerMinThreshold);
+                NextTriggerThreshold = SafeRandom.Range(config.TensionTriggerMinThreshold, config.TensionTriggerMaxThreshold);
             }
         }
         #endregion
