@@ -2,6 +2,7 @@ using LabApi.Extensions;
 using LabApi.Extensions.Nesting;
 using LabApi.Extensions.Plugin;
 using LabApi.Loader.Features.Plugins;
+using SCP_575.Compatibility;
 using SCP_575.ConfigObjects;
 using SCP_575.Handlers;
 using SCP_575.Npc;
@@ -120,6 +121,7 @@ namespace SCP_575
             if (!_isConfigLoaded)
             {
                 LoadConfigs();
+                ExiledCompatibilityLayer.ExecuteFallback(this);
             }
 
             Singleton = this;
