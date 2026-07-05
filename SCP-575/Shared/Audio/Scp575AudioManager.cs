@@ -359,7 +359,7 @@
             _audioRegistry[AudioKey.ShadowClicking] = new AudioTrackGroup(new AudioTrackProfile("scp575.shadow_clicking", 0.55f, 4.75f, 33f, true, AudioPriority.High, 9f));
             _audioRegistry[AudioKey.ShadowStrike] = new AudioTrackGroup(new AudioTrackProfile("scp575.shadow_strike", 0.8f, 5.5f, 30f, true, AudioPriority.High, 5f));
             _audioRegistry[AudioKey.ShadowConsumingBody] = new AudioTrackGroup(new AudioTrackProfile("scp575.shadow_consuming_body", 0.95f, 7.5f, 45f, true, AudioPriority.High, 5f));
-            _audioRegistry[AudioKey.AnomalousImpact] = new AudioTrackGroup(new AudioTrackProfile("scp575.anomalous_impact", 0.9f, 3.5f, 25f, true, AudioPriority.High, 5f));
+            _audioRegistry[AudioKey.AnomalousImpact] = new AudioTrackGroup(new AudioTrackProfile("scp575.anomalous_impact", 0.9f, 3.5f, 10f, true, AudioPriority.High, 5f));
             _audioRegistry[AudioKey.GeneratorHumDefense] = new AudioTrackGroup(new AudioTrackProfile("scp575.generator_hum_defense", 0.7f, 6.5f, 45f, true, AudioPriority.High, 0f));
             _audioRegistry[AudioKey.LightShortCircuit] = new AudioTrackGroup(new AudioTrackProfile("scp575.light_short_circuit", 0.75f, 2.5f, 15f, true, AudioPriority.High, 1.5f));
             _audioRegistry[AudioKey.LightSwitch] = new AudioTrackGroup(
