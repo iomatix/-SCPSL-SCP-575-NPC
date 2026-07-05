@@ -102,7 +102,7 @@ namespace SCP_575.ConfigObjects
         public float HunterBreathApproachSpeed { get; set; } = 1.95f;
 
         [Description("Maximum orbital tracking radius in meters mapped to low-threat environmental explosion acoustic signatures.")]
-        public float HelpfulExplosionMaxRadius { get; set; } = 9.0f;
+        public float HelpfulExplosionMaxRadius { get; set; } = 16.0f;
 
         [Description("Minimum orbital tracking radius in meters mapped to low-threat environmental explosion acoustic signatures.")]
         public float HelpfulExplosionMinRadius { get; set; } = 0.5f;
@@ -114,7 +114,7 @@ namespace SCP_575.ConfigObjects
         public float HelpfulExplosionApproachSpeed { get; set; } = 2.5f;
 
         [Description("Maximum orbital tracking radius in meters mapped to high-threat tactical or structural explosion signatures.")]
-        public float DangerousExplosionMaxRadius { get; set; } = 12.0f;
+        public float DangerousExplosionMaxRadius { get; set; } = 22.0f;
 
         [Description("Minimum orbital tracking radius in meters mapped to high-threat tactical or structural explosion signatures.")]
         public float DangerousExplosionMinRadius { get; set; } = 1.0f;
