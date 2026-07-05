@@ -308,6 +308,10 @@ namespace SCP_575.Handlers
                     {
                         ProcessDecayTick(player, now);
                     }
+                    else if (player.IsInDarkRoom())
+                    {
+                        continue;
+                    }
                     else
                     {
                         ProcessRegenTick(player, now);
