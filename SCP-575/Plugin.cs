@@ -96,18 +96,18 @@ namespace SCP_575
             Logger.Info(nameof(Plugin), "Initializing sub-configuration matrix for SCP-575 NPC.");
 
             base.LoadConfigs();
-            Config.Validate();
+            Config?.Validate();
 
             // Fluent API Implementation: Chain-load all independent yml sub-configs using your actual BindSubConfig engine
-            new PluginBuilder<Config>(this)
-                .BindSubConfig<AudioConfig>("audio_settings.yml", cfg => Audio = cfg, cfg => cfg.Validate())
-                .BindSubConfig<BlackoutConfig>("blackout_engine.yml", cfg => Blackout = cfg, cfg => cfg.Validate())
-                .BindSubConfig<FlashlightSpawnConfig>("flashlight_spawning.yml", cfg => FlashlightSpawn = cfg, cfg => cfg.Validate())
-                .BindSubConfig<NpcConfig>("npc_behavior.yml", cfg => Npc = cfg, cfg => cfg.Validate())
-                .BindSubConfig<PlayerSanityConfig>("sanity_progression.yml", cfg => Sanity = cfg, cfg => cfg.Validate())
-                .BindSubConfig<PlayerLightsourceConfig>("player_lightsources.yml", cfg => Lightsource = cfg, cfg => cfg.Validate())
-                .BindSubConfig<HintsConfig>("hints_placement.yml", cfg => Hints = cfg, cfg => cfg.Validate())
-                .BindSubConfig<CassieConfig>("cassie_announcements.yml", cfg => Cassie = cfg, cfg => cfg.Validate());
+            PluginBuilder.Create(this)
+                    .BindSubConfig<AudioConfig>("audio_settings.yml", cfg => Audio = cfg, cfg => cfg.Validate())
+                    .BindSubConfig<BlackoutConfig>("blackout_engine.yml", cfg => Blackout = cfg, cfg => cfg.Validate())
+                    .BindSubConfig<FlashlightSpawnConfig>("flashlight_spawning.yml", cfg => FlashlightSpawn = cfg, cfg => cfg.Validate())
+                    .BindSubConfig<NpcConfig>("npc_behavior.yml", cfg => Npc = cfg, cfg => cfg.Validate())
+                    .BindSubConfig<PlayerSanityConfig>("sanity_progression.yml", cfg => Sanity = cfg, cfg => cfg.Validate())
+                    .BindSubConfig<PlayerLightsourceConfig>("player_lightsources.yml", cfg => Lightsource = cfg, cfg => cfg.Validate())
+                    .BindSubConfig<HintsConfig>("hints_placement.yml", cfg => Hints = cfg, cfg => cfg.Validate())
+                    .BindSubConfig<CassieConfig>("cassie_announcements.yml", cfg => Cassie = cfg, cfg => cfg.Validate());
 
             _isConfigLoaded = true;
         }
@@ -126,18 +126,20 @@ namespace SCP_575
 
             try
             {
-                // Fluent API Implementation: Utilize continuous InitializeModule pipelines sequentially to enforce structural separation
-                new PluginBuilder<Config>(this)
+                // Fluent API Implementation: Utilizing clean, inferenced method chaining steps
+                PluginBuilder.Create(this)
                     .InitializeModule(() =>
                     {
-                        // Step 1: Allocate operational logic processors maintaining concrete injection order
+                        // Action 1: Instantiate independent core logic systems
                         _damageSystem = new Scp575DamageSystem(this);
                         _audioManager = new Scp575AudioManager(this);
                         _elevatorHandler = new ElevatorHandler(this);
                         _sanityHandler = new PlayerSanityHandler(this);
                         _audioDirector = new Scp575AudioDirector(this, _audioManager, _sanityHandler);
-
-                        // Step 2: Allocate proxies to capture structural game events
+                    })
+                    .InitializeModule(() =>
+                    {
+                        // Action 2: Instantiate structural game proxy handlers
                         _lifecycleHandler = new LifecycleHandler(this);
                         _generatorHandler = new GeneratorHandler(this);
                         _explosionHandler = new ExplosionHandler(this);
@@ -146,26 +148,24 @@ namespace SCP_575
                         _lightsourceHandler = new PlayerLightsourceHandler(this);
                         _mapHandler = new MapHandler(this);
 
-                        // Step 3: Attach the core NPC execution layer to the generic composition nesting node
+                        // Action 3: Commit the internal behavior execution node setup
                         _npcNode = new NestingNode<Plugin, Methods>(this, plugin => new Methods(plugin));
                     })
                     .InitializeModule(() =>
                     {
-                        // Step 4: Awaken background processing threads, registries, and visual directors safely
+                        // Action 4: Wake up active processing worker layers
                         _sanityHandler?.Initialize();
                         _lightsourceHandler?.Initialize();
                         _audioDirector?.Initialize();
                     })
                     .InitializeModule(() =>
                     {
-                        // Step 5: Route proxies directly into the central event engine using atomic array subscription extensions
+                        // Action 5: Route proxy listeners directly onto the central LabAPI engine matrix
                         HandlerExtensions.RegisterAll(
                             _lifecycleHandler, _generatorHandler, _explosionHandler, _damageHandler,
                             _ragdollHandler, _lightsourceHandler, _sanityHandler, _mapHandler
                         );
                     });
-
-                Logger.Info(nameof(Plugin), $"{Name} v{Version} - master architecture successfully generated and verified online via Fluent Builder.");
             }
             catch (Exception ex)
             {
