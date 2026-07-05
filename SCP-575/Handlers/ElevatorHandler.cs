@@ -40,7 +40,7 @@ namespace SCP_575.Handlers
         {
             if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || ev.Elevator is null) return;
 
-            if (_plugin.NpcNestingObj.Logic.IsBlackoutActive)
+            if (_plugin.NpcLogic.IsBlackoutActive)
             {
                 _plugin.AudioManager?.PlayAtPosition(AudioKey.LightShortCircuit, ev.Player.Position, isTransient: true, sourcePlayer: ev.Player);
             }
@@ -63,7 +63,7 @@ namespace SCP_575.Handlers
 
             if (elevatorZone is null) return;
 
-            if (_plugin.NpcNestingObj.Logic.IsZoneUnderBlackout(elevatorZone.Value))
+            if (_plugin.NpcLogic.IsZoneUnderBlackout(elevatorZone.Value))
             {
                 lock (_lock)
                 {

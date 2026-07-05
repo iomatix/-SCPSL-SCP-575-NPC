@@ -245,7 +245,7 @@ namespace SCP_575.Handlers
             // Fluent API Alignment: Enforced atomic rate-limiting checks via verified extension modules
             if (!forceIgnoreCooldown && _playerEffectsCooldownExpiry.IsCooldownActive(playerInstanceId)) return;
 
-            if (!_plugin.NpcNestingObj.Logic.IsBlackoutActive && !bypassBlackoutGate) return;
+            if (!_plugin.NpcLogic.IsBlackoutActive && !bypassBlackoutGate) return;
 
             var stage = GetCurrentSanityStage(player);
             if (stage?.Effects is null) return;
@@ -292,8 +292,8 @@ namespace SCP_575.Handlers
             bool isVulnerable = !player.HasActiveLightSource() || stage.OverrideLightSourceSanityProtection;
 
             float culmDamage = isVulnerable
-                ? stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks)
-                : stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks);
+                ? stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.NpcLogic.GetCurrentBlackoutStacks)
+                : stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.NpcLogic.GetCurrentBlackoutStacks);
 
             if (culmDamage <= 0) return;
 
@@ -384,7 +384,7 @@ namespace SCP_575.Handlers
         {
             float decayRate = _sanityConfig.DecayRateBase;
 
-            if (_plugin.NpcNestingObj.Logic.IsBlackoutActive)
+            if (_plugin.NpcLogic.IsBlackoutActive)
                 decayRate *= _sanityConfig.DecayMultiplierBlackout;
 
             if (!player.HasActiveLightSource())

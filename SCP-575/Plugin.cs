@@ -62,6 +62,7 @@ namespace SCP_575
         }
 
         public NestingNode<Plugin, Methods> NpcNestingObj => _npcNode;
+        public Methods NpcLogic => _npcNode.Logic;
         public Scp575DamageSystem DamageSystem => _damageSystem;
         public Scp575AudioManager AudioManager => _audioManager;
         public Scp575AudioDirector AudioDirector => _audioDirector;

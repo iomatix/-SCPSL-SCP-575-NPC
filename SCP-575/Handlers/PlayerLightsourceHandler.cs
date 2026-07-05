@@ -134,14 +134,14 @@ namespace SCP_575.Handlers
 
         public override void OnPlayerTogglingFlashlight(PlayerTogglingFlashlightEventArgs ev)
         {
-            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || !_plugin.NpcNestingObj.Logic.IsBlackoutActive || ev.Player.CurrentItem is not LightItem) return;
+            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || !_plugin.NpcLogic.IsBlackoutActive || ev.Player.CurrentItem is not LightItem) return;
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Hints.LightEmitterCooldownHint);
         }
 
         public override void OnPlayerTogglingWeaponFlashlight(PlayerTogglingWeaponFlashlightEventArgs ev)
         {
-            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || ev.FirearmItem is null || !_plugin.NpcNestingObj.Logic.IsBlackoutActive || !ev.FirearmItem.HasAttachment(AttachmentName.Flashlight))
+            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || ev.FirearmItem is null || !_plugin.NpcLogic.IsBlackoutActive || !ev.FirearmItem.HasAttachment(AttachmentName.Flashlight))
                 return;
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Hints.LightEmitterCooldownHint);
@@ -149,7 +149,7 @@ namespace SCP_575.Handlers
 
         public override void OnPlayerToggledFlashlight(PlayerToggledFlashlightEventArgs ev)
         {
-            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || !ev.NewState || !ev.Player.IsInDarkRoom() || !_plugin.NpcNestingObj.Logic.IsBlackoutActive) return;
+            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || !ev.NewState || !ev.Player.IsInDarkRoom() || !_plugin.NpcLogic.IsBlackoutActive) return;
 
             TriggerLightsourceFlickerPipeline(ev.Player);
         }
@@ -165,7 +165,7 @@ namespace SCP_575.Handlers
                 _plugin.AudioDirector?.ProcessLightSwitchClick(ev.Player.Position);
             }
 
-            if (!_plugin.IsEventActive || !ev.NewState || !ev.Player.IsInDarkRoom() || !_plugin.NpcNestingObj.Logic.IsBlackoutActive) return;
+            if (!_plugin.IsEventActive || !ev.NewState || !ev.Player.IsInDarkRoom() || !_plugin.NpcLogic.IsBlackoutActive) return;
 
             TriggerLightsourceFlickerPipeline(ev.Player);
         }
@@ -222,7 +222,7 @@ namespace SCP_575.Handlers
 
         private (bool IsAllowed, bool NewState) HandleLightToggling(Player player, bool isAllowed, bool newState, string message)
         {
-            if (!newState || !_plugin.NpcNestingObj.Logic.IsBlackoutActive || player?.GameObject is null) return (isAllowed, newState);
+            if (!newState || !_plugin.NpcLogic.IsBlackoutActive || player?.GameObject is null) return (isAllowed, newState);
 
             int instanceId = player.GameObject.GetInstanceID();
             if (_flickeringPlayers.Contains(instanceId)) return (false, false);

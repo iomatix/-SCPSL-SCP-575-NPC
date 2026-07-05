@@ -47,25 +47,25 @@ namespace SCP_575.Handlers
             // Fluent API Alignment: Restore standard operational power spectrum maps across room and neighbors
             room.TurnOnRoomAndNeighborLights(0f);
 
-            bool allEngaged = _plugin.NpcNestingObj.Logic.AreAllGeneratorsEngaged();
+            bool allEngaged = _plugin.NpcLogic.AreAllGeneratorsEngaged();
             bool retaliationConfigured = _plugin.Blackout.GeneratorActivationRetaliation;
 
             _plugin.AudioDirector?.ProcessGeneratorActivation(position, allEngaged, retaliationConfigured);
 
             if (allEngaged)
             {
-                _plugin.NpcNestingObj.Logic.ProcessFullGridRestorationTeardown();
+                _plugin.NpcLogic.ProcessFullGridRestorationTeardown();
                 return;
             }
 
             if (retaliationConfigured)
             {
-                _plugin.NpcNestingObj.Logic.StartTimedBlackoutBoost(
+                _plugin.NpcLogic.StartTimedBlackoutBoost(
                     _plugin.Blackout.DurationMin,
                     nameof(GeneratorHandler),
                     $"Emergency blackout surge triggered in {room.Name} due to generator activation retaliation.",
                     null,
-                    () => _plugin.NpcNestingObj.Logic.ExecuteLocalizedRetaliationSurge(room)
+                    () => _plugin.NpcLogic.ExecuteLocalizedRetaliationSurge(room)
                 );
             }
         }

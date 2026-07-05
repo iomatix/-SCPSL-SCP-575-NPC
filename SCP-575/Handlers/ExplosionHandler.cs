@@ -48,7 +48,7 @@ namespace SCP_575.Handlers
             Room room = position.GetRoom();
             if (room is null) return;
 
-            bool isBlackoutActive = _plugin.NpcNestingObj.Logic.IsBlackoutActive;
+            bool isBlackoutActive = _plugin.NpcLogic.IsBlackoutActive;
 
             if (impactType is ScpProjectileImpactType.ProjectileImpactType.Dangerous && room.LightController.LightsEnabled)
                 return;
@@ -71,11 +71,11 @@ namespace SCP_575.Handlers
 
                     if (isBlackoutActive)
                     {
-                        _plugin.NpcNestingObj.Logic.StartTimedBlackoutBoost(
+                        _plugin.NpcLogic.StartTimedBlackoutBoost(
                             _plugin.Blackout.DurationMin,
                             nameof(ExplosionHandler),
-                            $"Blackout intensified via tactical projectile. Stacks: {_plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks + 1}",
-                            $"Tactical projectile blackout boost expired. Stacks: {_plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks}",
+                            $"Blackout intensified via tactical projectile. Stacks: {_plugin.NpcLogic.GetCurrentBlackoutStacks + 1}",
+                            $"Tactical projectile blackout boost expired. Stacks: {_plugin.NpcLogic.GetCurrentBlackoutStacks}",
                             () => _plugin.AudioDirector?.ProcessExplosionImpactBoostFeedback()
                         );
                     }

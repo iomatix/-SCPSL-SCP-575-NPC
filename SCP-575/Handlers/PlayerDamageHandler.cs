@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using LabApi.Events.Arguments.PlayerEvents;
+﻿using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Arguments.ServerEvents;
 using LabApi.Events.CustomHandlers;
 using LabApi.Extensions;
-using LabApi.Extensions.Misc;
-using MEC;
 using SCP_575.Shared;
-
+using System;
+using System.Collections.Generic;
 using Logger = LabApi.Extensions.Misc.iLogger;
 
 namespace SCP_575.Handlers

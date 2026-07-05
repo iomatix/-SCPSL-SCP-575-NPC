@@ -10,14 +10,13 @@ using FacilityZone = MapGeneration.FacilityZone;
 namespace SCP_575.Commands
 {
     /// <summary>
-    /// Administrative command router for SCP-575 plugin management.
-    /// Employs advanced heuristic parsing engines to deliver fuzzy string resolution, typo-tolerance, and automatic context mapping.
+    /// Administrative command router for SCP-575 plugin management utilizing heuristic fuzzy string parsing layouts.
     /// </summary>
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     [CommandHandler(typeof(GameConsoleCommandHandler))]
     public class Scp575Command : ICommand, IUsageProvider
     {
-        #region Internal Heuristic Mapping Enums
+        #region Heuristic Internal Enums
         private enum SubCommand
         {
             Start,
@@ -39,6 +38,7 @@ namespace SCP_575.Commands
         }
         #endregion
 
+        #region Command Meta Properties
         /// <inheritdoc />
         public string Command => "scp575";
 
@@ -50,11 +50,12 @@ namespace SCP_575.Commands
 
         /// <inheritdoc />
         public string[] Usage => new[] { "init/start", "blackout/trigger [zone]", "stop/disable", "setstacks [amount]", "changestacks [delta]", "sanity [player] [set/add/sub] [value]" };
+        #endregion
 
+        #region Execution Core Pipeline
         /// <inheritdoc />
         public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            // Enforcement of permission controls over high-impact administrative triggers
             if (sender is PlayerCommandSender playerSender && !playerSender.CheckPermission(PlayerPermissions.FacilityManagement))
             {
                 response = "Unauthorized Command Execution: You do not possess the required administrative clearance (FacilityManagement) to call this command.";
@@ -63,107 +64,94 @@ namespace SCP_575.Commands
 
             if (arguments.Count == 0)
             {
-                response = "Invalid Command Configuration. Available Subcommands (Typo-Tolerant):\n" +
-                           " - init / start                    : Force-initializes the SCP-575 baseline framework.\n" +
-                           " - blackout / trigger [zone/room]  : Requests instantaneous global or zone-specific blackout execution.\n" +
-                           " - stop / disable                  : Safely aborts and purges persistent tracking hooks and timers.\n" +
-                           " - setstacks [amount]              : Explicitly overrides the running atmospheric blackout stack registry.\n" +
-                           " - changestacks [delta]            : Shifts running stacks up or down using relative integer modifiers.\n" +
-                           " - sanity [player] [action] [val]  : Modifies a targeted player's sanity index metrics seamlessly.";
+                response = "Invalid Command Configuration. Refer to standard usage paradigms.";
                 return false;
             }
 
-            var plugin = Plugin.Singleton;
-            if (plugin == null || plugin.NpcNestingObj?.Logic == null)
+            Plugin plugin = Plugin.Singleton;
+            if (plugin?.NpcLogic is null)
             {
-                response = "Execution Critical Failure: The central SCP-575 runtime singleton or core Methods logic module is offline.";
+                response = "Execution Critical Failure: The central SCP-575 runtime singleton or unified core NpcLogic module is offline.";
                 return false;
             }
 
-            // Heuristic Step 1: Interpret the raw subcommand argument via the fuzzy engine cascade
-            var commandInterpretation = arguments.At(0).InterpretEnum<SubCommand>();
+            InterpretationResult<SubCommand> commandInterpretation = arguments.At(0).InterpretEnum<SubCommand>();
 
-            if (commandInterpretation.Status == InterpretationStatus.NoMatchFound)
+            if (commandInterpretation.Status is InterpretationStatus.NoMatchFound)
             {
-                response = $"Syntax Interpretation Failure: '{arguments.At(0)}' is completely unrecognized. Use 'start', 'blackout', 'stop', 'setstacks', 'changestacks', or 'sanity'.";
+                response = $"Syntax Interpretation Failure: '{arguments.At(0)}' is completely unrecognized.";
                 return false;
             }
 
-            if (commandInterpretation.Status == InterpretationStatus.Ambiguous)
+            if (commandInterpretation.Status is InterpretationStatus.Ambiguous)
             {
-                response = $"Ambiguous Subcommand Identified. Did you mean one of the following elements?\n" +
-                           $" Candidates: {string.Join(", ", commandInterpretation.Candidates)}";
+                response = $"Ambiguous Subcommand Identified. Candidates: {string.Join(", ", commandInterpretation.Candidates)}";
                 return false;
             }
 
-            // Process definitive matches through the optimized structural action map
             switch (commandInterpretation.Value)
             {
                 case SubCommand.Init:
                 case SubCommand.Start:
                     if (plugin.IsEventActive)
                     {
-                        response = "Initialization Cancelled: SCP-575 horror pacing mechanisms are already active and ticking inside this round state.";
+                        response = "Initialization Cancelled: SCP-575 horror pacing mechanisms are already active.";
                         return false;
                     }
 
-                    plugin.NpcNestingObj.Logic.Init();
-                    response = "SUCCESS: SCP-575 anomaly ecosystem forced online. Decoupled environmental trackers, acoustic generators, and data registries initialized.";
+                    plugin.NpcLogic.Init();
+                    response = "SUCCESS: SCP-575 anomaly ecosystem forced online.";
                     return true;
 
                 case SubCommand.Stop:
                 case SubCommand.Disable:
                     if (!plugin.IsEventActive)
                     {
-                        response = "Teardown Aborted: The SCP-575 execution framework is already resting in an uninitialized baseline state.";
+                        response = "Teardown Aborted: The SCP-575 execution framework is already resting.";
                         return false;
                     }
 
-                    plugin.NpcNestingObj.Logic.Disable();
-                    response = "SUCCESS: Explicit runtime teardown completed. Active visual flickers, audio processing coroutines, and memory maps purged cleanly.";
+                    plugin.NpcLogic.Disable();
+                    response = "SUCCESS: Explicit runtime teardown completed.";
                     return true;
 
                 case SubCommand.Blackout:
                 case SubCommand.Trigger:
                     if (!plugin.IsEventActive)
                     {
-                        response = "Trigger Denied: The global event framework is offline. Execute 'scp575 start' to wake up core systems first.";
+                        response = "Trigger Denied: The global event framework is offline.";
                         return false;
                     }
 
-                    // Heuristic Step 2: Contextual evaluation of optional zone-specific blackout parameters
                     if (arguments.Count >= 2)
                     {
-                        var zoneInterpretation = arguments.At(1).InterpretEnum<FacilityZone>();
+                        InterpretationResult<FacilityZone> zoneInterpretation = arguments.At(1).InterpretEnum<FacilityZone>();
 
-                        if (zoneInterpretation.Status == InterpretationStatus.NoMatchFound)
+                        if (zoneInterpretation.Status is InterpretationStatus.NoMatchFound)
                         {
-                            response = $"Zone Selection Failed: '{arguments.At(1)}' does not map to any recognized facility sector coordinates.";
+                            response = $"Zone Selection Failed: '{arguments.At(1)}' is invalid.";
                             return false;
                         }
 
-                        if (zoneInterpretation.Status == InterpretationStatus.Ambiguous)
+                        if (zoneInterpretation.Status is InterpretationStatus.Ambiguous)
                         {
-                            response = $"Ambiguous Sector Identification. Multi-grid overlap detected across candidates:\n" +
-                                       $" Candidates: {string.Join(", ", zoneInterpretation.Candidates)}";
+                            response = $"Ambiguous Sector Identification. Candidates: {string.Join(", ", zoneInterpretation.Candidates)}";
                             return false;
                         }
 
-                        // Execute target-focused localized blackout routine inside the verified definitive FacilityZone match
-                        plugin.NpcNestingObj.Logic.ForceZoneBlackoutEvent(zoneInterpretation.Value);
-                        response = $"SUCCESS: Targeted blackout sequence dispatched onto definitive matched zone sector: [{zoneInterpretation.Value}].";
+                        plugin.NpcLogic.ForceZoneBlackoutEvent(zoneInterpretation.Value);
+                        response = $"SUCCESS: Targeted blackout sequence dispatched onto zone sector: [{zoneInterpretation.Value}].";
                         return true;
                     }
 
-                    // Default to global grid collapse layout if no zoning modifier arguments are appended
-                    plugin.NpcNestingObj.Logic.ForceGlobalBlackoutEvent();
-                    response = "SUCCESS: Global power grid collapse triggered. Dispatched soundscape modules and network illumination updates facility-wide.";
+                    plugin.NpcLogic.ForceGlobalBlackoutEvent();
+                    response = "SUCCESS: Global power grid collapse triggered.";
                     return true;
 
                 case SubCommand.SetStacks:
                     if (!plugin.IsEventActive)
                     {
-                        response = "Stack Adjustment Denied: The anomaly system must be active to balance multiplier weights.";
+                        response = "Stack Adjustment Denied: The anomaly system must be active.";
                         return false;
                     }
 
@@ -175,98 +163,110 @@ namespace SCP_575.Commands
 
                     if (targetStacks == 0)
                     {
-                        plugin.NpcNestingObj.Logic.Reset575();
-                        response = "SUCCESS: Blackout stack accumulation counter cleared to 0. Illumination networks and containment fields stabilized.";
+                        plugin.NpcLogic.Reset575();
+                        response = "SUCCESS: Blackout stack accumulation counter cleared to 0.";
                         return true;
                     }
 
-                    // Dynamically iterate stack allocations until perfect synchronization with the administrative target is verified
-                    UpdateBlackoutStackMatrix(plugin.NpcNestingObj.Logic, targetStacks);
-
-                    response = $"SUCCESS: Environmental atmospheric threat matrix updated. Running blackout stack count locked at: {plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks}";
+                    UpdateBlackoutStackMatrix(plugin.NpcLogic, targetStacks);
+                    response = $"SUCCESS: Running blackout stack count locked at: {plugin.NpcLogic.GetCurrentBlackoutStacks}";
                     return true;
 
                 case SubCommand.ChangeStacks:
                     if (!plugin.IsEventActive)
                     {
-                        response = "Relative Shift Denied: The anomaly system must be active to balance multiplier weights.";
+                        response = "Relative Shift Denied: The anomaly system must be active.";
                         return false;
                     }
 
                     if (arguments.Count < 2 || !int.TryParse(arguments.At(1), out int stackDelta))
                     {
-                        response = "Syntax Compilation Error. Correct usage pattern: scp575 changestacks [signed integer delta (e.g. -2 or 3)]";
+                        response = "Syntax Compilation Error. Correct usage pattern: scp575 changestacks [signed integer delta]";
                         return false;
                     }
 
-                    int calculatedTarget = (plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks + stackDelta).LimitMin(0);
-                    UpdateBlackoutStackMatrix(plugin.NpcNestingObj.Logic, calculatedTarget);
+                    int calculatedTarget = (plugin.NpcLogic.GetCurrentBlackoutStacks + stackDelta).LimitMin(0);
+                    UpdateBlackoutStackMatrix(plugin.NpcLogic, calculatedTarget);
 
-                    response = $"SUCCESS: Shift modifier applied. Absolute blackout stack accumulation updated to: {plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks} (Shift Delta: {stackDelta:+#;-#;0})";
+                    response = $"SUCCESS: Absolute blackout stack accumulation updated to: {plugin.NpcLogic.GetCurrentBlackoutStacks}";
                     return true;
 
                 case SubCommand.Sanity:
                     if (!plugin.IsEventActive)
                     {
-                        response = "Sanity Mutation Denied: Neural metric tracking arrays are offline because the main plugin context is disabled.";
+                        response = "Sanity Mutation Denied: Neural metric tracking arrays are offline.";
                         return false;
                     }
 
                     if (arguments.Count < 4)
                     {
-                        response = "Syntax Compilation Error. Correct usage pattern: scp575 sanity [player name/id] [set/add/sub] [value (0-100)]";
+                        response = "Syntax Compilation Error. Correct usage pattern: scp575 sanity [player] [set/add/sub] [value]";
                         return false;
                     }
 
-                    // Fetch targeted player wrapper using native framework search paths
-                    Player targetPlayer = Player.Get(arguments.At(1));
-                    if (targetPlayer == null)
+                    int valIndex = arguments.Count - 1;
+                    int actionIndex = arguments.Count - 2;
+                    int namePartsCount = actionIndex - 1;
+
+                    if (namePartsCount <= 0)
                     {
-                        response = $"Target Assignment Failed: No active player matching identifier literal '{arguments.At(1)}' could be located.";
+                        response = "Syntax Compilation Error. Invalid argument formatting structural layers.";
                         return false;
                     }
 
-                    // Heuristic Step 3: Parse modification method via fuzzy enum matching
-                    var actionInterpretation = arguments.At(2).InterpretEnum<SanityAction>();
-                    if (actionInterpretation.Status == InterpretationStatus.NoMatchFound)
+                    string[] rawNameParts = new string[namePartsCount];
+                    for (int i = 0; i < namePartsCount; i++)
                     {
-                        response = $"Action Translation Failed: Operation wrapper '{arguments.At(2)}' is unknown. Use 'set', 'add', or 'sub'.";
-                        return false;
+                        rawNameParts[i] = arguments.At(1 + i);
                     }
-                    if (actionInterpretation.Status == InterpretationStatus.Ambiguous)
+                    string playerIdentifier = string.Join(" ", rawNameParts).Trim();
+
+                    // Complete elimination of algorithmic boilerplate inside the command handler.
+                    // The lookup pipeline maps fluently straight through our newly expanded API Extension channels securely.
+                    if (!Player.ReadyList.TryResolveFuzzy(playerIdentifier, out Player targetPlayer, out string playerError))
                     {
-                        response = $"Ambiguous Operation Entry. Matched conflicting processing candidates: {string.Join(", ", actionInterpretation.Candidates)}";
+                        response = playerError;
                         return false;
                     }
 
-                    if (!float.TryParse(arguments.At(3), out float sanityValue) || sanityValue < 0f)
+                    InterpretationResult<SanityAction> actionInterpretation = arguments.At(actionIndex).InterpretEnum<SanityAction>();
+                    if (actionInterpretation.Status is InterpretationStatus.NoMatchFound)
                     {
-                        response = $"Value Validation Error: '{arguments.At(3)}' is an invalid sanity value primitive. Expected non-negative decimal scaling factor.";
+                        response = $"Action Translation Failed: Operation wrapper '{arguments.At(actionIndex)}' is unknown.";
+                        return false;
+                    }
+                    if (actionInterpretation.Status is InterpretationStatus.Ambiguous)
+                    {
+                        response = $"Ambiguous Operation Entry. Candidates: {string.Join(", ", actionInterpretation.Candidates)}";
                         return false;
                     }
 
-                    // Query current status tracking maps from the background handler context
+                    if (!float.TryParse(arguments.At(valIndex), out float sanityValue) || sanityValue < 0f)
+                    {
+                        response = "Value Validation Error: Expected non-negative decimal factor.";
+                        return false;
+                    }
+
+                    if (plugin.SanityHandler is null)
+                    {
+                        response = "Execution Failure: The PlayerSanityHandler tracking core instance is currently unavailable.";
+                        return false;
+                    }
+
                     float currentSanity = plugin.SanityHandler.GetCurrentSanity(targetPlayer);
                     float finalSanity = currentSanity;
 
                     switch (actionInterpretation.Value)
                     {
-                        case SanityAction.Set:
-                            finalSanity = sanityValue;
-                            break;
-                        case SanityAction.Add:
-                            finalSanity = currentSanity + sanityValue;
-                            break;
-                        case SanityAction.Subtract:
-                            finalSanity = currentSanity - sanityValue;
-                            break;
+                        case SanityAction.Set: finalSanity = sanityValue; break;
+                        case SanityAction.Add: finalSanity = currentSanity + sanityValue; break;
+                        case SanityAction.Subtract: finalSanity = currentSanity - sanityValue; break;
                     }
 
-                    // Enforce absolute physiological bounds tracking decimals inline natively
                     finalSanity = finalSanity.Clamp(0f, 100f);
                     plugin.SanityHandler.SetPlayerSanity(targetPlayer, finalSanity);
 
-                    response = $"SUCCESS: Neuro-integrity mapping updated for player [{targetPlayer.Nickname}]. Sanity adjusted from {currentSanity}% to {finalSanity}% via {actionInterpretation.Value} vector tracking.";
+                    response = $"SUCCESS: Neuro-integrity mapping updated for player [{targetPlayer.Nickname}]. Sanity adjusted from {currentSanity}% to {finalSanity}%.";
                     return true;
 
                 default:
@@ -274,20 +274,14 @@ namespace SCP_575.Commands
                     return false;
             }
         }
+        #endregion
 
-        /// <summary>
-        /// Synchronizes the running logic instance's stack tracking parameters with a targeted absolute index baseline.
-        /// </summary>
+        #region Private Infrastructure Syncs
         private static void UpdateBlackoutStackMatrix(Methods logic, int targetLevel)
         {
-            while (logic.GetCurrentBlackoutStacks < targetLevel)
-            {
-                logic.IncrementBlackoutStack();
-            }
-            while (logic.GetCurrentBlackoutStacks > targetLevel)
-            {
-                logic.DecrementBlackoutStack();
-            }
+            while (logic.GetCurrentBlackoutStacks < targetLevel) logic.IncrementBlackoutStack();
+            while (logic.GetCurrentBlackoutStacks > targetLevel) logic.DecrementBlackoutStack();
         }
+        #endregion
     }
 }

@@ -1,18 +1,16 @@
-using System;
-using System.Collections.Generic;
 using InventorySystem.Items.Armor;
-using LabApi.Features.Wrappers;
-using LabApi.Features.Enums;
 using LabApi.Extensions;
 using LabApi.Extensions.Misc;
+using LabApi.Features.Wrappers;
 using MEC;
 using PlayerRoles;
 using PlayerRoles.PlayableScps.Scp3114;
 using PlayerRoles.Ragdolls;
 using PlayerStatsSystem;
 using SCP_575.Shared.Audio.Enums;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
-
 using Logger = LabApi.Extensions.Misc.iLogger;
 
 namespace SCP_575.Shared
