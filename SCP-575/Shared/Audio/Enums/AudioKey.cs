@@ -45,6 +45,11 @@
         // ===================================================================
         // PSYCHOLOGICAL PARANOIA & SANITY DECAY (TIERED INTENSITY)
         // ===================================================================
+        
+        /// <summary>
+        /// Tier 0: Light and subtle vocal anomalies tracking early stages of client psychological decay.
+        /// </summary>
+        Puffs,
 
         /// <summary>
         /// Tier 1: Distant, subtle vocal anomalies tracking early stages of client neurological breakdown.

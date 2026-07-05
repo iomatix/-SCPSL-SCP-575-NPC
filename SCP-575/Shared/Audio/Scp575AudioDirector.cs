@@ -85,8 +85,6 @@ namespace SCP_575.Shared.Audio
 
                     float currentSanity = _sanityHandler.GetCurrentSanity(player);
 
-                    // MASTER-LEVEL ARCHITECTURE ALIGNMENT: 
-                    // Querying both independent spatial hooks to separate State 2 (Gray) from State 3 (True Darkness)
                     bool isInTrueDarkness = player.IsInTrueDarkness();
                     bool isInDarkRoom = player.IsInDarkRoom();
 
@@ -110,19 +108,17 @@ namespace SCP_575.Shared.Audio
                         }
                     }
                     // =================================================================================
-                    // STATE 2: DARK ROOM ONLY / ELEVATOR NEIGHBOR (Szarość — Safe Zone, creepy environment)
+                    // STATE 2: DARK ROOM ONLY / ELEVATOR NEIGHBOR (Szarość — Safe Zone, creep stingers active)
                     // =================================================================================
                     else if (isInDarkRoom)
                     {
-                        // Play smoothed out environmental soundscapes, but entirely bypass stress gains
                         _audioManager.PlayAmbienceForPlayer(player, fadeInDuration: 4.0f);
 
-                        // Safely evict and terminate high-intensity combat/panic background drones
                         EvaluatePersistentPanicDrone(player, instanceId, currentSanity, false);
                         EvaluateLowSanityDrone(player, instanceId, false);
                         DecayPlayerStressPassive(instanceId);
 
-                        // Fire a completely harmless, non-lethal background structural audio creep effect
+                        // Fire a completely harmless, non-lethal background structural audio creep cascade
                         ExecuteSubtleEnvironmentCreep(player, instanceId);
                     }
                     // =================================================================================
@@ -162,16 +158,23 @@ namespace SCP_575.Shared.Audio
         /// </summary>
         private void ExecuteSubtleEnvironmentCreep(Player player, int instanceId)
         {
-            // Cooldown protection layer prevents tracking registry overhead or audio channel spamming inside elevators
-            if (!_transientInputNetworkGate.TryAcquireLock(instanceId, TimeSpan.FromSeconds(15f))) return;
+            // Cooldown lock to ensure subtle whispers, static buzzes, and puffs don't overlap or spam channels
+            if (!_transientInputNetworkGate.TryAcquireLock(instanceId, TimeSpan.FromSeconds(12f))) return;
 
-            // Fluent API Upgrade: Leveraged high-performance thread-isolated SafeRandom loops over procedural checks
-            if (SafeRandom.RollSuccess(40f))
+            // Fluent API Upgrade: Balanced 3-tier cascade of subtle hauntings for elevators and dark room thresholds
+            if (SafeRandom.RollSuccess(35f))
             {
+                // 35% Chance: Play the newly integrated spatial phantom air shift tokens seamlessly
+                _audioManager.PlayAttached(player, AudioKey.Puffs, hearableForAll: false);
+            }
+            else if (SafeRandom.RollSuccess(25f))
+            {
+                // 25% Chance: Play low-volume ambient whispers that keep the player paranoid
                 _audioManager.PlayAttached(player, AudioKey.WhispersSubtle, hearableForAll: false);
             }
-            else if (SafeRandom.RollSuccess(20f))
+            else if (SafeRandom.RollSuccess(15f))
             {
+                // 15% Chance: Play organic local monster breath tracking signatures
                 _audioManager.PlayAttached(player, AudioKey.MonsterBreathLocal, hearableForAll: false);
             }
         }
@@ -194,6 +197,12 @@ namespace SCP_575.Shared.Audio
                 float tensionGain = _plugin.Sanity.DecayRateBase * (1.0f + sanityRiskFactor * config.TensionSanityRiskMultiplier);
 
                 profile.CurrentTension = (profile.CurrentTension + tensionGain).Clamp(0f, 100f);
+
+                // Immersion Layer: If the player is halfway to their next climax scare, inject a random shadow puff as an advance warning
+                if (profile.CurrentTension >= (profile.NextTriggerThreshold * 0.5f) && SafeRandom.RollSuccess(12f))
+                {
+                    _audioManager.PlayAttached(player, AudioKey.Puffs, hearableForAll: false);
+                }
 
                 if (profile.CurrentTension >= profile.NextTriggerThreshold)
                 {
@@ -347,20 +356,15 @@ namespace SCP_575.Shared.Audio
 
         public void ProcessDamagedPlayerHitImpact(Player target)
         {
+            if (target?.GameObject is null) return;
             int id = target.GameObject.GetInstanceID();
 
-            if (!_playerLastAttackAudioTime.TryGetValue(id, out var lastTime))
-                lastTime = DateTime.MinValue;
-
-            TimeSpan cooldown = TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds);
-
-            if (DateTime.UtcNow - lastTime >= cooldown)
+            // Fluent API Upgrade: Converted manual DateTime subtract math into deterministic dictionary gates
+            if (_playerLastAttackAudioTime.TryAcquireLock(id, TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds)))
             {
-                _playerLastAttackAudioTime[id] = DateTime.UtcNow;
-                _plugin.AudioManager?.PlayAtPosition(AudioKey.AnomalousImpact, target.Position);
+                _audioManager.PlayAtPosition(AudioKey.AnomalousImpact, target.Position);
             }
         }
-
 
         public void ProcessExplosionImpact(Vector3 position, ScpProjectileImpactType.ProjectileImpactType impactType, bool isBlackoutActive = false)
         {

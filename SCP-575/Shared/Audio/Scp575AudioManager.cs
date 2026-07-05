@@ -333,6 +333,12 @@
             _audioRegistry[AudioKey.ScreamDying] = new AudioTrackGroup(new AudioTrackProfile("scp575.scream_dying", 0.95f, 255f, 480f, true, AudioPriority.High, 20f));
             _audioRegistry[AudioKey.MonsterRoarGlobal] = new AudioTrackGroup(new AudioTrackProfile("scp575.monster_roar_global", 0.85f, 45f, 999.99f, false, AudioPriority.High, 40f));
             _audioRegistry[AudioKey.MonsterBreathLocal] = new AudioTrackGroup(new AudioTrackProfile("scp575.monster_breath_local", 0.75f, 5f, 24f, true, AudioPriority.High, 11f));
+            _audioRegistry[AudioKey.Puffs] = new AudioTrackGroup(
+                new AudioTrackProfile("scp575.puff_1", 0.85f, 5f, 35f, true, AudioPriority.Low, 4.75f),
+                new AudioTrackProfile("scp575.puff_2", 0.85f, 5f, 35f, true, AudioPriority.Low, 4.75f),
+                new AudioTrackProfile("scp575.puff_3", 0.85f, 5f, 35f, true, AudioPriority.Low, 4.75f),
+                new AudioTrackProfile("scp575.puff_4", 0.85f, 5f, 35f, true, AudioPriority.Medium, 4.75f)
+            );
             _audioRegistry[AudioKey.WhispersSubtle] = new AudioTrackGroup(
                 new AudioTrackProfile("scp575.whispers_3", 0.55f, 9f, 52f, true, AudioPriority.Medium, 9f),
                 new AudioTrackProfile("scp575.whispers_4", 0.55f, 9f, 52f, true, AudioPriority.Medium, 8f),
