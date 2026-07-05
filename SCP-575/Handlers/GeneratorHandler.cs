@@ -45,7 +45,7 @@ namespace SCP_575.Handlers
             Logger.Info(nameof(GeneratorHandler), $"Power substation initialized inside room: {room.Name}");
 
             // Fluent API Alignment: Restore standard operational power spectrum maps across room and neighbors
-            room.TurnOnRoomAndNeighborLights(0f);
+            room.TurnOnRoomAndNeighborLights(0.65f);
 
             bool allEngaged = _plugin.NpcLogic.AreAllGeneratorsEngaged();
             bool retaliationConfigured = _plugin.Blackout.GeneratorActivationRetaliation;

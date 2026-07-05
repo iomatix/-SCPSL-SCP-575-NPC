@@ -82,7 +82,7 @@ namespace SCP_575.Handlers
                     break;
 
                 case ScpProjectileImpactType.ProjectileImpactType.Dangerous:
-                    room.TurnOnRoomAndNeighborLights(0f);
+                    room.TurnOnRoomAndNeighborLights(1.35f);
 
                     // Fluent API Upgrade: Restore standard operational power to elevators resting at the current floor cluster
                     room.ExecuteActionOnRoomAndNeighbors(targetRoom =>

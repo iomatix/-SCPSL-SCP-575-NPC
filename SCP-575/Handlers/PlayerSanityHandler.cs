@@ -302,13 +302,15 @@ namespace SCP_575.Handlers
 
                 foreach (Player player in Player.ReadyList)
                 {
+
                     if (!IsValidPlayer(player)) continue;
 
+                    int instanceId = player.GameObject.GetInstanceID();
                     if (player.IsInTrueDarkness())
                     {
                         ProcessDecayTick(player, now);
                     }
-                    else if (player.IsInDarkRoom())
+                    else if (player.IsInDarkRoom() && !_painkillerSanityBoostExpiry.IsCooldownActive(instanceId))
                     {
                         continue;
                     }

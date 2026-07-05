@@ -697,7 +697,7 @@ namespace SCP_575.Npc
 
             if (_plugin.IsEventActive && generatorRoom is not null)
             {
-                generatorRoom.TurnOnRoomAndNeighborLights(0f);
+                generatorRoom.TurnOnRoomAndNeighborLights(0.33f);
                 _plugin.AudioDirector?.ProcessGeneratorStabilizedFeedback(generatorRoom.Position);
 
                 Logger.Info("Methods.GeneratorStabilize", $"Generator room node [{generatorRoom.Name}] fully stabilized.");
