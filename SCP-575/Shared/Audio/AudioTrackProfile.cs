@@ -3,7 +3,7 @@
     using AudioManagerAPI.Features.Enums;
 
     /// <summary>
-    /// Global configuration profile for distinct manifest audio resources.
+    /// Configuration profile for specific audio stream assets.
     /// </summary>
     public sealed class AudioTrackProfile
     {
@@ -16,14 +16,6 @@
         public float DefaultLifespan { get; }
 
         public AudioTrackProfile(string key, float volume, float minDistance, float maxDistance, bool isSpatial, AudioPriority priority, float defaultLifespan)
-        {
-            Key = key;
-            Volume = volume;
-            MinDistance = minDistance;
-            MaxDistance = maxDistance;
-            IsSpatial = isSpatial;
-            Priority = priority;
-            DefaultLifespan = defaultLifespan;
-        }
+            => (Key, Volume, MinDistance, MaxDistance, IsSpatial, Priority, DefaultLifespan) = (key, volume, minDistance, maxDistance, isSpatial, priority, defaultLifespan);
     }
 }

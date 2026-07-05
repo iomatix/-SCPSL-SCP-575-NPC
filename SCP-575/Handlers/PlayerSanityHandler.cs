@@ -192,11 +192,11 @@
         {
             if (IsValidPlayer(player))
             {
-                SetSanity(player, _sanityConfig.InitialSanity);
+                SetPlayerSanity(player, _sanityConfig.InitialSanity);
             }
         }
 
-        public float SetSanity(Player player, float sanity)
+        public float SetPlayerSanity(Player player, float sanity)
         {
             if (player?.GameObject == null) return 0f;
 
@@ -210,12 +210,12 @@
             return clampedSanity;
         }
 
-        public float ChangeSanityValue(Player player, float amount)
+        public float ChangePlayerSanityValue(Player player, float amount)
         {
             if (!IsValidPlayer(player)) return 0f;
 
             float currentSanity = GetCurrentSanity(player);
-            return SetSanity(player, currentSanity + amount);
+            return SetPlayerSanity(player, currentSanity + amount);
         }
 
         public PlayerSanityStageConfig GetCurrentSanityStage(float sanity)
@@ -261,14 +261,14 @@
                 }
             }
 
-            if (!_plugin.NpcNestingObj.Methods.IsBlackoutActive && !bypassBlackoutGate)
+            if (!_plugin.NpcNestingObj.Logic.IsBlackoutActive && !bypassBlackoutGate)
                 return;
 
             var stage = GetCurrentSanityStage(player);
             if (stage == null) return;
 
             // FLASHLIGHT PROTECTION GATE: Evaluates if holding a light source mitigates the panic effects
-            if (Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection)
+            if (player.IsHumanWithoutLight() || stage.OverrideLightSourceSanityProtection)
             {
                 if (stage.Effects != null)
                 {

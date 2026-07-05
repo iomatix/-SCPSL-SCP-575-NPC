@@ -44,7 +44,7 @@ namespace SCP_575.ConfigObjects
         public float Tier4ShockStingerThreshold { get; set; } = 10.0f;
 
         [Description("The temporal duration track in seconds during which a player remains auditorily deafened post-shock-stinger impact.")]
-        public float ShockStingerDeafenDuration { get; set; } = 1.5f;
+        public float ShockStingerDeafenDuration { get; set; } = 0.75f;
 
         [Description("Sanity percentage milestone floor (Tier 3) governing the activation cascade of psychotic ambient whispering tracks.")]
         public float Tier3PsychoticWhispersThreshold { get; set; } = 25.0f;

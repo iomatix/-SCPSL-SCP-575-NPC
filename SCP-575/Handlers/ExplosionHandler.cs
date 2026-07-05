@@ -13,12 +13,10 @@
     public class ExplosionHandler : CustomEventsHandler
     {
         private readonly Plugin _plugin;
-        private readonly LibraryLabAPI _lib;
 
         public ExplosionHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
-            _lib = plugin.LibraryLabAPI;
         }
 
         public override void OnServerExplosionSpawned(ExplosionSpawnedEventArgs ev)
@@ -42,7 +40,7 @@
             var room = _lib.GetRoomAtPosition(position);
             if (room == null) return;
 
-            bool isBlackoutActive = _plugin.NpcNestingObj.Methods.IsBlackoutActive;
+            bool isBlackoutActive = _plugin.NpcNestingObj.Logic.IsBlackoutActive;
 
             if (impactType == ScpProjectileImpactType.ProjectileImpactType.Dangerous && room.LightController.LightsEnabled)
                 return;
@@ -58,11 +56,11 @@
 
                     if (isBlackoutActive)
                     {
-                        _plugin.NpcNestingObj.Methods.StartTimedBlackoutBoost(
+                        _plugin.NpcNestingObj.Logic.StartTimedBlackoutBoost(
                             _plugin.Blackout.DurationMin,
                             "ProjectileImpact",
-                            $"Blackout intensified via tactical projectile! Current stacks: {_plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks + 1}",
-                            $"Tactical projectile blackout boost expired. Current stacks: {_plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks}",
+                            $"Blackout intensified via tactical projectile! Current stacks: {_plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks + 1}",
+                            $"Tactical projectile blackout boost expired. Current stacks: {_plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks}",
                             () => _plugin.AudioDirector?.ProcessExplosionImpactBoostFeedback()
                         );
                     }

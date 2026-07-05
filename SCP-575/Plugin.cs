@@ -77,6 +77,8 @@ namespace SCP_575
         public CassieConfig Cassie { get; private set; }
         #endregion
 
+        public bool Debug => Config.Debug;
+
         #region Plugin Lifecycle Management
         /// <summary>
         /// Native LabAPI configuration framework hook. Processes decoupled sub-configs seamlessly using the builder.

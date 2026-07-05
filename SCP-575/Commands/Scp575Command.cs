@@ -264,7 +264,7 @@ namespace SCP_575.Commands
 
                     // Enforce absolute physiological bounds tracking decimals inline natively
                     finalSanity = finalSanity.Clamp(0f, 100f);
-                    plugin.SanityEventHandler.SetSanity(targetPlayer, finalSanity);
+                    plugin.SanityEventHandler.SetPlayerSanity(targetPlayer, finalSanity);
 
                     response = $"SUCCESS: Neuro-integrity mapping updated for player [{targetPlayer.Nickname}]. Sanity adjusted from {currentSanity}% to {finalSanity}% via {actionInterpretation.Value} vector tracking.";
                     return true;
