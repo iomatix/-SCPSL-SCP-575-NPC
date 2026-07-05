@@ -4,7 +4,6 @@ using LabApi.Events.CustomHandlers;
 using LabApi.Extensions;
 using SCP_575.Shared;
 using System;
-using System.Collections.Generic;
 using Logger = LabApi.Extensions.Misc.iLogger;
 
 namespace SCP_575.Handlers
@@ -16,7 +15,7 @@ namespace SCP_575.Handlers
     {
         #region Fields & Registries
         private readonly Plugin _plugin;
-        private readonly Dictionary<int, DateTime> _playerLastAttackAudioTime = new();
+
         private const string ItemPhysicsTag = CoroutineTags.ItemPhysics;
         #endregion
 
@@ -34,15 +33,12 @@ namespace SCP_575.Handlers
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
             if (ev?.Player?.GameObject is null) return;
-
-            _playerLastAttackAudioTime.Remove(ev.Player.GameObject.GetInstanceID());
         }
 
         private void Clean()
         {
             // Fluent API Alignment: Leverage native string token extensions for coroutine evictions
             ItemPhysicsTag.KillCoroutine();
-            _playerLastAttackAudioTime.Clear();
         }
         #endregion
 
@@ -76,16 +72,10 @@ namespace SCP_575.Handlers
                 if (ev.Player?.GameObject is null) return;
                 int instanceId = ev.Player.GameObject.GetInstanceID();
 
-                // Architectural Optimization: 'out' parameter initialization implicitly defaults to DateTime.MinValue
-                // if lookup fails, eliminating redundant conditional verification branches completely.
-                _playerLastAttackAudioTime.TryGetValue(instanceId, out DateTime lastTime);
-
                 TimeSpan audioCooldownWindow = TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds);
 
-                _plugin.DamageSystem.ProcessAnomalousTrauma(ev.Player, ref lastTime, audioCooldownWindow);
-                _playerLastAttackAudioTime[instanceId] = lastTime;
-
-                _plugin.AudioDirector?.SuppressPsychologicalAudio(ev.Player, 3.5f);
+                _plugin.DamageSystem.ProcessAnomalousTrauma(ev.Player);
+                _plugin.AudioDirector?.SuppressPsychologicalAudio(ev.Player, 3.35f);
             }
             else if (isPhysicalScpAttack)
             {

@@ -26,6 +26,7 @@ namespace SCP_575.Shared.Audio
 
         private readonly Dictionary<AudioKey, DateTime> _audioCooldowns = new();
         private readonly Dictionary<int, PlayerTensionProfile> _tensionCache = new();
+        private readonly Dictionary<int, DateTime> _playerLastAttackAudioTime = new();
         private readonly Dictionary<int, DateTime> _acousticSuppressionCache = new();
         private readonly Dictionary<int, DateTime> _lastCombatAudioTime = new();
         private readonly Dictionary<int, DateTime> _transientInputNetworkGate = new();
@@ -167,13 +168,11 @@ namespace SCP_575.Shared.Audio
             // Fluent API Upgrade: Leveraged high-performance thread-isolated SafeRandom loops over procedural checks
             if (SafeRandom.RollSuccess(40f))
             {
-                // 40% probability rate to hear an unstable, flickering fluorescent power grid buzz
-                _audioManager.PlayAttached(player, AudioKey.StaticBuzz, hearableForAll: false);
+                _audioManager.PlayAttached(player, AudioKey.WhispersSubtle, hearableForAll: false);
             }
             else if (SafeRandom.RollSuccess(20f))
             {
-                // 20% fallback chance to inject distant, low-volume ghostly whispers that don't harm sanity
-                _audioManager.PlayAttached(player, AudioKey.WhispersSubtle, hearableForAll: false);
+                _audioManager.PlayAttached(player, AudioKey.MonsterBreathLocal, hearableForAll: false);
             }
         }
         #endregion
@@ -346,6 +345,23 @@ namespace SCP_575.Shared.Audio
             }
         }
 
+        public void ProcessDamagedPlayerHitImpact(Player target)
+        {
+            int id = target.GameObject.GetInstanceID();
+
+            if (!_playerLastAttackAudioTime.TryGetValue(id, out var lastTime))
+                lastTime = DateTime.MinValue;
+
+            TimeSpan cooldown = TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds);
+
+            if (DateTime.UtcNow - lastTime >= cooldown)
+            {
+                _playerLastAttackAudioTime[id] = DateTime.UtcNow;
+                _plugin.AudioManager?.PlayAtPosition(AudioKey.AnomalousImpact, target.Position);
+            }
+        }
+
+
         public void ProcessExplosionImpact(Vector3 position, ScpProjectileImpactType.ProjectileImpactType impactType, bool isBlackoutActive = false)
         {
             AudioConfig config = _plugin.Audio;
@@ -464,7 +480,6 @@ namespace SCP_575.Shared.Audio
         private void PlayAggressiveAudio(Player player)
         {
             float rand = SafeRandom.Range(0f, 1f);
-            if (rand <= 0.15f) _audioManager.PlayAttached(player, AudioKey.AnomalousImpact, hearableForAll: false);
             if (rand <= 0.10f) _audioManager.PlayAttached(player, AudioKey.ShadowStrike, hearableForAll: false);
             if (rand <= 0.10f) _audioManager.PlayOrbitingAudio(player, AudioKey.ScreamStandard);
             if (rand <= 0.04f) _audioManager.PlayAttached(player, AudioKey.ShadowClicking, hearableForAll: false);
@@ -473,7 +488,6 @@ namespace SCP_575.Shared.Audio
         private void PlayDefensiveAudio(Player player)
         {
             float rand = SafeRandom.Range(0f, 1f);
-            if (rand <= 0.10f) _audioManager.PlayAttached(player, AudioKey.AnomalousImpact, hearableForAll: false);
             if (rand <= 0.05f) _audioManager.PlayAttached(player, AudioKey.ShadowStrike, hearableForAll: false);
             if (rand <= 0.10f) _audioManager.PlayOrbitingAudio(player, AudioKey.WhispersSubtle);
             if (rand <= 0.07f) _audioManager.PlayAttached(player, AudioKey.ShadowClicking, hearableForAll: false);
@@ -489,6 +503,7 @@ namespace SCP_575.Shared.Audio
                 _acousticSuppressionCache.Remove(instanceId);
                 _lastCombatAudioTime.Remove(instanceId);
                 _transientInputNetworkGate.Remove(instanceId);
+                _playerLastAttackAudioTime.Remove(instanceId);
 
                 if (_activePanicDroneSessions.TryGetValue(instanceId, out int panicId))
                 {
@@ -519,6 +534,7 @@ namespace SCP_575.Shared.Audio
                 _tensionCache.Clear();
                 _acousticSuppressionCache.Clear();
                 _transientInputNetworkGate.Clear();
+                _playerLastAttackAudioTime.Clear();
 
                 foreach (int sessionId in _activePanicDroneSessions.Values) _audioManager.StopSession(sessionId);
                 _activePanicDroneSessions.Clear();

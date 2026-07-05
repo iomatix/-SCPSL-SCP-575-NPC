@@ -57,13 +57,16 @@ namespace SCP_575.Shared
             if (_plugin.SanityHandler is not null && _plugin.SanityHandler.IsProtectedByPainkillers(target)) return false;
 
             float processedDamage = DamageProcessor(target, damage, hitbox);
+            if (processedDamage <= 0f) return false;
+
+            _plugin.AudioDirector?.ProcessDamagedPlayerHitImpact(target);
             return target.Damage(processedDamage, DeathScreenText);
         }
 
         /// <summary>
         /// Inflicts non-lethal psychological trauma, reducing sanity metrics and applying rate-limited sound effects.
         /// </summary>
-        public void ProcessAnomalousTrauma(Player player, ref DateTime lastAttackAudioTime, TimeSpan cooldown)
+        public void ProcessAnomalousTrauma(Player player)
         {
             if (player is null || _plugin.SanityHandler is null) return;
             if (_plugin.SanityHandler.IsProtectedByPainkillers(player)) return;
@@ -76,13 +79,6 @@ namespace SCP_575.Shared
             }
 
             _plugin.SanityHandler.ApplyStageEffects(player, bypassBlackoutGate: true, forceIgnoreCooldown: true);
-
-            // Audio Cooldown verification handled dynamically straight from reference variables
-            if (DateTime.UtcNow - lastAttackAudioTime >= cooldown)
-            {
-                lastAttackAudioTime = DateTime.UtcNow;
-                _plugin.AudioManager?.PlayAtPosition(AudioKey.AnomalousImpact, player.Position);
-            }
         }
 
         /// <summary>

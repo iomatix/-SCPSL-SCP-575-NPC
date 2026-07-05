@@ -69,7 +69,7 @@ namespace SCP_575.ConfigObjects
         public float EffectsBurstCooldown { get; set; } = 4.25f;
 
         [Description("Cooldown gate in seconds separating independent spatial audio ambient hit tracks tracking on the same player.")]
-        public float AttackAudioCooldownSeconds { get; set; } = 1.25f;
+        public float AttackAudioCooldownSeconds { get; set; } = 2.75f;
 
         [Description("The orchestrated progression matrix mapping exact sanity thresholds directly onto specific status profile blocks.")]
         public List<PlayerSanityStageConfig> SanityStages { get; set; } = CreateDefaultStagesFactory();
