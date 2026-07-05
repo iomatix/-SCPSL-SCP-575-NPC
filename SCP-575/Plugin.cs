@@ -165,7 +165,7 @@ namespace SCP_575
                         );
                     });
 
-                Logger.Info(nameof(Plugin), "SCP-575 master architecture successfully generated and verified online via Fluent Builder.");
+                Logger.Info(nameof(Plugin), $"{Name} v{Version} - master architecture successfully generated and verified online via Fluent Builder.");
             }
             catch (Exception ex)
             {
