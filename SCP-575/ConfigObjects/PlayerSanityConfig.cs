@@ -140,7 +140,7 @@ namespace SCP_575.ConfigObjects
             // Order ascending using clean collection sorting predicates
             SanityStages.Sort((a, b) => a.MinThreshold.CompareTo(b.MinThreshold));
 
-            bool flowMatrixFaultDetected = SanityStages[0].MinThreshold > 0f || SanityStages[^1].MaxThreshold < 100f;
+            bool flowMatrixFaultDetected = SanityStages[0].MinThreshold > 0f || SanityStages[SanityStages.Count - 1].MaxThreshold < 100f;
 
             if (!flowMatrixFaultDetected)
             {

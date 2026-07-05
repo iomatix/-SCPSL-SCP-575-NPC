@@ -21,6 +21,7 @@ namespace SCP_575
         #region Private Subsystem Handlers
         private LifecycleHandler _lifecycleHandler;
         private GeneratorHandler _generatorHandler;
+        private ElevatorHandler _elevatorHandler;
         private ExplosionHandler _explosionHandler;
         private PlayerDamageHandler _damageHandler;
         private RagdollHandler _ragdollHandler;
@@ -44,8 +45,14 @@ namespace SCP_575
         /// </summary>
         public static Plugin Singleton { get; private set; }
 
-        public PlayerSanityHandler SanityEventHandler => _sanityHandler;
+        public PlayerSanityHandler SanityHandler => _sanityHandler;
         public PlayerLightsourceHandler LightsourceHandler => _lightsourceHandler;
+        public LifecycleHandler LifecycleHandler => _lifecycleHandler;
+        public GeneratorHandler GeneratorHandler => _generatorHandler;
+        public ElevatorHandler ElevatorHandler => _elevatorHandler;
+        public ExplosionHandler ExplosionHandler => _explosionHandler;
+        public PlayerDamageHandler DamageHandler => _damageHandler;
+        public RagdollHandler RagdollHandler => _ragdollHandler;
         public MapHandler MapHandler => _mapHandler;
 
         public bool IsEventActive
@@ -125,6 +132,7 @@ namespace SCP_575
                         // Step 1: Allocate operational logic processors maintaining concrete injection order
                         _damageSystem = new Scp575DamageSystem(this);
                         _audioManager = new Scp575AudioManager(this);
+                        _elevatorHandler = new ElevatorHandler(this);
                         _sanityHandler = new PlayerSanityHandler(this);
                         _audioDirector = new Scp575AudioDirector(this, _audioManager, _sanityHandler);
 
@@ -189,6 +197,7 @@ namespace SCP_575
 
             _lightsourceHandler = null;
             _sanityHandler = null;
+            _elevatorHandler = null;
             _ragdollHandler = null;
             _damageHandler = null;
             _explosionHandler = null;

@@ -1,101 +1,92 @@
-﻿namespace SCP_575.Handlers
-{
-    using LabApi.Events.Arguments.PlayerEvents;
-    using LabApi.Events.Arguments.ServerEvents;
-    using LabApi.Events.CustomHandlers;
-    using MEC;
-    using SCP_575.Shared;
-    using System;
-    using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Arguments.ServerEvents;
+using LabApi.Events.CustomHandlers;
+using LabApi.Extensions;
+using LabApi.Extensions.Misc;
+using MEC;
+using SCP_575.Shared;
 
+using Logger = LabApi.Extensions.Misc.iLogger;
+
+namespace SCP_575.Handlers
+{
     /// <summary>
-    /// Intercepts network physiological trauma updates, filtering anomalous signatures 
-    /// to manage acoustic headroom overrides and suppress low-priority psychological cues during combat.
+    /// Intercepts network physiological trauma updates, filtering anomalous signatures to manage acoustic headroom overrides.
     /// </summary>
     public class PlayerDamageHandler : CustomEventsHandler
     {
+        #region Fields & Registries
         private readonly Plugin _plugin;
-        private const string ItemPhysicsTag = CoroutineTags.ItemPhysics;
-
         private readonly Dictionary<int, DateTime> _playerLastAttackAudioTime = new();
+        private const string ItemPhysicsTag = CoroutineTags.ItemPhysics;
+        #endregion
 
+        #region Constructor
         public PlayerDamageHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         }
+        #endregion
 
         #region Lifecycle Management
-
         public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
         public override void OnServerWaitingForPlayers() => Clean();
 
-        /// <summary>
-        /// Evicts disconnected network identifiers to prevent cumulative reference accumulation on the heap.
-        /// </summary>
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
-            if (ev?.Player?.GameObject == null) return;
+            if (ev?.Player?.GameObject is null) return;
 
             _playerLastAttackAudioTime.Remove(ev.Player.GameObject.GetInstanceID());
         }
 
         private void Clean()
         {
-            Timing.KillCoroutines(ItemPhysicsTag);
+            // Fluent API Alignment: Leverage native string token extensions for coroutine evictions
+            ItemPhysicsTag.KillCoroutine();
             _playerLastAttackAudioTime.Clear();
         }
-
         #endregion
 
-        #region Event Handlers
-
-        /// <summary>
-        /// Intercepts lethal context vectors immediately before physiological teardown execution
-        /// to ensure critical post-mortem structural sound processing finishes deterministically.
-        /// </summary>
+        #region Event Overrides
         public override void OnPlayerDying(PlayerDyingEventArgs ev)
         {
-            if (!_plugin.IsEventActive || ev?.Player == null || ev.DamageHandler == null) return;
+            if (!_plugin.IsEventActive || ev is null) return;
 
             try
             {
+                if (ev.Player is null || ev.DamageHandler is null) return;
                 if (!_plugin.DamageSystem.IsScp575Damage(ev.DamageHandler)) return;
 
                 _plugin.DamageSystem.ProcessLethalStrike(ev.Player);
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("PlayerDamageHandler", $"Error while processing PlayerDying: {ex}");
+                Logger.Error(nameof(PlayerDamageHandler), $"Processing failure inside OnPlayerDying sequence: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Evaluates defensive parameters during incoming hits to prioritize high-energy impact reactions
-        /// over subtle psychological paranoia loops. Supports both player-controlled SCPs and autonomous 575 strikes.
-        /// </summary>
         public override void OnPlayerHurting(PlayerHurtingEventArgs ev)
         {
-            if (!_plugin.IsEventActive || ev?.Player == null) return;
+            if (!_plugin.IsEventActive || ev is null) return;
 
-            bool isPhysicalScpAttack = ev.Attacker != null && ev.Attacker.IsSCP;
-            bool isCustom575Attack = ev.DamageHandler != null && _plugin.DamageSystem.IsScp575Damage(ev.DamageHandler);
+            bool isPhysicalScpAttack = ev.Attacker is not null && ev.Attacker.IsSCP;
+            bool isCustom575Attack = ev.DamageHandler is not null && _plugin.DamageSystem.IsScp575Damage(ev.DamageHandler);
 
             if (isCustom575Attack)
             {
+                if (ev.Player?.GameObject is null) return;
                 int instanceId = ev.Player.GameObject.GetInstanceID();
 
-                if (!_playerLastAttackAudioTime.TryGetValue(instanceId, out var lastTime))
-                {
-                    lastTime = DateTime.MinValue;
-                }
+                // Architectural Optimization: 'out' parameter initialization implicitly defaults to DateTime.MinValue
+                // if lookup fails, eliminating redundant conditional verification branches completely.
+                _playerLastAttackAudioTime.TryGetValue(instanceId, out DateTime lastTime);
 
-                DateTime tempTime = lastTime;
-
-                // Dynamically compile the TimeSpan tracking frame boundary straight from configuration allocations
                 TimeSpan audioCooldownWindow = TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds);
 
-                _plugin.DamageSystem.ProcessAnomalousTrauma(ev.Player, ref tempTime, audioCooldownWindow);
-                _playerLastAttackAudioTime[instanceId] = tempTime;
+                _plugin.DamageSystem.ProcessAnomalousTrauma(ev.Player, ref lastTime, audioCooldownWindow);
+                _playerLastAttackAudioTime[instanceId] = lastTime;
 
                 _plugin.AudioDirector?.SuppressPsychologicalAudio(ev.Player, 3.5f);
             }
@@ -104,12 +95,11 @@
                 float dropAmount = _plugin.Sanity.ScpHitSanityDrop;
                 if (dropAmount > 0f)
                 {
-                    // Directly slash sanity down without touching the client's visual rendering tracks
-                    _plugin.SanityEventHandler?.ChangeSanityValue(ev.Player, -dropAmount);
+                    // Unified Architecture Hook: Routing relative drop metrics straight to the zf-aligned Sanity Handler
+                    _plugin.SanityHandler?.ChangeSanityValue(ev.Player, -dropAmount);
                 }
             }
         }
-
         #endregion
     }
 }

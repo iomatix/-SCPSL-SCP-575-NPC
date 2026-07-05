@@ -1,26 +1,27 @@
+using InventorySystem.Items.Firearms.Attachments;
+using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Arguments.ServerEvents;
+using LabApi.Events.CustomHandlers;
+using LabApi.Extensions;
+using LabApi.Extensions.Misc;
+using LabApi.Features.Wrappers;
+using MEC;
+using SCP_575.ConfigObjects;
+using SCP_575.Shared;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Logger = LabApi.Extensions.Misc.iLogger;
+
 namespace SCP_575.Handlers
 {
-    using InventorySystem.Items.Firearms.Attachments;
-    using LabApi.Events.Arguments.PlayerEvents;
-    using LabApi.Events.Arguments.ServerEvents;
-    using LabApi.Events.CustomHandlers;
-    using LabApi.Features.Wrappers;
-    using MapGeneration;
-    using MEC;
-    using SCP_575.ConfigObjects;
-    using SCP_575.Shared;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-
     /// <summary>
-    /// Governs electrical degradation, interaction throttling, and structural suppression 
-    /// of mobile photon emitters deployed by human forces inside active threat zones.
+    /// Governs electrical degradation and structural suppression of mobile photon emitters deployed inside threat zones.
     /// </summary>
     public class PlayerLightsourceHandler : CustomEventsHandler, IDisposable
     {
+        #region Fields & Registries
         private readonly Plugin _plugin;
-        private readonly LibraryLabAPI _libraryLabAPI;
         private readonly PlayerLightsourceConfig _lightSourceConfig;
 
         private readonly Dictionary<int, DateTime> _cooldownUntil = new();
@@ -28,52 +29,61 @@ namespace SCP_575.Handlers
         private readonly Dictionary<int, DateTime> _lastWeaponClickTime = new();
         private readonly HashSet<int> _flickeringPlayers = new();
         private readonly HashSet<int> _pendingItemChanges = new();
-        private readonly Random _random = new();
 
         private bool _isDisposed;
+        private readonly object _lock = new();
 
         private const string LightCleanupTag = CoroutineTags.LightCleanup;
         private const string FlickerTagPrefix = CoroutineTags.FlickerPrefix;
         private const string ItemChangePrefix = CoroutineTags.ItemChangePrefix;
+        #endregion
 
+        #region Properties
+        private float CleanupInterval => _plugin.Config?.HandlerCleanupInterval ?? 160f;
+        private TimeSpan CooldownDuration => TimeSpan.FromSeconds(_lightSourceConfig.KeterLightsourceCooldown.LimitMin(1));
+        #endregion
+
+        #region Constructor
         public PlayerLightsourceHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
-            _libraryLabAPI = _plugin.LibraryLabAPI;
             _lightSourceConfig = _plugin.Lightsource ?? throw new InvalidOperationException("LightsourceConfig is not initialized.");
         }
+        #endregion
 
         #region Lifecycle Management
-
         public void Initialize()
         {
             if (_isDisposed) return;
 
-            Timing.KillCoroutines(LightCleanupTag);
+            LightCleanupTag.KillCoroutine();
             Timing.RunCoroutine(CleanupCoroutine(), LightCleanupTag);
 
-            LibraryLabAPI.LogInfo("PlayerLightsourceHandler", "Initialized lightsource handler.");
+            Logger.Info(nameof(PlayerLightsourceHandler), "Initialized lightsource tracking subsystem engine channels.");
         }
 
         public void Clean()
         {
-            Timing.KillCoroutines(LightCleanupTag);
+            LightCleanupTag.KillCoroutine();
 
-            foreach (var instanceId in _flickeringPlayers.ToList())
+            lock (_lock)
             {
-                Timing.KillCoroutines($"{FlickerTagPrefix}{instanceId}");
-            }
+                foreach (int instanceId in _flickeringPlayers.ToList())
+                {
+                    $"{FlickerTagPrefix}{instanceId}".KillCoroutine();
+                }
 
-            foreach (var instanceId in _pendingItemChanges.ToList())
-            {
-                Timing.KillCoroutines($"{ItemChangePrefix}{instanceId}");
-            }
+                foreach (int instanceId in _pendingItemChanges.ToList())
+                {
+                    $"{ItemChangePrefix}{instanceId}".KillCoroutine();
+                }
 
-            _cooldownUntil.Clear();
-            _flickeringPlayers.Clear();
-            _pendingItemChanges.Clear();
-            _lastCooldownAudioTime.Clear();
-            _lastWeaponClickTime.Clear();
+                _cooldownUntil.Clear();
+                _flickeringPlayers.Clear();
+                _pendingItemChanges.Clear();
+                _lastCooldownAudioTime.Clear();
+                _lastWeaponClickTime.Clear();
+            }
         }
 
         public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
@@ -84,79 +94,54 @@ namespace SCP_575.Handlers
             if (_isDisposed) return;
             Clean();
             _isDisposed = true;
-
-            LibraryLabAPI.LogInfo("PlayerLightsourceHandler", "Disposed lightsource handler.");
+            Logger.Info(nameof(PlayerLightsourceHandler), "Disposed lightsource tracking handler successfully.");
         }
-
         #endregion
 
-        #region Event Handlers
-
+        #region Event Overrides
         public override void OnPlayerChangedItem(PlayerChangedItemEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player)) return;
+            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null) return;
 
             int instanceId = ev.Player.GameObject.GetInstanceID();
+            $"{FlickerTagPrefix}{instanceId}".KillCoroutine();
 
-            Timing.KillCoroutines($"{FlickerTagPrefix}{instanceId}");
-            _flickeringPlayers.Remove(instanceId);
+            lock (_lock) _flickeringPlayers.Remove(instanceId);
 
-            Action stateModificationActions = null;
-            bool requiresIntervention = false;
-
-            if (ev.OldItem is LightItem oldLight && oldLight.IsEmitting)
-            {
-                requiresIntervention = true;
-                stateModificationActions += () => oldLight.IsEmitting = false;
-            }
-            else if (ev.OldItem is FirearmItem oldFirearm && HasFlashlight(oldFirearm) && oldFirearm.FlashlightEnabled)
-            {
-                requiresIntervention = true;
-                stateModificationActions += () => oldFirearm.FlashlightEnabled = false;
-            }
-
-            if (ev.NewItem is LightItem newLight && newLight.IsEmitting)
-            {
-                requiresIntervention = true;
-                stateModificationActions += () => newLight.IsEmitting = false;
-            }
-            else if (ev.NewItem is FirearmItem newFirearm && HasFlashlight(newFirearm) && newFirearm.FlashlightEnabled)
-            {
-                requiresIntervention = true;
-                stateModificationActions += () => newFirearm.FlashlightEnabled = false;
-            }
-
-            if (!requiresIntervention || stateModificationActions == null) return;
+            // Fluent API Upgrade: Checking current light emission state through unifed abstractions
+            if (!ev.Player.GetHeldLightSourceState()) return;
 
             string coroutineTag = $"{ItemChangePrefix}{instanceId}";
+            coroutineTag.KillCoroutine();
 
-            Timing.KillCoroutines(coroutineTag);
-            _pendingItemChanges.Add(instanceId);
+            lock (_lock) _pendingItemChanges.Add(instanceId);
 
-            var coroutine = Timing.CallDelayed(0.05f, () =>
+            CoroutineHandle coroutine = Timing.CallDelayed(0.05f, () =>
             {
                 try
                 {
-                    stateModificationActions.Invoke();
-                    LibraryLabAPI.LogDebug("OnPlayerChangedItem", $"Enforced dark-state on inventory swap for {ev.Player.Nickname}.");
+                    // Fluent API Upgrade: Unfied dark state enforcement regardless of item tracks
+                    ev.Player.SetHeldLightSourceState(false);
+                    Logger.Debug(nameof(PlayerLightsourceHandler), $"Enforced dark-state on inventory swap for {ev.Player.Nickname}.", _plugin.Debug);
                 }
                 finally
                 {
-                    _pendingItemChanges.Remove(instanceId);
+                    lock (_lock) _pendingItemChanges.Remove(instanceId);
                 }
             });
             coroutine.Tag = coroutineTag;
         }
+
         public override void OnPlayerTogglingFlashlight(PlayerTogglingFlashlightEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || !IsBlackout() || ev.Player.CurrentItem is not LightItem) return;
+            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || !_plugin.NpcNestingObj.Logic.IsBlackoutActive || ev.Player.CurrentItem is not LightItem) return;
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Hints.LightEmitterCooldownHint);
         }
 
         public override void OnPlayerTogglingWeaponFlashlight(PlayerTogglingWeaponFlashlightEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev?.FirearmItem == null || !IsBlackout() || !HasFlashlight(ev.FirearmItem))
+            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || ev.FirearmItem is null || !_plugin.NpcNestingObj.Logic.IsBlackoutActive || !ev.FirearmItem.HasAttachment(AttachmentName.Flashlight))
                 return;
 
             (ev.IsAllowed, ev.NewState) = HandleLightToggling(ev.Player, ev.IsAllowed, ev.NewState, _plugin.Hints.LightEmitterCooldownHint);
@@ -164,121 +149,85 @@ namespace SCP_575.Handlers
 
         public override void OnPlayerToggledFlashlight(PlayerToggledFlashlightEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
+            if (!_plugin.IsEventActive || ev?.Player?.GameObject is null || !ev.NewState || !ev.Player.IsInDarkRoom() || !_plugin.NpcNestingObj.Logic.IsBlackoutActive) return;
 
-            int instanceId = ev.Player.GameObject.GetInstanceID();
-            Timing.RunCoroutine(
-                FlickerCoroutine(instanceId, "Flashlight", () => ev.LightItem.IsEmitting, state => ev.LightItem.IsEmitting = state),
-                $"{FlickerTagPrefix}{instanceId}"
-            );
+            TriggerLightsourceFlickerPipeline(ev.Player);
         }
 
         public override void OnPlayerToggledWeaponFlashlight(PlayerToggledWeaponFlashlightEventArgs ev)
         {
-            if (ev?.Player?.GameObject == null || ev.FirearmItem == null || !HasFlashlight(ev.FirearmItem)) return;
+            if (ev?.Player?.GameObject is null || ev.FirearmItem is null || !ev.FirearmItem.HasAttachment(AttachmentName.Flashlight)) return;
 
-            DateTime now = DateTime.UtcNow;
             int instanceId = ev.Player.GameObject.GetInstanceID();
 
-            if (!_lastWeaponClickTime.TryGetValue(instanceId, out DateTime lastClick) || (now - lastClick).TotalMilliseconds >= 110)
+            if (_lastWeaponClickTime.TryAcquireLock(instanceId, TimeSpan.FromMilliseconds(110)))
             {
-                _lastWeaponClickTime[instanceId] = now;
                 _plugin.AudioDirector?.ProcessLightSwitchClick(ev.Player.Position);
             }
 
-            if (!_plugin.IsEventActive || !ev.NewState || !IsPlayerInDarkRoom(ev.Player) || !IsBlackout()) return;
+            if (!_plugin.IsEventActive || !ev.NewState || !ev.Player.IsInDarkRoom() || !_plugin.NpcNestingObj.Logic.IsBlackoutActive) return;
 
-            Timing.RunCoroutine(
-                FlickerCoroutine(instanceId, "WeaponFlashlight", () => ev.FirearmItem.FlashlightEnabled, state => ev.FirearmItem.FlashlightEnabled = state),
-                $"{FlickerTagPrefix}{instanceId}"
-            );
+            TriggerLightsourceFlickerPipeline(ev.Player);
         }
 
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
-            if (ev?.Player?.GameObject == null) return;
+            if (ev?.Player?.GameObject is null) return;
             int instanceId = ev.Player.GameObject.GetInstanceID();
 
-            _cooldownUntil.Remove(instanceId);
-            _flickeringPlayers.Remove(instanceId);
-            _pendingItemChanges.Remove(instanceId);
-            _lastCooldownAudioTime.Remove(instanceId);
-            _lastWeaponClickTime.Remove(instanceId);
+            lock (_lock)
+            {
+                _cooldownUntil.Remove(instanceId);
+                _flickeringPlayers.Remove(instanceId);
+                _pendingItemChanges.Remove(instanceId);
+                _lastCooldownAudioTime.Remove(instanceId);
+                _lastWeaponClickTime.Remove(instanceId);
+            }
         }
-
         #endregion
 
-        #region Public Methods
-
+        #region Public Interface API
         public void ApplyLightsourceEffects(Player target)
         {
-            if (!IsValidPlayer(target) || target?.GameObject == null) return;
+            if (target?.GameObject is null) return;
 
             ApplyCooldown(target);
-            int instanceId = target.GameObject.GetInstanceID();
-
-            switch (target.CurrentItem)
-            {
-                case LightItem lightItem:
-                    lightItem.IsEmitting = false;
-                    Timing.RunCoroutine(
-                        FlickerCoroutine(instanceId, "Flashlight", () => lightItem.IsEmitting, state => lightItem.IsEmitting = state, forceOff: true),
-                        $"{FlickerTagPrefix}{instanceId}"
-                    );
-                    break;
-                case FirearmItem firearm when HasFlashlight(firearm):
-                    firearm.FlashlightEnabled = false;
-                    Timing.RunCoroutine(
-                        FlickerCoroutine(instanceId, "WeaponFlashlight", () => firearm.FlashlightEnabled, state => firearm.FlashlightEnabled = state, forceOff: true),
-                        $"{FlickerTagPrefix}{instanceId}"
-                    );
-                    break;
-            }
+            TriggerLightsourceFlickerPipeline(target, forceOff: true);
         }
 
         public void ForceCooldown(Player player)
         {
-            if (!IsValidPlayer(player)) return;
+            if (player?.GameObject is null) return;
+
             ApplyCooldown(player);
-            if (_plugin.Hints.IsEnabledLightEmitterCooldownHint) player.SendHint(_plugin.Hints.LightEmitterCooldownHint, 1.75f);
+            if (_plugin.Hints.IsEnabledLightEmitterCooldownHint)
+                player.SendHint(_plugin.Hints.LightEmitterCooldownHint, 1.75f);
         }
 
         public void ClearCooldown(Player player = null)
         {
-            if (player == null) _cooldownUntil.Clear();
-            else if (player?.GameObject != null) _cooldownUntil.Remove(player.GameObject.GetInstanceID());
+            lock (_lock)
+            {
+                if (player is null) _cooldownUntil.Clear();
+                else if (player.GameObject is not null) _cooldownUntil.Remove(player.GameObject.GetInstanceID());
+            }
         }
-
         #endregion
 
-        #region Helper Methods
-
-        private bool IsValidPlayer(Player player) => player?.GameObject != null;
-        private bool IsBlackout() => _plugin.NpcNestingObj?.Methods?.IsBlackoutActive == true;
-
-        private bool IsPlayerInDarkRoom(Player player)
-        {
-            if (player.Room == null || player.Room.Name == RoomName.Pocket) return false;
-            return _libraryLabAPI.IsPlayerInDarkRoom(player);
-        }
-
-        private float CleanupInterval => _plugin.Config?.HandlerCleanupInterval ?? 160f;
-        private TimeSpan CooldownDuration => TimeSpan.FromSeconds(Math.Max(1, _lightSourceConfig.KeterLightsourceCooldown));
-
+        #region Internal Diagnostics & Orchestration
         private void ApplyCooldown(Player player)
         {
-            _cooldownUntil[player.GameObject.GetInstanceID()] = DateTime.UtcNow + CooldownDuration;
+            lock (_lock) _cooldownUntil[player.GameObject.GetInstanceID()] = DateTime.UtcNow + CooldownDuration;
         }
 
         private (bool IsAllowed, bool NewState) HandleLightToggling(Player player, bool isAllowed, bool newState, string message)
         {
-            if (!newState || !IsBlackout() || player?.GameObject == null) return (isAllowed, newState);
+            if (!newState || !_plugin.NpcNestingObj.Logic.IsBlackoutActive || player?.GameObject is null) return (isAllowed, newState);
 
             int instanceId = player.GameObject.GetInstanceID();
-
             if (_flickeringPlayers.Contains(instanceId)) return (false, false);
 
-            if (_cooldownUntil.TryGetValue(instanceId, out var until) && DateTime.UtcNow < until)
+            if (_cooldownUntil.IsCooldownActive(instanceId))
             {
                 if (_plugin.Hints.IsEnabledLightEmitterCooldownHint) player.SendHint(message, 1.0f);
                 PlayLightsourceErrorFeedback(player, instanceId);
@@ -288,79 +237,43 @@ namespace SCP_575.Handlers
             return (isAllowed, newState);
         }
 
-        private IEnumerator<float> FlickerCoroutine(int playerInstanceId, string lightType, Func<bool> getState, Action<bool> setState, bool forceOff = false)
+        /// <summary>
+        /// Unified pipeline launcher to execute flicker animations using extended core API abstractions cleanly.
+        /// </summary>
+        private void TriggerLightsourceFlickerPipeline(Player player, bool forceOff = false)
         {
-            if (!_flickeringPlayers.Add(playerInstanceId)) yield break;
+            int instanceId = player.GameObject.GetInstanceID();
 
-            try
+            lock (_lock)
             {
-                var player = Player.ReadyList.FirstOrDefault(p => p.GameObject != null && p.GameObject.GetInstanceID() == playerInstanceId);
-                if (player != null)
-                {
-                    _plugin.AudioDirector?.ProcessLightsourceFlicker(player);
-                    if (forceOff) PlayLightsourceErrorFeedback(player, playerInstanceId);
-                }
-
-                int flickerCount = Math.Max(2, _random.Next(_lightSourceConfig.MinFlickerCount, _lightSourceConfig.MaxFlickerCount));
-                int totalDurationMs = _random.Next(_lightSourceConfig.MinFlickerDurationMs, _lightSourceConfig.MaxFlickerDurationMs + 1);
-                float delayPerFlicker = (totalDurationMs / 1000f) / flickerCount;
-
-                var targetPlayer = Player.ReadyList.FirstOrDefault(p => p.GameObject != null && p.GameObject.GetInstanceID() == playerInstanceId);
-                if (targetPlayer == null) yield break;
-
-                for (int i = 0; i < flickerCount; i++)
-                {
-                    if (!_plugin.IsEventActive) break;
-                    if (!targetPlayer.IsReady || !targetPlayer.IsAlive) break;
-
-                    if (lightType == "WeaponFlashlight")
-                    {
-                        if (targetPlayer.CurrentItem is not FirearmItem f || !HasFlashlight(f)) break;
-                    }
-                    else if (lightType == "Flashlight")
-                    {
-                        if (targetPlayer.CurrentItem is not LightItem) break;
-                    }
-
-                    if (targetPlayer != null)
-                    {
-                        bool isLastIteration = (i == flickerCount - 1);
-                        if (!(isLastIteration && forceOff))
-                        {
-                            _plugin.AudioDirector?.ProcessLightsourceSparkFeedback(targetPlayer, isFinalBlow: false);
-                        }
-                    }
-
-                    setState(!getState());
-                    yield return Timing.WaitForSeconds(delayPerFlicker);
-                }
-
-                var finalPlayer = Player.ReadyList.FirstOrDefault(target => target.GameObject != null && target.GameObject.GetInstanceID() == playerInstanceId);
-                if (forceOff && _plugin.IsEventActive && finalPlayer != null)
-                {
-                    setState(false);
-                    _plugin.AudioDirector?.ProcessLightsourceSparkFeedback(finalPlayer, isFinalBlow: true);
-                }
+                if (!_flickeringPlayers.Add(instanceId)) return;
             }
-            finally
-            {
-                _flickeringPlayers.Remove(playerInstanceId);
-            }
+
+            // Calculation maps using SafeRandom primitives completely insulated from standard garbage collection allocations
+            int flickerCount = SafeRandom.Next(_lightSourceConfig.MinFlickerCount, _lightSourceConfig.MaxFlickerCount).LimitMin(2);
+            int totalDurationMs = SafeRandom.Next(_lightSourceConfig.MinFlickerDurationMs, _lightSourceConfig.MaxFlickerDurationMs + 1);
+            float delayPerFlicker = (totalDurationMs / 1000f) / flickerCount;
+
+            _plugin.AudioDirector?.ProcessLightsourceFlicker(player);
+            if (forceOff) PlayLightsourceErrorFeedback(player, instanceId);
+
+            // Fluent API Upgrade: Invoking the unified extension pipeline with a dynamic feedback delegate matrix
+            Timing.RunCoroutine(
+                player.FlickerHeldLightSourceCoroutine(flickerCount, delayPerFlicker, forceOff, (targetPlayer, isFinalBlow) =>
+                {
+                    _plugin.AudioDirector?.ProcessLightsourceSparkFeedback(targetPlayer, isFinalBlow);
+                }),
+                $"{FlickerTagPrefix}{instanceId}"
+            );
+
+            // Register completion tracking out-of-frame to drop instance gates seamlessly
+            Timing.CallDelayed(totalDurationMs / 1000f + 0.05f, () => { lock (_lock) _flickeringPlayers.Remove(instanceId); });
         }
 
-        private bool HasFlashlight(FirearmItem firearm)
-        {
-            if (firearm?.Base?.Attachments == null) return false;
-
-            // Queries native attachments via client network sync identity blocks rather than active visual transforms
-            return firearm.Base.Attachments.Any(a => a != null && a.Name == AttachmentName.Flashlight && a.IsEnabled);
-        }
         private void PlayLightsourceErrorFeedback(Player player, int instanceId)
         {
-            DateTime now = DateTime.UtcNow;
-            if (!_lastCooldownAudioTime.TryGetValue(instanceId, out DateTime lastPlayTime) || (now - lastPlayTime).TotalSeconds >= 1.5)
+            if (_lastCooldownAudioTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(1.5)))
             {
-                _lastCooldownAudioTime[instanceId] = now;
                 _plugin.AudioDirector?.ProcessLightsourceErrorFeedback(player);
             }
         }
@@ -373,19 +286,9 @@ namespace SCP_575.Handlers
 
                 if (_isDisposed || !_plugin.IsEventActive || _cooldownUntil.Count == 0) continue;
 
-                DateTime now = DateTime.UtcNow;
-                var keys = _cooldownUntil.Keys.ToList();
-
-                foreach (var instanceId in keys)
-                {
-                    if (_cooldownUntil.TryGetValue(instanceId, out var expireTime) && now >= expireTime)
-                    {
-                        _cooldownUntil.Remove(instanceId);
-                    }
-                }
+                lock (_lock) _cooldownUntil.PruneExpired(DateTime.UtcNow);
             }
         }
-
         #endregion
     }
 }

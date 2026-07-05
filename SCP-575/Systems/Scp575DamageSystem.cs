@@ -1,21 +1,28 @@
+using System;
+using System.Collections.Generic;
+using InventorySystem.Items.Armor;
+using LabApi.Features.Wrappers;
+using LabApi.Features.Enums;
+using LabApi.Extensions;
+using LabApi.Extensions.Misc;
+using MEC;
+using PlayerRoles;
+using PlayerRoles.PlayableScps.Scp3114;
+using PlayerRoles.Ragdolls;
+using PlayerStatsSystem;
+using SCP_575.Shared.Audio.Enums;
+using UnityEngine;
+
+using Logger = LabApi.Extensions.Misc.iLogger;
+
 namespace SCP_575.Shared
 {
-    using InventorySystem.Items.Armor;
-    using LabApi.Features.Wrappers;
-    using MEC;
-    using PlayerRoles;
-    using PlayerRoles.PlayableScps.Scp3114;
-    using PlayerRoles.Ragdolls;
-    using PlayerStatsSystem;
-    using SCP_575.Shared.Audio.Enums;
-    using System;
-    using System.Collections.Generic;
-    using UnityEngine;
-
+    /// <summary>
+    /// High-performance combat system orchestrating damage propagation, armor mitigation, and custom ragdoll kinematics.
+    /// </summary>
     public class Scp575DamageSystem
     {
-        #region Constants and Static Properties  
-
+        #region Constants & Registries
         public static string IdentifierName => nameof(Scp575DamageSystem);
 
         public static readonly IReadOnlyDictionary<HitboxType, float> HitboxDamageMultipliers = new Dictionary<HitboxType, float>
@@ -25,149 +32,135 @@ namespace SCP_575.Shared
             [HitboxType.Limb] = 0.75f
         };
 
+        private readonly Plugin _plugin;
+        private readonly NorthwoodLib.Pools.ListPool<Rigidbody> _rigidbodyPool = NorthwoodLib.Pools.ListPool<Rigidbody>.Shared;
         #endregion
 
-        #region Properties  
+        #region Properties
+        public float DamagePenetration => _plugin.Npc.KeterDamagePenetration;
+        public string DeathScreenText => _plugin.Hints.KilledByMessage;
+        public string RagdollInspectText => _plugin.Hints.RagdollInspectText;
+        #endregion
 
-        private readonly Plugin _plugin;
-
+        #region Constructor
         public Scp575DamageSystem(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         }
-
-        public float DamagePenetration => _plugin.Npc.KeterDamagePenetration;
-        public string DeathScreenText => _plugin.Hints.KilledByMessage;
-        public string RagdollInspectText => _plugin.Hints.RagdollInspectText;
-
         #endregion
 
-        #region Damage Processing 
-
+        #region Public Damage Channels
         /// <summary>
-        /// Inflicts processed damage onto a target player with custom death screen indicators.
+        /// Applies calculated structural damage to a target player with specialized death notifications.
         /// </summary>
-        public bool DamagePlayer(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox = HitboxType.Body)
+        public bool DamagePlayer(Player target, float damage, HitboxType hitbox = HitboxType.Body)
         {
-            if (target?.ReferenceHub == null) return false;
-            if (_plugin?.SanityEventHandler != null && _plugin.SanityEventHandler.IsProtectedByPainkillers(target)) return false;
-            if (damage < 0f) return false;
-
+            if (target?.ReferenceHub is null || damage < 0f) return false;
+            if (_plugin.SanityHandler is not null && _plugin.SanityHandler.IsProtectedByPainkillers(target)) return false;
 
             float processedDamage = DamageProcessor(target, damage, hitbox);
             return target.Damage(processedDamage, DeathScreenText);
         }
 
-        private float DamageProcessor(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
+        /// <summary>
+        /// Inflicts non-lethal psychological trauma, reducing sanity metrics and applying rate-limited sound effects.
+        /// </summary>
+        public void ProcessAnomalousTrauma(Player player, ref DateTime lastAttackAudioTime, TimeSpan cooldown)
+        {
+            if (player is null || _plugin.SanityHandler is null) return;
+            if (_plugin.SanityHandler.IsProtectedByPainkillers(player)) return;
+
+            float dropAmount = _plugin.Sanity.ScpHitSanityDrop;
+            if (dropAmount > 0f)
+            {
+                float newSanity = _plugin.SanityHandler.ChangeSanityValue(player, -dropAmount);
+                Logger.Debug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity reduced by {dropAmount}. Current: {newSanity}", _plugin.Debug);
+            }
+
+            _plugin.SanityHandler.ApplyStageEffects(player, bypassBlackoutGate: true, forceIgnoreCooldown: true);
+
+            // Audio Cooldown verification handled dynamically straight from reference variables
+            if (DateTime.UtcNow - lastAttackAudioTime >= cooldown)
+            {
+                lastAttackAudioTime = DateTime.UtcNow;
+                _plugin.AudioManager?.PlayAtPosition(AudioKey.AnomalousImpact, player.Position);
+            }
+        }
+
+        /// <summary>
+        /// Commits post-mortem execution tracking, executing inventory drop physics and global stingers.
+        /// </summary>
+        public void ProcessLethalStrike(Player player)
+        {
+            if (player is null) return;
+
+            Logger.Debug(IdentifierName, $"Lethal impact verified for {player.Nickname}. Dispatching kinetic pipeline sweeps.", _plugin.Debug);
+
+            _plugin.AudioManager?.PlayAtPosition(AudioKey.ShadowStrike, player.Position);
+            Timing.RunCoroutine(DropAndPushItems(player), CoroutineTags.ItemPhysics);
+        }
+        #endregion
+
+        #region Internal Processing Pipelines
+        private float DamageProcessor(Player target, float damage, HitboxType hitbox)
         {
             if (damage <= 0f) return damage;
 
             float processedDamage = damage;
-            if (HitboxDamageMultipliers.TryGetValue(hitbox, out var damageMul))
+            if (HitboxDamageMultipliers.TryGetValue(hitbox, out float damageMul))
             {
                 processedDamage *= damageMul;
             }
 
-            processedDamage = ProcessArmorInteraction(target, processedDamage, hitbox);
-            return processedDamage;
+            return ProcessArmorInteraction(target, processedDamage, hitbox);
         }
 
-        private float ProcessArmorInteraction(LabApi.Features.Wrappers.Player target, float damage, HitboxType hitbox)
+        private float ProcessArmorInteraction(Player target, float damage, HitboxType hitbox)
         {
-            if (damage <= 0f || target.ReferenceHub == null) return damage;
-
-            if (target.RoleBase is not IArmoredRole armoredRole)
-                return damage;
+            if (damage <= 0f || target.ReferenceHub is null) return damage;
+            if (target.RoleBase is not IArmoredRole armoredRole) return damage;
 
             int armorEfficacy = armoredRole.GetArmorEfficacy(hitbox);
-            int penetrationPercent = Mathf.RoundToInt(DamagePenetration * 100f);
+            int penetrationPercent = (DamagePenetration * 100f).Clamp(0f, 100f).RoundToInt();
 
-            // FIXED: Added safe null-check for HumeShieldStat module to prevent critical NREs on human roles.
-            float humeShield = 0f;
-            if (target.ReferenceHub.playerStats.TryGetModule<HumeShieldStat>(out var shieldStat))
-            {
-                humeShield = shieldStat.CurValue;
-            }
+            float humeShield = target.GetHumeShieldValue();
 
-            float shieldDamage = Mathf.Clamp(humeShield, 0f, damage);
-            float armorDamage = Mathf.Max(0f, damage - shieldDamage);
+            float shieldDamage = humeShield.Clamp(0f, damage);
+            float armorDamage = (damage - shieldDamage).LimitMin(0f);
             float postArmorDamage = BodyArmorUtils.ProcessDamage(armorEfficacy, armorDamage, penetrationPercent);
 
             return shieldDamage + postArmorDamage;
         }
-
-        /// <summary>
-        /// Processes non-lethal anomalous attacks by decreasing sanity and executing anti-spam soundscapes.
-        /// </summary>
-        public void ProcessAnomalousTrauma(LabApi.Features.Wrappers.Player player, ref DateTime lastAttackAudioTime, TimeSpan cooldown)
-        {
-            if (player == null || _plugin == null) return;
-            if (_plugin.SanityEventHandler != null && _plugin.SanityEventHandler.IsProtectedByPainkillers(player)) return;
-
-            // 1. Process Sanity Reduction & Consequences
-            float dropAmount = _plugin.Sanity.ScpHitSanityDrop;
-            if (dropAmount > 0f)
-            {
-                float newSanity = _plugin.SanityEventHandler.ChangeSanityValue(player, -dropAmount);
-                LibraryLabAPI.LogDebug(IdentifierName, $"Anomalous trauma inflicted on {player.Nickname}. Sanity slashed by {dropAmount}. New sanity: {newSanity}");
-            }
-            _plugin.SanityEventHandler.ApplyStageEffects(player, bypassBlackoutGate: true, forceIgnoreCooldown: true);
-
-            // 2. Play Mild/Lighter Hurt Audio Cues (With Rate Limiting)
-            if (DateTime.UtcNow - lastAttackAudioTime >= cooldown)
-            {
-                lastAttackAudioTime = DateTime.UtcNow;
-                _plugin.AudioManager.PlayAtPosition(AudioKey.AnomalousImpact, player.Position);
-            }
-        }
-
-        /// <summary>
-        /// Handles the definitive post-mortem execution logic, managing audio stingers and item scatters.
-        /// </summary>
-        public void ProcessLethalStrike(LabApi.Features.Wrappers.Player player)
-        {
-            if (player == null || _plugin == null) return;
-
-            LibraryLabAPI.LogDebug(IdentifierName, $"Death confirmed from {IdentifierName} for {player.Nickname}. Triggering item physics and lethal soundscape.");
-
-            // ShadowStrike is strictly reserved for lethal impact synchronization
-            _plugin.AudioManager.PlayAtPosition(AudioKey.ShadowStrike, player.Position);
-
-            // Offload item kinetic scatter calculations to an isolated coroutine to prevent main-thread choking
-            Timing.RunCoroutine(DropAndPushItems(player), CoroutineTags.ItemPhysics);
-        }
-
         #endregion
 
-        #region Ragdoll Processing  
-
-        private readonly NorthwoodLib.Pools.ListPool<Rigidbody> RigidbodyPool = NorthwoodLib.Pools.ListPool<Rigidbody>.Shared;
-
+        #region Ragdoll Physics & Conversions
+        /// <summary>
+        /// Processes skeletal physics propulsion and schedules post-mortem model replacements.
+        /// </summary>
         public void RagdollProcessor(Player player, Ragdoll ragdoll)
         {
-            if (ragdoll == null || player == null || !player.IsReady) return;
+            if (ragdoll is null || player is null || !player.IsReady) return;
 
             try
             {
                 Timing.RunCoroutine(ProcessRagdollPhysics(ragdoll, player, player.Role), CoroutineTags.RagdollPhysics);
-
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError(nameof(RagdollProcessor), $"Critical ragdoll error: {ex.Message}");
+                Logger.Error(nameof(RagdollProcessor), $"Critical ragdoll simulation pipeline failure: {ex.Message}");
             }
         }
 
         private IEnumerator<float> ProcessRagdollPhysics(Ragdoll ragdoll, Player player, RoleTypeId oldRole)
         {
-            if (ragdoll?.Base?.gameObject == null) yield break;
+            if (ragdoll?.Base?.gameObject is null) yield break;
 
             yield return Timing.WaitForSeconds(0.11f);
 
             Rigidbody[] ragdollRigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
-            if (ragdollRigidbodies == null || ragdollRigidbodies.Length == 0) yield break;
+            if (ragdollRigidbodies is null || ragdollRigidbodies.Length == 0) yield break;
 
-            List<Rigidbody> rigidbodies = RigidbodyPool.Rent();
+            List<Rigidbody> rigidbodies = _rigidbodyPool.Rent();
             try
             {
                 rigidbodies.AddRange(ragdollRigidbodies);
@@ -177,27 +170,27 @@ namespace SCP_575.Shared
             }
             finally
             {
-                RigidbodyPool.Return(rigidbodies);
+                _rigidbodyPool.Return(rigidbodies);
             }
 
             yield return Timing.WaitForSeconds(0.175f);
 
-            if (player != null && player.IsReady)
+            if (player is not null && player.IsReady)
             {
-                Ragdoll newRagdoll = ReplaceRagdoll(player, ragdoll, oldRole);
+                ReplaceRagdoll(player, ragdoll, oldRole);
             }
         }
 
         private Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll, RoleTypeId oldRole)
         {
-            if (player == null || originalRagdoll?.Base == null) return null;
+            if (player is null || originalRagdoll?.Base is null) return null;
 
             try
             {
                 Vector3 spawnPosition = originalRagdoll.Position;
                 Quaternion spawnRotation = originalRagdoll.Rotation;
 
-                var customHandler = new CustomReasonDamageHandler(RagdollInspectText, 0.0f, "");
+                CustomReasonDamageHandler customHandler = new(RagdollInspectText, 0.0f, "");
 
                 Ragdoll newRagdoll = Ragdoll.SpawnRagdoll(
                     RoleTypeId.Scp3114,
@@ -206,12 +199,12 @@ namespace SCP_575.Shared
                     customHandler,
                     player.Nickname);
 
-                if (newRagdoll?.Base != null)
+                if (newRagdoll?.Base is not null)
                 {
-                    var basicRagdoll = newRagdoll.Base;
-                    var oldInfo = basicRagdoll.NetworkInfo;
+                    BasicRagdoll basicRagdoll = newRagdoll.Base;
+                    RagdollData oldInfo = basicRagdoll.NetworkInfo;
 
-                    var newInfo = new PlayerRoles.Ragdolls.RagdollData(
+                    RagdollData newInfo = new(
                         oldInfo.OwnerHub,
                         oldInfo.Handler,
                         oldRole,
@@ -231,65 +224,57 @@ namespace SCP_575.Shared
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError(nameof(ReplaceRagdoll), $"Failed to replace ragdoll: {ex.Message}");
+                Logger.Error(nameof(ReplaceRagdoll), $"Skeletal entity identity override structure collapsed: {ex.Message}");
                 return null;
             }
         }
 
         private void ApplyStandardRagdollPhysics(List<Rigidbody> rigidbodies, Vector3 upwardForce, float randomForceMagnitude)
         {
-            if (rigidbodies == null || rigidbodies.Count == 0) return;
+            if (rigidbodies is null || rigidbodies.Count == 0) return;
+
+            float torqueModifier = _plugin.Npc.KeterDamageVelocityModifier;
 
             foreach (Rigidbody rb in rigidbodies)
             {
-                if (rb == null) continue;
+                if (rb is null) continue;
                 rb.isKinematic = false;
 
                 Vector3 uniqueRandomForce = GetRandomUnitSphereVelocity(randomForceMagnitude);
-
-                float randomUpweight = UnityEngine.Random.Range(0.8f, 1.3f);
-                Vector3 randomizedUpward = upwardForce * randomUpweight;
-
-                Vector3 combinedForce = randomizedUpward + uniqueRandomForce;
+                float randomUpweight = SafeRandom.Range(0.8f, 1.3f);
+                Vector3 combinedForce = (upwardForce * randomUpweight) + uniqueRandomForce;
 
                 rb.AddForce(combinedForce, ForceMode.Impulse);
-
-                float torqueModifier = _plugin.Npc.KeterDamageVelocityModifier;
                 rb.AddTorque(UnityEngine.Random.insideUnitSphere * torqueModifier, ForceMode.Impulse);
             }
         }
 
         private void ConvertToBones(Ragdoll ragdoll)
         {
-            if (ragdoll?.Base == null) return;
+            if (ragdoll?.Base is null) return;
 
             try
             {
-                if (IsDynamicRagdoll(ragdoll) && ragdoll.Base.TryGetComponent<DynamicRagdoll>(out var dr))
+                if (IsDynamicRagdoll(ragdoll) && ragdoll.Base.TryGetComponent(out DynamicRagdoll dr))
                 {
                     Scp3114RagdollToBonesConverter.ConvertExisting(dr);
                 }
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("ConvertToBones", $"Failed to convert ragdoll to bones: {ex.Message}");
+                Logger.Error(nameof(ConvertToBones), $"Skeletal destruction script conversion exception: {ex.Message}");
             }
         }
-
         #endregion
 
-        #region Utility Methods  
-
-        private bool IsDynamicRagdoll(Ragdoll ragdoll)
-        {
-            return ragdoll?.Base?.TryGetComponent<DynamicRagdoll>(out _) == true;
-        }
-
+        #region Kinetic Drops & Utilities
+        /// <summary>
+        /// Drops all inventory assets from the target player, applying batch vector forces.
+        /// </summary>
         public IEnumerator<float> DropAndPushItems(Player player)
         {
-            if (player == null || !player.IsReady || player.IsHost) yield break;
+            if (player is null || !player.IsReady || player.IsHost) yield break;
 
-            const int maxWaitFrames = 6;
             int waitFrames = 0;
             List<Pickup> droppedPickups;
 
@@ -299,94 +284,47 @@ namespace SCP_575.Shared
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError(nameof(DropAndPushItems), $"Failed to drop items: {ex.Message}");
+                Logger.Error(nameof(DropAndPushItems), $"Inventory eviction routine execution failure: {ex.Message}");
                 yield break;
             }
 
-            if (droppedPickups == null || droppedPickups.Count == 0) yield break;
+            if (droppedPickups is null || droppedPickups.Count == 0) yield break;
 
-            while (player.Inventory.UserInventory.Items.Count > 0 && waitFrames++ < maxWaitFrames)
+            while (player.Inventory.UserInventory.Items.Count > 0 && waitFrames++ < 6)
             {
                 yield return Timing.WaitForOneFrame;
             }
 
             float configModifier = _plugin.Npc.KeterDamageVelocityModifier;
-
             float internalSharedModifier = 1.45f * Mathf.Log(configModifier) * CalculateForcePush(configModifier);
             float forcePushMagnitude = CalculateForcePush(1.35f);
-
             float finalLinearMagnitude = internalSharedModifier * forcePushMagnitude;
 
-            int pickupCount = droppedPickups.Count;
-
-            for (int i = 0; i < pickupCount; i++)
-            {
-                Pickup pickup = droppedPickups[i];
-
-                if (pickup == null || pickup.IsDestroyed || !pickup.IsSpawned) continue;
-
-                Rigidbody rb = pickup.Rigidbody;
-                if (rb == null) continue;
-
-                try
-                {
-                    rb.isKinematic = false;
-
-                    Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
-                    if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f)
-                    {
-                        randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
-                    }
-
-                    rb.linearVelocity = randomDirection * finalLinearMagnitude;
-                    rb.angularVelocity = UnityEngine.Random.insideUnitSphere * configModifier;
-                }
-                catch (Exception ex)
-                {
-                    LibraryLabAPI.LogError(nameof(DropAndPushItems), $"Failed to apply physics to item {pickup.Serial}: {ex.Message}");
-                }
-            }
+            droppedPickups.ApplyKineticBlast(finalLinearMagnitude, configModifier);
 
             yield return Timing.WaitForOneFrame;
         }
 
-        public bool IsScp575Damage(DamageHandlerBase handler)
-        {
-            return handler is CustomReasonDamageHandler customHandler &&
-                   customHandler.DeathScreenText == DeathScreenText;
-        }
+        public bool IsScp575Damage(DamageHandlerBase handler) =>
+            handler is CustomReasonDamageHandler customHandler && customHandler.DeathScreenText == DeathScreenText;
 
-        public bool IsScp575BodyRagdoll(DamageHandlerBase handler)
-        {
-            return handler is CustomReasonDamageHandler customHandler &&
-                   customHandler.RagdollInspectText == RagdollInspectText;
-        }
+        public bool IsScp575BodyRagdoll(DamageHandlerBase handler) =>
+            handler is CustomReasonDamageHandler customHandler && customHandler.RagdollInspectText == RagdollInspectText;
 
-        private float CalculateForcePush(float baseValue = 1.0f)
-        {
-            float randomFactor = UnityEngine.Random.Range(
-                _plugin.Npc.KeterForceMinModifier,
-                _plugin.Npc.KeterForceMaxModifier);
+        private bool IsDynamicRagdoll(Ragdoll ragdoll) =>
+            ragdoll?.Base?.TryGetComponent<DynamicRagdoll>(out _) == true;
 
-            return baseValue * randomFactor;
-        }
+        private float CalculateForcePush(float baseValue = 1.0f) =>
+            baseValue * SafeRandom.Range(_plugin.Npc.KeterForceMinModifier, _plugin.Npc.KeterForceMaxModifier);
 
         private Vector3 GetRandomUnitSphereVelocity(float baseVelocityValue = 1.0f)
         {
-            Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
-
-            if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f)
-            {
-                randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
-            }
-
             float modifier = baseVelocityValue *
-                           Mathf.Log(_plugin.Npc.KeterDamageVelocityModifier) *
-                           CalculateForcePush(_plugin.Npc.KeterDamageVelocityModifier);
+                             Mathf.Log(_plugin.Npc.KeterDamageVelocityModifier) *
+                             CalculateForcePush(_plugin.Npc.KeterDamageVelocityModifier);
 
-            return randomDirection * modifier;
+            return VectorExtensions.GetRandomUpwardSphereVelocity(modifier);
         }
-
         #endregion
     }
 }

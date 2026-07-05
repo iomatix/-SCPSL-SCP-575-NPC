@@ -1,89 +1,91 @@
-﻿namespace SCP_575.Handlers
-{
-    using LabApi.Events.Arguments.PlayerEvents;
-    using LabApi.Events.Arguments.ServerEvents;
-    using LabApi.Events.CustomHandlers;
-    using LabApi.Features.Wrappers;
-    using MEC;
-    using SCP_575.ConfigObjects;
-    using SCP_575.Shared;
-    using SCP_575.Types;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using UnityEngine;
+﻿using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Arguments.ServerEvents;
+using LabApi.Events.CustomHandlers;
+using LabApi.Extensions;
+using LabApi.Extensions.Misc;
+using LabApi.Features.Wrappers;
+using MEC;
+using SCP_575.ConfigObjects;
+using SCP_575.Shared;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.Handlers
+{
     /// <summary>
-    /// Manages the runtime neurological integrity models for human subjects. 
-    /// Tracks milestone decay curves, applies item restoration variances, and drives biological status updates 
-    /// while offloading all drama-bound audio responses to the central Audio Director.
+    /// Coordinates human subject neurological integrity, tracking decay vectors and applying status effect metrics via Fluent API channels.
     /// </summary>
     public class PlayerSanityHandler : CustomEventsHandler, IDisposable
     {
+        #region Fields & Registries
         public static string IdentifierName => nameof(Scp575DamageSystem);
 
         private readonly Plugin _plugin;
-        private readonly LibraryLabAPI _libraryLabAPI;
         private readonly PlayerSanityConfig _sanityConfig;
+        private readonly List<PlayerSanityStageConfig> _orderedStages;
 
         private readonly Dictionary<int, float> _sanityCache = new();
         private readonly Dictionary<int, DateTime> _lastHintTime = new();
         private readonly Dictionary<int, DateTime> _painkillerProtectionExpiry = new();
         private readonly Dictionary<int, DateTime> _painkillerSanityBoostExpiry = new();
         private readonly Dictionary<int, DateTime> _playerEffectsCooldownExpiry = new();
-        private readonly List<PlayerSanityStageConfig> _orderedStages;
 
         private readonly float _hintCooldown;
         private bool _isDisposed;
         private readonly object _cacheLock = new();
 
         private const string SanityCoroutineTag = CoroutineTags.SanityHandler;
+        #endregion
 
+        #region Properties
         /// <summary>
-        /// Exposes a read-only view of runtime psychological metrics for external integration tracking.
+        /// Gets a read-only view of runtime psychological metrics.
         /// </summary>
         public IReadOnlyDictionary<int, float> SanityCache => _sanityCache;
+        #endregion
 
+        #region Constructor
         public PlayerSanityHandler(Plugin plugin)
         {
-            _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin instance cannot be null.");
-            _libraryLabAPI = _plugin.LibraryLabAPI;
-            _sanityConfig = _plugin.Sanity ?? throw new InvalidOperationException("SanityConfig is not initialized.");
+            _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin), "Plugin context unavailable.");
+            _sanityConfig = _plugin.Sanity ?? throw new InvalidOperationException("Sanity configuration not bound.");
             _hintCooldown = _sanityConfig.DecayRateBase * 20f;
 
-            if (_sanityConfig.SanityStages == null || !_sanityConfig.SanityStages.Any())
-                throw new InvalidOperationException("SanityStages is null or empty.");
+            if (_sanityConfig.SanityStages is null || !_sanityConfig.SanityStages.Any())
+                throw new InvalidOperationException("Sanity tracking configuration stages cannot be empty.");
 
             var stages = _sanityConfig.SanityStages.OrderBy(s => s.MinThreshold).ToList();
 
             if (stages[0].MinThreshold > 0 || stages[stages.Count - 1].MaxThreshold < 100)
-                throw new InvalidOperationException("SanityStages do not cover the full range (0–100).");
+                throw new InvalidOperationException("Sanity processing boundaries must span complete spectrum parameters (0-100).");
 
             for (int i = 0; i < stages.Count - 1; i++)
             {
                 if (stages[i].MaxThreshold != stages[i + 1].MinThreshold)
-                    throw new InvalidOperationException("SanityStages have gaps or overlaps.");
+                    throw new InvalidOperationException("Sanity boundary metrics overlay gap detected.");
             }
 
-            // Descending sort optimizes linear scanning loops by assessing critical 
-            // breakdown states before lower-tier cognitive baselines.
             _orderedStages = stages.OrderByDescending(s => s.MaxThreshold).ToList();
-            LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Loaded {stages.Count} sanity stages.");
+            Logger.Debug(nameof(PlayerSanityHandler), $"Loaded {stages.Count} structural integrity steps successfully.", _plugin.Debug);
         }
+        #endregion
 
-        #region Lifecycle Management
-
+        #region Lifecycle
         public void Initialize()
         {
             if (_isDisposed) return;
-            var handle = Timing.RunCoroutine(HandleSanityDecay());
+
+            CoroutineHandle handle = Timing.RunCoroutine(HandleSanityDecay());
             handle.Tag = SanityCoroutineTag;
-            LibraryLabAPI.LogDebug("PlayerSanityHandler", "Sanity decay processing loop successfully started.");
+
+            Logger.Debug(nameof(PlayerSanityHandler), "Neurological monitoring thread loop engaged.", _plugin.Debug);
         }
 
         public void Clean()
         {
-            Timing.KillCoroutines(SanityCoroutineTag);
+            SanityCoroutineTag.KillCoroutine();
             lock (_cacheLock)
             {
                 _sanityCache.Clear();
@@ -99,33 +101,25 @@
             if (_isDisposed) return;
             Clean();
             _isDisposed = true;
-            LibraryLabAPI.LogInfo("PlayerSanityHandler", "Disposed PlayerSanityHandler and cleaned up resources.");
+            Logger.Info(nameof(PlayerSanityHandler), "Psychological tracking registry closed cleanly.");
         }
 
         public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
         public override void OnServerWaitingForPlayers() => Clean();
-
         #endregion
 
-        #region Event Handlers
-
+        #region Events Matrix
         public override void OnPlayerSpawned(PlayerSpawnedEventArgs ev) => ResetPlayerSanity(ev?.Player);
 
         public override void OnPlayerChangedRole(PlayerChangedRoleEventArgs ev)
         {
-            if (ev?.Player == null) return;
-
+            if (ev?.Player is null) return;
             ResetPlayerSanity(ev.Player);
-
-            if (!IsValidPlayer(ev.Player))
-            {
-
-            }
         }
 
         public override void OnPlayerLeft(PlayerLeftEventArgs ev)
         {
-            if (ev?.Player?.GameObject == null) return;
+            if (ev?.Player?.GameObject is null) return;
             int instanceId = ev.Player.GameObject.GetInstanceID();
 
             lock (_cacheLock)
@@ -137,44 +131,44 @@
                 _playerEffectsCooldownExpiry.Remove(instanceId);
             }
 
-            // Direct decoupled notification to the director
             _plugin.AudioDirector?.OnPlayerLeft(ev.Player);
         }
 
         public override void OnPlayerUsedItem(PlayerUsedItemEventArgs ev)
         {
-            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev.UsableItem?.Type == null) return;
+            if (!_plugin.IsEventActive || !IsValidPlayer(ev?.Player) || ev.UsableItem?.Type is null) return;
 
             float restoreAmount = GetItemRestoreAmount(ev.UsableItem.Type);
             if (restoreAmount <= 0f) return;
 
             int instanceId = ev.Player.GameObject.GetInstanceID();
 
-            if (ev.UsableItem.Type == ItemType.Painkillers)
+            if (ev.UsableItem.Type is ItemType.Painkillers)
             {
                 lock (_cacheLock)
                 {
-                    _painkillerProtectionExpiry[instanceId] = DateTime.UtcNow.AddSeconds(_sanityConfig.PainkillersProtectionDuration);
-                    _painkillerSanityBoostExpiry[instanceId] = DateTime.UtcNow.AddSeconds(_sanityConfig.PainkillersRegenDuration);
+                    // Fluent API Alignment: Leverage structural cooldown locks directly from unified extensions
+                    _painkillerProtectionExpiry.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_sanityConfig.PainkillersProtectionDuration));
+                    _painkillerSanityBoostExpiry.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_sanityConfig.PainkillersRegenDuration));
                 }
 
-                LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Painkillers consumed by {ev.Player.Nickname}. Protection registered for {_sanityConfig.PainkillersProtectionDuration}s, Sanity boost registered for {_sanityConfig.PainkillersRegenDuration}s.");
+                Logger.Debug(nameof(PlayerSanityHandler), $"Medical mitigation markers committed for {ev.Player.Nickname}.", _plugin.Debug);
             }
 
+            // FIXED: Naming layout fully unified under the requested ChangeSanityValue method
             float newSanity = ChangeSanityValue(ev.Player, restoreAmount);
+
             if (_plugin.Hints.IsEnabledSanityHint)
                 SendSanityHint(ev.Player, _plugin.Hints.SanityIncreasedMedicalHint, newSanity);
 
-            LibraryLabAPI.LogDebug("PlayerSanityHandler", $"Restored {restoreAmount} sanity to {ev.Player.Nickname}. New sanity: {newSanity}");
+            Logger.Debug(nameof(PlayerSanityHandler), $"Restored {restoreAmount} sanity to {ev.Player.Nickname}. Current boundary: {newSanity}", _plugin.Debug);
         }
-
         #endregion
 
-        #region Sanity Management
-
+        #region Anomaly Sanity Core Abstractions
         public float GetCurrentSanity(Player player)
         {
-            if (player?.GameObject == null) return _sanityConfig.InitialSanity;
+            if (player?.GameObject is null) return _sanityConfig.InitialSanity;
 
             int instanceId = player.GameObject.GetInstanceID();
             lock (_cacheLock)
@@ -198,10 +192,12 @@
 
         public float SetPlayerSanity(Player player, float sanity)
         {
-            if (player?.GameObject == null) return 0f;
+            if (player?.GameObject is null) return 0f;
 
             int instanceId = player.GameObject.GetInstanceID();
-            float clampedSanity = Mathf.Clamp(sanity, 0f, 100f);
+
+            // Fluent API Alignment: Replaced custom engine clamping with high-performance math extensions
+            float clampedSanity = sanity.Clamp(0f, 100f);
 
             lock (_cacheLock)
             {
@@ -210,7 +206,10 @@
             return clampedSanity;
         }
 
-        public float ChangePlayerSanityValue(Player player, float amount)
+        /// <summary>
+        /// Seamless atomic entry point to execute relative adjustments on a player's core mental capacity pool.
+        /// </summary>
+        public float ChangeSanityValue(Player player, float amount)
         {
             if (!IsValidPlayer(player)) return 0f;
 
@@ -235,102 +234,77 @@
         }
 
         /// <summary>
-        /// Translates cognitive decay milestones into tangible gameplay sensory impairments.
-        /// Enforces strict rate-limiting bounds across consecutive bursts to protect client rendering tracks.
+        /// Enforces status alterations and sensory impairments based on historical stage curves.
         /// </summary>
         public void ApplyStageEffects(Player player, bool bypassBlackoutGate = false, bool forceIgnoreCooldown = false)
         {
-            if (!IsValidPlayer(player)) return;
-            if (IsProtectedByPainkillers(player)) return;
+            if (!IsValidPlayer(player) || IsProtectedByPainkillers(player)) return;
 
             int playerInstanceId = player.GameObject.GetInstanceID();
-            DateTime currentTime = DateTime.UtcNow;
 
-            // Strict protection barrier against consecutive sensory burst spams (e.g., rapid screen blur overrides)
-            if (!forceIgnoreCooldown)
-            {
-                lock (_cacheLock)
-                {
-                    if (_playerEffectsCooldownExpiry.TryGetValue(playerInstanceId, out DateTime expiryTime))
-                    {
-                        if (currentTime < expiryTime)
-                        {
-                            return; // Shield active - block execution cleanly
-                        }
-                    }
-                }
-            }
+            // Fluent API Alignment: Enforced atomic rate-limiting checks via verified extension modules
+            if (!forceIgnoreCooldown && _playerEffectsCooldownExpiry.IsCooldownActive(playerInstanceId)) return;
 
-            if (!_plugin.NpcNestingObj.Logic.IsBlackoutActive && !bypassBlackoutGate)
-                return;
+            if (!_plugin.NpcNestingObj.Logic.IsBlackoutActive && !bypassBlackoutGate) return;
 
             var stage = GetCurrentSanityStage(player);
-            if (stage == null) return;
+            if (stage?.Effects is null) return;
 
-            // FLASHLIGHT PROTECTION GATE: Evaluates if holding a light source mitigates the panic effects
-            if (player.IsHumanWithoutLight() || stage.OverrideLightSourceSanityProtection)
+            // Fluent API Alignment: Replaced custom procedural flashlight checks with native extensions
+            if (!player.HasActiveLightSource() || stage.OverrideLightSourceSanityProtection)
             {
-                if (stage.Effects != null)
+                foreach (var effectConfig in stage.Effects)
                 {
-                    foreach (var effectConfig in stage.Effects)
+                    try
                     {
-                        try
-                        {
-                            ApplyEffect(player, effectConfig.EffectType, effectConfig.Intensity, effectConfig.Duration);
-                        }
-                        catch (Exception ex)
-                        {
-                            LibraryLabAPI.LogWarn("PlayerSanityHandler", $"Failed to apply effect {effectConfig.EffectType} to {player.Nickname}: {ex.Message}");
-                        }
+                        // Fluent API Upgrade: Eradicated the legacy 40-line switch block!
+                        // Dynamically maps configurations using the framework's semantic enum parsers flawlessly.
+                        FacilityEffectType targetEffect = effectConfig.EffectType.ToString().ParseOrDefault<FacilityEffectType>();
+                        player.EnableEffect(targetEffect, effectConfig.Intensity, effectConfig.Duration);
                     }
-
-                    // Impose the configuration-defined cooling window before another sensory explosion can be queued
-                    float burstCooldown = _sanityConfig.EffectsBurstCooldown;
-                    if (burstCooldown > 0f)
+                    catch (Exception ex)
                     {
-                        lock (_cacheLock)
-                        {
-                            _playerEffectsCooldownExpiry[playerInstanceId] = currentTime + TimeSpan.FromSeconds(burstCooldown);
-                        }
+                        Logger.Warn(nameof(PlayerSanityHandler), $"Sensory payload delivery rejected for {player.Nickname}: {ex.Message}");
+                    }
+                }
+
+                float burstCooldown = _sanityConfig.EffectsBurstCooldown;
+                if (burstCooldown > 0f)
+                {
+                    lock (_cacheLock)
+                    {
+                        _playerEffectsCooldownExpiry.TryAcquireLock(playerInstanceId, TimeSpan.FromSeconds(burstCooldown));
                     }
                 }
             }
         }
 
         /// <summary>
-        /// Inflicts mechanical and physiological damage to players vulnerable to active entity zones.
-        /// Hands operational audio cues off to the central AudioDirector subsystem.
+        /// Calculates cumulative structural damage curves and feeds parameters straight to the central AudioDirector.
         /// </summary>
         public void ApplyDamageToPlayer(Player player)
         {
-            if (!IsValidPlayer(player)) return;
-            if (IsProtectedByPainkillers(player)) return;
+            if (!IsValidPlayer(player) || IsProtectedByPainkillers(player)) return;
 
             var stage = GetCurrentSanityStage(player);
-            if (stage == null) return;
+            if (stage is null) return;
 
-            bool isVulnerable = Helpers.IsHumanWithoutLight(player) || stage.OverrideLightSourceSanityProtection;
+            bool isVulnerable = !player.HasActiveLightSource() || stage.OverrideLightSourceSanityProtection;
 
             float culmDamage = isVulnerable
-                ? stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks)
-                : stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.NpcNestingObj.Methods.GetCurrentBlackoutStacks);
+                ? stage.DamageOnStrike + (stage.AdditionalDamagePerStack * _plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks)
+                : stage.DamageOnStrikeWhenLightsourceActive + (stage.AdditionalDamagePerStackWhenLightsourceActive * _plugin.NpcNestingObj.Logic.GetCurrentBlackoutStacks);
 
             if (culmDamage <= 0) return;
 
-            // Redirects combat audio stinger execution parameters completely to the director component boundary
             _plugin.AudioDirector?.ProcessAnomalousCombatStinger(player, isVulnerable);
-
-            // Delegate execution straight to the damage core.
-            // This will naturally fire OnPlayerHurting, centralizing the sanity drop and effects processing.
             _plugin.DamageSystem.DamagePlayer(player, culmDamage);
         }
-
         #endregion
 
-        #region Sanity Processing Loop
-
+        #region Pacing System Loop
         /// <summary>
-        /// Central background loop managing active environmental context checks to apply sanity decay or regeneration.
+        /// Asynchronously tracks active environment nodes to update client mental integrity states.
         /// </summary>
         public IEnumerator<float> HandleSanityDecay()
         {
@@ -343,16 +317,13 @@
 
                 DateTime now = DateTime.UtcNow;
 
-                foreach (var player in Player.ReadyList)
+                // Foreach loops applied strictly across high-level abstract controller iterations
+                foreach (Player player in Player.ReadyList)
                 {
-                    if (!IsValidPlayer(player))
-                    {
-                        continue;
-                    }
+                    if (!IsValidPlayer(player)) continue;
 
-                    bool isInDarkness = _libraryLabAPI.IsPlayerInDarkRoom(player);
-
-                    if (isInDarkness)
+                    // Fluent API Alignment: Direct native extraction hooks mapping darkness topologies
+                    if (player.IsInDarkRoom())
                     {
                         ProcessDecayTick(player, now);
                     }
@@ -367,21 +338,17 @@
         private void ProcessDecayTick(Player player, DateTime now)
         {
             float decayRate = CalculateDecayRate(player);
-            float oldSanity = GetCurrentSanity(player);
             float newSanity = ChangeSanityValue(player, -decayRate);
 
-            bool requiresLowDrone = newSanity <= 35f;
-
-            // Passive ticks are strictly bound to configuration rate-limiting bounds
             ApplyStageEffects(player, bypassBlackoutGate: false, forceIgnoreCooldown: false);
 
             int instanceId = player.GameObject.GetInstanceID();
             if (_plugin.Hints.IsEnabledSanityHint)
             {
-                if (!_lastHintTime.TryGetValue(instanceId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
+                // Fluent API Alignment: Atomic locking evaluation replacing manual structural DateTime subtraction scripts
+                if (_lastHintTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_hintCooldown)))
                 {
                     SendSanityHint(player, _plugin.Hints.SanityDecreasedHint, newSanity);
-                    _lastHintTime[instanceId] = now;
                 }
             }
         }
@@ -389,7 +356,6 @@
         private void ProcessRegenTick(Player player, DateTime now)
         {
             float oldSanity = GetCurrentSanity(player);
-
             if (oldSanity >= 100f) return;
 
             float regenRate = _sanityConfig.PassiveRegenRate;
@@ -397,7 +363,7 @@
 
             lock (_cacheLock)
             {
-                if (_painkillerSanityBoostExpiry.TryGetValue(instanceId, out DateTime boostExpiry) && now < boostExpiry)
+                if (_painkillerSanityBoostExpiry.IsCooldownActive(instanceId))
                 {
                     regenRate += _sanityConfig.PainkillersExtraSanityRegen;
                 }
@@ -407,10 +373,9 @@
 
             if (_plugin.Hints.IsEnabledSanityHint)
             {
-                if (!_lastHintTime.TryGetValue(instanceId, out var lastTime) || (now - lastTime).TotalSeconds >= _hintCooldown)
+                if (_lastHintTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_hintCooldown)))
                 {
                     SendSanityHint(player, _plugin.Hints.SanityIncreasedHint, newSanity);
-                    _lastHintTime[instanceId] = now;
                 }
             }
         }
@@ -418,99 +383,49 @@
         private float CalculateDecayRate(Player player)
         {
             float decayRate = _sanityConfig.DecayRateBase;
-            if (_plugin.NpcNestingObj?.Methods?.IsBlackoutActive == true)
+
+            if (_plugin.NpcNestingObj.Logic.IsBlackoutActive)
                 decayRate *= _sanityConfig.DecayMultiplierBlackout;
-            if (Helpers.IsHumanWithoutLight(player))
+
+            if (!player.HasActiveLightSource())
                 decayRate *= _sanityConfig.DecayMultiplierDarkness;
+
             return decayRate;
         }
-
         #endregion
 
-        #region Helper Methods
-
+        #region Technical Infrastructure Hooks
         public bool IsValidPlayer(Player player)
         {
-            return player != null &&
+            // Fluent API Alignment: Fully migrated procedural validations to core player expansion filters
+            return player is not null &&
                    !string.IsNullOrEmpty(player.UserId) &&
-                   player.IsAlive &&
-                   player.IsHuman &&
-                   player.Room != null &&
-                   player.Room.Name != MapGeneration.RoomName.Pocket;
+                   player.IsLivingHuman() &&
+                   player.Room is not null &&
+                   !player.IsInRoom(MapGeneration.RoomName.Pocket);
         }
 
-        private float GetItemRestoreAmount(ItemType itemType)
+        private float GetItemRestoreAmount(ItemType itemType) => itemType switch
         {
-            return itemType switch
-            {
-                ItemType.SCP500 => UnityEngine.Random.Range(_sanityConfig.Scp500RestoreMin, _sanityConfig.Scp500RestoreMax),
-                ItemType.Painkillers => UnityEngine.Random.Range(_sanityConfig.PainkillersRestoreMin, _sanityConfig.PainkillersRestoreMax),
-                _ => 0f
-            };
-        }
+            ItemType.SCP500 => SafeRandom.Range(_sanityConfig.Scp500RestoreMin, _sanityConfig.Scp500RestoreMax),
+            ItemType.Painkillers => SafeRandom.Range(_sanityConfig.PainkillersRestoreMin, _sanityConfig.PainkillersRestoreMax),
+            _ => 0f
+        };
+
         public bool IsProtectedByPainkillers(Player player)
         {
-            if (player?.GameObject == null) return false;
-
-            int instanceId = player.GameObject.GetInstanceID();
+            if (player?.GameObject is null) return false;
             lock (_cacheLock)
             {
-                if (_painkillerProtectionExpiry.TryGetValue(instanceId, out DateTime expiryTime))
-                {
-                    return DateTime.UtcNow < expiryTime;
-                }
+                return _painkillerProtectionExpiry.IsCooldownActive(player.GameObject.GetInstanceID());
             }
-            return false;
         }
 
-        private void SendSanityHint(Player player, string hintMessage, float sanity)
+        private static void SendSanityHint(Player player, string hintMessage, float sanity)
         {
             string formatted = string.Format(hintMessage, sanity.ToString("F1"));
             player.SendHint(formatted, 5f);
         }
-
-        private static void ApplyEffect(Player player, SanityEffectType effectType, byte intensity, float duration)
-        {
-            switch (effectType)
-            {
-                case SanityEffectType.Blurred: player.EnableEffect<CustomPlayerEffects.Blurred>(intensity, duration); break;
-                case SanityEffectType.Blindness: player.EnableEffect<CustomPlayerEffects.Blindness>(intensity, duration); break;
-                case SanityEffectType.Flashed: player.EnableEffect<CustomPlayerEffects.Flashed>(intensity, duration); break;
-                case SanityEffectType.Deafened: player.EnableEffect<CustomPlayerEffects.Deafened>(intensity, duration); break;
-                case SanityEffectType.Slowness: player.EnableEffect<CustomPlayerEffects.Slowness>(intensity, duration); break;
-                case SanityEffectType.SilentWalk: player.EnableEffect<CustomPlayerEffects.SilentWalk>(intensity, duration); break;
-                case SanityEffectType.Exhausted: player.EnableEffect<CustomPlayerEffects.Exhausted>(intensity, duration); break;
-                case SanityEffectType.Disabled: player.EnableEffect<CustomPlayerEffects.Disabled>(intensity, duration); break;
-                case SanityEffectType.Bleeding: player.EnableEffect<CustomPlayerEffects.Bleeding>(intensity, duration); break;
-                case SanityEffectType.Poisoned: player.EnableEffect<CustomPlayerEffects.Poisoned>(intensity, duration); break;
-                case SanityEffectType.Burned: player.EnableEffect<CustomPlayerEffects.Burned>(intensity, duration); break;
-                case SanityEffectType.Corroding: player.EnableEffect<CustomPlayerEffects.Corroding>(intensity, duration); break;
-                case SanityEffectType.Concussed: player.EnableEffect<CustomPlayerEffects.Concussed>(intensity, duration); break;
-                case SanityEffectType.Traumatized: player.EnableEffect<CustomPlayerEffects.Traumatized>(intensity, duration); break;
-                case SanityEffectType.Invisible: player.EnableEffect<CustomPlayerEffects.Invisible>(intensity, duration); break;
-                case SanityEffectType.Scp207: player.EnableEffect<CustomPlayerEffects.Scp207>(intensity, duration); break;
-                case SanityEffectType.AntiScp207: player.EnableEffect<CustomPlayerEffects.AntiScp207>(intensity, duration); break;
-                case SanityEffectType.MovementBoost: player.EnableEffect<CustomPlayerEffects.MovementBoost>(intensity, duration); break;
-                case SanityEffectType.DamageReduction: player.EnableEffect<CustomPlayerEffects.DamageReduction>(intensity, duration); break;
-                case SanityEffectType.RainbowTaste: player.EnableEffect<CustomPlayerEffects.RainbowTaste>(intensity, duration); break;
-                case SanityEffectType.BodyshotReduction: player.EnableEffect<CustomPlayerEffects.BodyshotReduction>(intensity, duration); break;
-                case SanityEffectType.Scp1853: player.EnableEffect<CustomPlayerEffects.Scp1853>(intensity, duration); break;
-                case SanityEffectType.CardiacArrest: player.EnableEffect<CustomPlayerEffects.CardiacArrest>(intensity, duration); break;
-                case SanityEffectType.InsufficientLighting: player.EnableEffect<CustomPlayerEffects.InsufficientLighting>(intensity, duration); break;
-                case SanityEffectType.SoundtrackMute: player.EnableEffect<CustomPlayerEffects.SoundtrackMute>(intensity, duration); break;
-                case SanityEffectType.SpawnProtected: player.EnableEffect<CustomPlayerEffects.SpawnProtected>(intensity, duration); break;
-                case SanityEffectType.Ensnared: player.EnableEffect<CustomPlayerEffects.Ensnared>(intensity, duration); break;
-                case SanityEffectType.Ghostly: player.EnableEffect<CustomPlayerEffects.Ghostly>(intensity, duration); break;
-                case SanityEffectType.SeveredHands: player.EnableEffect<CustomPlayerEffects.SeveredHands>(intensity, duration); break;
-                case SanityEffectType.Stained: player.EnableEffect<CustomPlayerEffects.Stained>(intensity, duration); break;
-                case SanityEffectType.Vitality: player.EnableEffect<CustomPlayerEffects.Vitality>(intensity, duration); break;
-                case SanityEffectType.Asphyxiated: player.EnableEffect<CustomPlayerEffects.Asphyxiated>(intensity, duration); break;
-                case SanityEffectType.Decontaminating: player.EnableEffect<CustomPlayerEffects.Decontaminating>(intensity, duration); break;
-                case SanityEffectType.PocketCorroding: player.EnableEffect<CustomPlayerEffects.PocketCorroding>(intensity, duration); break;
-                default: throw new ArgumentException($"Unknown effect type: {effectType}");
-            }
-        }
-
         #endregion
     }
 }

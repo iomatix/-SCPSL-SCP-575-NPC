@@ -1,108 +1,92 @@
 ﻿namespace SCP_575.Types
 {
+    using LabApi.Features.Wrappers;
     using System;
+    using Logger = LabApi.Extensions.Misc.iLogger;
 
     /// <summary>
-    /// Provides helper methods for classifying projectile and explosion impacts on SCP-575.
+    /// Classifies environmental projectile and explosion impacts on SCP-575.
     /// </summary>
     public static class ScpProjectileImpactType
     {
         /// <summary>
-        /// Defines the impact type of a projectile or explosion on SCP-575.
+        /// Specifies the impact category of a weapon or anomaly effect on SCP-575.
         /// </summary>
         public enum ProjectileImpactType
         {
-            /// <summary>
-            /// The projectile or explosion is beneficial to SCP-575, calling blackout event (e.g., SCP-2176).
-            /// </summary>
+            /// <summary> Triggers or extends a blackout event layer. </summary>
             Helpful,
 
-            /// <summary>
-            /// The projectile or explosion is harmful to SCP-575 (e.g., grenades, flashbangs).
-            /// </summary>
+            /// <summary> Inflicts psychological trauma or structural retreat on the entity. </summary>
             Dangerous,
 
-            /// <summary>
-            /// The projectile or explosion has no significant effect on SCP-575.
-            /// </summary>
+            /// <summary> Evaluates with zero mechanical or visual footprint on the entity. </summary>
             Neutral,
 
-            /// <summary>
-            /// The projectile or explosion type is unknown or invalid.
-            /// </summary>
+            /// <summary> Unresolved or unvalidated impact context baseline. </summary>
             Unknown,
 
-            /// <summary>
-            /// The projectile or explosion type is disabled for this event.
-            /// </summary>
+            /// <summary> Explicitly suppressed to isolate logic and avoid duplicated processing. </summary>
             Disabled,
         }
 
         /// <summary>
-        /// Classifies the impact of an explosion on SCP-575 based on its type.
+        /// Classifies an ExplosionType based on its threat profile against SCP-575.
         /// </summary>
-        /// <param name="type">The type of explosion to classify.</param>
-        /// <returns>The <see cref="ProjectileImpactType"/> indicating the explosion's effect on SCP-575.</returns>
-        public static ProjectileImpactType ClassifyExplosionImpact(ExplosionType type)
+        /// <returns>The resolved threat impact classification tier.</returns>
+        public static ProjectileImpactType ClassifyExplosionImpact(ExplosionType? type, bool debug = false)
         {
             try
             {
-                if (type == null)
+                if (type is null)
                 {
-                    LibraryLabAPI.LogDebug("ScpProjectileImpactType.ClassifyExplosionImpact", "Explosion type is null. Returning Unknown.");
+                    Logger.Debug(nameof(ScpProjectileImpactType), "Explosion type is null. Returning Unknown.", debug);
                     return ProjectileImpactType.Unknown;
                 }
 
-                LibraryLabAPI.LogDebug("ScpProjectileImpactType.ClassifyExplosionImpact", $"Classifying explosion type: {type}");
+                Logger.Debug(nameof(ScpProjectileImpactType), $"Classifying explosion type: {type}", debug);
+
                 return type switch
                 {
-                    ExplosionType.Grenade => ProjectileImpactType.Dangerous,
-                    ExplosionType.SCP018 => ProjectileImpactType.Dangerous,
-                    ExplosionType.Jailbird => ProjectileImpactType.Dangerous,
-                    ExplosionType.Disruptor => ProjectileImpactType.Dangerous,
+                    ExplosionType.Grenade or ExplosionType.SCP018 or ExplosionType.Jailbird or ExplosionType.Disruptor => ProjectileImpactType.Dangerous,
                     _ => ProjectileImpactType.Neutral
                 };
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("ScpProjectileImpactType.ClassifyExplosionImpact", $"Failed to classify explosion impact for type {type}: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                Logger.Error(nameof(ScpProjectileImpactType), $"Explosion classification processing failure for type {type}: {ex.Message}");
                 return ProjectileImpactType.Unknown;
             }
         }
 
         /// <summary>
-        /// Classifies the impact of a projectile on SCP-575 based on its type.
+        /// Classifies a TimedGrenadeProjectile based on its underlying ItemType wrapper property.
         /// </summary>
-        /// <param name="projectile">The projectile to classify.</param>
-        /// <returns>The <see cref="ProjectileImpactType"/> indicating the projectile's effect on SCP-575.</returns>
-        public static ProjectileImpactType ClassifyProjectileImpact(LabApi.Features.Wrappers.TimedGrenadeProjectile projectile)
+        /// <returns>The resolved threat impact classification tier.</returns>
+        public static ProjectileImpactType ClassifyProjectileImpact(TimedGrenadeProjectile projectile, bool debug = false)
         {
             try
             {
-                if (projectile == null)
+                if (projectile is null)
                 {
-                    LibraryLabAPI.LogDebug("ScpProjectileImpactType.ClassifyProjectileImpact", "Projectile is null. Returning Unknown.");
+                    Logger.Debug(nameof(ScpProjectileImpactType), "Projectile is null. Returning Unknown.", debug);
                     return ProjectileImpactType.Unknown;
                 }
 
                 ItemType type = projectile.Type;
-                LibraryLabAPI.LogDebug("ScpProjectileImpactType.ClassifyProjectileImpact", $"Classifying projectile with ItemType: {type}");
+                Logger.Debug(nameof(ScpProjectileImpactType), $"Classifying projectile with ItemType: {type}", debug);
 
                 return type switch
                 {
                     ItemType.SCP2176 => ProjectileImpactType.Helpful,
                     ItemType.GrenadeFlash => ProjectileImpactType.Dangerous,
-                    // Disable to avoid duplication
-                    ItemType.GrenadeHE => ProjectileImpactType.Disabled,
-                    ItemType.ParticleDisruptor => ProjectileImpactType.Disabled,
-                    ItemType.Jailbird => ProjectileImpactType.Disabled,
-                    ItemType.SCP018 => ProjectileImpactType.Disabled,
+                    ItemType.GrenadeHE or ItemType.ParticleDisruptor or ItemType.Jailbird or ItemType.SCP018 => ProjectileImpactType.Disabled,
                     _ => ProjectileImpactType.Neutral
                 };
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("ScpProjectileImpactType.ClassifyProjectileImpact", $"Failed to classify projectile impact: {ex.Message}\nStackTrace: {ex.StackTrace}");
+                Logger.Error(nameof(ScpProjectileImpactType), $"Projectile classification processing failure: {ex.Message}");
                 return ProjectileImpactType.Unknown;
             }
         }

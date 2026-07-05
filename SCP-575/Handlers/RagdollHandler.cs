@@ -1,34 +1,38 @@
-﻿namespace SCP_575.Handlers
-{
-    using LabApi.Events.Arguments.PlayerEvents;
-    using LabApi.Events.CustomHandlers;
-    using System;
-    using UnityEngine;
+﻿using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.CustomHandlers;
+using System;
+using UnityEngine;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.Handlers
+{
     /// <summary>
-    /// Intercepts physical corpse serialization processes to evaluate damage source signatures,
-    /// routing macro graphic modifications and post-mortem presentation logic to specialized subsystems.
+    /// Intercepts physical corpse serialization processes to evaluate damage source signatures and drive post-mortem logic.
     /// </summary>
     public class RagdollHandler : CustomEventsHandler
     {
+        #region Fields
         private readonly Plugin _plugin;
+        #endregion
 
+        #region Constructor
         public RagdollHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         }
+        #endregion
 
+        #region Event Overrides
         /// <summary>
-        /// Evaluates active structural remains upon actor expiration, clearing physical remains 
-        /// if configured, or delegating localized traumatic audio cues to the central Audio Director.
+        /// Evaluates active structural remains upon actor expiration, clearing physical remains or handling sound consequences.
         /// </summary>
         public override void OnPlayerSpawnedRagdoll(PlayerSpawnedRagdollEventArgs ev)
         {
-            if (!_plugin.IsEventActive) return;
+            if (!_plugin.IsEventActive || ev is null) return;
 
             try
             {
-                if (ev?.Player == null || ev.Ragdoll == null || ev.DamageHandler == null)
+                if (ev.Player is null || ev.Ragdoll is null || ev.DamageHandler is null)
                     return;
 
                 if (!_plugin.DamageSystem.IsScp575Damage(ev.DamageHandler))
@@ -36,26 +40,27 @@
 
                 if (_plugin.Npc.DisableRagdolls)
                 {
-                    LibraryLabAPI.LogDebug("RagdollHandler", "DisableRagdolls enabled. Destroying ragdoll.");
+                    Logger.Debug(nameof(RagdollHandler), "DisableRagdolls enabled. Destroying ragdoll infrastructure instance.", _plugin.Debug);
                     ev.Ragdoll.Destroy();
                 }
                 else
                 {
-                    LibraryLabAPI.LogDebug("RagdollHandler", $"Processing anomalous post-mortem sequence for target: {ev.Player.Nickname}");
+                    Logger.Debug(nameof(RagdollHandler), $"Processing anomalous post-mortem sequence for target subject: {ev.Player.Nickname}", _plugin.Debug);
 
                     Vector3 position = ev.Ragdoll.Position;
 
                     // Forward absolute authority of the local acoustic field to the director subsystem
                     _plugin.AudioDirector?.ProcessRagdollConsumption(position);
 
-                    // Execute downstream physiological status tracking updates
+                    // Execute downstream status tracking mechanics
                     _plugin.DamageSystem.RagdollProcessor(ev.Player, ev.Ragdoll);
                 }
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("RagdollHandler", $"Failed to process ragdoll event: {ex}");
+                Logger.Error(nameof(RagdollHandler), $"Anomalous ragdoll post-mortem sequencing pipeline interruption: {ex.Message}");
             }
         }
+        #endregion
     }
 }

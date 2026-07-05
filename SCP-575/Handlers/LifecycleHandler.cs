@@ -1,80 +1,83 @@
-﻿namespace SCP_575.Handlers
-{
-    using LabApi.Events.Arguments.ServerEvents;
-    using LabApi.Events.CustomHandlers;
-    using MEC;
-    using System;
+﻿using LabApi.Events.Arguments.ServerEvents;
+using LabApi.Events.CustomHandlers;
+using LabApi.Extensions;
+using LabApi.Extensions.Misc;
+using SCP_575.Shared;
+using System;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.Handlers
+{
     /// <summary>
-    /// Coordinates the core state machines of the plugin across macro round boundaries,
-    /// establishing pristine lifecycle resets and managing initial systemic generation rolls.
+    /// Coordinates the core state machines of the plugin across macro round boundaries, establishing pristine lifecycle resets.
     /// </summary>
     public class LifecycleHandler : CustomEventsHandler
     {
+        #region Fields
         private readonly Plugin _plugin;
+        #endregion
 
+        #region Constructor
         public LifecycleHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
         }
+        #endregion
 
+        #region Event Overrides
         /// <summary>
-        /// Purges any active runtime behaviors and structures when the server reverts 
-        /// to a dormant state, ensuring no memory stagnation carries into the next session.
+        /// Purges active runtime behaviors when the server reverts to a dormant state.
         /// </summary>
         public override void OnServerWaitingForPlayers()
         {
-            _plugin.NpcNestingObj?.Methods?.Disable();
-            LibraryLabAPI.LogInfo("Lifecycle", "Round reset. SCP-575 ready for next session.");
+            _plugin.NpcNestingObj?.Logic.Disable();
+            Logger.Info(nameof(LifecycleHandler), "Round reset. SCP-575 ready for next session.");
         }
 
         /// <summary>
-        /// Computes initialization probabilities at the precise instant the gameplay loop activates,
-        /// introducing a safety temporal buffer before injecting seed variables into active subsystems.
+        /// Computes initialization probabilities introduces a safety temporal buffer before injecting seed variables.
         /// </summary>
         public override void OnServerRoundStarted()
         {
-            float roll = UnityEngine.Random.Range(0f, 100f);
+            // Fluent API Alignment: Leverage thread-isolated secure random generation loops cleanly
+            float roll = SafeRandom.Range(0f, 100f);
 
             // ===================================================================
             // DEBUG CONDITIONAL OVERRIDE
             // ===================================================================
 #if DEBUG
-            // Forcing the roll to -1f guarantees success in Methods.Init (since -1f is always <= EventChance, even if chance is 0%).
             roll = -1f;
 
-            LibraryLabAPI.LogInfo("Lifecycle", "========================================================================");
-            LibraryLabAPI.LogInfo("Lifecycle", "       [DEVELOPER ENVIRONMENT DETECTED - FORCING 100% SPAWN CHANCE]     ");
-            LibraryLabAPI.LogInfo("Lifecycle", "  SCP-575 event roll has been bypassed. Blackout loop will trigger automatically. ");
-            LibraryLabAPI.LogInfo("Lifecycle", "========================================================================");
+            Logger.Info(nameof(LifecycleHandler), "========================================================================");
+            Logger.Info(nameof(LifecycleHandler), "       [DEVELOPER ENVIRONMENT DETECTED - FORCING 100% SPAWN CHANCE]     ");
+            Logger.Info(nameof(LifecycleHandler), "  SCP-575 event roll has been bypassed. Blackout loop will trigger automatically. ");
+            Logger.Info(nameof(LifecycleHandler), "========================================================================");
 #endif
 
-            LibraryLabAPI.LogDebug("Lifecycle", $"Spawn roll calculated: {roll}%. Scheduling safe initialization buffer.");
+            Logger.Debug(nameof(LifecycleHandler), $"Spawn roll calculated: {roll}%. Scheduling safe initialization buffer.", _plugin.Debug);
 
-            // Introduced a 1-second delay execution layout to completely mitigate Frame-0 race conditions.
-            Timing.CallDelayed(1.0f, () =>
+            // Fluent API Alignment: Upgraded generic structural delays to conditional gate execution pipelines safely
+            TimingExtensions.CallDelayedIf(1.0f, () => !_plugin.IsEventActive && _plugin.NpcNestingObj.Logic is not null, () =>
             {
                 try
                 {
-                    if (_plugin.IsEventActive || _plugin.NpcNestingObj?.Methods == null) return;
-                    _plugin.NpcNestingObj.Methods.Init(roll);
+                    _plugin.NpcNestingObj.Logic.Init(roll);
                 }
                 catch (Exception ex)
                 {
-                    LibraryLabAPI.LogError("Lifecycle.RoundStarted", $"Asynchronous initialization buffer failed: {ex.Message}");
+                    Logger.Error("Lifecycle.RoundStarted", $"Asynchronous initialization buffer failed: {ex.Message}");
                 }
-            });
+            }, CoroutineTags.Temp);
         }
 
         /// <summary>
-        /// Forces absolute teardown of all environmental and tracking systems immediately upon 
-        /// round completion to prevent trailing asynchronous operations from affecting post-round states.
+        /// Forces absolute teardown of environmental and tracking systems immediately upon round completion.
         /// </summary>
-        /// <param name="ev">Telemetry data regarding the round finalization state.</param>
         public override void OnServerRoundEnded(RoundEndedEventArgs ev)
         {
-            _plugin.NpcNestingObj?.Methods?.Disable();
-            LibraryLabAPI.LogInfo("Lifecycle", "Round ended confirmed. SCP-575 systems safely disabled.");
+            _plugin.NpcNestingObj?.Logic.Disable();
+            Logger.Info(nameof(LifecycleHandler), "Round ended confirmed. SCP-575 systems safely disabled.");
         }
+        #endregion
     }
 }

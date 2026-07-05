@@ -1,71 +1,74 @@
-﻿namespace SCP_575.Handlers
-{
-    using LabApi.Events.Arguments.ServerEvents;
-    using LabApi.Events.CustomHandlers;
-    using MEC;
-    using SCP_575.Shared;
-    using System;
+﻿using LabApi.Events.Arguments.ServerEvents;
+using LabApi.Events.CustomHandlers;
+using LabApi.Extensions;
+using LabApi.Features.Wrappers;
+using SCP_575.Shared;
+using System;
+using UnityEngine;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.Handlers
+{
     /// <summary>
-    /// Orchestrates tactical facility infrastructure mutations and power state responses 
-    /// while offloading all emotional and defensive audio presentations to the central Audio Director.
+    /// Intercepts facility power generator activations, executing infrastructure overrides via Fluent API extensions.
     /// </summary>
     public class GeneratorHandler : CustomEventsHandler
     {
+        #region Fields
         private readonly Plugin _plugin;
-        private readonly LibraryLabAPI _lib;
-
         private const string GeneratorAudioTag = CoroutineTags.GeneratorAudio;
+        #endregion
 
+        #region Constructor
         public GeneratorHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
-            _lib = _plugin.LibraryLabAPI;
         }
-
-        #region Lifecycle Cleanup
-
-        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Timing.KillCoroutines(GeneratorAudioTag);
-        public override void OnServerWaitingForPlayers() => Timing.KillCoroutines(GeneratorAudioTag);
-
         #endregion
 
+        #region Lifecycle Cleanup
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => GeneratorAudioTag.KillCoroutine();
+        public override void OnServerWaitingForPlayers() => GeneratorAudioTag.KillCoroutine();
+        #endregion
+
+        #region Event Overrides
         public override void OnServerGeneratorActivated(GeneratorActivatedEventArgs ev)
         {
-            if (!_plugin.IsEventActive || ev?.Generator == null)
-                return;
+            if (!_plugin.IsEventActive || ev?.Generator is null) return;
 
-            var pos = ev.Generator.Position;
-            var room = _lib.GetRoomAtPosition(pos);
-            if (room == null) return;
+            Vector3 position = ev.Generator.Position;
 
-            LibraryLabAPI.LogInfo("GeneratorHandler", $"Power substation initialized inside zone room: {room.Name}");
+            // Fluent API Alignment: Resolving active room object seamlessly from raw vector coordinates
+            Room room = position.GetRoom();
+            if (room is null) return;
 
-            // Overrides local dark zones by establishing a persistent illumination safety baseline
-            _lib.EnableAndFlickerRoomAndNeighborLights(room, _plugin.Blackout.ElevatorLockdownProbability);
+            Logger.Info(nameof(GeneratorHandler), $"Power substation initialized inside room: {room.Name}");
 
-            bool allEngaged = _plugin.NpcNestingObj.Methods.AreAllGeneratorsEngaged();
+            // Fluent API Alignment: Restore standard operational power spectrum maps across room and neighbors
+            room.TurnOnRoomAndNeighborLights(0f);
+
+            bool allEngaged = _plugin.NpcNestingObj.Logic.AreAllGeneratorsEngaged();
             bool retaliationConfigured = _plugin.Blackout.GeneratorActivationRetaliation;
 
-            // Delegate all audio feedback loops and environmental sound cues to the director layer
-            _plugin.AudioDirector?.ProcessGeneratorActivation(pos, allEngaged, retaliationConfigured);
+            _plugin.AudioDirector?.ProcessGeneratorActivation(position, allEngaged, retaliationConfigured);
 
             if (allEngaged)
             {
-                _plugin.NpcNestingObj.Methods.ProcessFullGridRestorationTeardown();
+                _plugin.NpcNestingObj.Logic.ProcessFullGridRestorationTeardown();
                 return;
             }
 
             if (retaliationConfigured)
             {
-                _plugin.NpcNestingObj.Methods.StartTimedBlackoutBoost(
+                _plugin.NpcNestingObj.Logic.StartTimedBlackoutBoost(
                     _plugin.Blackout.DurationMin,
-                    "GeneratorHandler",
-                    $"Dormant SCP-575 awakened. Triggering emergency blackout in {room.Name}.",
+                    nameof(GeneratorHandler),
+                    $"Emergency blackout surge triggered in {room.Name} due to generator activation retaliation.",
                     null,
-                    () => _plugin.NpcNestingObj.Methods.ExecuteLocalizedRetaliationSurge(room)
+                    () => _plugin.NpcNestingObj.Logic.ExecuteLocalizedRetaliationSurge(room)
                 );
             }
         }
+        #endregion
     }
 }

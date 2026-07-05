@@ -1,73 +1,74 @@
-﻿namespace SCP_575.Handlers
-{
-    using LabApi.Events.Arguments.ServerEvents;
-    using LabApi.Events.CustomHandlers;
-    using LabApi.Features.Wrappers;
-    using MapGeneration;
-    using MEC;
-    using SCP_575.Shared;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using UnityEngine;
+﻿using LabApi.Events.Arguments.ServerEvents;
+using LabApi.Events.CustomHandlers;
+using LabApi.Extensions;
+using LabApi.Extensions.Misc;
+using LabApi.Features.Wrappers;
+using MapGeneration;
+using MEC;
+using SCP_575.Shared;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using Logger = LabApi.Extensions.Misc.iLogger;
 
+namespace SCP_575.Handlers
+{
     /// <summary>
-    /// Handles physical facility infrastructure layout transformations. Sets up resource grids 
-    /// and controls item injection algorithms post-generation while preserving network synchronization stability.
+    /// Handles physical facility infrastructure layout transformations and controls item injection algorithms.
     /// </summary>
     public class MapHandler : CustomEventsHandler
     {
+        #region Fields
         private readonly Plugin _plugin;
-        private readonly System.Random _random;
+        #endregion
 
+        #region Constructor
         public MapHandler(Plugin plugin)
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
-            _random = new System.Random();
         }
+        #endregion
 
         #region Lifecycle Management
-
-        /// <summary>
-        /// Instantly terminates trailing spatial item pipelines during macro round boundary transitions 
-        /// to safeguard the next round context against asynchronous heap pollution.
-        /// </summary>
         public override void OnServerRoundEnded(RoundEndedEventArgs ev) => Clean();
         public override void OnServerWaitingForPlayers() => Clean();
 
         private void Clean()
         {
-            Timing.KillCoroutines(CoroutineTags.MapCoroutines);
+            // Fluent API Alignment: Direct string extension utilization to evict trailing routines
+            CoroutineTags.MapCoroutines.KillCoroutine();
         }
-
         #endregion
 
+        #region Public Dispatchers
         /// <summary>
         /// Public entrypoint invoked exclusively by the central NPC Lifecycle Orchestrator.
         /// </summary>
         public void ExecuteFlashlightDistribution()
         {
-            if (_plugin.FlashlightSpawn == null || !_plugin.FlashlightSpawn.IsEnabled)
+            if (_plugin.FlashlightSpawn is null || !_plugin.FlashlightSpawn.IsEnabled)
                 return;
 
             Timing.RunCoroutine(SpawnFlashlightsPipeline(), CoroutineTags.MapCoroutines);
         }
+        #endregion
 
+        #region Distribution Engine
         /// <summary>
         /// Drives the item injection sequence across valid zone boundaries.
-        /// Evaluates spatial distribution limits dynamically after scene layout compilation settles.
         /// </summary>
         private IEnumerator<float> SpawnFlashlightsPipeline()
         {
-            // Introduces a strict temporal buffer allowing the native scene graph and network mirror transforms to initialize completely.
             yield return Timing.WaitForSeconds(2.5f);
 
             try
             {
-                var allRooms = _plugin.LibraryLabAPI?.Rooms;
-                if (allRooms == null || !allRooms.Any())
+                // Fluent API Alignment: Utilizing standard global Room collection registry directly
+                var allRooms = Room.List;
+                if (allRooms is null || !allRooms.Any())
                 {
-                    LibraryLabAPI.LogError("MapHandler", "Asynchronous abort: Room registry data is blank at T+2.5s.");
+                    Logger.Error(nameof(MapHandler), "Asynchronous abort: Room registry data is blank at T+2.5s.");
                     yield break;
                 }
 
@@ -75,91 +76,77 @@
 
                 foreach (Room room in allRooms)
                 {
-                    if (room == null || room.Name == RoomName.Pocket)
+                    if (room is null || room.Name is RoomName.Pocket)
                         continue;
 
                     float spawnChance = GetZoneSpawnChance(room.Zone);
                     if (spawnChance <= 0f)
                         continue;
 
-                    double roll = _random.NextDouble() * 100.0;
-                    if (roll > spawnChance)
+                    // Fluent API Upgrade: Seamless thread-safe probability roll success check directly from primitives
+                    if (!spawnChance.RollSuccess())
                         continue;
 
-                    // Elevating the injection vector anchors the item in safe spatial air coordinates,
-                    // preventing premature mesh tracking failures or immediate physics intersection with floor primitives.
                     Vector3 spawnPosition = room.Position + new Vector3(0f, 0.6f, 0f);
 
-                    var flashlightPickup = Pickup.Create(ItemType.Flashlight, spawnPosition, Quaternion.identity);
-                    if (flashlightPickup != null)
+                    Pickup flashlightPickup = Pickup.Create(ItemType.Flashlight, spawnPosition, Quaternion.identity);
+                    if (flashlightPickup is not null)
                     {
-                        // Physics tasks must run out-of-frame asynchronously to bypass native inventory serialization blocks.
                         Timing.RunCoroutine(ApplyDelayedPhysicsPush(flashlightPickup), CoroutineTags.MapCoroutines);
                         totalSpawned++;
 
-                        LibraryLabAPI.LogDebug("MapHandler", $"Injected flashlight into {room.Name} ({room.Zone}).");
+                        Logger.Debug(nameof(MapHandler), $"Injected flashlight into {room.Name} ({room.Zone}).", _plugin.Debug);
                     }
                 }
 
-                LibraryLabAPI.LogInfo("MapHandler", $"Orchestrated flashlight injection complete. Total spawned: {totalSpawned}");
+                Logger.Info(nameof(MapHandler), $"Orchestrated flashlight injection complete. Total spawned: {totalSpawned}");
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("MapHandler.Spawn", $"Pipeline collapsed: {ex}");
+                Logger.Error(nameof(MapHandler), $"Pipeline collapsed: {ex.Message}");
             }
         }
 
         private float GetZoneSpawnChance(FacilityZone zone)
         {
             var config = _plugin.FlashlightSpawn;
-            switch (zone)
+            return zone switch
             {
-                case FacilityZone.LightContainment: return config.ChanceLight;
-                case FacilityZone.HeavyContainment: return config.ChanceHeavy;
-                case FacilityZone.Entrance: return config.ChanceEntrance;
-                case FacilityZone.Surface: return config.ChanceSurface;
-                default: return config.ChanceOther;
-            }
+                FacilityZone.LightContainment => config.ChanceLight,
+                FacilityZone.HeavyContainment => config.ChanceHeavy,
+                FacilityZone.Entrance => config.ChanceEntrance,
+                FacilityZone.Surface => config.ChanceSurface,
+                _ => config.ChanceOther
+            };
         }
 
         /// <summary>
-        /// Forces a single-frame deferral over the rigid-body state machine.
-        /// This ensures the engine registers native transform weights before we apply localized kinetic forces.
+        /// Forces a single-frame deferral to ensure the engine registers native transform weights before force application.
         /// </summary>
         private IEnumerator<float> ApplyDelayedPhysicsPush(Pickup pickup)
         {
             yield return Timing.WaitForOneFrame;
 
-            if (pickup == null || pickup.IsDestroyed || !pickup.IsSpawned)
+            if (pickup is null || pickup.IsDestroyed || !pickup.IsSpawned)
                 yield break;
 
             Rigidbody rb = pickup.Rigidbody;
-            if (rb == null)
-                yield break;
+            if (rb is not null)
+            {
+                rb.isKinematic = false;
+            }
 
             try
             {
-                // Disabling the kinematic gate wakes up the PhysX solver pipeline on this active networked entity.
-                rb.isKinematic = false;
-
-                Vector3 randomDirection = UnityEngine.Random.onUnitSphere;
-
-                // Restricts the drop angle projection plane to guarantee props scatter outward rather than sinking into ground mesh layers.
-                if (Vector3.Dot(randomDirection, Vector3.down) > 0.707f)
-                {
-                    randomDirection = Vector3.Reflect(randomDirection, Vector3.up);
-                }
-
-                // Generates organic dispersion variations to give items a natural fallen look across environment grids.
-                float dynamicMagnitude = UnityEngine.Random.Range(2.0f, 4.2f);
-
-                rb.linearVelocity = randomDirection * dynamicMagnitude;
-                rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 3.5f;
+                // Fluent API Upgrade: Leverage the single point of truth physics manipulation method securely
+                float dynamicMagnitude = SafeRandom.Range(2.0f, 4.2f);
+                pickup.ApplyKineticBlast(dynamicMagnitude, 3.5f);
             }
             catch (Exception ex)
             {
-                LibraryLabAPI.LogError("MapHandler.Physics", $"Failed to apply synchronized physics to pickup {pickup.Serial}: {ex.Message}");
+                Logger.Error(nameof(MapHandler), $"Failed to apply synchronized physics to pickup {pickup.Serial}: {ex.Message}");
             }
         }
+        #endregion
     }
 }

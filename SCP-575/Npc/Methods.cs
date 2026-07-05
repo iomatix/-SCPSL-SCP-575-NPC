@@ -64,7 +64,7 @@ namespace SCP_575.Npc
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
             _lightsourceHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler missing.");
-            _sanityHandler = _plugin.SanityEventHandler ?? throw new InvalidOperationException("SanityEventHandler missing.");
+            _sanityHandler = _plugin.SanityHandler ?? throw new InvalidOperationException("SanityHandler missing.");
 
             Logger.Debug(nameof(Methods), "SCP-575 core execution registry bound to Fluent extension tracks.", _plugin.Debug);
         }
@@ -82,6 +82,7 @@ namespace SCP_575.Npc
             }
         }
 
+
         /// <summary>
         /// Returns the accumulation count of concurrent blackout event layers.
         /// </summary>
@@ -90,6 +91,17 @@ namespace SCP_575.Npc
             get
             {
                 lock (_blackoutLock) return _blackoutStacks;
+            }
+        }
+
+        /// <summary>
+        /// Determines with zero heap allocations whether a specific facility zone is under an active SCP-575 blackout.
+        /// </summary>
+        public bool IsZoneUnderBlackout(FacilityZone zone)
+        {
+            lock (_blackoutLock)
+            {
+                return _blackoutStacks > 0 && _triggeredZones.Contains(zone);
             }
         }
         #endregion
@@ -286,8 +298,12 @@ namespace SCP_575.Npc
 
         private void TriggerFacilityWideBlackout(float duration)
         {
-            // Zero-Allocation bulk method execution spanning all cached zones seamlessly
-            ZoneExtensions.All.TurnOffLights(duration);
+
+            foreach (var zone in ZoneExtensions.All)
+            {
+                zone.TurnOffLights(duration);
+                _triggeredZones.Add(zone);
+            }
 
             if (!IsBlackoutActive) TriggerCassieMessage(_plugin.Cassie.CassieMessageFacility, isGlitchy: true);
         }
@@ -699,7 +715,7 @@ namespace SCP_575.Npc
             {
                 _blackoutStacks = 0;
             }
-
+            _plugin.ElevatorHandler?.ClearAllFlickers();
             foreach (FacilityZone zone in Enum.GetValues(typeof(FacilityZone)))
             {
                 zone.TurnOnLights();

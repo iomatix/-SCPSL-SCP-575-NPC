@@ -52,9 +52,6 @@ namespace SCP_575.ConfigObjects
         [Description("Outage probability percentage chance (0% - 100%) calculated per individual room inside unindexed or custom zone spaces.")]
         public float ChanceOther { get; set; } = 0f;
 
-        [Description("The structural elevator cabin lock state probability percentage chance (0% - 100%) triggered when a connected room node drops power grid connection.")]
-        public float ElevatorLockdownProbability { get; set; } = 35f;
-
         [Description("If true, the generation engine runs independent probability assessments per room node instead of macro sector zone evaluations.")]
         public bool UsePerRoomChances { get; set; } = true;
         #endregion
@@ -128,7 +125,6 @@ namespace SCP_575.ConfigObjects
             ChanceEntrance = ChanceEntrance.Clamp(0f, 100f);
             ChanceSurface = ChanceSurface.Clamp(0f, 100f);
             ChanceOther = ChanceOther.Clamp(0f, 100f);
-            ElevatorLockdownProbability = ElevatorLockdownProbability.Clamp(0f, 100f);
 
             // Structural Integrity Safe Check: If all sub-zone distribution channels are muted and facility-wide fallout is disabled,
             // the plugin runs as complete dead server weight. Intercept execution boundaries and force-revert to preserve stability.
