@@ -33,7 +33,7 @@ namespace SCP_575.ConfigObjects
         public int DelayMax { get; set; } = 1080;
 
         [Description("Seconds to buffer between the end of the CASSIE message and the start of the blackout sequence.")]
-        public int BlackoutBufferTime { get; set; } = 30;
+        public int BlackoutBufferTime { get; set; } = 3;
         #endregion
 
         #region Zone Probabilities
