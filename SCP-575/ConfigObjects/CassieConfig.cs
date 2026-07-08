@@ -12,9 +12,9 @@ namespace SCP_575.ConfigObjects
     {
         #region Factory Baseline Constants
         private const string DefaultCountdown = "pitch_0.9 power failure . pitch_1";
-        private const string DefaultStart = "warning . facility power grid failure imminent . anomalous activity detected .";
-        private const string DefaultPost = "pitch_0.8 darkness is no longer safe . stay in light areas . pitch_1";
-        private const string DefaultWrong = "pitch_1.1 . power grid stabilized . false alert detected . pitch_1";
+        private const string DefaultStart = "warning . facility power supply unit failure . anomalous activity detected .";
+        private const string DefaultPost = "pitch_0.8 the dark is not safe . stay in the light area . pitch_1";
+        private const string DefaultWrong = "pitch_1.1 . power supply unit stabilized . false alert detected . pitch_1";
         private const string DefaultEnd = "pitch_1.15 facility power system now operational . pitch_1";
         private const string DefaultFacility = "The Facility .";
         private const string DefaultEntrance = "The Entrance Zone .";
