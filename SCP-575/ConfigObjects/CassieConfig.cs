@@ -11,7 +11,6 @@ namespace SCP_575.ConfigObjects
     public sealed class CassieConfig
     {
         #region Factory Baseline Constants
-        private const string DefaultCountdown = "$pitch_0.9 power failure . $pitch_1";
         private const string DefaultStart = "$pitch_0.89 warning . $pitch_0.95 facility power supply $pitch_0.92 unit $pitch_0.87 failure . $pitch_0.96 danger $pitch_0.92 anomaly $pitch_0.95 detected .";
         private const string DefaultPost = "$pitch_0.85 the dark $pitch_0.97 is not safe . stay in the $pitch_0.85 light $pitch_0.95 area . $pitch_1";
         private const string DefaultWrong = "$pitch_1.05 . power supply unit stabilized . false alert detected . $pitch_1";
@@ -34,11 +33,6 @@ namespace SCP_575.ConfigObjects
 
         [Description("Priority scheduling weight coefficient assigned to important announcements. Higher channels bypass more queued elements.")]
         public float CassieMessagePriority { get; set; } = 3.1f;
-        #endregion
-
-        #region Countdown Message
-        [Description("The CASSIE countdown message sequence broadcasted to facility sectors right before complete darkness falls.")]
-        public string CassieMessageCountdown { get; set; } = DefaultCountdown;
         #endregion
 
         #region Core Announcements
