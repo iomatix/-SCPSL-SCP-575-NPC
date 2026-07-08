@@ -101,7 +101,6 @@ namespace SCP_575.ConfigObjects
 
             // --- 2. Complete DRY-Compliant String Sanitization Matrix ---
             // Clean out line breaks and white space parameters safely while guaranteeing string validity
-            CassieMessageCountdown = CassieMessageCountdown.SanitizeCassieString();
             CassieMessageStart = CassieMessageStart.SanitizeCassieString();
             CassiePostMessage = CassiePostMessage.SanitizeCassieString();
             CassieMessageWrong = CassieMessageWrong.SanitizeCassieString();
