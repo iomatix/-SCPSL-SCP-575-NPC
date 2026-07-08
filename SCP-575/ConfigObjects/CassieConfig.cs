@@ -11,18 +11,18 @@ namespace SCP_575.ConfigObjects
     public sealed class CassieConfig
     {
         #region Factory Baseline Constants
-        private const string DefaultCountdown = "pitch_0.9 power failure . pitch_1";
-        private const string DefaultStart = "warning . facility power supply unit failure . anomalous activity detected .";
-        private const string DefaultPost = "pitch_0.8 the dark is not safe . stay in the light area . pitch_1";
-        private const string DefaultWrong = "pitch_1.1 . power supply unit stabilized . false alert detected . pitch_1";
-        private const string DefaultEnd = "pitch_1.15 facility power system now operational . pitch_1";
+        private const string DefaultCountdown = "$pitch_0.9 power failure . $pitch_1";
+        private const string DefaultStart = "$pitch_0.89 warning . $pitch_0.95 facility power supply $pitch_0.92 unit $pitch_0.87 failure . $pitch_0.96 danger $pitch_0.92 anomaly $pitch_0.95 detected .";
+        private const string DefaultPost = "$pitch_0.85 the dark $pitch_0.97 is not safe . stay in the $pitch_0.85 light $pitch_0.95 area . $pitch_1";
+        private const string DefaultWrong = "$pitch_1.05 . power supply unit stabilized . false alert detected . $pitch_1";
+        private const string DefaultEnd = "$pitch_1.05 facility power system now operational . $pitch_1";
         private const string DefaultFacility = "The Facility .";
         private const string DefaultEntrance = "The Entrance Zone .";
         private const string DefaultLight = "The Light Containment Zone .";
         private const string DefaultHeavy = "The Heavy Containment Zone.";
         private const string DefaultSurface = "The Surface .";
-        private const string DefaultOther = ". pitch_0.35 .g6 pitch_0.95 the malfunction is Unspecified .";
-        private const string DefaultKeter = "pitch_0.15 .g7";
+        private const string DefaultOther = ". $pitch_0.35 .g6 $pitch_0.95 the malfunction is Unspecified .";
+        private const string DefaultKeter = "$pitch_0.15 .g7";
         #endregion
 
         #region General Options
