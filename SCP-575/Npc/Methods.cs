@@ -8,6 +8,7 @@ using SCP_575.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
 using Logger = LabApi.Extensions.Misc.iLogger;
 
@@ -77,24 +78,12 @@ namespace SCP_575.Npc
         /// <summary>
         /// Checks if at least one active blackout event layer is processing.
         /// </summary>
-        public bool IsBlackoutActive
-        {
-            get
-            {
-                lock (_blackoutLock) return _blackoutStacks > 0;
-            }
-        }
+        public bool IsBlackoutActive => Volatile.Read(ref _blackoutStacks) > 0;
 
         /// <summary>
         /// Returns the accumulation count of concurrent blackout event layers.
         /// </summary>
-        public int GetCurrentBlackoutStacks
-        {
-            get
-            {
-                lock (_blackoutLock) return _blackoutStacks;
-            }
-        }
+        public int GetCurrentBlackoutStacks => Volatile.Read(ref _blackoutStacks);
 
         /// <summary>
         /// Determines with zero heap allocations whether a specific facility zone is under an active SCP-575 blackout.
@@ -322,7 +311,10 @@ namespace SCP_575.Npc
             foreach (var zone in ZoneExtensions.All)
             {
                 zone.TurnOffLights(duration);
-                _triggeredZones.Add(zone);
+                lock (_blackoutLock)
+                {
+                    _triggeredZones.Add(zone);
+                }
             }
 
             if (!IsBlackoutActive) TriggerCassieMessage(_plugin.Cassie.CassieMessageFacility, isGlitchy: true);
@@ -544,15 +536,14 @@ namespace SCP_575.Npc
 
         public void IncrementBlackoutStack()
         {
-            lock (_blackoutLock) _blackoutStacks++;
+            Interlocked.Increment(ref _blackoutStacks);
         }
 
         public void DecrementBlackoutStack()
         {
-            lock (_blackoutLock)
+            if (Interlocked.Decrement(ref _blackoutStacks) == 0)
             {
-                _blackoutStacks = Math.Max(0, _blackoutStacks - 1);
-                if (!IsBlackoutActive) Reset575();
+                Reset575();
             }
         }
         #endregion
@@ -746,19 +737,19 @@ namespace SCP_575.Npc
         {
             _plugin.AudioManager.Clean(fullShutdown: false);
 
-            lock (_blackoutLock)
-            {
-                _blackoutStacks = 0;
-            }
-            _plugin.ElevatorHandler?.ClearAllFlickers();
+            Interlocked.Exchange(ref _blackoutStacks, 0);
 
-            // Avoid array allocation inside Enum loops by utilizing pre-cached array
+            _plugin.ElevatorHandler?.ClearAllFlickers();
             for (int i = 0; i < AllZones.Length; i++)
             {
                 AllZones[i].TurnOnLights();
             }
 
-            _triggeredZones.Clear();
+            lock (_blackoutLock)
+            {
+                _triggeredZones.Clear();
+            }
+
             ResetTeslaGates();
             _playerAiStates.Clear();
         }
