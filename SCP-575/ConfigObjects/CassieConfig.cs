@@ -11,7 +11,7 @@ namespace SCP_575.ConfigObjects
     public sealed class CassieConfig
     {
         #region Factory Baseline Constants
-        private const string DefaultStart = "$pitch_0.89 warning . $pitch_0.95 facility power supply $pitch_0.92 unit $pitch_0.87 failure . $pitch_0.96 danger $pitch_0.92 .g2 . dark anomaly $pitch_0.95 detected .";
+        private const string DefaultStart = "$pitch_0.89 warning . $pitch_0.95 facility power supply $pitch_0.92 unit $pitch_0.87 failure . $pitch_0.96 .g1 .g1 danger $pitch_0.92 .g1 . dark anomaly $pitch_1.35 . $pitch_0.95 detected .";
         private const string DefaultPost = "$pitch_0.85 the dark $pitch_0.97 is not safe . stay in the $pitch_0.85 light $pitch_0.95 area . $pitch_1";
         private const string DefaultWrong = "$pitch_1.05 . power supply unit stabilized . false alert detected . $pitch_1";
         private const string DefaultEnd = "$pitch_1.05 facility power system now operational . $pitch_1";
