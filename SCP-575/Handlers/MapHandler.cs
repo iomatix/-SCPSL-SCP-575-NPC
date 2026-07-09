@@ -8,7 +8,6 @@ using MEC;
 using SCP_575.Shared;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Logger = LabApi.Extensions.Misc.iLogger;
 
@@ -36,7 +35,6 @@ namespace SCP_575.Handlers
 
         private void Clean()
         {
-            // Fluent API Alignment: Direct string extension utilization to evict trailing routines
             CoroutineTags.MapCoroutines.KillCoroutine();
         }
         #endregion
@@ -60,50 +58,89 @@ namespace SCP_575.Handlers
         /// </summary>
         private IEnumerator<float> SpawnFlashlightsPipeline()
         {
+            // Yield statements must exist strictly outside of try-catch blocks
             yield return Timing.WaitForSeconds(2.5f);
 
+            List<Pickup> spawnedPickups = new List<Pickup>();
+            int totalSpawned = 0;
+            bool shouldAbort = false;
+
+            // Stage 1: Synchronous item generation enclosed securely in try-catch
             try
             {
-                // Fluent API Alignment: Utilizing standard global Room collection registry directly
                 var allRooms = Room.List;
-                if (allRooms is null || !allRooms.Any())
+                if (allRooms is null || allRooms.Count == 0)
                 {
                     Logger.Error(nameof(MapHandler), "Asynchronous abort: Room registry data is blank at T+2.5s.");
-                    yield break;
+                    shouldAbort = true;
                 }
-
-                int totalSpawned = 0;
-
-                foreach (Room room in allRooms)
+                else
                 {
-                    if (room is null || room.Name is RoomName.Pocket)
-                        continue;
-
-                    float spawnChance = GetZoneSpawnChance(room.Zone);
-                    if (spawnChance <= 0f)
-                        continue;
-
-                    // Fluent API Upgrade: Seamless thread-safe probability roll success check directly from primitives
-                    if (!spawnChance.RollSuccess())
-                        continue;
-
-                    Vector3 spawnPosition = room.Position + new Vector3(0f, 0.6f, 0f);
-
-                    Pickup flashlightPickup = Pickup.Create(ItemType.Flashlight, spawnPosition, Quaternion.identity);
-                    if (flashlightPickup is not null)
+                    foreach (Room room in allRooms)
                     {
-                        Timing.RunCoroutine(ApplyDelayedPhysicsPush(flashlightPickup), CoroutineTags.MapCoroutines);
-                        totalSpawned++;
+                        if (room is null || room.Name is RoomName.Pocket)
+                            continue;
 
-                        Logger.Debug(nameof(MapHandler), $"Injected flashlight into {room.Name} ({room.Zone}).", _plugin.Debug);
+                        float spawnChance = GetZoneSpawnChance(room.Zone);
+                        if (spawnChance <= 0f || !spawnChance.RollSuccess())
+                            continue;
+
+                        Vector3 spawnPosition = room.Position + new Vector3(0f, 0.6f, 0f);
+
+                        Pickup flashlightPickup = Pickup.Create(ItemType.Flashlight, spawnPosition, Quaternion.identity);
+                        if (flashlightPickup is not null)
+                        {
+                            spawnedPickups.Add(flashlightPickup);
+                            totalSpawned++;
+
+                            Logger.Debug(nameof(MapHandler), $"Injected flashlight into {room.Name} ({room.Zone}).", _plugin.Debug);
+                        }
                     }
-                }
 
-                Logger.Info(nameof(MapHandler), $"Orchestrated flashlight injection complete. Total spawned: {totalSpawned}");
+                    Logger.Info(nameof(MapHandler), $"Orchestrated flashlight injection complete. Total spawned: {totalSpawned}");
+                }
             }
             catch (Exception ex)
             {
-                Logger.Error(nameof(MapHandler), $"Pipeline collapsed: {ex.Message}");
+                Logger.Error(nameof(MapHandler), $"Pipeline spawning stage collapsed: {ex.Message}");
+            }
+
+            // Conditional flow state controls evaluated outside protected blocks to allow yield execution
+            if (shouldAbort || spawnedPickups.Count == 0)
+                yield break;
+
+            // Frame deferral execution executed safely outside try-catch boundaries
+            yield return Timing.WaitForOneFrame;
+
+            // Stage 2: Batch processing physics matrix updates enclosed in independent try-catch
+            try
+            {
+                for (int i = 0; i < spawnedPickups.Count; i++)
+                {
+                    Pickup pickup = spawnedPickups[i];
+                    if (pickup is null || pickup.IsDestroyed || !pickup.IsSpawned)
+                        continue;
+
+                    Rigidbody rb = pickup.Rigidbody;
+                    if (rb is not null)
+                    {
+                        rb.isKinematic = false;
+                    }
+
+                    try
+                    {
+                        float dynamicMagnitude = SafeRandom.Range(2.0f, 4.2f);
+                        pickup.ApplyKineticBlast(dynamicMagnitude, 3.5f);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(nameof(MapHandler), $"Failed to apply synchronized physics to pickup {pickup.Serial}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(nameof(MapHandler), $"Pipeline physics stage collapsed: {ex.Message}");
             }
         }
 
@@ -118,34 +155,6 @@ namespace SCP_575.Handlers
                 FacilityZone.Surface => config.ChanceSurface,
                 _ => config.ChanceOther
             };
-        }
-
-        /// <summary>
-        /// Forces a single-frame deferral to ensure the engine registers native transform weights before force application.
-        /// </summary>
-        private IEnumerator<float> ApplyDelayedPhysicsPush(Pickup pickup)
-        {
-            yield return Timing.WaitForOneFrame;
-
-            if (pickup is null || pickup.IsDestroyed || !pickup.IsSpawned)
-                yield break;
-
-            Rigidbody rb = pickup.Rigidbody;
-            if (rb is not null)
-            {
-                rb.isKinematic = false;
-            }
-
-            try
-            {
-                // Fluent API Upgrade: Leverage the single point of truth physics manipulation method securely
-                float dynamicMagnitude = SafeRandom.Range(2.0f, 4.2f);
-                pickup.ApplyKineticBlast(dynamicMagnitude, 3.5f);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(nameof(MapHandler), $"Failed to apply synchronized physics to pickup {pickup.Serial}: {ex.Message}");
-            }
         }
         #endregion
     }
