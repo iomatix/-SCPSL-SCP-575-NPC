@@ -225,13 +225,18 @@ namespace SCP_575.Handlers
             if (!newState || !_plugin.NpcLogic.IsBlackoutActive || player?.GameObject is null) return (isAllowed, newState);
 
             int instanceId = player.GameObject.GetInstanceID();
-            if (_flickeringPlayers.Contains(instanceId)) return (false, false);
 
-            if (_cooldownUntil.IsCooldownActive(instanceId))
+            lock (_lock)
             {
-                if (_plugin.Hints.IsEnabledLightEmitterCooldownHint) player.SendHint(message, 1.0f);
-                PlayLightsourceErrorFeedback(player, instanceId);
-                return (true, false);
+                if (_flickeringPlayers.Contains(instanceId)) return (false, false);
+
+                if (_cooldownUntil.IsCooldownActive(instanceId))
+                {
+                    if (_plugin.Hints.IsEnabledLightEmitterCooldownHint) player.SendHint(message, 1.0f);
+                    // Wywo³anie metody zwalniaj¹cej lock na czas I/O audio
+                    PlayLightsourceErrorFeedback(player, instanceId);
+                    return (true, false);
+                }
             }
 
             return (isAllowed, newState);
