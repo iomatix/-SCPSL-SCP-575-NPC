@@ -151,13 +151,12 @@ namespace SCP_575.Shared
 
             yield return Timing.WaitForSeconds(0.11f);
 
-            Rigidbody[] ragdollRigidbodies = ragdoll.Base.GetComponentsInChildren<Rigidbody>();
-            if (ragdollRigidbodies is null || ragdollRigidbodies.Length == 0) yield break;
-
             List<Rigidbody> rigidbodies = _rigidbodyPool.Rent();
             try
             {
-                rigidbodies.AddRange(ragdollRigidbodies);
+                ragdoll.Base.GetComponentsInChildren<Rigidbody>(rigidbodies);
+
+                if (rigidbodies.Count == 0) yield break;
 
                 Vector3 upwardForce = Vector3.up * CalculateForcePush(7.45f);
                 ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 12.75f);
@@ -174,7 +173,6 @@ namespace SCP_575.Shared
                 ReplaceRagdoll(player, ragdoll, oldRole);
             }
         }
-
         private Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll, RoleTypeId oldRole)
         {
             if (player is null || originalRagdoll?.Base is null) return null;
