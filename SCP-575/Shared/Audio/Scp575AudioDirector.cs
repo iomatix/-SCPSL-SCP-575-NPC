@@ -44,7 +44,7 @@ namespace SCP_575.Shared.Audio
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
             _audioManager = audioManager ?? throw new ArgumentNullException(nameof(audioManager));
-            _sanityHandler = sanityHandler ?? throw new ArgumentNullException(sanityHandler));
+            _sanityHandler = sanityHandler ?? throw new ArgumentNullException(nameof(sanityHandler));
         }
         #endregion
 
