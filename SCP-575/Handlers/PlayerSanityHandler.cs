@@ -232,7 +232,10 @@ namespace SCP_575.Handlers
 
             int playerInstanceId = player.GameObject.GetInstanceID();
 
-            if (!forceIgnoreCooldown && _playerEffectsCooldownExpiry.IsCooldownActive(playerInstanceId)) return;
+            lock (_cacheLock)
+            {
+                if (!forceIgnoreCooldown && _playerEffectsCooldownExpiry.IsCooldownActive(playerInstanceId)) return;
+            }
 
             if (!_plugin.NpcLogic.IsBlackoutActive && !bypassBlackoutGate) return;
 
@@ -302,16 +305,28 @@ namespace SCP_575.Handlers
 
                 foreach (Player player in Player.ReadyList)
                 {
-
                     if (!IsValidPlayer(player)) continue;
 
                     int instanceId = player.GameObject.GetInstanceID();
-                    if (player.IsInTrueDarkness())
+                    bool isMedicalBoostActive = false;
+
+                    lock (_cacheLock)
+                    {
+                        isMedicalBoostActive = _painkillerSanityBoostExpiry.IsCooldownActive(instanceId);
+                    }
+
+                    // CRITICAL FIX: Medical stabilization takes absolute priority over environment states
+                    if (isMedicalBoostActive)
+                    {
+                        ProcessRegenTick(player, now);
+                    }
+                    else if (player.IsInTrueDarkness())
                     {
                         ProcessDecayTick(player, now);
                     }
-                    else if (player.IsInDarkRoom() && !_painkillerSanityBoostExpiry.IsCooldownActive(instanceId))
+                    else if (player.IsInDarkRoom())
                     {
+                        // In a regular dark room without active medicine boost, sanity is preserved statically
                         continue;
                     }
                     else
@@ -332,7 +347,13 @@ namespace SCP_575.Handlers
             int instanceId = player.GameObject.GetInstanceID();
             if (_plugin.Hints.IsEnabledSanityHint)
             {
-                if (_lastHintTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_hintCooldown)))
+                bool acquiredLock = false;
+                lock (_cacheLock)
+                {
+                    acquiredLock = _lastHintTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_hintCooldown));
+                }
+
+                if (acquiredLock)
                 {
                     SendSanityHint(player, _plugin.Hints.SanityDecreasedHint, newSanity);
                 }
@@ -359,7 +380,13 @@ namespace SCP_575.Handlers
 
             if (_plugin.Hints.IsEnabledSanityHint)
             {
-                if (_lastHintTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_hintCooldown)))
+                bool acquiredLock = false;
+                lock (_cacheLock)
+                {
+                    acquiredLock = _lastHintTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(_hintCooldown));
+                }
+
+                if (acquiredLock)
                 {
                     SendSanityHint(player, _plugin.Hints.SanityIncreasedHint, newSanity);
                 }
