@@ -32,6 +32,9 @@ namespace SCP_575.Npc
         private readonly object _blackoutLock = new();
 
         private const string TempCoroutineTag = CoroutineTags.Temp;
+
+        // Static immutable cache for FacilityZone entries to eradicate Enum.GetValues heap allocations
+        private static readonly FacilityZone[] AllZones = (FacilityZone[])Enum.GetValues(typeof(FacilityZone));
         #endregion
 
         #region Enums
@@ -81,7 +84,6 @@ namespace SCP_575.Npc
                 lock (_blackoutLock) return _blackoutStacks > 0;
             }
         }
-
 
         /// <summary>
         /// Returns the accumulation count of concurrent blackout event layers.
@@ -221,13 +223,33 @@ namespace SCP_575.Npc
             Player targetPlayer = null;
             if (SafeRandom.Range(0f, 100f) < 70f)
             {
-                var validTargets = Player.ReadyList.Where(p => p.IsAlive && p.IsHuman && p.IsInDarkRoom()).ToList();
-                if (validTargets.Count > 0)
+                int validCount = 0;
+                foreach (Player p in Player.ReadyList)
                 {
-                    targetPlayer = validTargets[SafeRandom.Next(0, validTargets.Count)];
+                    if (p != null && p.IsAlive && p.IsHuman && p.IsInDarkRoom())
+                    {
+                        validCount++;
+                    }
+                }
+
+                if (validCount > 0)
+                {
+                    int randomIndex = SafeRandom.Next(0, validCount);
+                    int current = 0;
+                    foreach (Player p in Player.ReadyList)
+                    {
+                        if (p != null && p.IsAlive && p.IsHuman && p.IsInDarkRoom())
+                        {
+                            if (current == randomIndex)
+                            {
+                                targetPlayer = p;
+                                break;
+                            }
+                            current++;
+                        }
+                    }
                 }
             }
-
             _plugin.AudioDirector?.ProcessBlackoutAudioSequence(targetPlayer);
 
             float duration = _plugin.Blackout.RandomEvents
@@ -247,27 +269,26 @@ namespace SCP_575.Npc
         {
             if (!_plugin.IsEventActive || !_plugin.Blackout.FlickerLights) return;
 
-            var zones = GetZonesToFlicker();
-            var color = new Color(_plugin.Blackout.LightsColorR, _plugin.Blackout.LightsColorG, _plugin.Blackout.LightsColorB);
+            Color color = new Color(_plugin.Blackout.LightsColorR, _plugin.Blackout.LightsColorG, _plugin.Blackout.LightsColorB);
 
-            // Foreach standard optimization for high-level controllers hierarchy
-            foreach (var zone in zones)
-            {
-                Timing.RunCoroutine(zone.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
-            }
-        }
-
-        private List<FacilityZone> GetZonesToFlicker()
-        {
+            // Inlined structural decision matrix to prevent allocating temporary list buffers entirely
             if (_plugin.Blackout.UsePerRoomChances || _plugin.Blackout.EnableFacilityBlackout)
-                return Enum.GetValues(typeof(FacilityZone)).Cast<FacilityZone>().ToList();
+            {
+                for (int i = 0; i < AllZones.Length; i++)
+                {
+                    Timing.RunCoroutine(AllZones[i].FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
+                }
+                return;
+            }
 
-            var zones = new List<FacilityZone>();
-            if (_plugin.Blackout.ChanceLight > 0f) zones.Add(FacilityZone.LightContainment);
-            if (_plugin.Blackout.ChanceHeavy > 0f) zones.Add(FacilityZone.HeavyContainment);
-            if (_plugin.Blackout.ChanceEntrance > 0f) zones.Add(FacilityZone.Entrance);
-            if (_plugin.Blackout.ChanceSurface > 0f) zones.Add(FacilityZone.Surface);
-            return zones;
+            if (_plugin.Blackout.ChanceLight > 0f)
+                Timing.RunCoroutine(FacilityZone.LightContainment.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
+            if (_plugin.Blackout.ChanceHeavy > 0f)
+                Timing.RunCoroutine(FacilityZone.HeavyContainment.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
+            if (_plugin.Blackout.ChanceEntrance > 0f)
+                Timing.RunCoroutine(FacilityZone.Entrance.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
+            if (_plugin.Blackout.ChanceSurface > 0f)
+                Timing.RunCoroutine(FacilityZone.Surface.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
         }
 
         private bool HandleZoneSpecificBlackout(float duration)
@@ -298,7 +319,6 @@ namespace SCP_575.Npc
 
         private void TriggerFacilityWideBlackout(float duration)
         {
-
             foreach (var zone in ZoneExtensions.All)
             {
                 zone.TurnOffLights(duration);
@@ -311,9 +331,13 @@ namespace SCP_575.Npc
         private bool HandleRoomSpecificBlackout(float duration)
         {
             bool triggered = false;
-            foreach (Room room in Room.List.Where(r => r.AllLightControllers != null && r.AllLightControllers.Any()))
+
+            foreach (Room room in Room.List)
             {
-                if (AttemptRoomBlackout(room, duration)) triggered = true;
+                if (room?.AllLightControllers != null && room.AllLightControllers.Any())
+                {
+                    if (AttemptRoomBlackout(room, duration)) triggered = true;
+                }
             }
 
             if (!triggered && _plugin.Blackout.EnableFacilityBlackout)
@@ -384,12 +408,15 @@ namespace SCP_575.Npc
 
         private void DisableFacilitySystems(float duration)
         {
-            foreach (Room room in Room.List.Where(r => r.IsFreeOfEngagedGenerators()))
+            foreach (Room room in Room.List)
             {
-                room.TurnOffLights(duration);
-                foreach (Elevator elevator in room.GetElevatorsConnectedToRoom())
+                if (room != null && room.IsFreeOfEngagedGenerators())
                 {
-                    elevator.TurnOffLights(duration);
+                    room.TurnOffLights(duration);
+                    foreach (Elevator elevator in room.GetElevatorsConnectedToRoom())
+                    {
+                        elevator.TurnOffLights(duration);
+                    }
                 }
             }
 
@@ -465,7 +492,7 @@ namespace SCP_575.Npc
 
                 if (_plugin.Blackout.FlickerLights)
                 {
-                    var color = new Color(_plugin.Blackout.LightsColorR, _plugin.Blackout.LightsColorG, _plugin.Blackout.LightsColorB);
+                    Color color = new Color(_plugin.Blackout.LightsColorR, _plugin.Blackout.LightsColorG, _plugin.Blackout.LightsColorB);
                     Timing.RunCoroutine(zone.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
                 }
 
@@ -593,7 +620,6 @@ namespace SCP_575.Npc
 
                 foreach (Player player in Player.ReadyList)
                 {
-                    // C# 9.0 Pattern Matching
                     if (player?.GameObject is null || !player.IsAlive || !player.IsHuman || player.Room.Name is RoomName.Pocket)
                         continue;
 
@@ -647,7 +673,16 @@ namespace SCP_575.Npc
         #endregion
 
         #region Technical Infrastructure
-        public bool AreAllGeneratorsEngaged(int req = 3) => Generator.List.Count >= req && Generator.List.All(gen => gen.Engaged);
+        public bool AreAllGeneratorsEngaged(int req = 3)
+        {
+            if (Generator.List.Count < req) return false;
+
+            foreach (Generator gen in Generator.List)
+            {
+                if (!gen.Engaged) return false;
+            }
+            return true;
+        }
 
         public void ProcessFullGridRestorationTeardown()
         {
@@ -716,9 +751,11 @@ namespace SCP_575.Npc
                 _blackoutStacks = 0;
             }
             _plugin.ElevatorHandler?.ClearAllFlickers();
-            foreach (FacilityZone zone in Enum.GetValues(typeof(FacilityZone)))
+
+            // Avoid array allocation inside Enum loops by utilizing pre-cached array
+            for (int i = 0; i < AllZones.Length; i++)
             {
-                zone.TurnOnLights();
+                AllZones[i].TurnOnLights();
             }
 
             _triggeredZones.Clear();
@@ -731,7 +768,6 @@ namespace SCP_575.Npc
         /// </summary>
         public bool IsDangerousToScp575(ExplosionType explosionType) => explosionType switch
         {
-            // C# 9.0 Switch Expression with Pattern Combinators
             ExplosionType.Grenade or ExplosionType.SCP018 or ExplosionType.Jailbird or ExplosionType.Disruptor => true,
             _ => false
         };

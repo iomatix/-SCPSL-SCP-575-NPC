@@ -365,6 +365,15 @@
         }
 
         /// <summary>
+        /// Instantly terminates an active audio playback session via the central engine matrix.
+        /// </summary>
+        public void StopSession(int sessionId)
+        {
+            if (sessionId == 0) return;
+            _audioEngine.StopAudio(sessionId);
+        }
+
+        /// <summary>
         /// Drops background monitoring channels and flushes memory registries.
         /// </summary>
         public void Clean(bool fullShutdown = false)

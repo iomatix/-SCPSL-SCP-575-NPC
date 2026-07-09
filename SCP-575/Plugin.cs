@@ -38,6 +38,8 @@ namespace SCP_575
 
         private bool _isEventActive;
         private bool _isConfigLoaded;
+
+        private LabApi.Events.CustomHandlers.CustomEventsHandler[] _activeHandlers;
         #endregion
 
         #region Operational API Properties
@@ -99,7 +101,6 @@ namespace SCP_575
             base.LoadConfigs();
             Config?.Validate();
 
-            // Fluent API Implementation: Chain-load all independent yml sub-configs using your actual BindSubConfig engine
             PluginBuilder.Create(this)
                     .BindSubConfig<AudioConfig>("audio_settings.yml", cfg => Audio = cfg, cfg => cfg.Validate())
                     .BindSubConfig<BlackoutConfig>("blackout_engine.yml", cfg => Blackout = cfg, cfg => cfg.Validate())
@@ -128,20 +129,17 @@ namespace SCP_575
 
             try
             {
-                // Fluent API Implementation: Utilizing clean, inferenced method chaining steps
                 PluginBuilder.Create(this)
                     .InitializeModule(() =>
                     {
-                        // Action 1: Instantiate independent core logic systems
+                        // Action 1: Instantiate core independent logic components
                         _damageSystem = new Scp575DamageSystem(this);
                         _audioManager = new Scp575AudioManager(this);
                         _elevatorHandler = new ElevatorHandler(this);
                         _sanityHandler = new PlayerSanityHandler(this);
                         _audioDirector = new Scp575AudioDirector(this, _audioManager, _sanityHandler);
-                    })
-                    .InitializeModule(() =>
-                    {
-                        // Action 2: Instantiate structural game proxy handlers
+
+                        // Action 2: Instantiate structural event proxy-handlers
                         _lifecycleHandler = new LifecycleHandler(this);
                         _generatorHandler = new GeneratorHandler(this);
                         _explosionHandler = new ExplosionHandler(this);
@@ -150,23 +148,25 @@ namespace SCP_575
                         _lightsourceHandler = new PlayerLightsourceHandler(this);
                         _mapHandler = new MapHandler(this);
 
-                        // Action 3: Commit the internal behavior execution node setup
+                        // Action 3: Cache components to avoid duplicate references on teardown
+                        _activeHandlers = new LabApi.Events.CustomHandlers.CustomEventsHandler[]
+                        {
+                            _lifecycleHandler, _generatorHandler, _explosionHandler, _damageHandler,
+                            _ragdollHandler, _lightsourceHandler, _sanityHandler, _mapHandler
+                        };
+
+                        // Action 4: Commit internal behavior node composition
                         _npcNode = new NestingNode<Plugin, Methods>(this, plugin => new Methods(plugin));
                     })
                     .InitializeModule(() =>
                     {
-                        // Action 4: Wake up active processing worker layers
+                        // Action 5: Wake up specialized worker layers and bind event streams
                         _sanityHandler?.Initialize();
                         _lightsourceHandler?.Initialize();
                         _audioDirector?.Initialize();
-                    })
-                    .InitializeModule(() =>
-                    {
-                        // Action 5: Route proxy listeners directly onto the central LabAPI engine matrix
-                        HandlerExtensions.RegisterAll(
-                            _lifecycleHandler, _generatorHandler, _explosionHandler, _damageHandler,
-                            _ragdollHandler, _lightsourceHandler, _sanityHandler, _mapHandler
-                        );
+
+                        if (_activeHandlers != null)
+                            HandlerExtensions.RegisterAll(_activeHandlers);
                     });
             }
             catch (Exception ex)
@@ -184,20 +184,44 @@ namespace SCP_575
         {
             _isEventActive = false;
 
+            // 1. Centralized event unregistration track
+            if (_activeHandlers != null)
+            {
+                SafeTeardown(() => HandlerExtensions.UnregisterAll(_activeHandlers), "Suppressed event unregistration artifact");
+            }
+
+            // 2. Ordered resource/worker disposal cascade
+            SafeTeardown(() => _audioDirector?.Dispose());
+            SafeTeardown(() => _audioManager?.Clean(fullShutdown: true));
+            SafeTeardown(() => _sanityHandler?.Dispose());
+            SafeTeardown(() => _lightsourceHandler?.Dispose());
+
+            // 3. Clear system roots to prevent memory leaks across assembly reloads
+            ResetSubsystemReferences();
+
+            Logger.Info(nameof(Plugin), $"{Name} framework teardown completed successfully.");
+        }
+
+        /// <summary>
+        /// Wraps teardown routines into guarded execution blocks to prevent pipeline interruption.
+        /// </summary>
+        private void SafeTeardown(Action cleanupAction, string errorMessageContext = null)
+        {
             try
             {
-                HandlerExtensions.UnregisterAll(
-                    _lifecycleHandler, _generatorHandler, _explosionHandler, _damageHandler,
-                    _ragdollHandler, _lightsourceHandler, _sanityHandler, _mapHandler
-                );
+                cleanupAction();
             }
-            catch (Exception ex) { Logger.Debug(nameof(Plugin), $"Suppressed event unregistration artifact: {ex.Message}", Config.Debug); }
+            catch (Exception ex)
+            {
+                Logger.Debug(nameof(Plugin), $"{errorMessageContext ?? "Suppressed cleanup exception"}: {ex.Message}", Config.Debug);
+            }
+        }
 
-            try { _audioDirector?.Dispose(); } catch (Exception ex) { Logger.Debug(nameof(Plugin), ex.Message, Config.Debug); }
-            try { _audioManager?.Clean(fullShutdown: true); } catch (Exception ex) { Logger.Debug(nameof(Plugin), ex.Message, Config.Debug); }
-            try { _sanityHandler?.Dispose(); } catch (Exception ex) { Logger.Debug(nameof(Plugin), ex.Message, Config.Debug); }
-            try { _lightsourceHandler?.Dispose(); } catch (Exception ex) { Logger.Debug(nameof(Plugin), ex.Message, Config.Debug); }
-
+        /// <summary>
+        /// Flushes all subsystem fields back to factory baseline states.
+        /// </summary>
+        private void ResetSubsystemReferences()
+        {
             _lightsourceHandler = null;
             _sanityHandler = null;
             _elevatorHandler = null;
@@ -212,9 +236,8 @@ namespace SCP_575
             _audioDirector = null;
             _audioManager = null;
             _npcNode = null;
+            _activeHandlers = null;
             Singleton = null;
-
-            Logger.Info(nameof(Plugin), $"{Name} framework teardown completed successfully.");
         }
         #endregion
     }
