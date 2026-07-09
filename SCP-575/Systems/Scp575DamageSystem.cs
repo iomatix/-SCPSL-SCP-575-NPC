@@ -152,19 +152,27 @@ namespace SCP_575.Shared
             yield return Timing.WaitForSeconds(0.11f);
 
             List<Rigidbody> rigidbodies = _rigidbodyPool.Rent();
+            bool hasComponents = false;
+
             try
             {
+                // Zero-allocation: Populating rented list context directly via Unity native API internal routing
                 ragdoll.Base.GetComponentsInChildren<Rigidbody>(rigidbodies);
+                hasComponents = rigidbodies.Count > 0;
 
-                if (rigidbodies.Count == 0) yield break;
-
-                Vector3 upwardForce = Vector3.up * CalculateForcePush(7.45f);
-                ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 12.75f);
+                if (hasComponents)
+                {
+                    Vector3 upwardForce = Vector3.up * CalculateForcePush(7.45f);
+                    ApplyStandardRagdollPhysics(rigidbodies, upwardForce, 12.75f);
+                }
             }
             finally
             {
+                // Guarantees pool recycling integrity before coroutine execution sequence jumps boundaries
                 _rigidbodyPool.Return(rigidbodies);
             }
+
+            if (!hasComponents) yield break;
 
             yield return Timing.WaitForSeconds(0.175f);
 
@@ -173,6 +181,7 @@ namespace SCP_575.Shared
                 ReplaceRagdoll(player, ragdoll, oldRole);
             }
         }
+
         private Ragdoll ReplaceRagdoll(Player player, Ragdoll originalRagdoll, RoleTypeId oldRole)
         {
             if (player is null || originalRagdoll?.Base is null) return null;
@@ -227,8 +236,9 @@ namespace SCP_575.Shared
 
             float torqueModifier = _plugin.Npc.KeterDamageVelocityModifier;
 
-            foreach (Rigidbody rb in rigidbodies)
+            for (int i = 0; i < rigidbodies.Count; i++)
             {
+                Rigidbody rb = rigidbodies[i];
                 if (rb is null) continue;
                 rb.isKinematic = false;
 
