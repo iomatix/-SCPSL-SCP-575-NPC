@@ -72,8 +72,6 @@ namespace SCP_575.Handlers
                 if (ev.Player?.GameObject is null) return;
                 int instanceId = ev.Player.GameObject.GetInstanceID();
 
-                TimeSpan audioCooldownWindow = TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds);
-
                 _plugin.DamageSystem.ProcessAnomalousTrauma(ev.Player);
                 _plugin.AudioDirector?.SuppressPsychologicalAudio(ev.Player, 3.35f);
             }

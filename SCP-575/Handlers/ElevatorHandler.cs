@@ -46,7 +46,6 @@ namespace SCP_575.Handlers
             }
         }
 
-        // FIXED: Added missing 'Server' prefix to strictly match the LabAPI CustomEventsHandler abstraction layer
         public override void OnServerElevatorSequenceChanged(ElevatorSequenceChangedEventArgs ev)
         {
             if (!_plugin.IsEventActive || ev?.Elevator is null) return;
@@ -63,23 +62,27 @@ namespace SCP_575.Handlers
 
             if (elevatorZone is null) return;
 
+            string flickerTag = $"ElevatorFlicker_{ev.Elevator.GetHashCode()}";
+
             if (_plugin.NpcLogic.IsZoneUnderBlackout(elevatorZone.Value))
             {
                 lock (_lock)
                 {
-                    // Thread Isolation: Kill the sequence loop strictly for this distinct cabin entity instance
+                    // Thread Isolation: Deterministically purge both outer and inner sequence streams
+                    flickerTag.KillCoroutine();
                     if (_activeFlickers.TryGetValue(ev.Elevator, out CoroutineHandle oldHandle))
                     {
                         Timing.KillCoroutines(oldHandle);
                     }
 
-                    _activeFlickers[ev.Elevator] = Timing.RunCoroutine(RunElevatorDarknessSequence(ev.Elevator));
+                    _activeFlickers[ev.Elevator] = Timing.RunCoroutine(RunElevatorDarknessSequence(ev.Elevator, flickerTag));
                 }
             }
             else
             {
                 lock (_lock)
                 {
+                    flickerTag.KillCoroutine();
                     if (_activeFlickers.TryGetValue(ev.Elevator, out CoroutineHandle handle))
                     {
                         Timing.KillCoroutines(handle);
@@ -92,15 +95,15 @@ namespace SCP_575.Handlers
         #endregion
 
         #region Isolated Sequence Engine
-        private IEnumerator<float> RunElevatorDarknessSequence(Elevator elevator)
+        private IEnumerator<float> RunElevatorDarknessSequence(Elevator elevator, string flickerTag)
         {
             if (_plugin.Blackout.FlickerLights && !elevator.AreLightsOff())
             {
-                // Architectural Fix: Yield execution until the internal NuGet flicker loop completely finishes and releases control
-                yield return Timing.WaitUntilDone(Timing.RunCoroutine(elevator.FlickerElevatorLightsCoroutine(_plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency)));
+                // Core Execution Fix: Capture the CoroutineHandle to safely feed it into WaitUntilDone
+                CoroutineHandle handle = Timing.RunCoroutine(elevator.FlickerElevatorLightsCoroutine(_plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), flickerTag);
+                yield return Timing.WaitUntilDone(handle);
             }
 
-            // Enforce absolute darkness safely after flicker completion to prevent the loop from resetting lights back to ON
             elevator.TurnOffLights(_plugin.Blackout.DurationMax);
         }
 
@@ -111,6 +114,10 @@ namespace SCP_575.Handlers
         {
             lock (_lock)
             {
+                foreach (Elevator elevator in _activeFlickers.Keys)
+                {
+                    $"ElevatorFlicker_{elevator.GetHashCode()}".KillCoroutine();
+                }
                 foreach (CoroutineHandle handle in _activeFlickers.Values)
                 {
                     Timing.KillCoroutines(handle);
