@@ -5,7 +5,6 @@
     using AudioManagerAPI.Features.Management;
     using AudioManagerAPI.Features.Management.Settings;
     using LabApi.Extensions;
-    using LabApi.Extensions.Misc;
     using LabApi.Features.Wrappers;
     using SCP_575.Shared;
     using SCP_575.Shared.Audio.Enums;
@@ -33,6 +32,72 @@
         private const int GlobalScreamCooldownHash = 575999;
         #endregion
 
+        #region Reusable Zero-Allocation State Containers
+        /// <summary>
+        /// Stack-allocated context state container for localized 3D spatial filtration.
+        /// </summary>
+        private readonly struct SpatialFilterState
+        {
+            public Vector3 TargetPosition { get; }
+            public float MaxDistance { get; }
+
+            public SpatialFilterState(Vector3 targetPosition, float maxDistance)
+            {
+                TargetPosition = targetPosition;
+                MaxDistance = maxDistance;
+            }
+        }
+
+        /// <summary>
+        /// Context state container managing player attachment variables without heap boundaries.
+        /// </summary>
+        private readonly struct AttachedFilterState
+        {
+            public Player Target { get; }
+            public Vector3 FallbackPosition { get; }
+            public float MaxDistance { get; }
+            public bool HearableForAll { get; }
+
+            public AttachedFilterState(Player target, Vector3 fallbackPosition, float maxDistance, bool hearableForAll)
+            {
+                Target = target;
+                FallbackPosition = fallbackPosition;
+                MaxDistance = maxDistance;
+                HearableForAll = hearableForAll;
+            }
+        }
+
+        /// <summary>
+        /// State container tracking runtime properties for frame-by-frame entity tracking sessions.
+        /// </summary>
+        private readonly struct TrackingFilterState
+        {
+            public int TargetInstanceId { get; }
+            public bool HearableForAll { get; }
+
+            public TrackingFilterState(int targetInstanceId, bool hearableForAll)
+            {
+                TargetInstanceId = targetInstanceId;
+                HearableForAll = hearableForAll;
+            }
+        }
+
+        /// <summary>
+        /// State container directing trigonometric orbital acoustics around dynamic targets.
+        /// </summary>
+        private readonly struct OrbitFilterState
+        {
+            public int TargetInstanceId { get; }
+            public bool Isolated { get; }
+
+            public OrbitFilterState(int targetInstanceId, bool isolated)
+            {
+                TargetInstanceId = targetInstanceId;
+                Isolated = isolated;
+            }
+        }
+        #endregion
+
         #region Constructor
         public Scp575AudioManager(Plugin plugin)
         {
@@ -46,7 +111,7 @@
 
         #region Public Playback Channels
         /// <summary>
-        /// Plays a global audio stinger facility-wide.
+        /// Plays a global audio stinger facility-wide using a zero-allocation dummy context layout.
         /// </summary>
         public int PlayGlobal(AudioKey key, float? lifespan = null, bool queue = false, float fadeInDuration = 0f, bool loop = false)
         {
@@ -56,14 +121,15 @@
 
             float? finalLifespan = loop && (lifespan ?? config.DefaultLifespan) <= 0f ? null : (lifespan ?? config.DefaultLifespan);
 
-            int sessionId = _audioEngine.PlayGlobalAudio(
-                config.Key,
-                loop,
-                config.Volume,
-                config.Priority,
-                validPlayersFilter: null,
-                queue,
-                fadeInDuration,
+            int sessionId = _audioEngine.PlayGlobalAudio<object>(
+                key: config.Key,
+                state: null,
+                validPlayersFilter: (player, _) => player != null && player.IsReady,
+                loop: loop,
+                volume: config.Volume,
+                priority: config.Priority,
+                queue: queue,
+                fadeInDuration: fadeInDuration,
                 persistent: false,
                 lifespan: finalLifespan,
                 autoCleanup: !loop);
@@ -77,7 +143,7 @@
         }
 
         /// <summary>
-        /// Deploys an acoustic source at specific coordinates.
+        /// Deploys an acoustic source at specific coordinates bound to a stack-allocated spatial configuration.
         /// </summary>
         public int PlayAtPosition(AudioKey key, Vector3 position, float? lifespan = null, bool isTransient = false, Player sourcePlayer = null, bool loop = false)
         {
@@ -86,7 +152,7 @@
             if (isTransient && sourcePlayer is not null && !TryAcquireTransientLock(sourcePlayer.GameObject.GetInstanceID(), key)) return 0;
 
             Vector3 targetPosition = position.Sanitize();
-            Func<Player, bool> distanceFilter = p => p is not null && p.IsReady && !p.IsHost && p.IsWithinDistance(targetPosition, config.MaxDistance);
+            SpatialFilterState stateContext = new SpatialFilterState(targetPosition, config.MaxDistance);
 
             float? targetLifespan = lifespan ?? config.DefaultLifespan;
             if (loop && targetLifespan <= 0f)
@@ -94,18 +160,28 @@
                 targetLifespan = null;
             }
 
-            int sessionId = _audioEngine.PlayAudio(
-                config.Key, targetPosition, loop, config.Volume,
-                config.MinDistance, config.MaxDistance, config.IsSpatial, config.Priority,
-                validPlayersFilter: distanceFilter, queue: false, fadeInDuration: 0f,
-                lifespan: targetLifespan, autoCleanup: !loop);
+            int sessionId = _audioEngine.PlayAudio<SpatialFilterState>(
+                key: config.Key,
+                position: targetPosition,
+                state: stateContext,
+                validPlayersFilter: (p, state) => p != null && p.IsReady && !p.IsHost && p.IsWithinDistance(state.TargetPosition, state.MaxDistance),
+                loop: loop,
+                volume: config.Volume,
+                minDistance: config.MinDistance,
+                maxDistance: config.MaxDistance,
+                isSpatial: config.IsSpatial,
+                priority: config.Priority,
+                queue: false,
+                fadeInDuration: 0f,
+                lifespan: targetLifespan,
+                autoCleanup: !loop);
 
             if (sessionId != 0) _activeTrackingSessionIds.Add(sessionId);
             return sessionId;
         }
 
         /// <summary>
-        /// Plays audio source parented directly onto a target player object.
+        /// Plays audio source parented directly onto a target player object utilizing reference-passing structures.
         /// </summary>
         public int PlayAttached(Player target, AudioKey key, bool hearableForAll = false, float? lifespan = null, float fadeInDuration = 0f, bool loop = false)
         {
@@ -113,10 +189,7 @@
             AudioTrackProfile config = GetConfigOrThrow(key);
 
             Vector3 playPosition = target.Position.Sanitize();
-            Func<Player, bool> playerFilter = p => p is not null && p.IsReady && !p.IsHost &&
-                (hearableForAll
-                    ? p.IsWithinDistance(target?.GameObject is not null ? target.Position : playPosition, config.MaxDistance)
-                    : p.GameObject.GetInstanceID() == target.GameObject.GetInstanceID());
+            AttachedFilterState stateContext = new AttachedFilterState(target, playPosition, config.MaxDistance, hearableForAll);
 
             float? targetLifespan = lifespan ?? config.DefaultLifespan;
             if (loop && targetLifespan <= 0f)
@@ -124,18 +197,31 @@
                 targetLifespan = null;
             }
 
-            int sessionId = _audioEngine.PlayAudio(
-                config.Key, playPosition, loop, config.Volume,
-                config.MinDistance, config.MaxDistance, config.IsSpatial, config.Priority,
-                validPlayersFilter: playerFilter, queue: false, fadeInDuration: fadeInDuration,
-                lifespan: targetLifespan, autoCleanup: !loop);
+            int sessionId = _audioEngine.PlayAudio<AttachedFilterState>(
+                key: config.Key,
+                position: playPosition,
+                state: stateContext,
+                validPlayersFilter: (p, state) => p != null && p.IsReady && !p.IsHost &&
+                    (state.HearableForAll
+                        ? p.IsWithinDistance(state.Target?.GameObject != null ? state.Target.Position : state.FallbackPosition, state.MaxDistance)
+                        : p.GameObject.GetInstanceID() == state.Target.GameObject.GetInstanceID()),
+                loop: loop,
+                volume: config.Volume,
+                minDistance: config.MinDistance,
+                maxDistance: config.MaxDistance,
+                isSpatial: config.IsSpatial,
+                priority: config.Priority,
+                queue: false,
+                fadeInDuration: fadeInDuration,
+                lifespan: targetLifespan,
+                autoCleanup: !loop);
 
             if (sessionId != 0) _activeTrackingSessionIds.Add(sessionId);
             return sessionId;
         }
 
         /// <summary>
-        /// Starts real-time tracking sub-frame audio relative to the players forward transform direction.
+        /// Starts real-time tracking sub-frame audio relative to the players forward transform direction via structured state mapping.
         /// </summary>
         public void PlayTrackingAudio(Player player, AudioKey audioKey, float? lifespan = null, bool hearableForAllPlayers = true, Vector3? customOffset = null)
         {
@@ -154,10 +240,19 @@
                 return player.Position + (transformTarget.up * 1.65f) + (transformTarget.forward * 0.001f);
             };
 
-            int sessionId = _audioEngine.PlayTrackingAudio(
-                profile.Key, locationProvider, () => player is not null && player.IsReady && player.IsAlive,
-                profile.Priority, effectiveLifespan, hearableForAllPlayers ? null : p => p is not null && p.GameObject.GetInstanceID() == player.GameObject.GetInstanceID(),
-                profile.Volume, profile.MinDistance, profile.MaxDistance
+            TrackingFilterState stateContext = new TrackingFilterState(player.GameObject.GetInstanceID(), hearableForAllPlayers);
+
+            int sessionId = _audioEngine.PlayTrackingAudio<TrackingFilterState>(
+                key: profile.Key,
+                positionProvider: locationProvider,
+                validationCheck: () => player != null && player.IsReady && player.IsAlive,
+                state: stateContext,
+                targetPlayerFilter: (p, state) => p != null && (state.HearableForAll || p.GameObject.GetInstanceID() == state.TargetInstanceId),
+                priority: profile.Priority,
+                lifespan: effectiveLifespan,
+                volume: profile.Volume,
+                minDistance: profile.MinDistance,
+                maxDistance: profile.MaxDistance
             );
 
             if (sessionId != 0) _activeTrackingSessionIds.Add(sessionId);
@@ -175,24 +270,27 @@
             if (effectiveLifespan <= 0f) return;
 
             OrbitSettings orbitSettings = new(maxRadius, minRadius, angularSpeed, approachSpeed, 0.85f);
-            int sessionId = _audioEngine.PlayOrbitingAudio(
-                profile.Key,
-                () => player.Position,
-                () => player is not null && player.IsAlive && player.IsInDarkRoom(),
-                profile.Volume,
-                profile.MinDistance,
-                profile.MaxDistance,
-                orbitSettings,
-                profile.Priority,
-                effectiveLifespan,
-                targetPlayerFilter: isolated ? p => p is not null && p.GameObject.GetInstanceID() == player.GameObject.GetInstanceID() : null
+            OrbitFilterState stateContext = new OrbitFilterState(player.GameObject.GetInstanceID(), isolated);
+
+            int sessionId = _audioEngine.PlayOrbitingAudio<OrbitFilterState>(
+                key: profile.Key,
+                positionProvider: () => player.Position,
+                validationCheck: () => player != null && player.IsAlive && player.IsInDarkRoom(),
+                volume: profile.Volume,
+                minDistance: profile.MinDistance,
+                maxDistance: profile.MaxDistance,
+                orbitSettings: orbitSettings,
+                state: stateContext,
+                targetPlayerFilter: (p, state) => p != null && (!state.Isolated || p.GameObject.GetInstanceID() == state.TargetInstanceId),
+                priority: profile.Priority,
+                lifespan: effectiveLifespan
             );
 
             if (sessionId != 0) _activeTrackingSessionIds.Add(sessionId);
         }
 
         /// <summary>
-        /// Starts looping orbital spatial audio moving continuously around a fixed vector anchor.
+        /// Starts looping orbital spatial audio moving continuously around a fixed vector anchor point.
         /// </summary>
         public void PlayOrbitingAudio(Vector3 staticPosition, AudioKey audioKey, float? lifespan = null, float maxRadius = 3.2f, float minRadius = 0.6f, float angularSpeed = 1.1f, float approachSpeed = 1.5f, float heightOffset = 0.85f)
         {
@@ -201,9 +299,19 @@
             if (effectiveLifespan <= 0f) return;
 
             OrbitSettings orbitSettings = new(maxRadius, minRadius, angularSpeed, approachSpeed, heightOffset);
-            int sessionId = _audioEngine.PlayOrbitingAudio(
-                profile.Key, () => staticPosition, () => true, profile.Volume, profile.MinDistance, profile.MaxDistance,
-                orbitSettings, profile.Priority, effectiveLifespan, targetPlayerFilter: null
+
+            int sessionId = _audioEngine.PlayOrbitingAudio<object>(
+                key: profile.Key,
+                positionProvider: () => staticPosition,
+                validationCheck: () => true,
+                volume: profile.Volume,
+                minDistance: profile.MinDistance,
+                maxDistance: profile.MaxDistance,
+                orbitSettings: orbitSettings,
+                state: null,
+                targetPlayerFilter: (p, _) => p != null && p.IsReady,
+                priority: profile.Priority,
+                lifespan: effectiveLifespan
             );
 
             if (sessionId != 0) _activeTrackingSessionIds.Add(sessionId);
@@ -253,26 +361,6 @@
             {
                 StopSession(sessionId);
                 _playerAmbienceSessions.Remove(playerAssetId);
-            }
-        }
-
-        /// <summary>
-        /// Silently fades and executes hardware channel eviction loops for a specific session identifier.
-        /// </summary>
-        public void StopSession(int sessionId)
-        {
-            if (sessionId == 0) return;
-            try
-            {
-                _audioEngine.FadeOutAudio(sessionId, _plugin.Audio.DefaultFadeDuration);
-            }
-            catch (Exception ex)
-            {
-                iLogger.Error("Scp575AudioManager.StopSession", $"Engine processing failure on session fadeout {sessionId}: {ex.Message}");
-            }
-            finally
-            {
-                _activeTrackingSessionIds.Remove(sessionId);
             }
         }
 
@@ -382,7 +470,6 @@
             {
                 foreach (AudioTrackProfile profile in group.Profiles)
                 {
-                    // Fluent API Upgrade: Resolved manual name lookup filters using modern Assembly layout queries
                     string resourceName = assembly.FindEmbeddedAsset(profile.Key, ".wav");
                     if (string.IsNullOrEmpty(resourceName)) continue;
 
