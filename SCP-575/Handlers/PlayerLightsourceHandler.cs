@@ -233,7 +233,6 @@ namespace SCP_575.Handlers
                 if (_cooldownUntil.IsCooldownActive(instanceId))
                 {
                     if (_plugin.Hints.IsEnabledLightEmitterCooldownHint) player.SendHint(message, 1.0f);
-                    // Wywo³anie metody zwalniaj¹cej lock na czas I/O audio
                     PlayLightsourceErrorFeedback(player, instanceId);
                     return (true, false);
                 }
