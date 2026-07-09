@@ -9,7 +9,6 @@ using SCP_575.Types;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-
 using Logger = LabApi.Extensions.Misc.iLogger;
 
 namespace SCP_575.Shared.Audio
@@ -45,7 +44,7 @@ namespace SCP_575.Shared.Audio
         {
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
             _audioManager = audioManager ?? throw new ArgumentNullException(nameof(audioManager));
-            _sanityHandler = sanityHandler ?? throw new ArgumentNullException(nameof(sanityHandler));
+            _sanityHandler = sanityHandler ?? throw new ArgumentNullException(sanityHandler));
         }
         #endregion
 
@@ -58,9 +57,6 @@ namespace SCP_575.Shared.Audio
             handle.Tag = DirectorCoroutineTag;
         }
 
-        /// <summary>
-        /// Orchestrates real-time state machine transitions evaluating absolute spatial darkness matrices.
-        /// </summary>
         private IEnumerator<float> HandleTensionPacingLoop()
         {
             while (true)
@@ -76,63 +72,61 @@ namespace SCP_575.Shared.Audio
 
                     int instanceId = player.GameObject.GetInstanceID();
 
-                    if (!_sanityHandler.IsValidPlayer(player))
+                    // CRITICAL BOUNDARY FIX: Centralize frame evaluation telemetry under director monitors
+                    lock (_directorLock)
                     {
-                        _audioManager.StopAmbienceForPlayer(player);
-                        ClearHistoricalPlayerCaches(instanceId);
-                        continue;
-                    }
-
-                    float currentSanity = _sanityHandler.GetCurrentSanity(player);
-
-                    bool isInTrueDarkness = player.IsInTrueDarkness();
-                    bool isInDarkRoom = player.IsInDarkRoom();
-
-                    // =================================================================================
-                    // STATE 3: TRUE DARKNESS (Mrok — Sanity falling, full horror orchestration)
-                    // =================================================================================
-                    if (isInTrueDarkness)
-                    {
-                        _audioManager.PlayAmbienceForPlayer(player, fadeInDuration: 2.0f);
-
-                        bool triggersPanicZone = currentSanity <= _plugin.Audio.PanicDroneSanityThreshold;
-                        float lowSanityThreshold = _plugin.Audio.Tier2DisturbedWhispersThreshold;
-                        bool shouldPlayLowSanityDrone = currentSanity <= lowSanityThreshold && !triggersPanicZone;
-
-                        EvaluatePersistentPanicDrone(player, instanceId, currentSanity, true);
-                        EvaluateLowSanityDrone(player, instanceId, shouldPlayLowSanityDrone);
-
-                        if (!_acousticSuppressionCache.IsCooldownActive(instanceId))
+                        if (!_sanityHandler.IsValidPlayer(player))
                         {
-                            ProcessPlayerStressTick(player, instanceId, currentSanity);
+                            _audioManager.StopAmbienceForPlayer(player);
+                            ClearHistoricalPlayerCachesInternal(instanceId);
+                            continue;
                         }
-                    }
-                    // =================================================================================
-                    // STATE 2: DARK ROOM ONLY / ELEVATOR NEIGHBOR (Szarość — Safe Zone, creep stingers active)
-                    // =================================================================================
-                    else if (isInDarkRoom)
-                    {
-                        _audioManager.PlayAmbienceForPlayer(player, fadeInDuration: 4.0f);
 
-                        EvaluatePersistentPanicDrone(player, instanceId, currentSanity, false);
-                        EvaluateLowSanityDrone(player, instanceId, false);
-                        DecayPlayerStressPassive(instanceId);
+                        float currentSanity = _sanityHandler.GetCurrentSanity(player);
+                        bool isInTrueDarkness = player.IsInTrueDarkness();
+                        bool isInDarkRoom = player.IsInDarkRoom();
 
-                        // Fire a completely harmless, non-lethal background structural audio creep cascade
-                        ExecuteSubtleEnvironmentCreep(player, instanceId);
-                    }
-                    // =================================================================================
-                    // STATE 1: PURE ILLUMINATION (Jasność — Absolute safety and mental recovery)
-                    // =================================================================================
-                    else
-                    {
-                        _audioManager.StopAmbienceForPlayer(player);
-                        EvaluatePersistentPanicDrone(player, instanceId, currentSanity, false);
-                        EvaluateLowSanityDrone(player, instanceId, false);
-                        DecayPlayerStressPassive(instanceId);
-
-                        lock (_directorLock)
+                        // =================================================================================
+                        // STATE 3: TRUE DARKNESS
+                        // =================================================================================
+                        if (isInTrueDarkness)
                         {
+                            _audioManager.PlayAmbienceForPlayer(player, fadeInDuration: 2.0f);
+
+                            bool triggersPanicZone = currentSanity <= _plugin.Audio.PanicDroneSanityThreshold;
+                            float lowSanityThreshold = _plugin.Audio.Tier2DisturbedWhispersThreshold;
+                            bool shouldPlayLowSanityDrone = currentSanity <= lowSanityThreshold && !triggersPanicZone;
+
+                            EvaluatePersistentPanicDroneInternal(player, instanceId, currentSanity, true);
+                            EvaluateLowSanityDroneInternal(player, instanceId, shouldPlayLowSanityDrone);
+
+                            if (!_acousticSuppressionCache.IsCooldownActive(instanceId))
+                            {
+                                ProcessPlayerStressTickInternal(player, instanceId, currentSanity);
+                            }
+                        }
+                        // =================================================================================
+                        // STATE 2: DARK ROOM ONLY / ELEVATOR NEIGHBOR
+                        // =================================================================================
+                        else if (isInDarkRoom)
+                        {
+                            _audioManager.PlayAmbienceForPlayer(player, fadeInDuration: 4.0f);
+
+                            EvaluatePersistentPanicDroneInternal(player, instanceId, currentSanity, false);
+                            EvaluateLowSanityDroneInternal(player, instanceId, false);
+                            DecayPlayerStressPassiveInternal(instanceId);
+                            ExecuteSubtleEnvironmentCreepInternal(player, instanceId);
+                        }
+                        // =================================================================================
+                        // STATE 1: PURE ILLUMINATION
+                        // =================================================================================
+                        else
+                        {
+                            _audioManager.StopAmbienceForPlayer(player);
+                            EvaluatePersistentPanicDroneInternal(player, instanceId, currentSanity, false);
+                            EvaluateLowSanityDroneInternal(player, instanceId, false);
+                            DecayPlayerStressPassiveInternal(instanceId);
+
                             if (_activeClimaxWhisperSessions.TryGetValue(instanceId, out int whisperSessionId))
                             {
                                 _audioManager.StopSession(whisperSessionId);
@@ -148,78 +142,66 @@ namespace SCP_575.Shared.Audio
         {
             if (player?.GameObject is null) return;
             _audioManager.StopAmbienceForPlayer(player);
-            ClearHistoricalPlayerCaches(player.GameObject.GetInstanceID());
+            lock (_directorLock)
+            {
+                ClearHistoricalPlayerCachesInternal(player.GameObject.GetInstanceID());
+            }
         }
         #endregion
 
-        #region Environmental Soundscape Injection (State 2 Primitives)
-        /// <summary>
-        /// Injects subtle audio feedback loops into the transitional gray zone without triggering mechanical gameplay harms.
-        /// </summary>
-        private void ExecuteSubtleEnvironmentCreep(Player player, int instanceId)
+        #region Environmental Soundscape Injection
+        private void ExecuteSubtleEnvironmentCreepInternal(Player player, int instanceId)
         {
-            // Cooldown lock to ensure subtle whispers, static buzzes, and puffs don't overlap or spam channels
             if (!_transientInputNetworkGate.TryAcquireLock(instanceId, TimeSpan.FromSeconds(12f))) return;
 
-            // Fluent API Upgrade: Balanced 3-tier cascade of subtle hauntings for elevators and dark room thresholds
             if (SafeRandom.RollSuccess(35f))
             {
-                // 35% Chance: Play the newly integrated spatial phantom air shift tokens seamlessly
                 _audioManager.PlayAttached(player, AudioKey.Puffs, hearableForAll: false);
             }
             else if (SafeRandom.RollSuccess(25f))
             {
-                // 25% Chance: Play low-volume ambient whispers that keep the player paranoid
                 _audioManager.PlayAttached(player, AudioKey.WhispersSubtle, hearableForAll: false);
             }
             else if (SafeRandom.RollSuccess(15f))
             {
-                // 15% Chance: Play organic local monster breath tracking signatures
                 _audioManager.PlayAttached(player, AudioKey.MonsterBreathLocal, hearableForAll: false);
             }
         }
         #endregion
 
-        #region Stress Mechanics (State 3 Exclusives)
-        private void ProcessPlayerStressTick(Player player, int instanceId, float currentSanity)
+        #region Stress Mechanics
+        private void ProcessPlayerStressTickInternal(Player player, int instanceId, float currentSanity)
         {
             AudioConfig config = _plugin.Audio;
 
-            lock (_directorLock)
+            if (!_tensionCache.TryGetValue(instanceId, out PlayerTensionProfile profile))
             {
-                if (!_tensionCache.TryGetValue(instanceId, out PlayerTensionProfile profile))
-                {
-                    profile = new PlayerTensionProfile();
-                    _tensionCache[instanceId] = profile;
-                }
+                profile = new PlayerTensionProfile();
+                _tensionCache[instanceId] = profile;
+            }
 
-                float sanityRiskFactor = 1.0f - currentSanity / 100f;
-                float tensionGain = _plugin.Sanity.DecayRateBase * (1.0f + sanityRiskFactor * config.TensionSanityRiskMultiplier);
+            float sanityRiskFactor = 1.0f - currentSanity / 100f;
+            float tensionGain = _plugin.Sanity.DecayRateBase * (1.0f + sanityRiskFactor * config.TensionSanityRiskMultiplier);
 
-                profile.CurrentTension = (profile.CurrentTension + tensionGain).Clamp(0f, 100f);
+            profile.CurrentTension = (profile.CurrentTension + tensionGain).Clamp(0f, 100f);
 
-                // Immersion Layer: If the player is halfway to their next climax scare, inject a random shadow puff as an advance warning
-                if (profile.CurrentTension >= (profile.NextTriggerThreshold * 0.5f) && SafeRandom.RollSuccess(12f))
-                {
-                    _audioManager.PlayAttached(player, AudioKey.Puffs, hearableForAll: false);
-                }
+            if (profile.CurrentTension >= (profile.NextTriggerThreshold * 0.5f) && SafeRandom.RollSuccess(12f))
+            {
+                _audioManager.PlayAttached(player, AudioKey.Puffs, hearableForAll: false);
+            }
 
-                if (profile.CurrentTension >= profile.NextTriggerThreshold)
-                {
-                    ExecuteAuditoryClimax(player, currentSanity);
-                    profile.ResetCurve(config);
-                }
+            if (profile.CurrentTension >= profile.NextTriggerThreshold)
+            {
+                ExecuteAuditoryClimax(player, currentSanity);
+                profile.ResetCurve(config);
             }
         }
 
-        private void DecayPlayerStressPassive(int instanceId)
+        private void DecayPlayerStressPassiveInternal(int instanceId)
         {
-            lock (_directorLock)
+            if (_tensionCache.TryGetValue(instanceId, out PlayerTensionProfile profile))
             {
-                if (_tensionCache.TryGetValue(instanceId, out PlayerTensionProfile profile))
-                {
-                    profile.CurrentTension = (profile.CurrentTension - _plugin.Audio.TensionPassiveDecayRate).Clamp(0f, 100f);
-                }
+                profile.CurrentTension = (profile.CurrentTension - _plugin.Audio.TensionPassiveDecayRate).Clamp(0f, 100f);
             }
         }
 
@@ -244,37 +226,31 @@ namespace SCP_575.Shared.Audio
                 if (player?.GameObject is not null)
                 {
                     int instanceId = player.GameObject.GetInstanceID();
-                    lock (_directorLock)
-                    {
-                        if (sessionId != 0) _activeClimaxWhisperSessions[instanceId] = sessionId;
-                    }
+                    if (sessionId != 0) _activeClimaxWhisperSessions[instanceId] = sessionId;
                 }
             }
         }
         #endregion
 
         #region Drone Management Loops
-        private void EvaluatePersistentPanicDrone(Player player, int instanceId, float currentSanity, bool activeInDarkness)
+        private void EvaluatePersistentPanicDroneInternal(Player player, int instanceId, float currentSanity, bool activeInDarkness)
         {
             AudioConfig config = _plugin.Audio;
             bool triggersPanicZone = activeInDarkness && currentSanity <= config.PanicDroneSanityThreshold;
 
-            lock (_directorLock)
+            if (triggersPanicZone)
             {
-                if (triggersPanicZone)
-                {
-                    if (_activePanicDroneSessions.ContainsKey(instanceId)) return;
+                if (_activePanicDroneSessions.ContainsKey(instanceId)) return;
 
-                    int sessionId = _audioManager.PlayAttached(player, AudioKey.WhispersPanicDrone, hearableForAll: false, fadeInDuration: config.PanicDroneFadeInDuration, loop: true);
-                    if (sessionId != 0) _activePanicDroneSessions[instanceId] = sessionId;
-                }
-                else
+                int sessionId = _audioManager.PlayAttached(player, AudioKey.WhispersPanicDrone, hearableForAll: false, fadeInDuration: config.PanicDroneFadeInDuration, loop: true);
+                if (sessionId != 0) _activePanicDroneSessions[instanceId] = sessionId;
+            }
+            else
+            {
+                if (_activePanicDroneSessions.TryGetValue(instanceId, out int sessionId))
                 {
-                    if (_activePanicDroneSessions.TryGetValue(instanceId, out int sessionId))
-                    {
-                        _audioManager.StopSession(sessionId);
-                        _activePanicDroneSessions.Remove(instanceId);
-                    }
+                    _audioManager.StopSession(sessionId);
+                    _activePanicDroneSessions.Remove(instanceId);
                 }
             }
         }
@@ -283,20 +259,25 @@ namespace SCP_575.Shared.Audio
         {
             lock (_directorLock)
             {
-                if (shouldPlayDrone)
-                {
-                    if (_activeAmbientDroneSessions.ContainsKey(instanceId)) return;
+                EvaluateLowSanityDroneInternal(player, instanceId, shouldPlayDrone);
+            }
+        }
 
-                    int sessionId = _audioManager.PlayAttached(player, AudioKey.SanityLowDrone, hearableForAll: false, fadeInDuration: 2.0f, loop: true);
-                    if (sessionId != 0) _activeAmbientDroneSessions[instanceId] = sessionId;
-                }
-                else
+        private void EvaluateLowSanityDroneInternal(Player player, int instanceId, bool shouldPlayDrone)
+        {
+            if (shouldPlayDrone)
+            {
+                if (_activeAmbientDroneSessions.ContainsKey(instanceId)) return;
+
+                int sessionId = _audioManager.PlayAttached(player, AudioKey.SanityLowDrone, hearableForAll: false, fadeInDuration: 2.0f, loop: true);
+                if (sessionId != 0) _activeAmbientDroneSessions[instanceId] = sessionId;
+            }
+            else
+            {
+                if (_activeAmbientDroneSessions.TryGetValue(instanceId, out int sessionId))
                 {
-                    if (_activeAmbientDroneSessions.TryGetValue(instanceId, out int sessionId))
-                    {
-                        _audioManager.StopSession(sessionId);
-                        _activeAmbientDroneSessions.Remove(instanceId);
-                    }
+                    _audioManager.StopSession(sessionId);
+                    _activeAmbientDroneSessions.Remove(instanceId);
                 }
             }
         }
@@ -305,10 +286,13 @@ namespace SCP_575.Shared.Audio
         #region External Game Telemetry Dispatches
         public void ProcessBlackoutAudioSequence(Player randomTarget)
         {
-            if (!_audioCooldowns.TryAcquireLock(AudioKey.MonsterRoarGlobal, TimeSpan.FromSeconds(45f)))
+            lock (_directorLock)
             {
-                Logger.Debug("AudioDirector", "Execution blocked: MonsterRoarGlobal channel active.", _plugin.Debug);
-                return;
+                if (!_audioCooldowns.TryAcquireLock(AudioKey.MonsterRoarGlobal, TimeSpan.FromSeconds(45f)))
+                {
+                    Logger.Debug("AudioDirector", "Execution blocked: MonsterRoarGlobal channel active.", _plugin.Debug);
+                    return;
+                }
             }
 
             AudioConfig audioConfig = _plugin.Audio;
@@ -359,11 +343,11 @@ namespace SCP_575.Shared.Audio
             if (target?.GameObject is null) return;
             int id = target.GameObject.GetInstanceID();
 
-            // Fluent API Upgrade: Converted manual DateTime subtract math into deterministic dictionary gates
-            if (_playerLastAttackAudioTime.TryAcquireLock(id, TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds)))
+            lock (_directorLock)
             {
-                _audioManager.PlayAtPosition(AudioKey.AnomalousImpact, target.Position);
+                if (!_playerLastAttackAudioTime.TryAcquireLock(id, TimeSpan.FromSeconds(_plugin.Sanity.AttackAudioCooldownSeconds))) return;
             }
+            _audioManager.PlayAtPosition(AudioKey.AnomalousImpact, target.Position);
         }
 
         public void ProcessExplosionImpact(Vector3 position, ScpProjectileImpactType.ProjectileImpactType impactType, bool isBlackoutActive = false)
@@ -425,7 +409,10 @@ namespace SCP_575.Shared.Audio
             if (player?.GameObject is null || !player.IsReady) return;
             int instanceId = player.GameObject.GetInstanceID();
 
-            if (_acousticSuppressionCache.IsCooldownActive(instanceId) || !_transientInputNetworkGate.TryAcquireLock(instanceId, TimeSpan.FromMilliseconds(90))) return;
+            lock (_directorLock)
+            {
+                if (_acousticSuppressionCache.IsCooldownActive(instanceId) || !_transientInputNetworkGate.TryAcquireLock(instanceId, TimeSpan.FromMilliseconds(90))) return;
+            }
 
             AudioConfig config = _plugin.Audio;
 
@@ -445,7 +432,10 @@ namespace SCP_575.Shared.Audio
             if (player?.GameObject is null || !player.IsReady) return;
             int instanceId = player.GameObject.GetInstanceID();
 
-            if (_acousticSuppressionCache.IsCooldownActive(instanceId)) return;
+            lock (_directorLock)
+            {
+                if (_acousticSuppressionCache.IsCooldownActive(instanceId)) return;
+            }
 
             if (isFinalBlow)
             {
@@ -499,33 +489,30 @@ namespace SCP_575.Shared.Audio
         #endregion
 
         #region Cleanup Routines
-        private void ClearHistoricalPlayerCaches(int instanceId)
+        private void ClearHistoricalPlayerCachesInternal(int instanceId)
         {
-            lock (_directorLock)
+            _tensionCache.Remove(instanceId);
+            _acousticSuppressionCache.Remove(instanceId);
+            _lastCombatAudioTime.Remove(instanceId);
+            _transientInputNetworkGate.Remove(instanceId);
+            _playerLastAttackAudioTime.Remove(instanceId);
+
+            if (_activePanicDroneSessions.TryGetValue(instanceId, out int panicId))
             {
-                _tensionCache.Remove(instanceId);
-                _acousticSuppressionCache.Remove(instanceId);
-                _lastCombatAudioTime.Remove(instanceId);
-                _transientInputNetworkGate.Remove(instanceId);
-                _playerLastAttackAudioTime.Remove(instanceId);
+                _audioManager.StopSession(panicId);
+                _activePanicDroneSessions.Remove(instanceId);
+            }
 
-                if (_activePanicDroneSessions.TryGetValue(instanceId, out int panicId))
-                {
-                    _audioManager.StopSession(panicId);
-                    _activePanicDroneSessions.Remove(instanceId);
-                }
+            if (_activeAmbientDroneSessions.TryGetValue(instanceId, out int ambientId))
+            {
+                _audioManager.StopSession(ambientId);
+                _activeAmbientDroneSessions.Remove(instanceId);
+            }
 
-                if (_activeAmbientDroneSessions.TryGetValue(instanceId, out int ambientId))
-                {
-                    _audioManager.StopSession(ambientId);
-                    _activeAmbientDroneSessions.Remove(instanceId);
-                }
-
-                if (_activeClimaxWhisperSessions.TryGetValue(instanceId, out int whisperId))
-                {
-                    _audioManager.StopSession(whisperId);
-                    _activeClimaxWhisperSessions.Remove(instanceId);
-                }
+            if (_activeClimaxWhisperSessions.TryGetValue(instanceId, out int whisperId))
+            {
+                _audioManager.StopSession(whisperId);
+                _activeClimaxWhisperSessions.Remove(instanceId);
             }
         }
 
