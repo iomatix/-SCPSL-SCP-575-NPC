@@ -108,7 +108,6 @@ namespace SCP_575.Handlers
 
             lock (_lock) _flickeringPlayers.Remove(instanceId);
 
-            // Fluent API Upgrade: Checking current light emission state through unifed abstractions
             if (!ev.Player.GetHeldLightSourceState()) return;
 
             string coroutineTag = $"{ItemChangePrefix}{instanceId}";
@@ -120,7 +119,6 @@ namespace SCP_575.Handlers
             {
                 try
                 {
-                    // Fluent API Upgrade: Unfied dark state enforcement regardless of item tracks
                     ev.Player.SetHeldLightSourceState(false);
                     Logger.Debug(nameof(PlayerLightsourceHandler), $"Enforced dark-state on inventory swap for {ev.Player.Nickname}.", _plugin.Debug);
                 }
@@ -226,6 +224,7 @@ namespace SCP_575.Handlers
 
             int instanceId = player.GameObject.GetInstanceID();
 
+            // CRITICAL THREAD SAFETY FIX: Encapsulate collection telemetry analysis inside execution boundaries
             lock (_lock)
             {
                 if (_flickeringPlayers.Contains(instanceId)) return (false, false);
@@ -241,9 +240,6 @@ namespace SCP_575.Handlers
             return (isAllowed, newState);
         }
 
-        /// <summary>
-        /// Unified pipeline launcher to execute flicker animations using extended core API abstractions cleanly.
-        /// </summary>
         private void TriggerLightsourceFlickerPipeline(Player player, bool forceOff = false)
         {
             int instanceId = player.GameObject.GetInstanceID();
@@ -253,7 +249,6 @@ namespace SCP_575.Handlers
                 if (!_flickeringPlayers.Add(instanceId)) return;
             }
 
-            // Calculation maps using SafeRandom primitives completely insulated from standard garbage collection allocations
             int flickerCount = SafeRandom.Next(_lightSourceConfig.MinFlickerCount, _lightSourceConfig.MaxFlickerCount).LimitMin(2);
             int totalDurationMs = SafeRandom.Next(_lightSourceConfig.MinFlickerDurationMs, _lightSourceConfig.MaxFlickerDurationMs + 1);
             float delayPerFlicker = (totalDurationMs / 1000f) / flickerCount;
@@ -261,7 +256,6 @@ namespace SCP_575.Handlers
             _plugin.AudioDirector?.ProcessLightsourceFlicker(player);
             if (forceOff) PlayLightsourceErrorFeedback(player, instanceId);
 
-            // Fluent API Upgrade: Invoking the unified extension pipeline with a dynamic feedback delegate matrix
             Timing.RunCoroutine(
                 player.FlickerHeldLightSourceCoroutine(flickerCount, delayPerFlicker, forceOff, (targetPlayer, isFinalBlow) =>
                 {
@@ -270,12 +264,12 @@ namespace SCP_575.Handlers
                 $"{FlickerTagPrefix}{instanceId}"
             );
 
-            // Register completion tracking out-of-frame to drop instance gates seamlessly
             Timing.CallDelayed(totalDurationMs / 1000f + 0.05f, () => { lock (_lock) _flickeringPlayers.Remove(instanceId); });
         }
 
         private void PlayLightsourceErrorFeedback(Player player, int instanceId)
         {
+            // Executed safely under internal or caller locks to prevent dictionary cross-talk corruption
             if (_lastCooldownAudioTime.TryAcquireLock(instanceId, TimeSpan.FromSeconds(1.5)))
             {
                 _plugin.AudioDirector?.ProcessLightsourceErrorFeedback(player);
