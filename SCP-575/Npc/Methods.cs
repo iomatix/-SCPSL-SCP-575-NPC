@@ -572,8 +572,8 @@ namespace SCP_575.Npc
                 CassieExtensions.CassieClear();
 
             double duration = isGlitchy
-                ? CassieExtensions.Cassie_GlitchyMessage(sanitizedMessage, _plugin.Cassie.GlitchChance, _plugin.Cassie.JamChance, sanitizedMessage)
-                : CassieExtensions.Cassie_Message(sanitizedMessage);
+                ? CassieExtensions.DispatchGlitchyMessage(sanitizedMessage, _plugin.Cassie.GlitchChance, _plugin.Cassie.JamChance)
+                : CassieExtensions.DispatchMessage(sanitizedMessage);
 
             StartCassieCooldown(duration);
             return duration;
