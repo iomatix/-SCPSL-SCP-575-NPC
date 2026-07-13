@@ -206,7 +206,7 @@ namespace SCP_575.Npc
                     FlickerAffectedZones();
 
                 yield return Timing.WaitForSeconds((float)startMessageDuration + _plugin.Blackout.BlackoutBufferTime);
-                TriggerCassieMessage(_plugin.Cassie.CassiePostMessage);
+                TriggerCassieMessage(_plugin.Cassie.CassiePostMessage, isGlitchy: true);
             }
 
             Player targetPlayer = null;
@@ -420,7 +420,7 @@ namespace SCP_575.Npc
         {
             if (!occurred)
             {
-                if (!IsBlackoutActive) TriggerCassieMessage(_plugin.Cassie.CassieMessageWrong);
+                if (!IsBlackoutActive) TriggerCassieMessage(_plugin.Cassie.CassieMessageWrong, isGlitchy: true);
                 yield break;
             }
 
@@ -433,7 +433,7 @@ namespace SCP_575.Npc
 
             if (!IsBlackoutActive)
             {
-                double endMessageDuration = TriggerCassieMessage(_plugin.Cassie.CassieMessageEnd);
+                double endMessageDuration = TriggerCassieMessage(_plugin.Cassie.CassieMessageEnd, isGlitchy: true);
                 yield return Timing.WaitForSeconds((float)endMessageDuration + 0.5f);
                 ResetTeslaGates();
                 ZoneExtensions.All.TurnOnLights();
