@@ -34,7 +34,7 @@ namespace SCP_575
         private Scp575AudioManager _audioManager;
         private Scp575AudioDirector _audioDirector;
 
-        private NestingNode<Plugin, Methods> _npcNode;
+        private Methods _npcMethods;
 
         private bool _isEventActive;
         private bool _isConfigLoaded;
@@ -64,8 +64,7 @@ namespace SCP_575
             set => _isEventActive = value;
         }
 
-        public NestingNode<Plugin, Methods> NpcNestingObj => _npcNode;
-        public Methods NpcLogic => _npcNode.Logic;
+        public Methods NpcLogic => _npcMethods;
         public Scp575DamageSystem DamageSystem => _damageSystem;
         public Scp575AudioManager AudioManager => _audioManager;
         public Scp575AudioDirector AudioDirector => _audioDirector;
@@ -155,8 +154,8 @@ namespace SCP_575
                             _ragdollHandler, _lightsourceHandler, _sanityHandler, _mapHandler
                         };
 
-                        // Action 4: Commit internal behavior node composition
-                        _npcNode = new NestingNode<Plugin, Methods>(this, plugin => new Methods(plugin));
+                        // Action 4: Commit internal behavior
+                        _npcMethods = new Methods(this);
                     })
                     .InitializeModule(() =>
                     {
@@ -235,7 +234,7 @@ namespace SCP_575
             _damageSystem = null;
             _audioDirector = null;
             _audioManager = null;
-            _npcNode = null;
+            _npcMethods = null;
             _activeHandlers = null;
             Singleton = null;
         }

@@ -154,15 +154,15 @@ namespace SCP_575.Shared.Audio
         {
             if (!_transientInputNetworkGate.TryAcquireLock(instanceId, TimeSpan.FromSeconds(12f))) return;
 
-            if (SafeRandom.RollSuccess(35f))
+            if (35f.RollChance())
             {
                 _audioManager.PlayAttached(player, AudioKey.Puffs, hearableForAll: false);
             }
-            else if (SafeRandom.RollSuccess(25f))
+            else if (25f.RollChance())
             {
                 _audioManager.PlayAttached(player, AudioKey.WhispersSubtle, hearableForAll: false);
             }
-            else if (SafeRandom.RollSuccess(15f))
+            else if (15f.RollChance())
             {
                 _audioManager.PlayAttached(player, AudioKey.MonsterBreathLocal, hearableForAll: false);
             }
@@ -185,7 +185,7 @@ namespace SCP_575.Shared.Audio
 
             profile.CurrentTension = (profile.CurrentTension + tensionGain).Clamp(0f, 100f);
 
-            if (profile.CurrentTension >= (profile.NextTriggerThreshold * 0.5f) && SafeRandom.RollSuccess(12f))
+            if (profile.CurrentTension >= (profile.NextTriggerThreshold * 0.5f) && 12f.RollChance())
             {
                 _audioManager.PlayAttached(player, AudioKey.Puffs, hearableForAll: false);
             }

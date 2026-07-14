@@ -30,7 +30,7 @@ namespace SCP_575.Handlers
         /// </summary>
         public override void OnServerWaitingForPlayers()
         {
-            _plugin.NpcNestingObj?.Logic.Disable();
+            _plugin.Disable();
             Logger.Info(nameof(LifecycleHandler), "Round reset. SCP-575 ready for next session.");
         }
 
@@ -61,7 +61,7 @@ namespace SCP_575.Handlers
             {
                 try
                 {
-                    _plugin.NpcLogic.Init(roll);
+                    _plugin.NpcLogic?.Init(roll);
                 }
                 catch (Exception ex)
                 {
@@ -75,7 +75,7 @@ namespace SCP_575.Handlers
         /// </summary>
         public override void OnServerRoundEnded(RoundEndedEventArgs ev)
         {
-            _plugin.NpcNestingObj?.Logic.Disable();
+            _plugin.NpcLogic?.Disable();
             Logger.Info(nameof(LifecycleHandler), "Round ended confirmed. SCP-575 systems safely disabled.");
         }
         #endregion

@@ -50,21 +50,13 @@ namespace SCP_575.Handlers
         {
             if (!_plugin.IsEventActive || ev?.Elevator is null) return;
 
-            FacilityZone? elevatorZone = null;
-            foreach (FacilityZone zone in ZoneExtensions.All)
-            {
-                if (zone.GetElevators().Any(e => e == ev.Elevator))
-                {
-                    elevatorZone = zone;
-                    break;
-                }
-            }
+           FacilityZone targetZone = ev.Elevator.GetZone();
 
-            if (elevatorZone is null) return;
+            if (targetZone == FacilityZone.None) return;
 
             string flickerTag = $"ElevatorFlicker_{ev.Elevator.GetHashCode()}";
 
-            if (_plugin.NpcLogic.IsZoneUnderBlackout(elevatorZone.Value))
+            if (_plugin.NpcLogic.IsZoneUnderBlackout(targetZone))
             {
                 lock (_lock)
                 {

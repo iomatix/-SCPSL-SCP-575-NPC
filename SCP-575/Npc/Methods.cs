@@ -298,7 +298,7 @@ namespace SCP_575.Npc
 
         private bool AttemptZoneBlackout(FacilityZone zone, float chance, string cassie, float duration)
         {
-            if (!_plugin.IsEventActive || !chance.RollSuccess()) return false;
+            if (!_plugin.IsEventActive || !chance.RollChance()) return false;
 
             zone.TurnOffLights(duration);
 
@@ -348,7 +348,7 @@ namespace SCP_575.Npc
             if (!_plugin.IsEventActive || room is null) return false;
 
             var (chance, cassie) = GetRoomBlackoutParams(room.Zone);
-            if (!forced && !chance.RollSuccess()) return false;
+            if (!forced && !chance.RollChance()) return false;
 
             HandleRoomBlackout(room, duration, forced);
 

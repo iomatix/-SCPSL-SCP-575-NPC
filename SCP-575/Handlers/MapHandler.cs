@@ -82,7 +82,7 @@ namespace SCP_575.Handlers
                             continue;
 
                         float spawnChance = GetZoneSpawnChance(room.Zone);
-                        if (spawnChance <= 0f || !spawnChance.RollSuccess())
+                        if (!spawnChance.RollChance())
                             continue;
 
                         Vector3 spawnPosition = room.Position + new Vector3(0f, 0.6f, 0f);
