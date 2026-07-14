@@ -165,8 +165,10 @@ namespace SCP_575
                     }).InitializeModule(() =>
                     {
                         // Action 5: Instantiate NPC logic
-                       _npcMethods = new Methods(this);
+                        _npcMethods = new Methods(this);
                     });
+
+                Logger.Info(nameof(Plugin), $"{Name} (v{Version}) has been initialized successfully.");
             }
             catch (Exception ex)
             {
