@@ -69,7 +69,6 @@ namespace SCP_575.Npc
             _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
             _lightsourceHandler = _plugin.LightsourceHandler ?? throw new InvalidOperationException("LightsourceHandler missing.");
             _sanityHandler = _plugin.SanityHandler ?? throw new InvalidOperationException("SanityHandler missing.");
-
             Logger.Debug(nameof(Methods), "SCP-575 core execution registry bound to Fluent extension tracks.", _plugin.Debug);
         }
         #endregion
@@ -108,9 +107,9 @@ namespace SCP_575.Npc
             float spawnRoll = roll < 0f ? SafeRandom.Range(0f, 100f) : roll;
 
             if (spawnRoll <= _plugin.Blackout.EventChance)
-            {
-                _isInitialized = true;
+            {                _isInitialized = true;
                 _plugin.IsEventActive = true;
+
 
                 Logger.Info(nameof(Methods), $"SCP-575 threat matrix active ({spawnRoll}% <= {_plugin.Blackout.EventChance}%). Loops starting.");
 

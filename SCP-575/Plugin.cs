@@ -3,6 +3,7 @@ using LabApi.Extensions.Compatibility;
 using LabApi.Extensions.Nesting;
 using LabApi.Extensions.Plugin;
 using LabApi.Loader.Features.Plugins;
+using SCP_575.Commands;
 using SCP_575.ConfigObjects;
 using SCP_575.Handlers;
 using SCP_575.Npc;
@@ -19,6 +20,8 @@ namespace SCP_575
     /// </summary>
     public class Plugin : Plugin<Config>
     {
+        public static Plugin Instance;
+
         #region Private Subsystem Handlers
         private LifecycleHandler _lifecycleHandler;
         private GeneratorHandler _generatorHandler;
@@ -43,10 +46,6 @@ namespace SCP_575
         #endregion
 
         #region Operational API Properties
-        /// <summary>
-        /// Gets the global thread-safe singleton instance of the plugin context.
-        /// </summary>
-        public static Plugin Singleton { get; private set; }
 
         public PlayerSanityHandler SanityHandler => _sanityHandler;
         public PlayerLightsourceHandler LightsourceHandler => _lightsourceHandler;
@@ -112,19 +111,17 @@ namespace SCP_575
 
             _isConfigLoaded = true;
         }
-
         /// <summary>
         /// Instantiates runtime subsystems, registers pipeline hooks, and sets up the anomaly context.
         /// </summary>
         public override void Enable()
         {
+            Instance = this;
             if (!_isConfigLoaded)
             {
                 LoadConfigs();
                 ExiledCompatibilityLayer.ExecuteFallback(this);
             }
-
-            Singleton = this;
 
             try
             {
@@ -138,8 +135,6 @@ namespace SCP_575
                         _sanityHandler = new PlayerSanityHandler(this);
                         _audioDirector = new Scp575AudioDirector(this, _audioManager, _sanityHandler);
 
-                        // Action 1a: Instantiate NPC logic
-                        _npcMethods = new Methods(this);
 
                         // Action 2: Instantiate structural event proxy-handlers
                         _lifecycleHandler = new LifecycleHandler(this);
@@ -160,13 +155,18 @@ namespace SCP_575
                     })
                     .InitializeModule(() =>
                     {
-                        // Action 5: Wake up specialized worker layers and bind event streams
+                        // Action 4: Wake up specialized worker layers and bind event streams
                         _sanityHandler?.Initialize();
                         _lightsourceHandler?.Initialize();
                         _audioDirector?.Initialize();
 
                         if (_activeHandlers != null)
                             HandlerExtensions.RegisterAll(_activeHandlers);
+
+                    }).InitializeModule(() =>
+                    {
+                        // Action 5: Instantiate NPC logic
+                        _npcMethods = new Methods(this);
                     });
             }
             catch (Exception ex)
@@ -237,7 +237,6 @@ namespace SCP_575
             _audioManager = null;
             _npcMethods = null;
             _activeHandlers = null;
-            Singleton = null;
         }
         #endregion
     }

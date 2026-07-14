@@ -2,8 +2,10 @@
 using LabApi.Extensions;
 using LabApi.Extensions.Misc;
 using LabApi.Features.Wrappers;
+using LabApi.Loader.Features.Plugins;
 using RemoteAdmin;
 using SCP_575.Npc;
+using SCP_575.Shared;
 using System;
 using FacilityZone = MapGeneration.FacilityZone;
 
@@ -56,6 +58,8 @@ namespace SCP_575.Commands
         /// <inheritdoc />
         public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
+            Plugin _plugin = Plugin.Instance;
+
             if (sender is PlayerCommandSender playerSender && !playerSender.CheckPermission(PlayerPermissions.FacilityManagement))
             {
                 response = "Unauthorized Command Execution: You do not possess the required administrative clearance (FacilityManagement) to call this command.";
@@ -68,8 +72,7 @@ namespace SCP_575.Commands
                 return false;
             }
 
-            Plugin plugin = Plugin.Singleton;
-            if (plugin?.NpcLogic is null)
+            if (_plugin?.NpcLogic == null)
             {
                 response = "Execution Critical Failure: The central SCP-575 runtime singleton or unified core NpcLogic module is offline.";
                 return false;
@@ -93,31 +96,31 @@ namespace SCP_575.Commands
             {
                 case SubCommand.Init:
                 case SubCommand.Start:
-                    if (plugin.IsEventActive)
+                    if (_plugin.IsEventActive)
                     {
                         response = "Initialization Cancelled: SCP-575 horror pacing mechanisms are already active.";
                         return false;
                     }
 
-                    plugin.NpcLogic.Init();
+                    _plugin.NpcLogic.Init();
                     response = "SUCCESS: SCP-575 anomaly ecosystem forced online.";
                     return true;
 
                 case SubCommand.Stop:
                 case SubCommand.Disable:
-                    if (!plugin.IsEventActive)
+                    if (!_plugin.IsEventActive)
                     {
                         response = "Teardown Aborted: The SCP-575 execution framework is already resting.";
                         return false;
                     }
 
-                    plugin.NpcLogic.Disable();
+                    _plugin.NpcLogic.Disable();
                     response = "SUCCESS: Explicit runtime teardown completed.";
                     return true;
 
                 case SubCommand.Blackout:
                 case SubCommand.Trigger:
-                    if (!plugin.IsEventActive)
+                    if (!_plugin.IsEventActive)
                     {
                         response = "Trigger Denied: The global event framework is offline.";
                         return false;
@@ -139,17 +142,17 @@ namespace SCP_575.Commands
                             return false;
                         }
 
-                        plugin.NpcLogic.ForceZoneBlackoutEvent(zoneInterpretation.Value);
+                        _plugin.NpcLogic.ForceZoneBlackoutEvent(zoneInterpretation.Value);
                         response = $"SUCCESS: Targeted blackout sequence dispatched onto zone sector: [{zoneInterpretation.Value}].";
                         return true;
                     }
 
-                    plugin.NpcLogic.ForceGlobalBlackoutEvent();
+                    _plugin.NpcLogic.ForceGlobalBlackoutEvent();
                     response = "SUCCESS: Global power grid collapse triggered.";
                     return true;
 
                 case SubCommand.SetStacks:
-                    if (!plugin.IsEventActive)
+                    if (!_plugin.IsEventActive)
                     {
                         response = "Stack Adjustment Denied: The anomaly system must be active.";
                         return false;
@@ -163,17 +166,17 @@ namespace SCP_575.Commands
 
                     if (targetStacks == 0)
                     {
-                        plugin.NpcLogic.Reset575();
+                        _plugin.NpcLogic.Reset575();
                         response = "SUCCESS: Blackout stack accumulation counter cleared to 0.";
                         return true;
                     }
 
-                    UpdateBlackoutStackMatrix(plugin.NpcLogic, targetStacks);
-                    response = $"SUCCESS: Running blackout stack count locked at: {plugin.NpcLogic.GetCurrentBlackoutStacks}";
+                    UpdateBlackoutStackMatrix(_plugin.NpcLogic, targetStacks);
+                    response = $"SUCCESS: Running blackout stack count locked at: {_plugin.NpcLogic.GetCurrentBlackoutStacks}";
                     return true;
 
                 case SubCommand.ChangeStacks:
-                    if (!plugin.IsEventActive)
+                    if (!_plugin.IsEventActive)
                     {
                         response = "Relative Shift Denied: The anomaly system must be active.";
                         return false;
@@ -185,14 +188,14 @@ namespace SCP_575.Commands
                         return false;
                     }
 
-                    int calculatedTarget = (plugin.NpcLogic.GetCurrentBlackoutStacks + stackDelta).LimitMin(0);
-                    UpdateBlackoutStackMatrix(plugin.NpcLogic, calculatedTarget);
+                    int calculatedTarget = (_plugin.NpcLogic.GetCurrentBlackoutStacks + stackDelta).LimitMin(0);
+                    UpdateBlackoutStackMatrix(_plugin.NpcLogic, calculatedTarget);
 
-                    response = $"SUCCESS: Absolute blackout stack accumulation updated to: {plugin.NpcLogic.GetCurrentBlackoutStacks}";
+                    response = $"SUCCESS: Absolute blackout stack accumulation updated to: {_plugin.NpcLogic.GetCurrentBlackoutStacks}";
                     return true;
 
                 case SubCommand.Sanity:
-                    if (!plugin.IsEventActive)
+                    if (!_plugin.IsEventActive)
                     {
                         response = "Sanity Mutation Denied: Neural metric tracking arrays are offline.";
                         return false;
@@ -247,13 +250,13 @@ namespace SCP_575.Commands
                         return false;
                     }
 
-                    if (plugin.SanityHandler is null)
+                    if (_plugin.SanityHandler is null)
                     {
                         response = "Execution Failure: The PlayerSanityHandler tracking core instance is currently unavailable.";
                         return false;
                     }
 
-                    float currentSanity = plugin.SanityHandler.GetCurrentSanity(targetPlayer);
+                    float currentSanity = _plugin.SanityHandler.GetCurrentSanity(targetPlayer);
                     float finalSanity = currentSanity;
 
                     switch (actionInterpretation.Value)
@@ -264,7 +267,7 @@ namespace SCP_575.Commands
                     }
 
                     finalSanity = finalSanity.Clamp(0f, 100f);
-                    plugin.SanityHandler.SetPlayerSanity(targetPlayer, finalSanity);
+                    _plugin.SanityHandler.SetPlayerSanity(targetPlayer, finalSanity);
 
                     response = $"SUCCESS: Neuro-integrity mapping updated for player [{targetPlayer.Nickname}]. Sanity adjusted from {currentSanity}% to {finalSanity}%.";
                     return true;

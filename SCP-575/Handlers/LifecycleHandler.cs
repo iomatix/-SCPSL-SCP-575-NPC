@@ -57,7 +57,7 @@ namespace SCP_575.Handlers
             Logger.Debug(nameof(LifecycleHandler), $"Spawn roll calculated: {roll}%. Scheduling safe initialization buffer.", _plugin.Debug);
 
             // Fluent API Alignment: Upgraded generic structural delays to conditional gate execution pipelines safely
-            TimingExtensions.CallDelayedIf(1.0f, () => !_plugin.IsEventActive && _plugin.NpcLogic is not null, () =>
+            TimingExtensions.CallDelayedIf(1.0f, () => !_plugin.IsEventActive, () =>
             {
                 try
                 {
