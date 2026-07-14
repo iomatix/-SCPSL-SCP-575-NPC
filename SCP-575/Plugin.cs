@@ -40,6 +40,7 @@ namespace SCP_575
         private Methods _npcMethods;
 
         private bool _isEventActive;
+        private static readonly object _configLock = new();
         private bool _isConfigLoaded;
 
         private LabApi.Events.CustomHandlers.CustomEventsHandler[] _activeHandlers;
@@ -94,29 +95,45 @@ namespace SCP_575
         /// </summary>
         public override void LoadConfigs()
         {
-            Logger.Info(nameof(Plugin), "Initializing sub-configuration matrix for SCP-575 NPC.");
+            // FIX: Thread-safe double-check lock to completely eliminate race conditions during slow disk I/O operations
+            if (_isConfigLoaded) return;
 
-            base.LoadConfigs();
-            Config?.Validate();
+            lock (_configLock)
+            {
+                if (_isConfigLoaded) return;
 
-            PluginBuilder.Create(this)
-                    .BindSubConfig<AudioConfig>("audio_settings.yml", cfg => Audio = cfg, cfg => cfg.Validate())
-                    .BindSubConfig<BlackoutConfig>("blackout_engine.yml", cfg => Blackout = cfg, cfg => cfg.Validate())
-                    .BindSubConfig<FlashlightSpawnConfig>("flashlight_spawning.yml", cfg => FlashlightSpawn = cfg, cfg => cfg.Validate())
-                    .BindSubConfig<NpcConfig>("npc_behavior.yml", cfg => Npc = cfg, cfg => cfg.Validate())
-                    .BindSubConfig<PlayerSanityConfig>("sanity_progression.yml", cfg => Sanity = cfg, cfg => cfg.Validate())
-                    .BindSubConfig<PlayerLightsourceConfig>("player_lightsources.yml", cfg => Lightsource = cfg, cfg => cfg.Validate())
-                    .BindSubConfig<HintsConfig>("hints_placement.yml", cfg => Hints = cfg, cfg => cfg.Validate())
-                    .BindSubConfig<CassieConfig>("cassie_announcements.yml", cfg => Cassie = cfg, cfg => cfg.Validate());
+                Logger.Info(nameof(Plugin), "Initializing sub-configuration matrix for SCP-575 NPC.");
 
-            _isConfigLoaded = true;
+                base.LoadConfigs();
+                Config?.Validate();
+
+                PluginBuilder.Create(this)
+                        .BindSubConfig<AudioConfig>("audio_settings.yml", cfg => Audio = cfg, cfg => cfg.Validate())
+                        .BindSubConfig<BlackoutConfig>("blackout_engine.yml", cfg => Blackout = cfg, cfg => cfg.Validate())
+                        .BindSubConfig<FlashlightSpawnConfig>("flashlight_spawning.yml", cfg => FlashlightSpawn = cfg, cfg => cfg.Validate())
+                        .BindSubConfig<NpcConfig>("npc_behavior.yml", cfg => Npc = cfg, cfg => cfg.Validate())
+                        .BindSubConfig<PlayerSanityConfig>("sanity_progression.yml", cfg => Sanity = cfg, cfg => cfg.Validate())
+                        .BindSubConfig<PlayerLightsourceConfig>("player_lightsources.yml", cfg => Lightsource = cfg, cfg => cfg.Validate())
+                        .BindSubConfig<HintsConfig>("hints_placement.yml", cfg => Hints = cfg, cfg => cfg.Validate())
+                        .BindSubConfig<CassieConfig>("cassie_announcements.yml", cfg => Cassie = cfg, cfg => cfg.Validate());
+
+                _isConfigLoaded = true;
+            }
         }
+
         /// <summary>
         /// Instantiates runtime subsystems, registers pipeline hooks, and sets up the anomaly context.
         /// </summary>
         public override void Enable()
         {
+            if (Instance != null && Instance != this)
+            {
+                Logger.Warn(nameof(Plugin), "Duplicate plugin instance launch blocked. Preventing Instance singleton overwrite.");
+                return;
+            }
+
             Instance = this;
+
             if (!_isConfigLoaded)
             {
                 LoadConfigs();
