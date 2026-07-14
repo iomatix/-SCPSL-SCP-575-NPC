@@ -160,13 +160,12 @@ namespace SCP_575
                         _lightsourceHandler?.Initialize();
                         _audioDirector?.Initialize();
 
-                        if (_activeHandlers != null)
-                            HandlerExtensions.RegisterAll(_activeHandlers);
+                        _activeHandlers.RegisterAll();
 
                     }).InitializeModule(() =>
                     {
                         // Action 5: Instantiate NPC logic
-                        _npcMethods = new Methods(this);
+                       _npcMethods = new Methods(this);
                     });
             }
             catch (Exception ex)
@@ -175,6 +174,7 @@ namespace SCP_575
                 Disable();
                 throw;
             }
+
         }
 
         /// <summary>

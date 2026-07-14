@@ -107,7 +107,8 @@ namespace SCP_575.Npc
             float spawnRoll = roll < 0f ? SafeRandom.Range(0f, 100f) : roll;
 
             if (spawnRoll <= _plugin.Blackout.EventChance)
-            {                _isInitialized = true;
+            {
+                _isInitialized = true;
                 _plugin.IsEventActive = true;
 
 

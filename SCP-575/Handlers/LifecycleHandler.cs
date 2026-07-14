@@ -30,16 +30,16 @@ namespace SCP_575.Handlers
         /// </summary>
         public override void OnServerWaitingForPlayers()
         {
-            _plugin.Disable();
+            // FIX: Soft-reset only! We disable the NPC logic, but KEEP the event handlers registered for the next round.
+            _plugin.NpcLogic?.Disable();
             Logger.Info(nameof(LifecycleHandler), "Round reset. SCP-575 ready for next session.");
         }
 
         /// <summary>
-        /// Computes initialization probabilities introduces a safety temporal buffer before injecting seed variables.
+        /// Computes initialization probabilities and introduces a safety temporal buffer before injecting seed variables.
         /// </summary>
         public override void OnServerRoundStarted()
         {
-            // Fluent API Alignment: Leverage thread-isolated secure random generation loops cleanly
             float roll = SafeRandom.Range(0f, 100f);
 
             // ===================================================================
@@ -56,7 +56,6 @@ namespace SCP_575.Handlers
 
             Logger.Debug(nameof(LifecycleHandler), $"Spawn roll calculated: {roll}%. Scheduling safe initialization buffer.", _plugin.Debug);
 
-            // Fluent API Alignment: Upgraded generic structural delays to conditional gate execution pipelines safely
             TimingExtensions.CallDelayedIf(1.0f, () => !_plugin.IsEventActive, () =>
             {
                 try
@@ -75,6 +74,7 @@ namespace SCP_575.Handlers
         /// </summary>
         public override void OnServerRoundEnded(RoundEndedEventArgs ev)
         {
+            // Soft-reset the NPC logic as soon as the round ends to prevent post-round event leakage.
             _plugin.NpcLogic?.Disable();
             Logger.Info(nameof(LifecycleHandler), "Round ended confirmed. SCP-575 systems safely disabled.");
         }
