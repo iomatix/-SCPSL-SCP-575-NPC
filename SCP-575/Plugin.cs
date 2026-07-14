@@ -138,6 +138,9 @@ namespace SCP_575
                         _sanityHandler = new PlayerSanityHandler(this);
                         _audioDirector = new Scp575AudioDirector(this, _audioManager, _sanityHandler);
 
+                        // Action 1a: Instantiate NPC logic
+                        _npcMethods = new Methods(this);
+
                         // Action 2: Instantiate structural event proxy-handlers
                         _lifecycleHandler = new LifecycleHandler(this);
                         _generatorHandler = new GeneratorHandler(this);
@@ -154,8 +157,6 @@ namespace SCP_575
                             _ragdollHandler, _lightsourceHandler, _sanityHandler, _mapHandler
                         };
 
-                        // Action 4: Commit internal behavior
-                        _npcMethods = new Methods(this);
                     })
                     .InitializeModule(() =>
                     {
