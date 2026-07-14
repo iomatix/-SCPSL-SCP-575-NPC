@@ -56,7 +56,7 @@ namespace SCP_575.Handlers
         {
             if (_isDisposed) return;
 
-            LightCleanupTag.KillCoroutine();
+            LightCleanupTag.Kill();
             Timing.RunCoroutine(CleanupCoroutine(), LightCleanupTag);
 
             Logger.Info(nameof(PlayerLightsourceHandler), "Initialized lightsource tracking subsystem engine channels.");
@@ -64,18 +64,18 @@ namespace SCP_575.Handlers
 
         public void Clean()
         {
-            LightCleanupTag.KillCoroutine();
+            LightCleanupTag.Kill();
 
             lock (_lock)
             {
                 foreach (int instanceId in _flickeringPlayers.ToList())
                 {
-                    $"{FlickerTagPrefix}{instanceId}".KillCoroutine();
+                    $"{FlickerTagPrefix}{instanceId}".Kill();
                 }
 
                 foreach (int instanceId in _pendingItemChanges.ToList())
                 {
-                    $"{ItemChangePrefix}{instanceId}".KillCoroutine();
+                    $"{ItemChangePrefix}{instanceId}".Kill();
                 }
 
                 _cooldownUntil.Clear();
@@ -104,14 +104,14 @@ namespace SCP_575.Handlers
             if (!_plugin.IsEventActive || ev?.Player?.GameObject is null) return;
 
             int instanceId = ev.Player.GameObject.GetInstanceID();
-            $"{FlickerTagPrefix}{instanceId}".KillCoroutine();
+            $"{FlickerTagPrefix}{instanceId}".Kill();
 
             lock (_lock) _flickeringPlayers.Remove(instanceId);
 
             if (!ev.Player.GetHeldLightSourceState()) return;
 
             string coroutineTag = $"{ItemChangePrefix}{instanceId}";
-            coroutineTag.KillCoroutine();
+            coroutineTag.Kill();
 
             lock (_lock) _pendingItemChanges.Add(instanceId);
 

@@ -378,7 +378,7 @@
         /// </summary>
         public void Clean(bool fullShutdown = false)
         {
-            AudioCoroutineTag.KillCoroutine();
+            AudioCoroutineTag.Kill();
 
             if (fullShutdown)
             {

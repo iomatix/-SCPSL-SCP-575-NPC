@@ -53,7 +53,7 @@ namespace SCP_575.Handlers
             FacilityZone? elevatorZone = null;
             foreach (FacilityZone zone in ZoneExtensions.All)
             {
-                if (ElevatorExtensions.GetElevatorsInZone(zone).Any(e => e == ev.Elevator))
+                if (zone.GetElevators().Any(e => e == ev.Elevator))
                 {
                     elevatorZone = zone;
                     break;
@@ -69,7 +69,7 @@ namespace SCP_575.Handlers
                 lock (_lock)
                 {
                     // Thread Isolation: Deterministically purge both outer and inner sequence streams
-                    flickerTag.KillCoroutine();
+                    flickerTag.Kill();
                     if (_activeFlickers.TryGetValue(ev.Elevator, out CoroutineHandle oldHandle))
                     {
                         Timing.KillCoroutines(oldHandle);
@@ -82,7 +82,7 @@ namespace SCP_575.Handlers
             {
                 lock (_lock)
                 {
-                    flickerTag.KillCoroutine();
+                    flickerTag.Kill();
                     if (_activeFlickers.TryGetValue(ev.Elevator, out CoroutineHandle handle))
                     {
                         Timing.KillCoroutines(handle);
@@ -116,7 +116,7 @@ namespace SCP_575.Handlers
             {
                 foreach (Elevator elevator in _activeFlickers.Keys)
                 {
-                    $"ElevatorFlicker_{elevator.GetHashCode()}".KillCoroutine();
+                    $"ElevatorFlicker_{elevator.GetHashCode()}".Kill();
                 }
                 foreach (CoroutineHandle handle in _activeFlickers.Values)
                 {

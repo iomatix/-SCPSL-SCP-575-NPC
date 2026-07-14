@@ -518,7 +518,7 @@ namespace SCP_575.Shared.Audio
 
         public void Clean()
         {
-            DirectorCoroutineTag.KillCoroutine();
+            DirectorCoroutineTag.Kill();
             lock (_directorLock)
             {
                 _lastCombatAudioTime.Clear();

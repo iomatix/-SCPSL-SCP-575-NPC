@@ -35,7 +35,7 @@ namespace SCP_575.Handlers
 
         private void Clean()
         {
-            CoroutineTags.MapCoroutines.KillCoroutine();
+            CoroutineTags.MapCoroutines.Kill();
         }
         #endregion
 

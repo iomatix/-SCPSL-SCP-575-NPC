@@ -38,7 +38,7 @@ namespace SCP_575.Handlers
         private void Clean()
         {
             // Fluent API Alignment: Leverage native string token extensions for coroutine evictions
-            ItemPhysicsTag.KillCoroutine();
+            ItemPhysicsTag.Kill();
         }
         #endregion
 

@@ -85,7 +85,7 @@ namespace SCP_575.Handlers
 
         public void Clean()
         {
-            SanityCoroutineTag.KillCoroutine();
+            SanityCoroutineTag.Kill();
             lock (_cacheLock)
             {
                 _sanityCache.Clear();

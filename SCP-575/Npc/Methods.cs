@@ -141,8 +141,8 @@ namespace SCP_575.Npc
             _isInitialized = false;
             _plugin.IsEventActive = false;
 
-            CoroutineTags.AllStaticTags.KillCoroutines();
-            TempCoroutineTag.KillCoroutine();
+            CoroutineTags.AllStaticTags.Kill();
+            TempCoroutineTag.Kill();
 
             _plugin.AudioDirector?.Clean();
             _plugin.AudioManager?.Clean(fullShutdown: true);
@@ -160,10 +160,10 @@ namespace SCP_575.Npc
         /// </summary>
         public void Clean()
         {
-            CoroutineTags.CassieCooldown.KillCoroutine();
-            CoroutineTags.GridTearDown.KillCoroutine();
-            CoroutineTags.GeneratorSurge.KillCoroutine();
-            TempCoroutineTag.KillCoroutine();
+            CoroutineTags.CassieCooldown.Kill();
+            CoroutineTags.GridTearDown.Kill();
+            CoroutineTags.GeneratorSurge.Kill();
+            TempCoroutineTag.Kill();
             Reset575();
         }
         #endregion
@@ -581,7 +581,7 @@ namespace SCP_575.Npc
 
         private void StartCassieCooldown(double duration)
         {
-            CoroutineTags.CassieCooldown.KillCoroutine();
+            CoroutineTags.CassieCooldown.Kill();
             Timing.RunCoroutine(CassieCooldownRoutine(duration), CoroutineTags.CassieCooldown);
         }
 
@@ -646,19 +646,19 @@ namespace SCP_575.Npc
 
         public void StartSanityHandlerLoop()
         {
-            CoroutineTags.SanityHandler.KillCoroutine();
+            CoroutineTags.SanityHandler.Kill();
             Timing.RunCoroutine(_sanityHandler.HandleSanityDecay(), CoroutineTags.SanityHandler);
         }
 
         public void StartBlackoutEventLoop()
         {
-            CoroutineTags.BlackoutLoop.KillCoroutine();
+            CoroutineTags.BlackoutLoop.Kill();
             Timing.RunCoroutine(RunBlackoutLoop(), CoroutineTags.BlackoutLoop);
         }
 
         public void StartKeterActionLoop()
         {
-            CoroutineTags.ActionLoop.KillCoroutine();
+            CoroutineTags.ActionLoop.Kill();
             Timing.RunCoroutine(KeterActionLoop(), CoroutineTags.ActionLoop);
         }
         #endregion
@@ -716,7 +716,7 @@ namespace SCP_575.Npc
 
             float stabilizationWindow = _plugin.Blackout.GeneratorStabilizationDuration;
 
-            generatorRoom.TurnOffRoomAndNeighborLights(stabilizationWindow, forced: true);
+            generatorRoom.TurnOffRoomAndNeighborLights(stabilizationWindow);
             _plugin.AudioDirector?.ProcessGeneratorOverloadRetaliation(generatorRoom.Position);
 
             yield return Timing.WaitForSeconds(stabilizationWindow);

@@ -58,7 +58,7 @@ namespace SCP_575.Handlers
             switch (impactType)
             {
                 case ScpProjectileImpactType.ProjectileImpactType.Helpful:
-                    room.TurnOffRoomAndNeighborLights(_plugin.Blackout.DurationMin, forced: true);
+                    room.TurnOffRoomAndNeighborLights(_plugin.Blackout.DurationMin);
 
                     // Fluent API Upgrade: Propagate the blackout to all elevators currently located at this floor cluster seamlessly
                     room.ExecuteActionOnRoomAndNeighbors(targetRoom =>

@@ -27,8 +27,8 @@ namespace SCP_575.Handlers
         #endregion
 
         #region Lifecycle Cleanup
-        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => GeneratorAudioTag.KillCoroutine();
-        public override void OnServerWaitingForPlayers() => GeneratorAudioTag.KillCoroutine();
+        public override void OnServerRoundEnded(RoundEndedEventArgs ev) => GeneratorAudioTag.Kill();
+        public override void OnServerWaitingForPlayers() => GeneratorAudioTag.Kill();
         #endregion
 
         #region Event Overrides
