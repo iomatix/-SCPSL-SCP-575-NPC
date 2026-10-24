@@ -138,6 +138,7 @@ namespace SCP_575.Npc
         /// </summary>
         public void Disable()
         {
+            Reset575();
             _isInitialized = false;
             _plugin.IsEventActive = false;
 
