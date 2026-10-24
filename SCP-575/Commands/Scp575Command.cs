@@ -184,7 +184,7 @@ namespace SCP_575.Commands
                         return false;
                     }
 
-                    plugin.NpcLogic.Init();
+                    plugin.NpcLogic.Init(force: true);
                     response = "SUCCESS: SCP-575 anomaly ecosystem forced online.";
                     return true;
 

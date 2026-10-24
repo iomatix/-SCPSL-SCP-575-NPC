@@ -72,7 +72,7 @@ namespace SCP_575
         public override string Author => "iomatix";
         public override string Name => "SCP-575 NPC";
         public override string Description => "Advanced horror pacing sub-drone shadow entity that makes darkness dangerous.";
-        public override Version Version => new(13, 2, 2);
+        public override Version Version => new(13, 2, 3);
         public override Version RequiredApiVersion => new(1, 0, 0);
         #endregion
 

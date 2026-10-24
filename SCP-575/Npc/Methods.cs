@@ -98,37 +98,44 @@ namespace SCP_575.Npc
 
         #region Lifecycle
         /// <summary>
-        /// Runs probability weights and starts background event loops if successful.
+        /// Initializes the SCP-575 event pipeline.
         /// </summary>
-        public void Init(float roll = -1f)
+        /// <param name="roll">The pre-calculated spawn roll percentage (0.0 to 100.0). If null, a new roll will be sampled.</param>
+        /// <param name="force">If true, bypasses probability checks completely and guarantees event startup.</param>
+        public void Init(float? roll = null, bool force = false)
         {
             if (_isInitialized) return;
 
-            float spawnRoll = roll < 0f ? SafeRandom.Range(0f, 100f) : roll;
-
-            if (spawnRoll <= _plugin.Blackout.EventChance)
+            if (!force)
             {
-                _isInitialized = true;
-                _plugin.IsEventActive = true;
-
-                Logger.Info(nameof(Methods), $"SCP-575 threat matrix active ({spawnRoll}% <= {_plugin.Blackout.EventChance}%). Loops starting.");
-
-                StartBlackoutEventLoop();
-                StartKeterActionLoop();
-                StartSanityHandlerLoop();
-
-                _plugin.MapHandler?.ExecuteFlashlightDistribution();
-                _plugin.AudioDirector?.Initialize();
-
-                foreach (Player player in Player.ReadyList)
+                float spawnRoll = roll ?? SafeRandom.Range(0f, 100f);
+                if (spawnRoll > _plugin.Blackout.EventChance)
                 {
-                    if (_sanityHandler.IsValidPlayer(player))
-                        _sanityHandler.SetPlayerSanity(player, _plugin.Sanity.InitialSanity);
+                    Logger.Info(nameof(Methods), $"SCP-575 threat matrix skipped for this round cycle ({spawnRoll:F1}% > {_plugin.Blackout.EventChance}%).");
+                    return;
                 }
+
+                Logger.Info(nameof(Methods), $"SCP-575 threat matrix roll passed ({spawnRoll:F1}% <= {_plugin.Blackout.EventChance}%). Starting event loops.");
             }
             else
             {
-                Logger.Info(nameof(Methods), $"SCP-575 threat matrix skipped for this round cycle ({spawnRoll}%).");
+                Logger.Info(nameof(Methods), "SCP-575 threat matrix forcibly engaged via administrative or debug override.");
+            }
+
+            _isInitialized = true;
+            _plugin.IsEventActive = true;
+
+            StartBlackoutEventLoop();
+            StartKeterActionLoop();
+            StartSanityHandlerLoop();
+
+            _plugin.MapHandler?.ExecuteFlashlightDistribution();
+            _plugin.AudioDirector?.Initialize();
+
+            foreach (Player player in Player.ReadyList)
+            {
+                if (_sanityHandler.IsValidPlayer(player))
+                    _sanityHandler.SetPlayerSanity(player, _plugin.Sanity.InitialSanity);
             }
         }
 
