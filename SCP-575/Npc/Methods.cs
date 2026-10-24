@@ -111,7 +111,6 @@ namespace SCP_575.Npc
                 _isInitialized = true;
                 _plugin.IsEventActive = true;
 
-
                 Logger.Info(nameof(Methods), $"SCP-575 threat matrix active ({spawnRoll}% <= {_plugin.Blackout.EventChance}%). Loops starting.");
 
                 StartBlackoutEventLoop();
@@ -151,7 +150,11 @@ namespace SCP_575.Npc
             _plugin.LightsourceHandler?.Clean();
 
             _playerAiStates.Clear();
-            _triggeredZones.Clear();
+
+            lock (_blackoutLock)
+            {
+                _triggeredZones.Clear();
+            }
 
             Logger.Info(nameof(Methods), "SCP-575 core logic modules and timeline loops terminated safely.");
         }
@@ -210,36 +213,24 @@ namespace SCP_575.Npc
                 TriggerCassieMessage(_plugin.Cassie.CassiePostMessage, isGlitchy: true);
             }
 
+            // Single-Pass Reservoir Sampling for random selection of a target in darkness (0 allocations, no double loop)
             Player targetPlayer = null;
             if (SafeRandom.Range(0f, 100f) < 70f)
             {
-                int validCount = 0;
+                int matchCount = 0;
                 foreach (Player p in Player.ReadyList)
                 {
                     if (p != null && p.IsAlive && p.IsHuman && p.IsInDarkRoom())
                     {
-                        validCount++;
-                    }
-                }
-
-                if (validCount > 0)
-                {
-                    int randomIndex = SafeRandom.Next(0, validCount);
-                    int current = 0;
-                    foreach (Player p in Player.ReadyList)
-                    {
-                        if (p != null && p.IsAlive && p.IsHuman && p.IsInDarkRoom())
+                        matchCount++;
+                        if (SafeRandom.Next(0, matchCount) == 0)
                         {
-                            if (current == randomIndex)
-                            {
-                                targetPlayer = p;
-                                break;
-                            }
-                            current++;
+                            targetPlayer = p;
                         }
                     }
                 }
             }
+
             _plugin.AudioDirector?.ProcessBlackoutAudioSequence(targetPlayer);
 
             float duration = _plugin.Blackout.RandomEvents
@@ -261,24 +252,22 @@ namespace SCP_575.Npc
 
             Color color = new Color(_plugin.Blackout.LightsColorR, _plugin.Blackout.LightsColorG, _plugin.Blackout.LightsColorB);
 
-            // Inlined structural decision matrix to prevent allocating temporary list buffers entirely
             if (_plugin.Blackout.UsePerRoomChances || _plugin.Blackout.EnableFacilityBlackout)
             {
-                for (int i = 0; i < AllZones.Length; i++)
-                {
-                    Timing.RunCoroutine(AllZones[i].FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
-                }
+                AllZones.FlickerLights(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency, TempCoroutineTag);
                 return;
             }
 
-            if (_plugin.Blackout.ChanceLight > 0f)
-                Timing.RunCoroutine(FacilityZone.LightContainment.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
-            if (_plugin.Blackout.ChanceHeavy > 0f)
-                Timing.RunCoroutine(FacilityZone.HeavyContainment.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
-            if (_plugin.Blackout.ChanceEntrance > 0f)
-                Timing.RunCoroutine(FacilityZone.Entrance.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
-            if (_plugin.Blackout.ChanceSurface > 0f)
-                Timing.RunCoroutine(FacilityZone.Surface.FlickerLightsCoroutine(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency), TempCoroutineTag);
+            List<FacilityZone> targetZones = new List<FacilityZone>(4);
+            if (_plugin.Blackout.ChanceLight > 0f) targetZones.Add(FacilityZone.LightContainment);
+            if (_plugin.Blackout.ChanceHeavy > 0f) targetZones.Add(FacilityZone.HeavyContainment);
+            if (_plugin.Blackout.ChanceEntrance > 0f) targetZones.Add(FacilityZone.Entrance);
+            if (_plugin.Blackout.ChanceSurface > 0f) targetZones.Add(FacilityZone.Surface);
+
+            if (targetZones.Count > 0)
+            {
+                targetZones.FlickerLights(color, _plugin.Blackout.FlickerDuration, _plugin.Blackout.FlickerFrequency, TempCoroutineTag);
+            }
         }
 
         private bool HandleZoneSpecificBlackout(float duration)
@@ -303,18 +292,23 @@ namespace SCP_575.Npc
 
             zone.TurnOffLights(duration);
 
+            lock (_blackoutLock)
+            {
+                _triggeredZones.Add(zone);
+            }
+
             if (!IsBlackoutActive) TriggerCassieMessage(cassie, isGlitchy: true);
             return true;
         }
 
         private void TriggerFacilityWideBlackout(float duration)
         {
-            foreach (var zone in ZoneExtensions.All)
+            lock (_blackoutLock)
             {
-                zone.TurnOffLights(duration);
-                lock (_blackoutLock)
+                for (int i = 0; i < AllZones.Length; i++)
                 {
-                    _triggeredZones.Add(zone);
+                    AllZones[i].TurnOffLights(duration);
+                    _triggeredZones.Add(AllZones[i]);
                 }
             }
 
@@ -353,11 +347,20 @@ namespace SCP_575.Npc
 
             HandleRoomBlackout(room, duration, forced);
 
-            if (!_triggeredZones.Contains(room.Zone) && !silent)
+            bool shouldAnnounce = false;
+            lock (_blackoutLock)
             {
-                if (!IsBlackoutActive) TriggerCassieMessage(cassie);
-                _triggeredZones.Add(room.Zone);
+                if (_triggeredZones.Add(room.Zone) && !silent)
+                {
+                    shouldAnnounce = true;
+                }
             }
+
+            if (shouldAnnounce && !IsBlackoutActive)
+            {
+                TriggerCassieMessage(cassie);
+            }
+
             return true;
         }
 
@@ -378,9 +381,13 @@ namespace SCP_575.Npc
 
             room.TurnOffLights(duration);
 
-            foreach (Elevator elevator in room.GetElevatorsConnectedToRoom())
+            var elevators = room.GetElevatorsConnectedToRoom();
+            if (elevators != null)
             {
-                elevator.TurnOffLights(duration);
+                foreach (Elevator elevator in elevators)
+                {
+                    elevator?.TurnOffLights(duration);
+                }
             }
         }
 
@@ -406,9 +413,13 @@ namespace SCP_575.Npc
                 if (room != null && room.IsFreeOfEngagedGenerators())
                 {
                     room.TurnOffLights(duration);
-                    foreach (Elevator elevator in room.GetElevatorsConnectedToRoom())
+                    var elevators = room.GetElevatorsConnectedToRoom();
+                    if (elevators != null)
                     {
-                        elevator.TurnOffLights(duration);
+                        foreach (Elevator elevator in elevators)
+                        {
+                            elevator?.TurnOffLights(duration);
+                        }
                     }
                 }
             }
@@ -437,8 +448,13 @@ namespace SCP_575.Npc
                 double endMessageDuration = TriggerCassieMessage(_plugin.Cassie.CassieMessageEnd, isGlitchy: true);
                 yield return Timing.WaitForSeconds((float)endMessageDuration + 0.5f);
                 ResetTeslaGates();
-                ZoneExtensions.All.TurnOnLights();
-                _triggeredZones.Clear();
+                AllZones.TurnOnLights();
+
+                lock (_blackoutLock)
+                {
+                    _triggeredZones.Clear();
+                }
+
                 _plugin.AudioManager.Clean(fullShutdown: false);
             }
         }
@@ -504,6 +520,11 @@ namespace SCP_575.Npc
             }
 
             zone.TurnOffLights(duration);
+            lock (_blackoutLock)
+            {
+                _triggeredZones.Add(zone);
+            }
+
             Timing.RunCoroutine(FinalizeBlackoutEvent(occurred: true, duration), TempCoroutineTag);
         }
         #endregion
@@ -610,25 +631,37 @@ namespace SCP_575.Npc
 
                 if (!_plugin.IsEventActive || !IsBlackoutActive) continue;
 
+                // Cache of the current players to detect disconnected players and clean up AI states
+                HashSet<int> activePlayerIds = new HashSet<int>();
+
                 foreach (Player player in Player.ReadyList)
                 {
-                    if (player?.GameObject is null || !player.IsAlive || !player.IsHuman || player.Room.Name is RoomName.Pocket)
+                    if (player?.GameObject is null || !player.IsAlive || !player.IsHuman || player.Room?.Name is RoomName.Pocket)
                         continue;
+
+                    int pId = player.PlayerId;
+                    activePlayerIds.Add(pId);
 
                     try
                     {
-                        int playerInstanceId = player.GameObject.GetInstanceID();
-                        bool isInDarkness = player.IsInTrueDarkness();
+                        // Fast exit: if the entire zone is not under blackout, or the player is not in true darkness, skip further processing
+                        FacilityZone currentZone = player.Room?.Zone ?? FacilityZone.None;
+                        if (!IsZoneUnderBlackout(currentZone))
+                        {
+                            _playerAiStates[pId] = NpcBehaviorState.Dormant;
+                            continue;
+                        }
 
+                        bool isInDarkness = player.IsInTrueDarkness();
                         if (!isInDarkness || !_sanityHandler.IsValidPlayer(player))
                         {
-                            _playerAiStates[playerInstanceId] = NpcBehaviorState.Dormant;
+                            _playerAiStates[pId] = NpcBehaviorState.Dormant;
                             continue;
                         }
 
                         bool hasActiveLight = player.HasActiveLightSource();
                         NpcBehaviorState newState = hasActiveLight ? NpcBehaviorState.Stalking : NpcBehaviorState.Striking;
-                        _playerAiStates[playerInstanceId] = newState;
+                        _playerAiStates[pId] = newState;
 
                         _sanityHandler.ApplyDamageToPlayer(player);
 
@@ -640,6 +673,16 @@ namespace SCP_575.Npc
                     catch (Exception ex)
                     {
                         Logger.Error("Methods.KeterAction", $"Trauma pipeline processing failure for target {player.Nickname}: {ex.Message}");
+                    }
+                }
+
+                // Eliminate memory leaks: remove players who have left the server or changed state
+                if (_playerAiStates.Count > activePlayerIds.Count)
+                {
+                    var staleKeys = _playerAiStates.Keys.Where(id => !activePlayerIds.Contains(id)).ToList();
+                    for (int i = 0; i < staleKeys.Count; i++)
+                    {
+                        _playerAiStates.Remove(staleKeys[i]);
                     }
                 }
             }
