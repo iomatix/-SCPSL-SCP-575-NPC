@@ -2,17 +2,18 @@
 using LabApi.Extensions;
 using LabApi.Extensions.Misc;
 using LabApi.Features.Wrappers;
-using LabApi.Loader.Features.Plugins;
 using RemoteAdmin;
 using SCP_575.Npc;
 using SCP_575.Shared;
 using System;
+using System.Collections.Generic;
 using FacilityZone = MapGeneration.FacilityZone;
 
 namespace SCP_575.Commands
 {
     /// <summary>
-    /// Administrative command router for SCP-575 plugin management utilizing heuristic fuzzy string parsing layouts.
+    /// Administrative command router for SCP-575 plugin management utilizing heuristic fuzzy string parsing layouts
+    /// and deterministic alias dictionaries for facility zones and neural sanity operations.
     /// </summary>
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     [CommandHandler(typeof(GameConsoleCommandHandler))]
@@ -29,7 +30,8 @@ namespace SCP_575.Commands
             Trigger,
             SetStacks,
             ChangeStacks,
-            Sanity
+            Sanity,
+            Status
         }
 
         private enum SanityAction
@@ -37,6 +39,70 @@ namespace SCP_575.Commands
             Set,
             Add,
             Subtract
+        }
+        #endregion
+
+        #region Zone & Action Aliases
+        private static readonly IReadOnlyDictionary<string, FacilityZone> ZoneAliases =
+            new Dictionary<string, FacilityZone>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "lcz", FacilityZone.LightContainment },
+                { "light", FacilityZone.LightContainment },
+                { "hcz", FacilityZone.HeavyContainment },
+                { "heavy", FacilityZone.HeavyContainment },
+                { "ez", FacilityZone.Entrance },
+                { "entrance", FacilityZone.Entrance },
+                { "surface", FacilityZone.Surface },
+                { "other", FacilityZone.Other }
+            };
+
+        private static bool TryResolveZone(string input, out FacilityZone zone)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                zone = FacilityZone.None;
+                return false;
+            }
+
+            if (ZoneAliases.TryGetValue(input, out zone))
+            {
+                return true;
+            }
+
+            var interpretation = input.InterpretEnum<FacilityZone>();
+            if (interpretation.Status is not (InterpretationStatus.NoMatchFound or InterpretationStatus.Ambiguous))
+            {
+                zone = interpretation.Value;
+                return true;
+            }
+
+            zone = FacilityZone.None;
+            return false;
+        }
+
+        private static bool TryResolveSanityAction(string input, out SanityAction action)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                action = default;
+                return false;
+            }
+
+            if (input.Equals("sub", StringComparison.OrdinalIgnoreCase))
+            {
+                action = SanityAction.Subtract;
+                return true;
+            }
+
+            var interpretation = input.InterpretEnum<SanityAction>();
+            if (interpretation.Status is not (InterpretationStatus.NoMatchFound or InterpretationStatus.Ambiguous))
+            {
+                action = interpretation.Value;
+                return true;
+            }
+
+            action = default;
+            return false;
         }
         #endregion
 
@@ -51,28 +117,44 @@ namespace SCP_575.Commands
         public string Description => "Administrative control interface for the SCP-575 anomalous system lifecycle built with fuzzy parsing.";
 
         /// <inheritdoc />
-        public string[] Usage => new[] { "init/start", "blackout/trigger [zone]", "stop/disable", "setstacks [amount]", "changestacks [delta]", "sanity [player] [set/add/sub] [value]" };
+        public string[] Usage => new[]
+        {
+            "init / start",
+            "blackout / trigger [zone]",
+            "stop / disable",
+            "status",
+            "setstacks [amount]",
+            "changestacks [delta]",
+            "sanity [player] (displays sanity)",
+            "sanity [player] [set / add / sub] [value]"
+        };
         #endregion
 
         #region Execution Core Pipeline
         /// <inheritdoc />
         public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            Plugin _plugin = Plugin.Instance;
-
-            if (sender is PlayerCommandSender playerSender && !playerSender.CheckPermission(PlayerPermissions.FacilityManagement))
+            if (!sender.ConfirmPermission(PlayerPermissions.FacilityManagement, out response))
             {
-                response = "Unauthorized Command Execution: You do not possess the required administrative clearance (FacilityManagement) to call this command.";
                 return false;
             }
 
             if (arguments.Count == 0)
             {
-                response = "Invalid Command Configuration. Refer to standard usage paradigms.";
+                response = "Invalid Command Configuration. Available structural subcommands:\n" +
+                           " - init / start                            : Forces the SCP-575 anomaly lifecycle online.\n" +
+                           " - blackout / trigger [zone]               : Triggers a facility-wide or zone-specific blackout.\n" +
+                           " - stop / disable                          : Aborts active blackouts, restores power, and halts loops.\n" +
+                           " - status                                  : Displays running anomaly metrics and stack counters.\n" +
+                           " - setstacks [amount]                      : Sets the blackout stack accumulation counter directly.\n" +
+                           " - changestacks [delta]                    : Shifts the blackout stack counter by a relative value.\n" +
+                           " - sanity [player]                         : Retrieves current sanity metric for a given player.\n" +
+                           " - sanity [player] [set/add/sub] [value]   : Modifies player neuro-integrity metric (0% - 100%).";
                 return false;
             }
 
-            if (_plugin?.NpcLogic == null)
+            Plugin plugin = Plugin.Instance;
+            if (plugin?.NpcLogic == null)
             {
                 response = "Execution Critical Failure: The central SCP-575 runtime singleton or unified core NpcLogic module is offline.";
                 return false;
@@ -96,63 +178,74 @@ namespace SCP_575.Commands
             {
                 case SubCommand.Init:
                 case SubCommand.Start:
-                    if (_plugin.IsEventActive)
+                    if (plugin.IsEventActive)
                     {
                         response = "Initialization Cancelled: SCP-575 horror pacing mechanisms are already active.";
                         return false;
                     }
 
-                    _plugin.NpcLogic.Init();
+                    plugin.NpcLogic.Init();
                     response = "SUCCESS: SCP-575 anomaly ecosystem forced online.";
                     return true;
 
                 case SubCommand.Stop:
                 case SubCommand.Disable:
-                    if (!_plugin.IsEventActive)
+                    if (!plugin.IsEventActive)
                     {
                         response = "Teardown Aborted: The SCP-575 execution framework is already resting.";
                         return false;
                     }
 
-                    _plugin.NpcLogic.Disable();
-                    response = "SUCCESS: Explicit runtime teardown completed.";
+                    plugin.NpcLogic.Disable();
+                    response = "SUCCESS: Explicit runtime teardown completed. Standard facility illumination restored.";
+                    return true;
+
+                case SubCommand.Status:
+                    response = "SCP-575 Telemetry:\n" +
+                               $" - Event Active          : {plugin.IsEventActive}\n" +
+                               $" - Blackout Active       : {plugin.NpcLogic.IsBlackoutActive}\n" +
+                               $" - Active Blackout Stacks: {plugin.NpcLogic.GetCurrentBlackoutStacks}";
                     return true;
 
                 case SubCommand.Blackout:
                 case SubCommand.Trigger:
-                    if (!_plugin.IsEventActive)
+                    if (!plugin.IsEventActive)
                     {
-                        response = "Trigger Denied: The global event framework is offline.";
+                        response = "Trigger Denied: The global event framework is offline. Run 'scp575 start' first.";
                         return false;
                     }
 
                     if (arguments.Count >= 2)
                     {
-                        InterpretationResult<FacilityZone> zoneInterpretation = arguments.At(1).InterpretEnum<FacilityZone>();
-
-                        if (zoneInterpretation.Status is InterpretationStatus.NoMatchFound)
+                        int zoneArgIndex = 1;
+                        if (arguments.At(1).Equals("zone", StringComparison.OrdinalIgnoreCase))
                         {
-                            response = $"Zone Selection Failed: '{arguments.At(1)}' is invalid.";
+                            if (arguments.Count < 3)
+                            {
+                                response = $"Syntax error. Usage: scp575 {arguments.At(0)} zone [ {string.Join(" | ", ZoneAliases.Keys)} ]";
+                                return false;
+                            }
+                            zoneArgIndex = 2;
+                        }
+
+                        string rawZoneInput = arguments.At(zoneArgIndex);
+                        if (!TryResolveZone(rawZoneInput, out FacilityZone targetZone) || targetZone == FacilityZone.None)
+                        {
+                            response = $"Zone Selection Failed: '{rawZoneInput}' could not be resolved into a valid FacilityZone.";
                             return false;
                         }
 
-                        if (zoneInterpretation.Status is InterpretationStatus.Ambiguous)
-                        {
-                            response = $"Ambiguous Sector Identification. Candidates: {string.Join(", ", zoneInterpretation.Candidates)}";
-                            return false;
-                        }
-
-                        _plugin.NpcLogic.ForceZoneBlackoutEvent(zoneInterpretation.Value);
-                        response = $"SUCCESS: Targeted blackout sequence dispatched onto zone sector: [{zoneInterpretation.Value}].";
+                        plugin.NpcLogic.ForceZoneBlackoutEvent(targetZone);
+                        response = $"SUCCESS: Targeted blackout sequence dispatched onto zone sector: [{targetZone}].";
                         return true;
                     }
 
-                    _plugin.NpcLogic.ForceGlobalBlackoutEvent();
-                    response = "SUCCESS: Global power grid collapse triggered.";
+                    plugin.NpcLogic.ForceGlobalBlackoutEvent();
+                    response = "SUCCESS: Global power grid collapse triggered across all facility sectors.";
                     return true;
 
                 case SubCommand.SetStacks:
-                    if (!_plugin.IsEventActive)
+                    if (!plugin.IsEventActive)
                     {
                         response = "Stack Adjustment Denied: The anomaly system must be active.";
                         return false;
@@ -164,19 +257,21 @@ namespace SCP_575.Commands
                         return false;
                     }
 
+                    targetStacks = targetStacks.Clamp(0, 100);
+
                     if (targetStacks == 0)
                     {
-                        _plugin.NpcLogic.Reset575();
+                        plugin.NpcLogic.Reset575();
                         response = "SUCCESS: Blackout stack accumulation counter cleared to 0.";
                         return true;
                     }
 
-                    UpdateBlackoutStackMatrix(_plugin.NpcLogic, targetStacks);
-                    response = $"SUCCESS: Running blackout stack count locked at: {_plugin.NpcLogic.GetCurrentBlackoutStacks}";
+                    UpdateBlackoutStackMatrix(plugin.NpcLogic, targetStacks);
+                    response = $"SUCCESS: Running blackout stack count locked at: {plugin.NpcLogic.GetCurrentBlackoutStacks}";
                     return true;
 
                 case SubCommand.ChangeStacks:
-                    if (!_plugin.IsEventActive)
+                    if (!plugin.IsEventActive)
                     {
                         response = "Relative Shift Denied: The anomaly system must be active.";
                         return false;
@@ -188,34 +283,56 @@ namespace SCP_575.Commands
                         return false;
                     }
 
-                    int calculatedTarget = (_plugin.NpcLogic.GetCurrentBlackoutStacks + stackDelta).LimitMin(0);
-                    UpdateBlackoutStackMatrix(_plugin.NpcLogic, calculatedTarget);
+                    int calculatedTarget = (plugin.NpcLogic.GetCurrentBlackoutStacks + stackDelta).Clamp(0, 100);
+                    UpdateBlackoutStackMatrix(plugin.NpcLogic, calculatedTarget);
 
-                    response = $"SUCCESS: Absolute blackout stack accumulation updated to: {_plugin.NpcLogic.GetCurrentBlackoutStacks}";
+                    response = $"SUCCESS: Absolute blackout stack accumulation updated to: {plugin.NpcLogic.GetCurrentBlackoutStacks}";
                     return true;
 
                 case SubCommand.Sanity:
-                    if (!_plugin.IsEventActive)
+                    if (!plugin.IsEventActive)
                     {
                         response = "Sanity Mutation Denied: Neural metric tracking arrays are offline.";
                         return false;
                     }
 
+                    if (plugin.SanityHandler is null)
+                    {
+                        response = "Execution Failure: The PlayerSanityHandler tracking core instance is currently unavailable.";
+                        return false;
+                    }
+
+                    if (arguments.Count < 2)
+                    {
+                        response = "Syntax Error. Correct usage patterns:\n" +
+                                   " - scp575 sanity [player]                         (query current value)\n" +
+                                   " - scp575 sanity [player] [set/add/sub] [value]   (mutate value)";
+                        return false;
+                    }
+
+                    if (arguments.Count == 2 || (arguments.Count == 3 && !TryResolveSanityAction(arguments.At(arguments.Count - 2), out _)))
+                    {
+                        string queryIdentifier = string.Join(" ", GetSubArray(arguments, 1, arguments.Count - 1)).Trim();
+                        if (!Player.ReadyList.TryResolveFuzzy(queryIdentifier, out Player queriedPlayer, out string queryError))
+                        {
+                            response = queryError;
+                            return false;
+                        }
+
+                        float sanityLevel = plugin.SanityHandler.GetCurrentSanity(queriedPlayer);
+                        response = $"Neural Metric: Player [{queriedPlayer.Nickname}] current sanity is at {sanityLevel:F1}%.";
+                        return true;
+                    }
+
                     if (arguments.Count < 4)
                     {
-                        response = "Syntax Compilation Error. Correct usage pattern: scp575 sanity [player] [set/add/sub] [value]";
+                        response = "Syntax Error. Correct usage pattern: scp575 sanity [player] [set/add/sub] [value]";
                         return false;
                     }
 
                     int valIndex = arguments.Count - 1;
                     int actionIndex = arguments.Count - 2;
                     int namePartsCount = actionIndex - 1;
-
-                    if (namePartsCount <= 0)
-                    {
-                        response = "Syntax Compilation Error. Invalid argument formatting structural layers.";
-                        return false;
-                    }
 
                     string[] rawNameParts = new string[namePartsCount];
                     for (int i = 0; i < namePartsCount; i++)
@@ -224,52 +341,44 @@ namespace SCP_575.Commands
                     }
                     string playerIdentifier = string.Join(" ", rawNameParts).Trim();
 
-                    // Complete elimination of algorithmic boilerplate inside the command handler.
-                    // The lookup pipeline maps fluently straight through our newly expanded API Extension channels securely.
                     if (!Player.ReadyList.TryResolveFuzzy(playerIdentifier, out Player targetPlayer, out string playerError))
                     {
                         response = playerError;
                         return false;
                     }
 
-                    InterpretationResult<SanityAction> actionInterpretation = arguments.At(actionIndex).InterpretEnum<SanityAction>();
-                    if (actionInterpretation.Status is InterpretationStatus.NoMatchFound)
+                    if (!TryResolveSanityAction(arguments.At(actionIndex), out SanityAction resolvedAction))
                     {
-                        response = $"Action Translation Failed: Operation wrapper '{arguments.At(actionIndex)}' is unknown.";
-                        return false;
-                    }
-                    if (actionInterpretation.Status is InterpretationStatus.Ambiguous)
-                    {
-                        response = $"Ambiguous Operation Entry. Candidates: {string.Join(", ", actionInterpretation.Candidates)}";
+                        response = $"Action Translation Failed: Operation '{arguments.At(actionIndex)}' is unrecognized. Expected: set, add, sub/subtract.";
                         return false;
                     }
 
                     if (!float.TryParse(arguments.At(valIndex), out float sanityValue) || sanityValue < 0f)
                     {
-                        response = "Value Validation Error: Expected non-negative decimal factor.";
+                        response = "Value Validation Error: Expected non-negative decimal value.";
                         return false;
                     }
 
-                    if (_plugin.SanityHandler is null)
-                    {
-                        response = "Execution Failure: The PlayerSanityHandler tracking core instance is currently unavailable.";
-                        return false;
-                    }
-
-                    float currentSanity = _plugin.SanityHandler.GetCurrentSanity(targetPlayer);
+                    float currentSanity = plugin.SanityHandler.GetCurrentSanity(targetPlayer);
                     float finalSanity = currentSanity;
 
-                    switch (actionInterpretation.Value)
+                    switch (resolvedAction)
                     {
-                        case SanityAction.Set: finalSanity = sanityValue; break;
-                        case SanityAction.Add: finalSanity = currentSanity + sanityValue; break;
-                        case SanityAction.Subtract: finalSanity = currentSanity - sanityValue; break;
+                        case SanityAction.Set:
+                            finalSanity = sanityValue;
+                            break;
+                        case SanityAction.Add:
+                            finalSanity = currentSanity + sanityValue;
+                            break;
+                        case SanityAction.Subtract:
+                            finalSanity = currentSanity - sanityValue;
+                            break;
                     }
 
                     finalSanity = finalSanity.Clamp(0f, 100f);
-                    _plugin.SanityHandler.SetPlayerSanity(targetPlayer, finalSanity);
+                    plugin.SanityHandler.SetPlayerSanity(targetPlayer, finalSanity);
 
-                    response = $"SUCCESS: Neuro-integrity mapping updated for player [{targetPlayer.Nickname}]. Sanity adjusted from {currentSanity}% to {finalSanity}%.";
+                    response = $"SUCCESS: Neuro-integrity mapping updated for [{targetPlayer.Nickname}]. Sanity adjusted from {currentSanity:F1}% to {finalSanity:F1}%.";
                     return true;
 
                 default:
@@ -280,10 +389,28 @@ namespace SCP_575.Commands
         #endregion
 
         #region Private Infrastructure Syncs
-        private static void UpdateBlackoutStackMatrix(Methods logic, int targetLevel)
+        private static void UpdateBlackoutStackMatrix(SCP_575.Npc.Methods logic, int targetLevel)
         {
-            while (logic.GetCurrentBlackoutStacks < targetLevel) logic.IncrementBlackoutStack();
-            while (logic.GetCurrentBlackoutStacks > targetLevel) logic.DecrementBlackoutStack();
+            int safeTarget = targetLevel.Clamp(0, 100);
+            while (logic.GetCurrentBlackoutStacks < safeTarget)
+            {
+                logic.IncrementBlackoutStack();
+            }
+
+            while (logic.GetCurrentBlackoutStacks > safeTarget)
+            {
+                logic.DecrementBlackoutStack();
+            }
+        }
+
+        private static string[] GetSubArray(ArraySegment<string> segment, int startIndex, int length)
+        {
+            string[] result = new string[length];
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = segment.At(startIndex + i);
+            }
+            return result;
         }
         #endregion
     }
